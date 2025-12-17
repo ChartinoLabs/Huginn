@@ -636,17 +636,6 @@ huginn run --inventory-plugin huginn-netbox
 huginn run --testbed testbed.yaml
 ```
 
-**Combining Sources:**
-
-Inventory plugins can optionally merge with or augment a base YAML testbed:
-
-```toml
-[tool.huginn]
-testbed = "base-testbed.yaml"      # Static base inventory
-inventory_plugin = "huginn-netbox" # Augment with NetBox data
-inventory_merge = true             # Merge rather than replace
-```
-
 ### Hook System
 
 Hooks allow code execution at specific lifecycle points:

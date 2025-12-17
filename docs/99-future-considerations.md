@@ -123,6 +123,29 @@ Support for user-defined report templates was descoped from MVP. Consider:
 - Custom data transformations for report output
 - Integration with external reporting systems
 
+### Inventory Plugin Merging
+
+The MVP supports inventory plugins as a complete replacement for the static testbed YAML file. Future releases could support merging plugin inventory with a testbed file:
+
+```toml
+[tool.huginn]
+inventory_plugin = "huginn-netbox"
+inventory_merge = true  # Future: merge with testbed.yaml
+```
+
+**Use cases:**
+
+- Plugin provides base device inventory from NetBox
+- Testbed file adds lab-specific devices not in NetBox
+- Testbed file overrides specific connection parameters for certain devices
+
+**Questions to explore:**
+
+- Conflict resolution strategy (plugin wins? testbed wins? error?)
+- Merge granularity (device-level? field-level?)
+- Credential merging behavior
+- Group membership merging (union? intersection?)
+
 ---
 
 ## Related Documents
