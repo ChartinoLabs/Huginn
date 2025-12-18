@@ -1,1 +1,4 @@
 BRKXAR-2032-test-automation
+
+# Generated version file (hatch-vcs)
+src/huginn/_version.py
