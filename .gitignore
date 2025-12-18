@@ -1,1 +1,4 @@
 BRKXAR-2032-test-automation
+
+# Compiled Python files
+*.pyc
