@@ -1,0 +1,76 @@
+---
+name: Release validation
+on: # yamllint disable-line rule:truthy
+  push:
+    tags:
+      - "v*.*.*"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate tag format
+        run: |
+          TAG="${{ github.ref_name }}"
+          if ! echo "$TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Error: Tag '$TAG' does not match semver format v<MAJOR>.<MINOR>.<PATCH>"
+            echo "Expected format: v0.1.0, v1.2.3, etc."
+            exit 1
+          fi
+          echo "Tag '$TAG' is valid semver format"
+  test:
+    needs: validate-tag
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # Full history needed for version detection
+      - uses: ./.github/actions/setup-python-uv
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run unit tests with pytest
+        run: uv run pytest --cov=src --cov-report=term-missing
+  build-and-verify:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # Full history needed for version detection
+      - uses: ./.github/actions/setup-python-uv
+        with:
+          python-version: "3.13"
+      - name: Build package
+        run: uv build
+      - name: Verify version consistency
+        run: |
+          # Extract version from git tag (remove 'v' prefix)
+          TAG="${{ github.ref_name }}"
+          EXPECTED_VERSION="${TAG#v}"
+          echo "Expected version from tag: $EXPECTED_VERSION"
+
+          # Extract version from built wheel filename
+          WHEEL_FILE=$(ls dist/*.whl)
+          echo "Built wheel: $WHEEL_FILE"
+
+          # Extract version from wheel filename (format: huginn-VERSION-py3-none-any.whl)
+          ACTUAL_VERSION=$(basename "$WHEEL_FILE" | sed -E 's/huginn-([0-9]+\.[0-9]+\.[0-9]+)-.*/\1/')
+          echo "Actual version from wheel: $ACTUAL_VERSION"
+
+          # Compare versions
+          if [ "$EXPECTED_VERSION" != "$ACTUAL_VERSION" ]; then
+            echo "Error: Version mismatch!"
+            echo "  Git tag version: $EXPECTED_VERSION"
+            echo "  Built package version: $ACTUAL_VERSION"
+            exit 1
+          fi
+
+          echo "Version verification successful: $EXPECTED_VERSION matches built package"
