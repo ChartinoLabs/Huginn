@@ -5,6 +5,7 @@ against infrastructure testbeds.
 """
 
 from enum import Enum
+from importlib.metadata import version as get_version
 from pathlib import Path
 from typing import Annotated
 
@@ -127,7 +128,7 @@ def run(
 @app.command()
 def version() -> None:
     """Display the Huginn version."""
-    typer.echo("huginn 0.1.0")
+    typer.echo(f"huginn v{get_version('huginn')}")
 
 
 def main() -> None:
