@@ -1,0 +1,18 @@
+[project]
+name = "huginn"
+version = "0.1.0"
+description = "A Python-native, async-first test automation framework for network infrastructure, servers, and applications."
+readme = "README.md"
+authors = [
+    { name = "Christopher Hart", email = "christopherjhart95@gmail.com" },
+    { name = "Andrea Testino", email = "aitestino@gmail.com"}
+]
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+huginn = "huginn:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
