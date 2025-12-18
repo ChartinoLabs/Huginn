@@ -1,5 +1,9 @@
 # Huginn
 
+[![CI](https://img.shields.io/github/actions/workflow/status/ChartinoLabs/Huginn/ci.yaml?branch=main&label=CI&logo=github)](https://github.com/ChartinoLabs/Huginn/actions/workflows/ci.yaml)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.11-blue?logo=python&logoColor=white)](https://www.python.org)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+
 A Python-native, async-first test automation framework for network infrastructure, servers, and applications.
 
 ## Overview
