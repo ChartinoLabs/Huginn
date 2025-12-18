@@ -1,6 +1,6 @@
 [project]
 name = "huginn"
-version = "0.1.0"
+dynamic = ["version"]
 description = "A Python-native, async-first test automation framework for network infrastructure, servers, and applications."
 readme = "README.md"
 authors = [
@@ -16,8 +16,14 @@ dependencies = [
 huginn = "huginn:main"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/huginn/_version.py"
 
 [dependency-groups]
 dev = [
@@ -35,6 +41,9 @@ dev = [
 testpaths = ["tests"]
 python_files = "test_*.py"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+exclude = ["src/huginn/_version.py"]
 
 [tool.ruff.lint]
 select = [
