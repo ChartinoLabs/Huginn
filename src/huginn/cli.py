@@ -4,25 +4,19 @@ This module provides the command-line interface for executing test plans
 against infrastructure testbeds.
 """
 
-from enum import Enum
 from importlib.metadata import version as get_version
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
+from huginn.enums import ExecutionMode
+
 app = typer.Typer(
     name="huginn",
     help="Async-first test automation framework for network infrastructure.",
     no_args_is_help=True,
 )
-
-
-class ExecutionMode(str, Enum):
-    """Execution mode for test runs."""
-
-    LEARNING = "learning"
-    TESTING = "testing"
 
 
 @app.command()
