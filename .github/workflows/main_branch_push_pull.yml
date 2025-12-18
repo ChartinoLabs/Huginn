@@ -14,6 +14,8 @@ jobs:
   format:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out code
+        uses: actions/checkout@v6
       - uses: ./.github/actions/setup-python-uv
         with:
           python-version: "3.13"
@@ -22,6 +24,8 @@ jobs:
   lint-python:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out code
+        uses: actions/checkout@v6
       - uses: ./.github/actions/setup-python-uv
         with:
           python-version: "3.13"
@@ -30,6 +34,8 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out code
+        uses: actions/checkout@v6
       - uses: ./.github/actions/setup-python-uv
         with:
           python-version: "3.13"
@@ -38,6 +44,8 @@ jobs:
   check-complexity:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out code
+        uses: actions/checkout@v6
       - uses: ./.github/actions/setup-python-uv
         with:
           python-version: "3.13"
@@ -50,6 +58,8 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
     steps:
+      - name: Check out code
+        uses: actions/checkout@v6
       - uses: ./.github/actions/setup-python-uv
         with:
           python-version: ${{ matrix.python-version }}
@@ -62,6 +72,8 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
     steps:
+      - name: Check out code
+        uses: actions/checkout@v6
       - uses: ./.github/actions/setup-python-uv
         with:
           python-version: ${{ matrix.python-version }}
