@@ -1,0 +1,26 @@
+---
+name: Setup Python with uv
+description: Checkout, setup Python, install uv, and sync dependencies
+
+inputs:
+  python-version:
+    description: Python version to use
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check out code
+      uses: actions/checkout@v6
+    - name: Set up Python ${{ inputs.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        version: "latest"
+        enable-cache: true
+    - name: Install all dependencies
+      shell: bash
+      run: uv sync --group dev
