@@ -154,7 +154,13 @@ Executes a single test:
 
 - Instantiates the test class
 - Constructs and injects the Context
-- Calls `setup()`, `test()`, `cleanup()` in sequence
+- Calls `check_applicability()` to determine which targets are relevant
+- Updates `context.targets` to contain only applicable devices
+- For each non-applicable device, checks if learned parameters exist:
+-
+  - If parameters exist: Records as LOST_APPLICABILITY (was applicable, now isn't)
+  - If no parameters: Records as NOT_APPLICABLE (never was applicable)
+- If applicable devices exist, calls `setup()`, `test()`, `cleanup()` in sequence
 - Ensures `cleanup()` runs even if `setup()` or `test()` fails
 - Captures exceptions and converts to test failures
 
@@ -163,9 +169,10 @@ Executes a single test:
 Generates test reports with hierarchical structure (phases → groups → test cases):
 
 - Summary report with phase-level results (collapsible/expandable)
-- Per-test case group results with pass/fail counts
+- Per-test case group results with pass/fail/lost applicability counts
 - Per-test HTML reports with command output and granular results
-- Aggregate status indicators (Passed, Partial, Failed, Blocked, Skipped)
+- Aggregate status indicators (Passed, Partial, Failed, Blocked, Not Applicable, Lost Applicability)
+- Clear distinction between NOT_APPLICABLE (never applicable) and LOST_APPLICABILITY (was applicable, now isn't)
 - Structured output (JSON) for CI/CD integration
 
 ### Connection Broker
@@ -466,7 +473,7 @@ Result statuses:
 
 - `PASSED`: Check succeeded
 - `FAILED`: Check failed
-- `SKIPPED`: Check was skipped
+- `NOT_APPLICABLE`: Check was not applicable to this device
 - `ERRORED`: Check encountered an error
 - `INFO`: Informational (does not affect pass/fail)
 
@@ -507,10 +514,16 @@ Parameters are stored as JSON files, enabling version control and manual inspect
        iv.  For each test case in group (potentially parallel):
             - Instantiate job class
             - Construct Context with targets, broker, parameters, data_model
+            - Call job.check_applicability(context)
+            - For each non-applicable device:
+              * If learned parameters exist for device → record as LOST_APPLICABILITY
+              * Otherwise → record as NOT_APPLICABLE
+            - Update context.targets to contain only applicable devices
+            - If no applicable devices, skip to result collection
             - Call job.setup(context)
             - Call job.test(context)
             - Call job.cleanup(context)
-            - Collect result (Passed, Failed, Errored, Skipped)
+            - Collect result (Passed, Failed, Errored, Not Applicable, Lost Applicability)
        v.   Aggregate group results (compute Passed/Partial/Failed)
     b. Clear phase-scoped cache entries
     c. Aggregate phase results (compute Passed/Partial/Failed)
@@ -528,30 +541,53 @@ Parameters are stored as JSON files, enabling version control and manual inspect
                     └────┬────┘
                          │
                          ▼
-               ┌─────────────────┐
-               │  setup(context) │
-               └────────┬────────┘
+          ┌──────────────────────────┐
+          │ check_applicability()    │
+          │ (filter targets)         │
+          └────────────┬─────────────┘
+                       │
+           ┌───────────┴───────────┐
+           │                       │
+    Some Applicable          None Applicable
+           │                       │
+           ▼                       │
+   ┌─────────────────┐             │
+   │  setup(context) │             │
+   └────────┬────────┘             │
+            │                      │
+  ┌─────────┴─────────┐            │
+  │                   │            │
+Success            Failure         │
+  │                   │            │
+  ▼                   │            │
+┌───────────────┐     │            │
+│ test(context) │     │            │
+└───────┬───────┘     │            │
+        │             │            │
+        ▼             ▼            │
+┌────────────────────────────┐     │
+│     cleanup(context)       │     │
+│      (always runs)         │     │
+└────────────┬───────────────┘     │
+             │                     │
+             └──────────┬──────────┘
                         │
-            ┌───────────┴───────────┐
-            │                       │
-         Success                 Failure
-            │                       │
-            ▼                       │
-    ┌───────────────┐               │
-    │ test(context) │               │
-    └───────┬───────┘               │
-            │                       │
-            ▼                       ▼
-   ┌────────────────────────────────────┐
-   │         cleanup(context)           │
-   │      (always runs)                 │
-   └────────────────────────────────────┘
-                    │
-                    ▼
-            ┌───────────────┐
-            │ Collect Results│
-            └───────────────┘
+                        ▼
+               ┌───────────────┐
+               │Collect Results│
+               └───────────────┘
 ```
+
+**Notes on applicability:**
+
+- `check_applicability()` is called first with all assigned targets
+- Non-applicable devices are recorded with their reasons:
+  - **NOT_APPLICABLE**: If no learned parameters exist for the device (never was applicable)
+  - **LOST_APPLICABILITY**: If learned parameters exist (was applicable, now isn't)
+- LOST_APPLICABILITY results contribute to test failure; NOT_APPLICABLE results do not
+- `context.targets` is updated to contain only applicable devices
+- If no devices are applicable, `setup()` and `test()` are skipped entirely
+- `cleanup()` only runs if `setup()` was called
 
 ## Plugin System
 

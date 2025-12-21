@@ -4,8 +4,9 @@ This document describes how to write tests for Huginn, including the base class 
 
 ## Overview
 
-Huginn tests are Python classes that inherit from the `TestCase` abstract base class. Each test implements three async methods:
+Huginn tests are Python classes that inherit from the `TestCase` abstract base class. Each test implements up to four async methods:
 
+- `check_applicability()`: Determine which assigned targets the test applies to (optional, has default)
 - `setup()`: Verify prerequisites and prepare test state
 - `test()`: Execute the actual test logic
 - `cleanup()`: Clean up test-specific state (not connections - the framework manages those)
@@ -16,19 +17,48 @@ Huginn tests are Python classes that inherit from the `TestCase` abstract base c
 
 ```python
 from abc import ABC, abstractmethod
-from huginn import Context
+from huginn import Context, ApplicabilityResult
 
 class TestCase(ABC):
     """Abstract base class for all Huginn tests."""
+
+    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+        """Determine which target devices this test applies to.
+
+        Called before test(). Override this method to dynamically filter
+        targets based on device capabilities, running features, or other
+        runtime conditions. The default implementation marks all targets
+        as applicable.
+
+        This method enables tests to introspect their assigned targets and
+        determine applicability without relying on external data models.
+        Common patterns include:
+        - Checking if a protocol is enabled on the device
+        - Verifying required features are present
+        - Confirming device role matches test requirements
+
+        Returns:
+            ApplicabilityResult containing:
+            - applicable: list of devices the test should run against
+            - not_applicable: dict mapping device names to skip reasons
+
+        The framework updates context.targets to contain only applicable
+        devices before calling test(). Non-applicable devices are recorded
+        with NOT_APPLICABLE status and their reasons in the test results.
+        """
+        return ApplicabilityResult(
+            applicable=list(context.targets),
+            not_applicable={}
+        )
 
     @abstractmethod
     async def setup(self, context: Context) -> None:
         """Prepare for test execution.
 
-        Called before test(). Use this to verify prerequisites like
-        device connectivity (already established by framework) or
-        set up test-specific state. If this method raises an exception,
-        test() is skipped but cleanup() still runs.
+        Called after check_applicability() filters targets. Use this to
+        verify prerequisites like device connectivity (already established
+        by framework) or set up test-specific state. If this method raises
+        an exception, test() is skipped but cleanup() still runs.
 
         Note: Do NOT connect to devices here - the Connection Broker
         handles connection lifecycle at the test plan level.
@@ -41,6 +71,8 @@ class TestCase(ABC):
 
         This is where the main test logic lives. Use context.broker
         to execute commands and context.results to record outcomes.
+        Only devices marked as applicable in check_applicability()
+        are available in context.targets.
         """
         ...
 
@@ -177,7 +209,7 @@ Result statuses (`ResultStatus` enum):
 
 - `PASSED`: Check succeeded
 - `FAILED`: Check failed
-- `SKIPPED`: Check was skipped
+- `NOT_APPLICABLE`: Check was not applicable to this device
 - `ERRORED`: Check encountered an error
 - `INFO`: Informational (no impact on overall status)
 
@@ -325,6 +357,368 @@ class VerifyBGPNeighbors(TestCase):
         # ... implementation ...
         pass
 ```
+
+## Dynamic Applicability
+
+While data model-driven tests can determine applicability by checking whether a feature is declared in the intended state, many tests operate without a data model. These tests - particularly those using the learning/testing pattern with file-based parameters - need a mechanism to dynamically determine which of their assigned targets are actually relevant.
+
+The `check_applicability()` method provides a structured way for tests to introspect their targets and filter out devices where the test doesn't apply.
+
+### The ApplicabilityResult Class
+
+```python
+from dataclasses import dataclass, field
+from huginn import DeviceAdapter
+
+@dataclass
+class ApplicabilityResult:
+    """Result of a test's applicability check.
+
+    Attributes:
+        applicable: Devices the test should run against.
+        not_applicable: Mapping of device names to reasons why
+            the test doesn't apply to them.
+    """
+    applicable: list[DeviceAdapter] = field(default_factory=list)
+    not_applicable: dict[str, str] = field(default_factory=dict)
+```
+
+### When to Use Dynamic Applicability
+
+Use `check_applicability()` when:
+
+1. **Feature presence varies across targets**: A test for OSPF validation is assigned to all "router" devices, but not all routers run OSPF.
+
+2. **Device capabilities differ**: A test validates a platform-specific feature only available on certain hardware models.
+
+3. **Role-based logic**: A test applies only to devices acting in a specific role (e.g., route reflector, DHCP server) that isn't captured in device groups.
+
+4. **Runtime state matters**: A test should only run if certain preconditions exist (e.g., interface is up, feature is licensed).
+
+### Basic Example
+
+```python
+from huginn import TestCase, Context, ApplicabilityResult, ResultStatus
+import muninn
+
+class VerifyOSPFNeighbors(TestCase):
+    """Verify OSPF neighbors match expected state."""
+
+    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+        """Only test devices that have OSPF enabled."""
+        applicable = []
+        not_applicable = {}
+
+        for device in context.targets:
+            # Check if OSPF is running on this device
+            output = await context.broker.execute(device, "show ip protocols")
+            parsed = muninn.parse(device.os, "show ip protocols", output)
+
+            if "ospf" in parsed.get("routing_protocols", []):
+                applicable.append(device)
+            else:
+                not_applicable[device.name] = "OSPF not enabled on device"
+
+        return ApplicabilityResult(
+            applicable=applicable,
+            not_applicable=not_applicable
+        )
+
+    async def setup(self, context: Context) -> None:
+        # At this point, context.targets only contains applicable devices
+        for device in context.targets:
+            if not context.broker.is_connected(device.name):
+                raise RuntimeError(f"Device {device.name} is not connected")
+
+    async def test(self, context: Context) -> None:
+        # Test logic runs only against applicable devices
+        for device in context.targets:
+            output = await context.broker.execute(device, "show ip ospf neighbor")
+            # ... validation logic ...
+
+    async def cleanup(self, context: Context) -> None:
+        pass
+```
+
+### Execution Flow
+
+When a test implements `check_applicability()`, the framework:
+
+1. Calls `check_applicability(context)` with all originally assigned targets
+2. Records non-applicable devices with `NOT_APPLICABLE` status and their reasons
+3. Updates `context.targets` to contain only applicable devices
+4. Proceeds with `setup()` → `test()` → `cleanup()` using filtered targets
+5. If no devices are applicable, skips `setup()` and `test()` entirely
+
+```txt
+Original targets: [spine-01, spine-02, leaf-01, leaf-02, leaf-03]
+                              │
+                              ▼
+                   check_applicability()
+                              │
+              ┌───────────────┴───────────────┐
+              │                               │
+        Applicable:                    Not Applicable:
+    [spine-01, spine-02]           leaf-01: "OSPF not enabled"
+                                   leaf-02: "OSPF not enabled"
+                                   leaf-03: "OSPF not enabled"
+              │                               │
+              ▼                               ▼
+       context.targets              Recorded as NOT_APPLICABLE
+    updated to [spine-01,           in test results
+         spine-02]
+              │
+              ▼
+    setup() → test() → cleanup()
+    (only sees spine-01, spine-02)
+```
+
+### Caching Considerations
+
+Commands executed in `check_applicability()` are cached by the broker like any other command. This means:
+
+- If the same command is used later in `test()`, it uses the cached result
+- Multiple tests checking the same conditions share cached output
+- Use `use_cache=False` only if the applicability check requires fresh data
+
+```python
+async def check_applicability(self, context: Context) -> ApplicabilityResult:
+    applicable = []
+    not_applicable = {}
+
+    for device in context.targets:
+        # This output is cached and can be reused in test()
+        output = await context.broker.execute(device, "show ip ospf neighbor")
+
+        if "No OSPF neighbors" in output:
+            not_applicable[device.name] = "No OSPF neighbors configured"
+        else:
+            applicable.append(device)
+
+    return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
+```
+
+### Pattern: Metadata-Based Applicability
+
+For simple cases, device metadata can drive applicability without executing commands:
+
+```python
+async def check_applicability(self, context: Context) -> ApplicabilityResult:
+    """Only test devices with 'ospf_enabled' metadata flag."""
+    applicable = []
+    not_applicable = {}
+
+    for device in context.targets:
+        if device.metadata.get("ospf_enabled", False):
+            applicable.append(device)
+        else:
+            not_applicable[device.name] = "Device metadata indicates OSPF not enabled"
+
+    return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
+```
+
+This pattern is useful when:
+
+- Testbed authors annotate devices with feature flags
+- Device metadata is populated from an inventory system (NetBox, etc.)
+- Applicability is known ahead of time and doesn't require runtime discovery
+
+### Pattern: Platform-Specific Tests
+
+```python
+from huginn import TestCase, Context, ApplicabilityResult
+
+class VerifyVXLANVTEPs(TestCase):
+    """Verify VXLAN VTEP configuration - only applicable to leaf switches."""
+
+    SUPPORTED_PLATFORMS = {"N9K-C93180YC-EX", "N9K-C93180YC-FX"}
+
+    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+        applicable = []
+        not_applicable = {}
+
+        for device in context.targets:
+            platform = device.metadata.get("platform_model")
+
+            if platform in self.SUPPORTED_PLATFORMS:
+                applicable.append(device)
+            else:
+                not_applicable[device.name] = (
+                    f"Platform {platform} does not support VXLAN VTEP"
+                )
+
+        return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
+
+    async def setup(self, context: Context) -> None:
+        pass
+
+    async def test(self, context: Context) -> None:
+        # Only runs on supported platforms
+        for device in context.targets:
+            output = await context.broker.execute(device, "show nve peers")
+            # ... validation logic ...
+
+    async def cleanup(self, context: Context) -> None:
+        pass
+```
+
+### Pattern: Combining with Learning Mode
+
+When using dynamic applicability with learning mode, consider what happens when applicability changes between learning and testing runs:
+
+```python
+from huginn import TestCase, Context, ApplicabilityResult, ExecutionMode, ResultStatus
+import muninn
+
+class VerifyBGPNeighbors(TestCase):
+    """Verify BGP neighbors with dynamic applicability."""
+
+    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+        applicable = []
+        not_applicable = {}
+
+        for device in context.targets:
+            output = await context.broker.execute(device, "show ip protocols")
+            parsed = muninn.parse(device.os, "show ip protocols", output)
+
+            if "bgp" in parsed.get("routing_protocols", []):
+                applicable.append(device)
+            else:
+                not_applicable[device.name] = "BGP not enabled"
+
+        return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
+
+    async def setup(self, context: Context) -> None:
+        pass
+
+    async def test(self, context: Context) -> None:
+        current_state = await self.gather_bgp_state(context)
+
+        if context.mode == ExecutionMode.LEARNING:
+            # Save state only for applicable devices
+            await context.parameters.save(current_state)
+            context.results.add_result(
+                status=ResultStatus.PASSED,
+                message=f"Learned BGP state for {len(current_state)} devices"
+            )
+        else:
+            expected_state = await context.parameters.load()
+
+            # Handle devices that were applicable during learning but aren't now
+            for device_name in expected_state:
+                if device_name not in current_state:
+                    context.results.add_result(
+                        status=ResultStatus.FAILED,
+                        message=f"{device_name}: Was running BGP during learning, not anymore"
+                    )
+
+            # Handle devices that are applicable now but weren't during learning
+            for device_name in current_state:
+                if device_name not in expected_state:
+                    context.results.add_result(
+                        status=ResultStatus.INFO,
+                        message=f"{device_name}: Running BGP now but no learned parameters"
+                    )
+                    continue
+
+                self.compare_device_state(
+                    device_name,
+                    expected_state[device_name],
+                    current_state[device_name],
+                    context
+                )
+
+    async def cleanup(self, context: Context) -> None:
+        pass
+
+    async def gather_bgp_state(self, context: Context) -> dict:
+        state = {}
+        for device in context.targets:
+            output = await context.broker.execute(device, "show ip bgp summary")
+            state[device.name] = muninn.parse(device.os, "show ip bgp summary", output)
+        return state
+
+    def compare_device_state(
+        self,
+        device_name: str,
+        expected: dict,
+        current: dict,
+        context: Context
+    ) -> None:
+        # ... comparison logic ...
+        pass
+```
+
+### Applicability Regression Detection
+
+When running in **testing mode** with file-based parameters, the framework automatically detects a critical scenario: devices that were applicable when parameters were learned but are no longer applicable during testing. This is called an **applicability regression**.
+
+**How it works:**
+
+1. The test's `check_applicability()` method returns devices as not applicable
+2. The framework checks whether learned parameters exist for each non-applicable device
+3. If parameters exist, this indicates the device was previously testable
+4. The framework records this as `LOST_APPLICABILITY` rather than `NOT_APPLICABLE`
+
+```txt
+Framework logic:
+
+for device in applicability_result.not_applicable:
+    if parameters_exist_for(test_id, device.name):
+        # Was applicable during learning, not anymore
+        record_result(device, LOST_APPLICABILITY, reason)
+    else:
+        # Never was applicable → expected
+        record_result(device, NOT_APPLICABLE, reason)
+```
+
+**Why this matters:**
+
+Consider a hardware migration scenario:
+
+1. **Pre-migration (learning mode)**: You learn parameters for all devices. Device `core-sw-01` runs OSPF with neighbors A, B, C.
+
+2. **Post-migration (testing mode)**: The new hardware doesn't have OSPF configured (configuration was lost, feature not migrated, etc.). The applicability check returns "OSPF not running."
+
+Without applicability regression detection, this would silently mark the device as not applicable - you'd never know that a previously-tested feature disappeared. With regression detection, the framework flags this as `LOST_APPLICABILITY`, which contributes to test failure and surfaces the issue.
+
+**Result status implications:**
+
+| Status             | Meaning                                          | Contributes to Failure? |
+| ------------------ | ------------------------------------------------ | ----------------------- |
+| NOT_APPLICABLE     | Never was applicable (no prior parameters)       | No                      |
+| LOST_APPLICABILITY | Was applicable, now isn't (has prior parameters) | **Yes**                 |
+
+This design ensures that unexpected changes in applicability are surfaced prominently rather than hidden among normal skips.
+
+### Reporting
+
+The framework captures applicability results in test reports:
+
+```txt
+Test: 3.0.0 Verify OSPF Neighbors
+Targets: 5 assigned, 2 applicable, 1 lost applicability, 2 not applicable
+
+Applicable (2):
+  ✓ spine-01: PASSED
+  ✓ spine-02: PASSED
+
+Lost Applicability (1):
+  ✗ core-sw-01: OSPF not enabled (was enabled during learning)
+
+Not Applicable (2):
+  ○ leaf-01: OSPF not enabled on device
+  ○ leaf-02: OSPF not enabled on device
+
+Result: PARTIAL (2/2 applicable passed, 1 lost applicability)
+```
+
+This provides visibility into why certain devices weren't tested, distinguishing between:
+
+- **PASSED**: Device was applicable and the test succeeded
+- **FAILED**: Device was applicable and the test found issues
+- **LOST_APPLICABILITY**: Device was applicable during learning but isn't now
+- **NOT_APPLICABLE**: Device was never applicable (no prior parameters)
 
 ## Learning and Testing Modes (File-Based Parameters)
 
@@ -826,6 +1220,7 @@ Don't repeat setup/cleanup logic across tests. Create project-specific base clas
 
 ## Related Documents
 
+- [Glossary](00-glossary.md): Formal term definitions including Applicability
 - [Architecture](02-architecture.md): Context and adapter details
 - [Testbed Specification](03-testbed-spec.md): Device definitions
 - [Test Plan Specification](04-test-plan-spec.md): Test organization
