@@ -70,7 +70,7 @@ class TestSSHBrokerProperties:
     def test_capabilities(self, broker: SSHBroker) -> None:
         """Test broker capabilities."""
         capabilities = broker.capabilities()
-        assert capabilities == {"execute", "configure"}
+        assert capabilities == {"execute", "configure", "edit"}
 
     def test_protocol_version(self, broker: SSHBroker) -> None:
         """Test PROTOCOL_VERSION attribute."""
@@ -454,8 +454,8 @@ class TestConfigure:
                 await broker.configure(connection_handle, ["interface eth0"])
 
 
-class TestGetAndEdit:
-    """Tests for get and edit methods."""
+class TestGet:
+    """Tests for get method."""
 
     @pytest.mark.asyncio
     async def test_get_raises_capability_error(
@@ -467,12 +467,69 @@ class TestGetAndEdit:
 
         assert "GET" in str(exc_info.value)
 
+
+class TestEdit:
+    """Tests for edit method."""
+
     @pytest.mark.asyncio
-    async def test_edit_raises_capability_error(
+    async def test_edit_delegates_to_configure(
+        self,
+        broker: SSHBroker,
+        connection_config: ConnectionConfig,
+        connection_handle: ConnectionHandle,
+    ) -> None:
+        """Test that edit parses config and delegates to configure."""
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
+            mock_driver = AsyncMock()
+            mock_response1 = MagicMock()
+            mock_response1.result = "interface configured"
+            mock_response2 = MagicMock()
+            mock_response2.result = "ip set"
+            mock_driver.send_commands.return_value = [mock_response1, mock_response2]
+            mock_driver_class.return_value = mock_driver
+
+            await broker.connect(connection_config)
+            result = await broker.edit(
+                connection_handle,
+                "interface eth0\nip address 10.0.0.1 255.255.255.0",
+            )
+
+            # Verify send_commands was called with parsed commands
+            mock_driver.send_commands.assert_called_once()
+            call_args = mock_driver.send_commands.call_args[0][0]
+            assert call_args == ["interface eth0", "ip address 10.0.0.1 255.255.255.0"]
+
+            assert "interface configured" in result.output
+            assert "ip set" in result.output
+
+    @pytest.mark.asyncio
+    async def test_edit_strips_empty_lines(
+        self,
+        broker: SSHBroker,
+        connection_config: ConnectionConfig,
+        connection_handle: ConnectionHandle,
+    ) -> None:
+        """Test that edit strips empty lines from config."""
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
+            mock_driver = AsyncMock()
+            mock_response = MagicMock()
+            mock_response.result = "done"
+            mock_driver.send_commands.return_value = [mock_response]
+            mock_driver_class.return_value = mock_driver
+
+            await broker.connect(connection_config)
+            await broker.edit(
+                connection_handle,
+                "\n  \ninterface eth0\n\n  \n",
+            )
+
+            call_args = mock_driver.send_commands.call_args[0][0]
+            assert call_args == ["interface eth0"]
+
+    @pytest.mark.asyncio
+    async def test_edit_not_connected(
         self, broker: SSHBroker, connection_handle: ConnectionHandle
     ) -> None:
-        """Test that edit raises CapabilityError."""
-        with pytest.raises(CapabilityError) as exc_info:
-            await broker.edit(connection_handle, "<config>...</config>")
-
-        assert "edit" in str(exc_info.value)
+        """Test edit when not connected."""
+        with pytest.raises(NotConnectedError):
+            await broker.edit(connection_handle, "interface eth0")
