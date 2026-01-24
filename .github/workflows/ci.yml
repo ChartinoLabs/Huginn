@@ -1,12 +1,8 @@
 ---
-name: Huginn main branch push or PR
+name: CI
 on: # yamllint disable-line rule:truthy
   push:
-    branches:
-      - main
   pull_request:
-    branches:
-      - main
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
