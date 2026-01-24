@@ -92,9 +92,9 @@ class SSHBroker:
         """Return the set of capabilities this broker supports.
 
         Returns:
-            Set containing 'execute' and 'configure'.
+            Set containing 'execute', 'configure', and 'edit'.
         """
-        return {"execute", "configure"}
+        return {"execute", "configure", "edit"}
 
     def cache_key(self, operation: str, **kwargs: Any) -> str | None:  # noqa: ANN401
         """Generate a cache key for the given operation.
@@ -359,16 +359,22 @@ class SSHBroker:
         config: str,
         **kwargs: Any,  # noqa: ANN401
     ) -> CommandResult:
-        """Perform an edit-config operation.
+        """Perform an edit operation by sending configuration commands.
 
-        SSH broker does not support edit operations.
+        This method parses the config string into individual commands
+        (split by newlines) and delegates to configure().
 
         Args:
             handle: The connection handle.
-            config: The configuration payload.
-            **kwargs: Additional options.
+            config: Configuration commands as a newline-separated string.
+            **kwargs: Additional options passed to configure().
+
+        Returns:
+            The configuration result with combined output.
 
         Raises:
-            CapabilityError: Always, as SSH does not support edit.
+            NotConnectedError: If not connected.
+            ConfigurationError: If configuration fails.
         """
-        raise CapabilityError("SSH broker does not support edit operations")
+        commands = [cmd.strip() for cmd in config.strip().split("\n") if cmd.strip()]
+        return await self.configure(handle, commands, **kwargs)
