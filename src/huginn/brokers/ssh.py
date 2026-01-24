@@ -18,7 +18,6 @@ from scrapli.exceptions import (
 
 from huginn.brokers.exceptions import (
     AuthenticationError,
-    CapabilityError,
     CommandError,
     ConfigurationError,
     ConnectionError,
@@ -92,9 +91,9 @@ class SSHBroker:
         """Return the set of capabilities this broker supports.
 
         Returns:
-            Set containing 'execute', 'configure', and 'edit'.
+            Set containing 'execute', 'configure', 'get', and 'edit'.
         """
-        return {"execute", "configure", "edit"}
+        return {"execute", "configure", "get", "edit"}
 
     def cache_key(self, operation: str, **kwargs: Any) -> str | None:  # noqa: ANN401
         """Generate a cache key for the given operation.
@@ -339,19 +338,25 @@ class SSHBroker:
         path: str,
         **kwargs: Any,  # noqa: ANN401
     ) -> CommandResult:
-        """Perform a GET operation.
+        """Perform a GET operation by executing a show command.
 
-        SSH broker does not support GET operations.
+        This method treats the path parameter as a command to execute,
+        typically a "show" command for retrieving device state.
 
         Args:
             handle: The connection handle.
-            path: The path for the GET operation.
-            **kwargs: Additional options.
+            path: The command to execute (e.g., "show interfaces").
+            **kwargs: Additional options passed to execute().
+
+        Returns:
+            The command result with output and timing.
 
         Raises:
-            CapabilityError: Always, as SSH does not support GET.
+            NotConnectedError: If not connected.
+            TimeoutError: If the command times out.
+            CommandError: If command execution fails.
         """
-        raise CapabilityError("SSH broker does not support GET operations")
+        return await self.execute(handle, path, **kwargs)
 
     async def edit(
         self,
