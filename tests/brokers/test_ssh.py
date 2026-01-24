@@ -38,6 +38,7 @@ def connection_config() -> ConnectionConfig:
         device_name="router1",
         host="192.168.1.1",
         port=22,
+        os="nxos",
         credentials={"username": "admin", "password": "secret"},
         options={},
     )
@@ -96,6 +97,43 @@ class TestCacheKey:
         assert key is None
 
 
+class TestPlatformMapping:
+    """Tests for OS to Scrapli platform mapping."""
+
+    def test_map_nxos(self, broker: SSHBroker) -> None:
+        """Test mapping nxos to cisco_nxos."""
+        assert broker._get_scrapli_platform("nxos") == "cisco_nxos"
+
+    def test_map_iosxe(self, broker: SSHBroker) -> None:
+        """Test mapping iosxe to cisco_iosxe."""
+        assert broker._get_scrapli_platform("iosxe") == "cisco_iosxe"
+
+    def test_map_iosxr(self, broker: SSHBroker) -> None:
+        """Test mapping iosxr to cisco_iosxr."""
+        assert broker._get_scrapli_platform("iosxr") == "cisco_iosxr"
+
+    def test_map_eos(self, broker: SSHBroker) -> None:
+        """Test mapping eos to arista_eos."""
+        assert broker._get_scrapli_platform("eos") == "arista_eos"
+
+    def test_map_junos(self, broker: SSHBroker) -> None:
+        """Test mapping junos to juniper_junos."""
+        assert broker._get_scrapli_platform("junos") == "juniper_junos"
+
+    def test_missing_os_raises_error(self, broker: SSHBroker) -> None:
+        """Test that None OS raises ConnectionError."""
+        with pytest.raises(ConnectionError) as exc_info:
+            broker._get_scrapli_platform(None)
+        assert "OS must be specified" in str(exc_info.value)
+
+    def test_unsupported_os_raises_error(self, broker: SSHBroker) -> None:
+        """Test that unsupported OS raises ConnectionError."""
+        with pytest.raises(ConnectionError) as exc_info:
+            broker._get_scrapli_platform("unsupported_os")
+        assert "Unsupported OS" in str(exc_info.value)
+        assert "unsupported_os" in str(exc_info.value)
+
+
 class TestConnect:
     """Tests for connect method."""
 
@@ -104,7 +142,7 @@ class TestConnect:
         self, broker: SSHBroker, connection_config: ConnectionConfig
     ) -> None:
         """Test successful connection."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             mock_driver_class.return_value = mock_driver
 
@@ -121,7 +159,7 @@ class TestConnect:
         self, broker: SSHBroker, connection_config: ConnectionConfig
     ) -> None:
         """Test connection with authentication failure."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             mock_driver.open.side_effect = ScrapliAuthenticationFailed("Auth failed")
             mock_driver_class.return_value = mock_driver
@@ -136,7 +174,7 @@ class TestConnect:
         self, broker: SSHBroker, connection_config: ConnectionConfig
     ) -> None:
         """Test connection failure."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             mock_driver.open.side_effect = ScrapliConnectionError("Connection refused")
             mock_driver_class.return_value = mock_driver
@@ -151,7 +189,7 @@ class TestConnect:
         self, broker: SSHBroker, connection_config: ConnectionConfig
     ) -> None:
         """Test connection timeout."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             mock_driver.open.side_effect = ScrapliTimeout("Timed out")
             mock_driver_class.return_value = mock_driver
@@ -173,7 +211,7 @@ class TestDisconnect:
         connection_handle: ConnectionHandle,
     ) -> None:
         """Test successful disconnect."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             mock_driver_class.return_value = mock_driver
 
@@ -202,7 +240,7 @@ class TestIsAlive:
         connection_handle: ConnectionHandle,
     ) -> None:
         """Test is_alive returns True for active connection."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             # isalive is a sync method, so use MagicMock for it
             mock_driver.isalive = MagicMock(return_value=True)
@@ -221,7 +259,7 @@ class TestIsAlive:
         connection_handle: ConnectionHandle,
     ) -> None:
         """Test is_alive returns False for dead connection."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             # isalive is a sync method, so use MagicMock for it
             mock_driver.isalive = MagicMock(return_value=False)
@@ -252,7 +290,7 @@ class TestReconnect:
         connection_handle: ConnectionHandle,
     ) -> None:
         """Test successful reconnect."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             mock_driver_class.return_value = mock_driver
 
@@ -282,7 +320,7 @@ class TestExecute:
         connection_handle: ConnectionHandle,
     ) -> None:
         """Test successful command execution."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             mock_response = MagicMock()
             mock_response.result = "Cisco IOS version 15.1"
@@ -312,7 +350,7 @@ class TestExecute:
         connection_handle: ConnectionHandle,
     ) -> None:
         """Test execute timeout."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             mock_driver.send_command.side_effect = ScrapliTimeout("Command timed out")
             mock_driver_class.return_value = mock_driver
@@ -330,7 +368,7 @@ class TestExecute:
         connection_handle: ConnectionHandle,
     ) -> None:
         """Test execute with command error."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             mock_driver.send_command.side_effect = Exception("Command failed")
             mock_driver_class.return_value = mock_driver
@@ -352,7 +390,7 @@ class TestConfigure:
         connection_handle: ConnectionHandle,
     ) -> None:
         """Test successful configuration."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             mock_response1 = MagicMock()
             mock_response1.result = "interface configured"
@@ -387,7 +425,7 @@ class TestConfigure:
         connection_handle: ConnectionHandle,
     ) -> None:
         """Test configure timeout."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             mock_driver.send_commands.side_effect = ScrapliTimeout("Config timed out")
             mock_driver_class.return_value = mock_driver
@@ -405,7 +443,7 @@ class TestConfigure:
         connection_handle: ConnectionHandle,
     ) -> None:
         """Test configure with error."""
-        with patch("huginn.brokers.ssh.AsyncGenericDriver") as mock_driver_class:
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
             mock_driver.send_commands.side_effect = Exception("Config failed")
             mock_driver_class.return_value = mock_driver
