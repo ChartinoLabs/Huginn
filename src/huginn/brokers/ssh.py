@@ -37,6 +37,7 @@ PROTOCOL_VERSION = 1
 
 # Mapping from testbed OS identifiers to Scrapli platform strings.
 # See: https://carlmontanari.github.io/scrapli/user_guide/project_details/#supported-platforms
+# TODO: Refactor to use OS enums from core inventory module when implemented.
 OS_TO_SCRAPLI_PLATFORM: dict[str, str] = {
     "iosxe": "cisco_iosxe",
     "nxos": "cisco_nxos",
