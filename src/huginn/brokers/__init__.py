@@ -7,6 +7,7 @@ Classes:
     ConnectionBrokerProtocolV1: Protocol interface for connection brokers.
     SSHBroker: SSH connection broker using Scrapli.
     HTTPBroker: HTTP connection broker using aiohttp.
+    NETCONFBroker: NETCONF connection broker using scrapli_netconf.
 
 Data Classes:
     ConnectionHandle: Handle representing a managed connection.
@@ -42,6 +43,7 @@ from huginn.brokers.exceptions import (
     TimeoutError,
 )
 from huginn.brokers.http import HTTPBroker
+from huginn.brokers.netconf import NETCONFBroker
 from huginn.brokers.protocol import (
     CommandResult,
     ConnectionBrokerProtocolV1,
@@ -62,6 +64,7 @@ __all__ = [
     "ConnectionState",
     # Implementations
     "HTTPBroker",
+    "NETCONFBroker",
     "SSHBroker",
     # Exceptions
     "AuthenticationError",

@@ -10,6 +10,7 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "aiohttp>=3.13.3",
+    "scrapli-netconf[asyncssh]>=2026.1.12",
     "scrapli[asyncssh]>=2025.1.30",
 ]
 
