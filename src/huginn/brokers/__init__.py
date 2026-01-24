@@ -4,8 +4,9 @@ This module provides the protocol definitions and implementations for
 connection brokers that manage device connections.
 
 Classes:
-    ConnectionBrokerProtocol_v1: Protocol interface for connection brokers.
+    ConnectionBrokerProtocolV1: Protocol interface for connection brokers.
     SSHBroker: SSH connection broker using Scrapli.
+    HTTPBroker: HTTP connection broker using aiohttp.
 
 Data Classes:
     ConnectionHandle: Handle representing a managed connection.
@@ -40,6 +41,7 @@ from huginn.brokers.exceptions import (
     OperationError,
     TimeoutError,
 )
+from huginn.brokers.http import HTTPBroker
 from huginn.brokers.protocol import (
     CommandResult,
     ConnectionBrokerProtocolV1,
@@ -59,6 +61,7 @@ __all__ = [
     # Enums
     "ConnectionState",
     # Implementations
+    "HTTPBroker",
     "SSHBroker",
     # Exceptions
     "AuthenticationError",
