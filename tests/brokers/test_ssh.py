@@ -73,8 +73,8 @@ class TestSSHBrokerProperties:
 
     def test_protocol_version(self, broker: SSHBroker) -> None:
         """Test PROTOCOL_VERSION attribute."""
-        assert broker.PROTOCOL_VERSION == "1"
-        assert SSHBroker.PROTOCOL_VERSION == "1"
+        assert broker.PROTOCOL_VERSION == 1
+        assert SSHBroker.PROTOCOL_VERSION == 1
 
 
 class TestCacheKey:
