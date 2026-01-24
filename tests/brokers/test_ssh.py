@@ -11,7 +11,6 @@ from scrapli.exceptions import (
 
 from huginn.brokers import (
     AuthenticationError,
-    CapabilityError,
     CommandError,
     ConfigurationError,
     ConnectionConfig,
@@ -70,7 +69,7 @@ class TestSSHBrokerProperties:
     def test_capabilities(self, broker: SSHBroker) -> None:
         """Test broker capabilities."""
         capabilities = broker.capabilities()
-        assert capabilities == {"execute", "configure", "edit"}
+        assert capabilities == {"execute", "configure", "get", "edit"}
 
     def test_protocol_version(self, broker: SSHBroker) -> None:
         """Test PROTOCOL_VERSION attribute."""
@@ -458,14 +457,34 @@ class TestGet:
     """Tests for get method."""
 
     @pytest.mark.asyncio
-    async def test_get_raises_capability_error(
+    async def test_get_delegates_to_execute(
+        self,
+        broker: SSHBroker,
+        connection_config: ConnectionConfig,
+        connection_handle: ConnectionHandle,
+    ) -> None:
+        """Test that get delegates to execute."""
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
+            mock_driver = AsyncMock()
+            mock_response = MagicMock()
+            mock_response.result = "Interface Status\neth0: up"
+            mock_driver.send_command.return_value = mock_response
+            mock_driver_class.return_value = mock_driver
+
+            await broker.connect(connection_config)
+            result = await broker.get(connection_handle, "show interfaces")
+
+            mock_driver.send_command.assert_called_once_with("show interfaces")
+            assert "Interface Status" in result.output
+            assert result.cached is False
+
+    @pytest.mark.asyncio
+    async def test_get_not_connected(
         self, broker: SSHBroker, connection_handle: ConnectionHandle
     ) -> None:
-        """Test that get raises CapabilityError."""
-        with pytest.raises(CapabilityError) as exc_info:
-            await broker.get(connection_handle, "/interfaces")
-
-        assert "GET" in str(exc_info.value)
+        """Test get when not connected."""
+        with pytest.raises(NotConnectedError):
+            await broker.get(connection_handle, "show version")
 
 
 class TestEdit:
