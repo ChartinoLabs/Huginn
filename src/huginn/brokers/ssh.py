@@ -198,7 +198,7 @@ class SSHBroker:
             try:
                 await driver.close()
             except Exception:
-                pass
+                pass  # nosec B110 - intentional: best-effort cleanup during reconnect
 
         config = self._configs[handle.device_name]
         return await self.connect(config)
