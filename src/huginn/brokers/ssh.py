@@ -8,6 +8,7 @@ import time
 import uuid
 from typing import Any
 
+from scrapli import AsyncScrapli
 from scrapli.driver.generic import AsyncGenericDriver
 from scrapli.exceptions import (
     ScrapliAuthenticationFailed,
@@ -34,13 +35,30 @@ from huginn.brokers.protocol import (
 
 PROTOCOL_VERSION = 1
 
+# Mapping from testbed OS identifiers to Scrapli platform strings.
+# See: https://carlmontanari.github.io/scrapli/user_guide/project_details/#supported-platforms
+OS_TO_SCRAPLI_PLATFORM: dict[str, str] = {
+    "iosxe": "cisco_iosxe",
+    "nxos": "cisco_nxos",
+    "iosxr": "cisco_iosxr",
+    "eos": "arista_eos",
+    "junos": "juniper_junos",
+}
+
 
 class SSHBroker:
     """SSH connection broker using Scrapli.
 
     This broker manages SSH connections to network devices using
-    Scrapli's AsyncGenericDriver. It supports command execution
+    Scrapli's platform-aware drivers. It supports command execution
     and configuration operations.
+
+    The broker maps testbed OS identifiers to Scrapli platform strings:
+    - iosxe → cisco_iosxe
+    - nxos → cisco_nxos
+    - iosxr → cisco_iosxr
+    - eos → arista_eos
+    - junos → juniper_junos
 
     Attributes:
         PROTOCOL_VERSION: The protocol version this broker implements.
@@ -94,22 +112,46 @@ class SSHBroker:
             return kwargs.get("command")
         return None
 
+    def _get_scrapli_platform(self, os: str | None) -> str:
+        """Map testbed OS identifier to Scrapli platform string.
+
+        Args:
+            os: The testbed OS identifier (e.g., "nxos", "iosxe").
+
+        Returns:
+            The Scrapli platform string (e.g., "cisco_nxos").
+
+        Raises:
+            ConnectionError: If the OS is not provided or not supported.
+        """
+        if os is None:
+            raise ConnectionError("OS must be specified in connection config")
+
+        platform = OS_TO_SCRAPLI_PLATFORM.get(os)
+        if platform is None:
+            supported = ", ".join(sorted(OS_TO_SCRAPLI_PLATFORM.keys()))
+            raise ConnectionError(f"Unsupported OS '{os}'. Supported: {supported}")
+        return platform
+
     async def connect(self, config: ConnectionConfig) -> ConnectionHandle:
         """Establish an SSH connection to a device.
 
         Args:
-            config: Connection configuration including host, port, credentials.
+            config: Connection configuration including host, port, credentials, os.
 
         Returns:
             A handle representing the connection.
 
         Raises:
-            ConnectionError: If connection cannot be established.
+            ConnectionError: If connection cannot be established or OS unsupported.
             AuthenticationError: If authentication fails.
         """
+        platform = self._get_scrapli_platform(config.os)
+
         driver_kwargs: dict[str, Any] = {
             "host": config.host,
             "port": config.port,
+            "platform": platform,
             "transport": "asyncssh",
         }
 
@@ -122,7 +164,7 @@ class SSHBroker:
 
         driver_kwargs.update(config.options)
 
-        driver = AsyncGenericDriver(**driver_kwargs)
+        driver = AsyncScrapli(**driver_kwargs)
 
         try:
             await driver.open()

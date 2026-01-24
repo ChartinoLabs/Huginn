@@ -62,6 +62,7 @@ class ConnectionConfig:
         device_name: Logical name for the device.
         host: Hostname or IP address.
         port: Port number for the connection.
+        os: Operating system identifier from testbed (e.g., "nxos", "iosxe", "eos").
         credentials: Authentication credentials (username, password, key, etc.).
         options: Additional broker-specific options.
     """
@@ -69,6 +70,7 @@ class ConnectionConfig:
     device_name: str
     host: str
     port: int
+    os: str | None = None
     credentials: dict[str, Any] = field(default_factory=dict)
     options: dict[str, Any] = field(default_factory=dict)
 
