@@ -32,7 +32,7 @@ from huginn.brokers.protocol import (
     ConnectionState,
 )
 
-PROTOCOL_VERSION = "1"
+PROTOCOL_VERSION = 1
 
 
 class SSHBroker:
@@ -46,7 +46,7 @@ class SSHBroker:
         PROTOCOL_VERSION: The protocol version this broker implements.
     """
 
-    PROTOCOL_VERSION = PROTOCOL_VERSION
+    PROTOCOL_VERSION: int = PROTOCOL_VERSION
 
     def __init__(self, broker_id: str | None = None) -> None:
         """Initialize the SSH broker.
