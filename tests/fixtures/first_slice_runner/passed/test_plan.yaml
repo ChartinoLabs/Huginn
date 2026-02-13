@@ -1,7 +1,7 @@
 test_cases:
   "1.0.0":
     title: Verify Something
-    job: jobs/test_verify.py
+    job: jobs/test_verify_passed.py
 
 test_case_groups:
   group-1:
