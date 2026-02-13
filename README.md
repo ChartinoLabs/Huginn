@@ -1,6 +1,6 @@
 # Huginn
 
-[![CI](https://github.com/ChartinoLabs/Huginn/actions/workflows/main_branch_push_pull.yml/badge.svg)](https://github.com/ChartinoLabs/Huginn/actions/workflows/main_branch_push_pull.yml)
+[![CI](https://github.com/ChartinoLabs/Huginn/actions/workflows/ci.yml/badge.svg)](https://github.com/ChartinoLabs/Huginn/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.11-blue?logo=python&logoColor=white)](https://www.python.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
