@@ -1,0 +1,3 @@
+devices:
+  spine-01:
+    os: nxos

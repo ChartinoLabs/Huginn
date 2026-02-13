@@ -4,6 +4,7 @@ This module provides the command-line interface for executing test plans
 against infrastructure testbeds.
 """
 
+import asyncio
 from importlib.metadata import version as get_version
 from pathlib import Path
 from typing import Annotated
@@ -11,6 +12,7 @@ from typing import Annotated
 import typer
 
 from huginn.enums import ExecutionMode
+from huginn.runner import RunExecutionError, run_test_plan
 
 app = typer.Typer(
     name="huginn",
@@ -94,29 +96,60 @@ def run(
         huginn run -m learning -t testbed.yaml -p test_plan.yaml --tags ospf
         huginn run -m testing -p test_plan.yaml -i huginn-netbox
     """
-    if testbed is None and inventory_plugin is None:
+    testbed_path = _resolve_testbed_option(
+        testbed=testbed,
+        inventory_plugin=inventory_plugin,
+        tags=tags,
+        data_model=data_model,
+    )
+
+    try:
+        report = asyncio.run(
+            run_test_plan(
+                mode=mode,
+                testbed_path=testbed_path,
+                plan_path=plan,
+                project_root=Path.cwd(),
+                reports_dir=Path.cwd() / "reports",
+            )
+        )
+    except RunExecutionError as error:
+        typer.secho(f"Configuration error: {error}", fg=typer.colors.RED)
+        raise typer.Exit(code=2) from error
+
+    typer.echo(f"Run status: {report.summary.status}")
+    typer.echo("Report written to reports/run.json")
+    if report.summary.status != "passed":
+        raise typer.Exit(code=1)
+
+
+def _resolve_testbed_option(
+    *,
+    testbed: Path | None,
+    inventory_plugin: str | None,
+    tags: list[str] | None,
+    data_model: Path | None,
+) -> Path:
+    """Validate first-slice options and return required testbed path."""
+    if testbed is None:
+        if inventory_plugin is None:
+            raise typer.BadParameter(
+                "Either --testbed or --inventory-plugin must be specified."
+            )
         raise typer.BadParameter(
-            "Either --testbed or --inventory-plugin must be specified."
+            "--inventory-plugin is not supported in this implementation slice. "
+            "Use --testbed."
         )
 
-    if testbed is not None and inventory_plugin is not None:
+    if inventory_plugin is not None:
         raise typer.BadParameter(
             "--testbed and --inventory-plugin are mutually exclusive."
         )
-
-    typer.echo(f"Executing test plan: {plan}")
-    typer.echo(f"Mode: {mode.value}")
-
-    if testbed:
-        typer.echo(f"Testbed: {testbed}")
-    else:
-        typer.echo(f"Inventory plugin: {inventory_plugin}")
-
-    if tags:
-        typer.echo(f"Tags filter: {', '.join(tags)}")
-
-    if data_model:
-        typer.echo(f"Data model: {data_model}")
+    if tags is not None:
+        raise typer.BadParameter("--tags filtering is not implemented yet.")
+    if data_model is not None:
+        raise typer.BadParameter("--data-model is not implemented yet.")
+    return testbed
 
 
 @app.command()

@@ -624,6 +624,7 @@ name = "huginn"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
+    { name = "pyyaml" },
     { name = "scrapli", extra = ["asyncssh"] },
     { name = "scrapli-netconf", extra = ["asyncssh"] },
     { name = "typer" },
@@ -644,6 +645,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.13.3" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "scrapli", extras = ["asyncssh"], specifier = ">=2025.1.30" },
     { name = "scrapli-netconf", extras = ["asyncssh"], specifier = ">=2026.1.12" },
     { name = "typer", specifier = ">=0.20.0" },

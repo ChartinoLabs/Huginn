@@ -1,0 +1,82 @@
+"""Unit tests for YAML loader helpers."""
+
+from pathlib import Path
+
+import pytest
+
+from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
+
+FIXTURES = Path(__file__).resolve().parent / "fixtures" / "loaders"
+
+
+def test_load_testbed_success() -> None:
+    """Load a minimal valid testbed file."""
+    path = FIXTURES / "testbed_valid.yaml"
+
+    testbed = load_testbed(path)
+
+    assert set(testbed.devices.keys()) == {"spine-01", "leaf-01"}
+    assert testbed.devices["spine-01"].os == "nxos"
+
+
+def test_load_testbed_requires_devices_mapping() -> None:
+    """Raise when devices section is missing or empty."""
+    path = FIXTURES / "testbed_empty_devices.yaml"
+
+    with pytest.raises(ConfigurationError, match="non-empty 'devices' mapping"):
+        load_testbed(path)
+
+
+def test_load_testbed_requires_device_os() -> None:
+    """Raise when a device does not declare a non-empty os."""
+    path = FIXTURES / "testbed_missing_os.yaml"
+
+    with pytest.raises(ConfigurationError, match="must define non-empty 'os'"):
+        load_testbed(path)
+
+
+def test_load_test_plan_success() -> None:
+    """Load a minimal valid test plan file."""
+    path = FIXTURES / "plan_valid.yaml"
+
+    test_plan = load_test_plan(path)
+
+    assert list(test_plan.test_cases.keys()) == ["1.0.0"]
+    assert test_plan.test_cases["1.0.0"].job == "jobs/verify_bgp.py"
+    assert test_plan.test_case_groups["routing"].tests == ["1.0.0"]
+    assert test_plan.phases["phase-1"].test_case_groups == ["routing"]
+
+
+def test_load_test_plan_rejects_missing_required_sections() -> None:
+    """Raise when required top-level sections are missing."""
+    path = FIXTURES / "plan_missing_sections.yaml"
+
+    with pytest.raises(ConfigurationError, match="non-empty 'test_cases' mapping"):
+        load_test_plan(path)
+
+
+def test_load_test_plan_rejects_group_with_unknown_test_id() -> None:
+    """Raise when a group references an undefined test case id."""
+    path = FIXTURES / "plan_unknown_test_id.yaml"
+
+    with pytest.raises(ConfigurationError, match="references undefined test ids"):
+        load_test_plan(path)
+
+
+def test_load_test_plan_rejects_phase_with_unknown_group() -> None:
+    """Raise when a phase references an undefined group."""
+    path = FIXTURES / "plan_unknown_group.yaml"
+
+    with pytest.raises(
+        ConfigurationError,
+        match="references undefined test case groups",
+    ):
+        load_test_plan(path)
+
+
+def test_load_test_plan_rejects_invalid_tests_list() -> None:
+    """Raise when test_case_groups.tests contains invalid values."""
+    path = FIXTURES / "plan_invalid_tests.yaml"
+
+    with pytest.raises(ConfigurationError, match="non-empty 'tests'"):
+        load_test_plan(path)
