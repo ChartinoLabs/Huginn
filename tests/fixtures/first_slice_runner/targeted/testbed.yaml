@@ -10,3 +10,15 @@ devices:
         protocol: ssh
         host: 10.0.0.1
         port: 22
+
+  leaf-01:
+    os: nxos
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      ssh:
+        protocol: ssh
+        host: 10.0.0.2
+        port: 22

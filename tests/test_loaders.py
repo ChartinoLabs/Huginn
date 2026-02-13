@@ -35,6 +35,20 @@ def test_load_testbed_requires_device_os() -> None:
         load_testbed(path)
 
 
+def test_load_testbed_parses_ssh_connection_and_credentials() -> None:
+    """Parse optional device groups, credentials, and SSH connection details."""
+    path = FIXTURES / "testbed_with_ssh.yaml"
+
+    testbed = load_testbed(path)
+    device = testbed.devices["spine-01"]
+
+    assert device.groups == ["spine"]
+    assert device.credentials["default"]["username"] == "admin"
+    assert device.connections["ssh"].protocol == "ssh"
+    assert device.connections["ssh"].host == "10.0.0.1"
+    assert device.connections["ssh"].options["auth_strict_key"] is False
+
+
 def test_load_test_plan_success() -> None:
     """Load a minimal valid test plan file."""
     path = FIXTURES / "plan_valid.yaml"
@@ -45,6 +59,17 @@ def test_load_test_plan_success() -> None:
     assert test_plan.test_cases["1.0.0"].job == "jobs/verify_bgp.py"
     assert test_plan.test_case_groups["routing"].tests == ["1.0.0"]
     assert test_plan.phases["phase-1"].test_case_groups == ["routing"]
+
+
+def test_load_test_plan_parses_test_case_device_targets() -> None:
+    """Parse optional test-case target device selectors."""
+    path = FIXTURES / "plan_with_target_devices.yaml"
+
+    test_plan = load_test_plan(path)
+
+    target = test_plan.test_cases["1.0.0"].target
+    assert target is not None
+    assert target.devices == ["spine-01"]
 
 
 def test_load_test_plan_rejects_missing_required_sections() -> None:

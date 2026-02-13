@@ -1,3 +1,12 @@
 devices:
   spine-01:
     os: nxos
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      ssh:
+        protocol: ssh
+        host: 10.0.0.1
+        port: 22

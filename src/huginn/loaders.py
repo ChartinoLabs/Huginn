@@ -6,8 +6,10 @@ from typing import cast
 import yaml
 
 from huginn.models import (
+    ConnectionDefinition,
     Device,
     Phase,
+    TargetDefinition,
     Testbed,
     TestCaseDefinition,
     TestCaseGroup,
@@ -43,6 +45,158 @@ def _require_non_empty_string_list(value: object, error_message: str) -> list[st
     return cast(list[str], value)
 
 
+def _load_optional_string_list(value: object) -> list[str]:
+    """Load an optional list of non-empty strings."""
+    if value is None:
+        return []
+    return _require_non_empty_string_list(value, "Expected non-empty string list")
+
+
+def _load_credentials(value: object) -> dict[str, dict[str, str]]:
+    """Load optional credential mappings for a device."""
+    if value is None:
+        return {}
+
+    credentials_mapping = _require_mapping(value, "credentials must be a mapping")
+    credentials: dict[str, dict[str, str]] = {}
+    for credential_name, raw_credential in credentials_mapping.items():
+        if not isinstance(credential_name, str) or not credential_name:
+            raise ConfigurationError("Credential names must be non-empty strings")
+        credential_mapping = _require_mapping(
+            raw_credential,
+            f"Credential '{credential_name}' must be a mapping",
+        )
+        normalized: dict[str, str] = {}
+        for key, credential_value in credential_mapping.items():
+            if not isinstance(key, str) or not key:
+                raise ConfigurationError(
+                    f"Credential '{credential_name}' has an invalid key"
+                )
+            if not isinstance(credential_value, str):
+                raise ConfigurationError(
+                    f"Credential '{credential_name}' field '{key}' must be string"
+                )
+            normalized[key] = credential_value
+        credentials[credential_name] = normalized
+    return credentials
+
+
+def _load_connections(
+    device_name: str,
+    value: object,
+) -> dict[str, ConnectionDefinition]:
+    """Load optional connection definitions for a device."""
+    if value is None:
+        return {}
+
+    connections_mapping = _require_mapping(value, "connections must be a mapping")
+    parsed_connections: dict[str, ConnectionDefinition] = {}
+    for connection_name, raw_connection in connections_mapping.items():
+        parsed_connections[connection_name] = _parse_connection_definition(
+            device_name=device_name,
+            connection_name=connection_name,
+            raw_connection=raw_connection,
+        )
+
+    return parsed_connections
+
+
+def _parse_connection_definition(
+    *,
+    device_name: str,
+    connection_name: object,
+    raw_connection: object,
+) -> ConnectionDefinition:
+    """Parse and validate one device connection entry."""
+    if not isinstance(connection_name, str) or not connection_name:
+        raise ConfigurationError("Connection names must be non-empty strings")
+
+    connection_mapping = _require_mapping(
+        raw_connection,
+        f"Connection '{connection_name}' on '{device_name}' must be a mapping",
+    )
+
+    protocol = _require_non_empty_string(
+        connection_mapping.get("protocol"),
+        f"Connection '{connection_name}' on '{device_name}' must define protocol",
+    )
+    host = _require_non_empty_string(
+        connection_mapping.get("host"),
+        f"Connection '{connection_name}' on '{device_name}' must define host",
+    )
+    port = _require_int(
+        connection_mapping.get("port", 22),
+        f"Connection '{connection_name}' on '{device_name}' port must be int",
+    )
+    credential = _require_optional_string(
+        connection_mapping.get("credential"),
+        (
+            f"Connection '{connection_name}' on '{device_name}' credential "
+            "must be string"
+        ),
+    )
+
+    options = {
+        key: option_value
+        for key, option_value in connection_mapping.items()
+        if key not in {"protocol", "host", "port", "credential"}
+    }
+    return ConnectionDefinition(
+        name=connection_name,
+        protocol=protocol,
+        host=host,
+        port=port,
+        credential=credential,
+        options=options,
+    )
+
+
+def _require_non_empty_string(value: object, error_message: str) -> str:
+    """Validate and cast a required non-empty string."""
+    if not isinstance(value, str) or not value:
+        raise ConfigurationError(error_message)
+    return value
+
+
+def _require_optional_string(value: object, error_message: str) -> str | None:
+    """Validate and cast an optional string value."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ConfigurationError(error_message)
+    return value
+
+
+def _require_int(value: object, error_message: str) -> int:
+    """Validate and cast a required integer value."""
+    if not isinstance(value, int):
+        raise ConfigurationError(error_message)
+    return value
+
+
+def _load_target_definition(
+    value: object,
+    test_id: str,
+) -> TargetDefinition | None:
+    """Load optional test-case-level target definition."""
+    if value is None:
+        return None
+
+    target_mapping = _require_mapping(
+        value,
+        f"Test case '{test_id}' target must be a mapping",
+    )
+    devices_value = target_mapping.get("devices")
+    if devices_value is None:
+        return TargetDefinition(devices=None)
+
+    devices = _require_non_empty_string_list(
+        devices_value,
+        f"Test case '{test_id}' target.devices must be a non-empty list of strings",
+    )
+    return TargetDefinition(devices=devices)
+
+
 def load_testbed(path: Path) -> Testbed:
     """Load a testbed file with minimal first-slice validation."""
     data = _load_yaml(path)
@@ -66,7 +220,16 @@ def load_testbed(path: Path) -> Testbed:
             raise ConfigurationError(
                 f"Device '{device_name}' must define non-empty 'os'"
             )
-        devices[device_name] = Device(name=device_name, os=os_name)
+        devices[device_name] = Device(
+            name=device_name,
+            os=os_name,
+            groups=_load_optional_string_list(device_mapping.get("groups")),
+            credentials=_load_credentials(device_mapping.get("credentials")),
+            connections=_load_connections(
+                device_name,
+                device_mapping.get("connections"),
+            ),
+        )
 
     return Testbed(devices=devices)
 
@@ -106,6 +269,7 @@ def _load_test_cases(data: dict[str, object]) -> dict[str, TestCaseDefinition]:
 
         title = test_case_mapping.get("title")
         job = test_case_mapping.get("job")
+        target = _load_target_definition(test_case_mapping.get("target"), test_id)
         if not isinstance(title, str) or not title:
             raise ConfigurationError(
                 f"Test case '{test_id}' must include non-empty 'title'"
@@ -115,7 +279,12 @@ def _load_test_cases(data: dict[str, object]) -> dict[str, TestCaseDefinition]:
                 f"Test case '{test_id}' must include non-empty 'job'"
             )
 
-        test_cases[test_id] = TestCaseDefinition(test_id=test_id, title=title, job=job)
+        test_cases[test_id] = TestCaseDefinition(
+            test_id=test_id,
+            title=title,
+            job=job,
+            target=target,
+        )
     return test_cases
 
 
