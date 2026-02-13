@@ -10,6 +10,7 @@ from huginn.enums import ExecutionMode, ResultStatus
 from huginn.jobs import JobLoadError, load_test_case_class
 from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
 from huginn.models import (
+    CheckResult,
     Device,
     ExecutedPhase,
     ExecutedTestCase,
@@ -21,6 +22,7 @@ from huginn.models import (
 )
 from huginn.results import ResultCollector
 from huginn.runtime_broker import RuntimeBroker, RuntimeBrokerError
+from huginn.testcase import TestCase
 
 
 class RunExecutionError(RuntimeError):
@@ -96,12 +98,7 @@ async def _execute_test_case(
 ) -> ExecutedTestCase:
     targets, target_error = _resolve_targets(testbed, definition)
     if target_error is not None:
-        return ExecutedTestCase(
-            test_id=definition.test_id,
-            title=definition.title,
-            status=ResultStatus.ERRORED.value,
-            error=target_error,
-        )
+        return _errored_test_case(definition, error=target_error)
 
     result_collector = ResultCollector()
     context = Context(
@@ -120,26 +117,16 @@ async def _execute_test_case(
             project_root=project_root,
         )
     except JobLoadError as error:
-        return ExecutedTestCase(
-            test_id=definition.test_id,
-            title=definition.title,
-            status=ResultStatus.ERRORED.value,
-            error=str(error),
-        )
+        return _errored_test_case(definition, error=str(error))
 
     test_case = test_case_class()
     test_error: str | None = None
     broker_error: str | None = None
 
     try:
-        await broker.connect_targets(targets)
+        await _connect_targets_or_raise(broker, targets)
     except RuntimeBrokerError as error:
-        return ExecutedTestCase(
-            test_id=definition.test_id,
-            title=definition.title,
-            status=ResultStatus.ERRORED.value,
-            error=str(error),
-        )
+        return _errored_test_case(definition, error=str(error))
 
     try:
         await test_case.setup(context)
@@ -147,23 +134,17 @@ async def _execute_test_case(
     except Exception as error:  # noqa: BLE001
         test_error = f"{error.__class__.__name__}: {error}"
     finally:
-        try:
-            await test_case.cleanup(context)
-        except Exception as cleanup_error:  # noqa: BLE001
-            if test_error is None:
-                test_error = f"{cleanup_error.__class__.__name__}: {cleanup_error}"
-        try:
-            await broker.disconnect_targets()
-        except RuntimeBrokerError as disconnect_error:
-            broker_error = str(disconnect_error)
+        test_error = await _run_cleanup(test_case, context, test_error)
+        broker_error = await _disconnect_targets(broker)
 
     if test_error is not None or broker_error is not None:
-        return ExecutedTestCase(
-            test_id=definition.test_id,
-            title=definition.title,
-            status=ResultStatus.ERRORED.value,
+        final_error = test_error if test_error is not None else broker_error
+        if final_error is None:
+            final_error = "unknown execution error"
+        return _errored_test_case(
+            definition,
             checks=result_collector.checks,
-            error=test_error or broker_error,
+            error=final_error,
         )
 
     status = result_collector.derive_status().value
@@ -173,6 +154,54 @@ async def _execute_test_case(
         status=status,
         checks=result_collector.checks,
     )
+
+
+def _errored_test_case(
+    definition: TestCaseDefinition,
+    *,
+    error: str,
+    checks: list[CheckResult] | None = None,
+) -> ExecutedTestCase:
+    """Build a standardized errored test case output."""
+    normalized_checks: list[CheckResult] = checks if checks is not None else []
+    return ExecutedTestCase(
+        test_id=definition.test_id,
+        title=definition.title,
+        status=ResultStatus.ERRORED.value,
+        checks=normalized_checks,
+        error=error,
+    )
+
+
+async def _connect_targets_or_raise(
+    broker: RuntimeBroker,
+    targets: list[Device],
+) -> None:
+    """Connect all resolved target devices via runtime broker."""
+    await broker.connect_targets(targets)
+
+
+async def _run_cleanup(
+    test_case: TestCase,
+    context: Context,
+    test_error: str | None,
+) -> str | None:
+    """Run test cleanup and preserve first execution error."""
+    try:
+        await test_case.cleanup(context)
+    except Exception as cleanup_error:  # noqa: BLE001
+        if test_error is None:
+            return f"{cleanup_error.__class__.__name__}: {cleanup_error}"
+    return test_error
+
+
+async def _disconnect_targets(broker: RuntimeBroker) -> str | None:
+    """Disconnect broker targets and return an error message when needed."""
+    try:
+        await broker.disconnect_targets()
+    except RuntimeBrokerError as disconnect_error:
+        return str(disconnect_error)
+    return None
 
 
 def _create_broker(

@@ -92,51 +92,86 @@ def _load_connections(
     connections_mapping = _require_mapping(value, "connections must be a mapping")
     parsed_connections: dict[str, ConnectionDefinition] = {}
     for connection_name, raw_connection in connections_mapping.items():
-        if not isinstance(connection_name, str) or not connection_name:
-            raise ConfigurationError("Connection names must be non-empty strings")
-        connection_mapping = _require_mapping(
-            raw_connection,
-            f"Connection '{connection_name}' on '{device_name}' must be a mapping",
-        )
-
-        protocol = connection_mapping.get("protocol")
-        host = connection_mapping.get("host")
-        port = connection_mapping.get("port", 22)
-        credential = connection_mapping.get("credential")
-        if not isinstance(protocol, str) or not protocol:
-            raise ConfigurationError(
-                f"Connection '{connection_name}' on '{device_name}' "
-                "must define protocol"
-            )
-        if not isinstance(host, str) or not host:
-            raise ConfigurationError(
-                f"Connection '{connection_name}' on '{device_name}' must define host"
-            )
-        if not isinstance(port, int):
-            raise ConfigurationError(
-                f"Connection '{connection_name}' on '{device_name}' port must be int"
-            )
-        if credential is not None and not isinstance(credential, str):
-            raise ConfigurationError(
-                f"Connection '{connection_name}' on '{device_name}' "
-                "credential must be string"
-            )
-
-        options = {
-            key: option_value
-            for key, option_value in connection_mapping.items()
-            if key not in {"protocol", "host", "port", "credential"}
-        }
-        parsed_connections[connection_name] = ConnectionDefinition(
-            name=connection_name,
-            protocol=protocol,
-            host=host,
-            port=port,
-            credential=credential,
-            options=options,
+        parsed_connections[connection_name] = _parse_connection_definition(
+            device_name=device_name,
+            connection_name=connection_name,
+            raw_connection=raw_connection,
         )
 
     return parsed_connections
+
+
+def _parse_connection_definition(
+    *,
+    device_name: str,
+    connection_name: object,
+    raw_connection: object,
+) -> ConnectionDefinition:
+    """Parse and validate one device connection entry."""
+    if not isinstance(connection_name, str) or not connection_name:
+        raise ConfigurationError("Connection names must be non-empty strings")
+
+    connection_mapping = _require_mapping(
+        raw_connection,
+        f"Connection '{connection_name}' on '{device_name}' must be a mapping",
+    )
+
+    protocol = _require_non_empty_string(
+        connection_mapping.get("protocol"),
+        f"Connection '{connection_name}' on '{device_name}' must define protocol",
+    )
+    host = _require_non_empty_string(
+        connection_mapping.get("host"),
+        f"Connection '{connection_name}' on '{device_name}' must define host",
+    )
+    port = _require_int(
+        connection_mapping.get("port", 22),
+        f"Connection '{connection_name}' on '{device_name}' port must be int",
+    )
+    credential = _require_optional_string(
+        connection_mapping.get("credential"),
+        (
+            f"Connection '{connection_name}' on '{device_name}' credential "
+            "must be string"
+        ),
+    )
+
+    options = {
+        key: option_value
+        for key, option_value in connection_mapping.items()
+        if key not in {"protocol", "host", "port", "credential"}
+    }
+    return ConnectionDefinition(
+        name=connection_name,
+        protocol=protocol,
+        host=host,
+        port=port,
+        credential=credential,
+        options=options,
+    )
+
+
+def _require_non_empty_string(value: object, error_message: str) -> str:
+    """Validate and cast a required non-empty string."""
+    if not isinstance(value, str) or not value:
+        raise ConfigurationError(error_message)
+    return value
+
+
+def _require_optional_string(value: object, error_message: str) -> str | None:
+    """Validate and cast an optional string value."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ConfigurationError(error_message)
+    return value
+
+
+def _require_int(value: object, error_message: str) -> int:
+    """Validate and cast a required integer value."""
+    if not isinstance(value, int):
+        raise ConfigurationError(error_message)
+    return value
 
 
 def _load_target_definition(
