@@ -96,33 +96,18 @@ def run(
         huginn run -m learning -t testbed.yaml -p test_plan.yaml --tags ospf
         huginn run -m testing -p test_plan.yaml -i huginn-netbox
     """
-    if testbed is None and inventory_plugin is None:
-        raise typer.BadParameter(
-            "Either --testbed or --inventory-plugin must be specified."
-        )
-
-    if testbed is not None and inventory_plugin is not None:
-        raise typer.BadParameter(
-            "--testbed and --inventory-plugin are mutually exclusive."
-        )
-
-    if inventory_plugin is not None:
-        raise typer.BadParameter(
-            "--inventory-plugin is not supported in this implementation slice. "
-            "Use --testbed."
-        )
-    if tags is not None:
-        raise typer.BadParameter("--tags filtering is not implemented yet.")
-    if data_model is not None:
-        raise typer.BadParameter("--data-model is not implemented yet.")
-
-    assert testbed is not None  # Satisfies type checker after validation above.
+    testbed_path = _resolve_testbed_option(
+        testbed=testbed,
+        inventory_plugin=inventory_plugin,
+        tags=tags,
+        data_model=data_model,
+    )
 
     try:
         report = asyncio.run(
             run_test_plan(
                 mode=mode,
-                testbed_path=testbed,
+                testbed_path=testbed_path,
                 plan_path=plan,
                 project_root=Path.cwd(),
                 reports_dir=Path.cwd() / "reports",
@@ -136,6 +121,35 @@ def run(
     typer.echo("Report written to reports/run.json")
     if report.summary.status != "passed":
         raise typer.Exit(code=1)
+
+
+def _resolve_testbed_option(
+    *,
+    testbed: Path | None,
+    inventory_plugin: str | None,
+    tags: list[str] | None,
+    data_model: Path | None,
+) -> Path:
+    """Validate first-slice options and return required testbed path."""
+    if testbed is None:
+        if inventory_plugin is None:
+            raise typer.BadParameter(
+                "Either --testbed or --inventory-plugin must be specified."
+            )
+        raise typer.BadParameter(
+            "--inventory-plugin is not supported in this implementation slice. "
+            "Use --testbed."
+        )
+
+    if inventory_plugin is not None:
+        raise typer.BadParameter(
+            "--testbed and --inventory-plugin are mutually exclusive."
+        )
+    if tags is not None:
+        raise typer.BadParameter("--tags filtering is not implemented yet.")
+    if data_model is not None:
+        raise typer.BadParameter("--data-model is not implemented yet.")
+    return testbed
 
 
 @app.command()

@@ -1,6 +1,7 @@
 """YAML loaders for testbed and test plan files."""
 
 from pathlib import Path
+from typing import cast
 
 import yaml
 
@@ -23,23 +24,44 @@ def _load_yaml(path: Path) -> dict[str, object]:
     loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(loaded, dict):
         raise ConfigurationError(f"Expected mapping at root of {path}")
-    return loaded
+    return cast(dict[str, object], loaded)
+
+
+def _require_mapping(value: object, error_message: str) -> dict[str, object]:
+    """Validate and cast a YAML value as a dictionary mapping."""
+    if not isinstance(value, dict):
+        raise ConfigurationError(error_message)
+    return cast(dict[str, object], value)
+
+
+def _require_non_empty_string_list(value: object, error_message: str) -> list[str]:
+    """Validate and cast a non-empty list of non-empty strings."""
+    if not isinstance(value, list) or not value:
+        raise ConfigurationError(error_message)
+    if not all(isinstance(item, str) and item for item in value):
+        raise ConfigurationError(error_message)
+    return cast(list[str], value)
 
 
 def load_testbed(path: Path) -> Testbed:
     """Load a testbed file with minimal first-slice validation."""
     data = _load_yaml(path)
-    raw_devices = data.get("devices")
-    if not isinstance(raw_devices, dict) or not raw_devices:
+    raw_devices = _require_mapping(
+        data.get("devices"),
+        "Testbed must include a non-empty 'devices' mapping",
+    )
+    if not raw_devices:
         raise ConfigurationError("Testbed must include a non-empty 'devices' mapping")
 
     devices: dict[str, Device] = {}
     for device_name, raw_device in raw_devices.items():
         if not isinstance(device_name, str):
             raise ConfigurationError("Device names must be strings")
-        if not isinstance(raw_device, dict):
-            raise ConfigurationError(f"Device '{device_name}' must be a mapping")
-        os_name = raw_device.get("os")
+        device_mapping = _require_mapping(
+            raw_device,
+            f"Device '{device_name}' must be a mapping",
+        )
+        os_name = device_mapping.get("os")
         if not isinstance(os_name, str) or not os_name:
             raise ConfigurationError(
                 f"Device '{device_name}' must define non-empty 'os'"
@@ -64,8 +86,11 @@ def load_test_plan(path: Path) -> TestPlan:
 
 
 def _load_test_cases(data: dict[str, object]) -> dict[str, TestCaseDefinition]:
-    raw_test_cases = data.get("test_cases")
-    if not isinstance(raw_test_cases, dict) or not raw_test_cases:
+    raw_test_cases = _require_mapping(
+        data.get("test_cases"),
+        "Test plan must include a non-empty 'test_cases' mapping",
+    )
+    if not raw_test_cases:
         raise ConfigurationError(
             "Test plan must include a non-empty 'test_cases' mapping"
         )
@@ -74,11 +99,13 @@ def _load_test_cases(data: dict[str, object]) -> dict[str, TestCaseDefinition]:
     for test_id, raw_test_case in raw_test_cases.items():
         if not isinstance(test_id, str):
             raise ConfigurationError("Test case ids must be strings")
-        if not isinstance(raw_test_case, dict):
-            raise ConfigurationError(f"Test case '{test_id}' must be a mapping")
+        test_case_mapping = _require_mapping(
+            raw_test_case,
+            f"Test case '{test_id}' must be a mapping",
+        )
 
-        title = raw_test_case.get("title")
-        job = raw_test_case.get("job")
+        title = test_case_mapping.get("title")
+        job = test_case_mapping.get("job")
         if not isinstance(title, str) or not title:
             raise ConfigurationError(
                 f"Test case '{test_id}' must include non-empty 'title'"
@@ -93,62 +120,65 @@ def _load_test_cases(data: dict[str, object]) -> dict[str, TestCaseDefinition]:
 
 
 def _load_test_case_groups(data: dict[str, object]) -> dict[str, TestCaseGroup]:
-    raw_groups = data.get("test_case_groups")
-    if not isinstance(raw_groups, dict) or not raw_groups:
+    raw_groups = _require_mapping(
+        data.get("test_case_groups"),
+        "Test plan must include a non-empty 'test_case_groups' mapping",
+    )
+    if not raw_groups:
         raise ConfigurationError(
             "Test plan must include a non-empty 'test_case_groups' mapping"
         )
 
     groups: dict[str, TestCaseGroup] = {}
     for group_name, raw_group in raw_groups.items():
-        if not isinstance(group_name, str):
-            raise ConfigurationError("Test case group names must be strings")
-        if not isinstance(raw_group, dict):
-            raise ConfigurationError(
-                f"Test case group '{group_name}' must be a mapping"
-            )
-
-        tests = raw_group.get("tests")
-        if not isinstance(tests, list) or not tests:
-            raise ConfigurationError(
-                f"Test case group '{group_name}' must include non-empty 'tests'"
-            )
-        if not all(isinstance(test_id, str) and test_id for test_id in tests):
-            raise ConfigurationError(
-                f"Test case group '{group_name}' includes invalid test id values"
-            )
-
-        groups[group_name] = TestCaseGroup(name=group_name, tests=tests)
+        groups[group_name] = _parse_test_case_group(group_name, raw_group)
     return groups
 
 
+def _parse_test_case_group(group_name: object, raw_group: object) -> TestCaseGroup:
+    """Parse and validate one test case group mapping entry."""
+    if not isinstance(group_name, str):
+        raise ConfigurationError("Test case group names must be strings")
+
+    group_mapping = _require_mapping(
+        raw_group,
+        f"Test case group '{group_name}' must be a mapping",
+    )
+    tests = _require_non_empty_string_list(
+        group_mapping.get("tests"),
+        f"Test case group '{group_name}' must include non-empty 'tests'",
+    )
+    return TestCaseGroup(name=group_name, tests=tests)
+
+
 def _load_phases(data: dict[str, object]) -> dict[str, Phase]:
-    raw_phases = data.get("phases")
-    if not isinstance(raw_phases, dict) or not raw_phases:
+    raw_phases = _require_mapping(
+        data.get("phases"),
+        "Test plan must include a non-empty 'phases' mapping",
+    )
+    if not raw_phases:
         raise ConfigurationError("Test plan must include a non-empty 'phases' mapping")
 
     phases: dict[str, Phase] = {}
     for phase_name, raw_phase in raw_phases.items():
-        if not isinstance(phase_name, str):
-            raise ConfigurationError("Phase names must be strings")
-        if not isinstance(raw_phase, dict):
-            raise ConfigurationError(f"Phase '{phase_name}' must be a mapping")
-
-        test_case_groups = raw_phase.get("test_case_groups")
-        if not isinstance(test_case_groups, list) or not test_case_groups:
-            raise ConfigurationError(
-                f"Phase '{phase_name}' must include non-empty 'test_case_groups'"
-            )
-        if not all(
-            isinstance(group_name, str) and group_name
-            for group_name in test_case_groups
-        ):
-            raise ConfigurationError(
-                f"Phase '{phase_name}' includes invalid test case group names"
-            )
-
-        phases[phase_name] = Phase(name=phase_name, test_case_groups=test_case_groups)
+        phases[phase_name] = _parse_phase(phase_name, raw_phase)
     return phases
+
+
+def _parse_phase(phase_name: object, raw_phase: object) -> Phase:
+    """Parse and validate one phase mapping entry."""
+    if not isinstance(phase_name, str):
+        raise ConfigurationError("Phase names must be strings")
+
+    phase_mapping = _require_mapping(
+        raw_phase,
+        f"Phase '{phase_name}' must be a mapping",
+    )
+    test_case_groups = _require_non_empty_string_list(
+        phase_mapping.get("test_case_groups"),
+        f"Phase '{phase_name}' must include non-empty 'test_case_groups'",
+    )
+    return Phase(name=phase_name, test_case_groups=test_case_groups)
 
 
 def _validate_test_case_group_references(

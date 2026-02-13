@@ -1,5 +1,6 @@
 """Minimal end-to-end test plan runner for first implementation slice."""
 
+from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
 
@@ -14,6 +15,7 @@ from huginn.models import (
     ExecutedTestCaseGroup,
     RunReport,
     RunSummary,
+    Testbed,
 )
 from huginn.results import ResultCollector
 
@@ -90,7 +92,7 @@ async def _execute_test_case(
     job: str,
     mode: ExecutionMode,
     project_root: Path,
-    testbed: object,
+    testbed: Testbed,
     broker: NullBroker,
 ) -> ExecutedTestCase:
     result_collector = ResultCollector()
@@ -166,22 +168,28 @@ def _derive_status_from_values(statuses: list[str]) -> ResultStatus:
 
 
 def _build_summary(phases: list[ExecutedPhase]) -> RunSummary:
-    statuses = [
-        test_case.status
-        for phase in phases
-        for group in phase.test_case_groups
-        for test_case in group.test_cases
-    ]
+    statuses = _collect_test_case_statuses(phases)
+    counts = Counter(statuses)
     overall_status = _derive_status_from_values(statuses).value
     return RunSummary(
         status=overall_status,
         total=len(statuses),
-        passed=sum(1 for status in statuses if status == ResultStatus.PASSED.value),
-        failed=sum(1 for status in statuses if status == ResultStatus.FAILED.value),
-        errored=sum(1 for status in statuses if status == ResultStatus.ERRORED.value),
-        skipped=sum(1 for status in statuses if status == ResultStatus.SKIPPED.value),
-        blocked=sum(1 for status in statuses if status == ResultStatus.BLOCKED.value),
+        passed=counts[ResultStatus.PASSED.value],
+        failed=counts[ResultStatus.FAILED.value],
+        errored=counts[ResultStatus.ERRORED.value],
+        skipped=counts[ResultStatus.SKIPPED.value],
+        blocked=counts[ResultStatus.BLOCKED.value],
     )
+
+
+def _collect_test_case_statuses(phases: list[ExecutedPhase]) -> list[str]:
+    """Collect all test case statuses from executed phase output."""
+    statuses: list[str] = []
+    for phase in phases:
+        for group in phase.test_case_groups:
+            for test_case in group.test_cases:
+                statuses.append(test_case.status)
+    return statuses
 
 
 def _write_report(report: RunReport, reports_dir: Path) -> None:
