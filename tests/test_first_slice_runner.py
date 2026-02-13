@@ -1,6 +1,7 @@
 """Integration tests for the first end-to-end runner slice."""
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -15,25 +16,7 @@ def test_run_executes_single_test_case_and_writes_report(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """CLI run executes one test and writes a JSON report."""
-    _write_job(
-        tmp_path,
-        """
-from huginn import ResultStatus, TestCase
-
-
-class VerifySomething(TestCase):
-    async def setup(self, context) -> None:
-        return None
-
-    async def test(self, context) -> None:
-        context.results.add_result(ResultStatus.PASSED, "all good")
-
-    async def cleanup(self, context) -> None:
-        return None
-""",
-    )
-    _write_testbed(tmp_path)
-    _write_test_plan(tmp_path)
+    _stage_runner_fixture(tmp_path, "passed")
     monkeypatch.chdir(tmp_path)
 
     runner = CliRunner()
@@ -62,25 +45,7 @@ def test_run_returns_non_zero_for_failed_test_case(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """CLI run returns exit code 1 when a test fails."""
-    _write_job(
-        tmp_path,
-        """
-from huginn import ResultStatus, TestCase
-
-
-class VerifySomething(TestCase):
-    async def setup(self, context) -> None:
-        return None
-
-    async def test(self, context) -> None:
-        context.results.add_result(ResultStatus.FAILED, "failed check")
-
-    async def cleanup(self, context) -> None:
-        return None
-""",
-    )
-    _write_testbed(tmp_path)
-    _write_test_plan(tmp_path)
+    _stage_runner_fixture(tmp_path, "failed")
     monkeypatch.chdir(tmp_path)
 
     runner = CliRunner()
@@ -109,26 +74,7 @@ def test_cleanup_runs_when_test_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Cleanup is executed even when test raises an exception."""
-    _write_job(
-        tmp_path,
-        """
-from pathlib import Path
-from huginn import TestCase
-
-
-class VerifySomething(TestCase):
-    async def setup(self, context) -> None:
-        return None
-
-    async def test(self, context) -> None:
-        raise RuntimeError("boom")
-
-    async def cleanup(self, context) -> None:
-        Path("cleanup.marker").write_text("done", encoding="utf-8")
-""",
-    )
-    _write_testbed(tmp_path)
-    _write_test_plan(tmp_path)
+    _stage_runner_fixture(tmp_path, "errored")
     monkeypatch.chdir(tmp_path)
 
     runner = CliRunner()
@@ -153,48 +99,16 @@ class VerifySomething(TestCase):
     assert report_data["summary"]["errored"] == 1
 
 
-def _write_job(tmp_path: Path, body: str) -> None:
-    """Write a single job module used by tests."""
-    jobs_dir = tmp_path / "jobs"
-    jobs_dir.mkdir(parents=True, exist_ok=True)
-    (jobs_dir / "verify.py").write_text(body.strip() + "\n", encoding="utf-8")
-
-
-def _write_testbed(tmp_path: Path) -> None:
-    """Write a minimal testbed file for integration tests."""
-    (tmp_path / "testbed.yaml").write_text(
-        """
-devices:
-  spine-01:
-    os: nxos
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
-
-
-def _write_test_plan(tmp_path: Path) -> None:
-    """Write a minimal test plan file for integration tests."""
-    (tmp_path / "test_plan.yaml").write_text(
-        """
-test_cases:
-  "1.0.0":
-    title: Verify Something
-    job: jobs/verify.py
-
-test_case_groups:
-  group-1:
-    tests:
-      - "1.0.0"
-
-phases:
-  phase-1:
-    test_case_groups:
-      - group-1
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
+def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
+    """Copy a fixture scenario into the temp execution directory."""
+    fixture_root = Path(__file__).resolve().parent / "fixtures" / "first_slice_runner"
+    source = fixture_root / fixture_name
+    for source_path in source.rglob("*"):
+        if source_path.is_dir():
+            continue
+        destination = tmp_path / source_path.relative_to(source)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, destination)
 
 
 def _load_report(tmp_path: Path) -> dict[str, Any]:
