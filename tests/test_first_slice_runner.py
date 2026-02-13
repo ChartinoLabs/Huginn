@@ -18,7 +18,17 @@ class _FakeCommandResult:
 
 
 class _FakeRuntimeBroker:
-    async def connect_targets(self, targets: list[Device]) -> None:
+    last_required_brokers: set[str] = set()
+
+    def __init__(self, *, required_brokers: set[str] | None = None) -> None:
+        self._planned_brokers = required_brokers or {"ssh"}
+
+    async def connect_targets(
+        self,
+        targets: list[Device],
+        required_brokers: set[str],
+    ) -> None:
+        _FakeRuntimeBroker.last_required_brokers = set(required_brokers)
         self._connected = {target.name for target in targets}
 
     async def disconnect_targets(self) -> None:
@@ -27,6 +37,52 @@ class _FakeRuntimeBroker:
     async def execute(self, target: Device, command: str) -> _FakeCommandResult:
         assert command
         return _FakeCommandResult(output=f"ok:{target.name}")
+
+    async def get(
+        self,
+        target: Device,
+        path: str,
+        **kwargs: object,
+    ) -> _FakeCommandResult:
+        assert path
+        return _FakeCommandResult(output=f"get:{target.name}:{path}")
+
+    async def edit(
+        self,
+        target: Device,
+        config: str,
+        **kwargs: object,
+    ) -> _FakeCommandResult:
+        assert config
+        return _FakeCommandResult(output=f"edit:{target.name}")
+
+    def for_protocol(self, protocol: str) -> "_FakeRuntimeBrokerClient":
+        return _FakeRuntimeBrokerClient(runtime=self, protocol=protocol)
+
+
+class _FakeRuntimeBrokerClient:
+    def __init__(self, runtime: _FakeRuntimeBroker, protocol: str) -> None:
+        self._runtime = runtime
+        self._protocol = protocol
+
+    async def execute(self, target: Device, command: str) -> _FakeCommandResult:
+        return await self._runtime.execute(target, f"{self._protocol}:{command}")
+
+    async def get(
+        self,
+        target: Device,
+        path: str,
+        **kwargs: object,
+    ) -> _FakeCommandResult:
+        return await self._runtime.get(target, path, **kwargs)
+
+    async def edit(
+        self,
+        target: Device,
+        config: str,
+        **kwargs: object,
+    ) -> _FakeCommandResult:
+        return await self._runtime.edit(target, config, **kwargs)
 
 
 @pytest.fixture(autouse=True)
@@ -181,6 +237,36 @@ def test_run_errors_when_test_target_device_is_missing(
     test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
     assert test_case["status"] == "errored"
     assert "Unknown target device 'leaf-42'" in test_case["error"]
+
+
+def test_runner_plans_brokers_from_job_declarations(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Runner uses job-declared broker requirements from preflight planning."""
+    _stage_runner_fixture(tmp_path, "job_declared_netconf")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert _FakeRuntimeBroker.last_required_brokers == {"netconf"}
+    report_data = _load_report(tmp_path)
+    checks = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]["checks"]
+    assert checks[0]["message"] == "get:leaf-01:/interfaces"
 
 
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:

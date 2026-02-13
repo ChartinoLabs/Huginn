@@ -55,13 +55,14 @@ class _FakeBroker:
 async def test_runtime_broker_uses_ssh_for_execute() -> None:
     """Execute dispatches to SSH broker for ssh protocol devices."""
     runtime = RuntimeBroker(
+        required_brokers={"ssh"},
         ssh_broker=_fake_broker("ssh"),
         http_broker=_fake_broker("http"),
         netconf_broker=_fake_broker("netconf"),
     )
     device = _device(protocol="ssh")
 
-    await runtime.connect_targets([device])
+    await runtime.connect_targets([device], {"ssh"})
     result = await runtime.execute(device, "show version")
 
     assert result.output == "ssh:execute:show version"
@@ -71,13 +72,14 @@ async def test_runtime_broker_uses_ssh_for_execute() -> None:
 async def test_runtime_broker_maps_https_to_http_broker() -> None:
     """HTTPS protocol is routed to HTTP broker implementation."""
     runtime = RuntimeBroker(
+        required_brokers={"http"},
         ssh_broker=_fake_broker("ssh"),
         http_broker=_fake_broker("http"),
         netconf_broker=_fake_broker("netconf"),
     )
     device = _device(protocol="https")
 
-    await runtime.connect_targets([device])
+    await runtime.connect_targets([device], {"http"})
     result = await runtime.get(device, "/health")
 
     assert result.output == "http:get:/health"
@@ -87,13 +89,14 @@ async def test_runtime_broker_maps_https_to_http_broker() -> None:
 async def test_runtime_broker_uses_netconf_for_edit() -> None:
     """NETCONF protocol devices dispatch edit operations to netconf broker."""
     runtime = RuntimeBroker(
+        required_brokers={"netconf"},
         ssh_broker=_fake_broker("ssh"),
         http_broker=_fake_broker("http"),
         netconf_broker=_fake_broker("netconf"),
     )
     device = _device(protocol="netconf")
 
-    await runtime.connect_targets([device])
+    await runtime.connect_targets([device], {"netconf"})
     result = await runtime.edit(device, "<config/>")
 
     assert result.output == "netconf:edit:<config/>"
@@ -103,6 +106,7 @@ async def test_runtime_broker_uses_netconf_for_edit() -> None:
 async def test_runtime_broker_errors_on_missing_default_credential() -> None:
     """Device connection fails when required default credential is absent."""
     runtime = RuntimeBroker(
+        required_brokers={"ssh"},
         ssh_broker=_fake_broker("ssh"),
         http_broker=_fake_broker("http"),
         netconf_broker=_fake_broker("netconf"),
@@ -110,7 +114,29 @@ async def test_runtime_broker_errors_on_missing_default_credential() -> None:
     device = _device(protocol="ssh", credentials={})
 
     with pytest.raises(RuntimeBrokerError, match="missing credential 'default'"):
-        await runtime.connect_targets([device])
+        await runtime.connect_targets([device], {"ssh"})
+
+
+@pytest.mark.asyncio
+async def test_runtime_broker_requires_explicit_broker_when_multiple_connected() -> (
+    None
+):
+    """Operations require broker selection when device has multiple transports."""
+    runtime = RuntimeBroker(
+        required_brokers={"ssh", "netconf"},
+        ssh_broker=_fake_broker("ssh"),
+        http_broker=_fake_broker("http"),
+        netconf_broker=_fake_broker("netconf"),
+    )
+    device = _device_with_connections(protocols=["ssh", "netconf"])
+
+    await runtime.connect_targets([device], {"ssh", "netconf"})
+
+    with pytest.raises(RuntimeBrokerError, match="multiple connected brokers"):
+        await runtime.execute(device, "show version")
+
+    result = await runtime.for_protocol("netconf").execute(device, "<rpc/>")
+    assert result.output == "netconf:execute:<rpc/>"
 
 
 def _device(
@@ -133,6 +159,27 @@ def _device(
                 options={},
             )
         },
+    )
+
+
+def _device_with_connections(*, protocols: list[str]) -> Device:
+    """Build a device with multiple connection definitions."""
+    connections = {
+        protocol: ConnectionDefinition(
+            name=protocol,
+            protocol=protocol,
+            host="10.0.0.1",
+            port=443 if protocol in {"http", "https", "rest"} else 22,
+            credential=None,
+            options={},
+        )
+        for protocol in protocols
+    }
+    return Device(
+        name="spine-01",
+        os="nxos",
+        credentials=_default_credentials(),
+        connections=connections,
     )
 
 

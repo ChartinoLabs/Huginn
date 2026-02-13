@@ -8,6 +8,8 @@ from huginn.context import Context
 class TestCase(ABC):
     """Abstract base class for Huginn test jobs."""
 
+    required_brokers: set[str] = {"ssh"}
+
     @abstractmethod
     async def setup(self, context: Context) -> None:
         """Prepare state before test execution."""
