@@ -1,23 +1,26 @@
 """Minimal end-to-end test plan runner for first implementation slice."""
 
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 
-from huginn.brokers.null import NullBroker
 from huginn.context import Context
 from huginn.enums import ExecutionMode, ResultStatus
 from huginn.jobs import JobLoadError, load_test_case_class
 from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
 from huginn.models import (
+    Device,
     ExecutedPhase,
     ExecutedTestCase,
     ExecutedTestCaseGroup,
     RunReport,
     RunSummary,
     Testbed,
+    TestCaseDefinition,
 )
 from huginn.results import ResultCollector
+from huginn.runtime_broker import RuntimeBroker, RuntimeBrokerError
 
 
 class RunExecutionError(RuntimeError):
@@ -31,6 +34,7 @@ async def run_test_plan(
     plan_path: Path,
     project_root: Path,
     reports_dir: Path,
+    broker_factory: Callable[[], RuntimeBroker] | None = None,
 ) -> RunReport:
     """Execute a minimal test plan and persist JSON output."""
     try:
@@ -39,7 +43,6 @@ async def run_test_plan(
     except ConfigurationError as error:
         raise RunExecutionError(str(error)) from error
 
-    broker = NullBroker()
     executed_phases: list[ExecutedPhase] = []
 
     for phase in test_plan.phases.values():
@@ -51,13 +54,11 @@ async def run_test_plan(
                 test_case_definition = test_plan.test_cases[test_id]
                 executed_tests.append(
                     await _execute_test_case(
-                        test_id=test_case_definition.test_id,
-                        title=test_case_definition.title,
-                        job=test_case_definition.job,
+                        definition=test_case_definition,
                         mode=mode,
                         project_root=project_root,
                         testbed=testbed,
-                        broker=broker,
+                        broker=_create_broker(broker_factory),
                     )
                 )
 
@@ -87,37 +88,58 @@ async def run_test_plan(
 
 async def _execute_test_case(
     *,
-    test_id: str,
-    title: str,
-    job: str,
+    definition: TestCaseDefinition,
     mode: ExecutionMode,
     project_root: Path,
     testbed: Testbed,
-    broker: NullBroker,
+    broker: RuntimeBroker,
 ) -> ExecutedTestCase:
+    targets, target_error = _resolve_targets(testbed, definition)
+    if target_error is not None:
+        return ExecutedTestCase(
+            test_id=definition.test_id,
+            title=definition.title,
+            status=ResultStatus.ERRORED.value,
+            error=target_error,
+        )
+
     result_collector = ResultCollector()
     context = Context(
-        test_id=test_id,
-        test_title=title,
+        test_id=definition.test_id,
+        test_title=definition.title,
         mode=mode,
         testbed=testbed,
-        targets=list(testbed.devices.values()),
+        targets=targets,
         broker=broker,
         results=result_collector,
     )
 
     try:
-        test_case_class = load_test_case_class(job=job, project_root=project_root)
+        test_case_class = load_test_case_class(
+            job=definition.job,
+            project_root=project_root,
+        )
     except JobLoadError as error:
         return ExecutedTestCase(
-            test_id=test_id,
-            title=title,
+            test_id=definition.test_id,
+            title=definition.title,
             status=ResultStatus.ERRORED.value,
             error=str(error),
         )
 
     test_case = test_case_class()
     test_error: str | None = None
+    broker_error: str | None = None
+
+    try:
+        await broker.connect_targets(targets)
+    except RuntimeBrokerError as error:
+        return ExecutedTestCase(
+            test_id=definition.test_id,
+            title=definition.title,
+            status=ResultStatus.ERRORED.value,
+            error=str(error),
+        )
 
     try:
         await test_case.setup(context)
@@ -130,23 +152,53 @@ async def _execute_test_case(
         except Exception as cleanup_error:  # noqa: BLE001
             if test_error is None:
                 test_error = f"{cleanup_error.__class__.__name__}: {cleanup_error}"
+        try:
+            await broker.disconnect_targets()
+        except RuntimeBrokerError as disconnect_error:
+            broker_error = str(disconnect_error)
 
-    if test_error is not None:
+    if test_error is not None or broker_error is not None:
         return ExecutedTestCase(
-            test_id=test_id,
-            title=title,
+            test_id=definition.test_id,
+            title=definition.title,
             status=ResultStatus.ERRORED.value,
             checks=result_collector.checks,
-            error=test_error,
+            error=test_error or broker_error,
         )
 
     status = result_collector.derive_status().value
     return ExecutedTestCase(
-        test_id=test_id,
-        title=title,
+        test_id=definition.test_id,
+        title=definition.title,
         status=status,
         checks=result_collector.checks,
     )
+
+
+def _create_broker(
+    broker_factory: Callable[[], RuntimeBroker] | None,
+) -> RuntimeBroker:
+    """Construct a broker instance for one test case execution."""
+    if broker_factory is None:
+        return RuntimeBroker()
+    return broker_factory()
+
+
+def _resolve_targets(
+    testbed: Testbed,
+    definition: TestCaseDefinition,
+) -> tuple[list[Device], str | None]:
+    """Resolve test targets from test-case definition and testbed."""
+    if definition.target is None or definition.target.devices is None:
+        return list(testbed.devices.values()), None
+
+    targets: list[Device] = []
+    for device_name in definition.target.devices:
+        device = testbed.devices.get(device_name)
+        if device is None:
+            return [], f"Unknown target device '{device_name}' for {definition.test_id}"
+        targets.append(device)
+    return targets, None
 
 
 def _derive_group_status(test_cases: list[ExecutedTestCase]) -> ResultStatus:

@@ -1,6 +1,8 @@
 devices:
   spine-01:
     os: nxos
+    groups:
+      - spine
     credentials:
       default:
         username: admin
@@ -10,3 +12,4 @@ devices:
         protocol: ssh
         host: 10.0.0.1
         port: 22
+        auth_strict_key: false

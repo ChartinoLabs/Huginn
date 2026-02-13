@@ -9,6 +9,30 @@ import pytest
 from typer.testing import CliRunner
 
 from huginn.cli import app
+from huginn.models import Device
+
+
+class _FakeCommandResult:
+    def __init__(self, output: str) -> None:
+        self.output = output
+
+
+class _FakeRuntimeBroker:
+    async def connect_targets(self, targets: list[Device]) -> None:
+        self._connected = {target.name for target in targets}
+
+    async def disconnect_targets(self) -> None:
+        self._connected = set()
+
+    async def execute(self, target: Device, command: str) -> _FakeCommandResult:
+        assert command
+        return _FakeCommandResult(output=f"ok:{target.name}")
+
+
+@pytest.fixture(autouse=True)
+def patch_runtime_broker(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Use a fake runtime broker to avoid network dependencies in tests."""
+    monkeypatch.setattr("huginn.runner.RuntimeBroker", _FakeRuntimeBroker)
 
 
 def test_run_executes_single_test_case_and_writes_report(
@@ -97,6 +121,66 @@ def test_cleanup_runs_when_test_errors(
     report_data = _load_report(tmp_path)
     assert report_data["summary"]["status"] == "errored"
     assert report_data["summary"]["errored"] == 1
+
+
+def test_run_honors_test_case_device_targets(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Runner resolves test-case targets and executes only matching devices."""
+    _stage_runner_fixture(tmp_path, "targeted")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report_data = _load_report(tmp_path)
+    checks = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]["checks"]
+    assert len(checks) == 1
+    assert checks[0]["message"] == "ok:leaf-01"
+
+
+def test_run_errors_when_test_target_device_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unknown test-case target devices are reported as execution errors."""
+    _stage_runner_fixture(tmp_path, "unknown_target")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 1
+    report_data = _load_report(tmp_path)
+    test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    assert test_case["status"] == "errored"
+    assert "Unknown target device 'leaf-42'" in test_case["error"]
 
 
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:

@@ -9,6 +9,28 @@ class Device:
 
     name: str
     os: str
+    groups: list[str] = field(default_factory=list)
+    credentials: dict[str, dict[str, str]] = field(default_factory=dict)
+    connections: dict[str, "ConnectionDefinition"] = field(default_factory=dict)
+
+
+@dataclass
+class ConnectionDefinition:
+    """A named device connection from the testbed."""
+
+    name: str
+    protocol: str
+    host: str
+    port: int
+    credential: str | None = None
+    options: dict[str, object] = field(default_factory=dict)
+
+
+@dataclass
+class TargetDefinition:
+    """Target filter subset for a test case."""
+
+    devices: list[str] | None = None
 
 
 @dataclass
@@ -25,6 +47,7 @@ class TestCaseDefinition:
     test_id: str
     title: str
     job: str
+    target: TargetDefinition | None = None
 
 
 @dataclass

@@ -1,0 +1,17 @@
+test_cases:
+  "1.0.0":
+    title: Verify Targeting
+    job: jobs/test_verify_targeted.py
+    target:
+      devices:
+        - leaf-01
+
+test_case_groups:
+  group-1:
+    tests:
+      - "1.0.0"
+
+phases:
+  phase-1:
+    test_case_groups:
+      - group-1
