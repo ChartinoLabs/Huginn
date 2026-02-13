@@ -4,10 +4,10 @@ This module defines the fundamental enums used throughout the framework
 for execution modes and result statuses.
 """
 
-from enum import Enum
+from enum import StrEnum
 
 
-class ExecutionMode(str, Enum):
+class ExecutionMode(StrEnum):
     """Execution mode for a test run.
 
     Huginn supports two execution modes:
@@ -22,7 +22,7 @@ class ExecutionMode(str, Enum):
     TESTING = "testing"
 
 
-class ResultStatus(str, Enum):
+class ResultStatus(StrEnum):
     """The outcome of a test case execution.
 
     Possible values:

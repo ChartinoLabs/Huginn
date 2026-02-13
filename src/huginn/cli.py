@@ -4,6 +4,7 @@ This module provides the command-line interface for executing test plans
 against infrastructure testbeds.
 """
 
+import asyncio
 from importlib.metadata import version as get_version
 from pathlib import Path
 from typing import Annotated
@@ -11,6 +12,7 @@ from typing import Annotated
 import typer
 
 from huginn.enums import ExecutionMode
+from huginn.runner import RunExecutionError, run_test_plan
 
 app = typer.Typer(
     name="huginn",
@@ -104,19 +106,36 @@ def run(
             "--testbed and --inventory-plugin are mutually exclusive."
         )
 
-    typer.echo(f"Executing test plan: {plan}")
-    typer.echo(f"Mode: {mode.value}")
+    if inventory_plugin is not None:
+        raise typer.BadParameter(
+            "--inventory-plugin is not supported in this implementation slice. "
+            "Use --testbed."
+        )
+    if tags is not None:
+        raise typer.BadParameter("--tags filtering is not implemented yet.")
+    if data_model is not None:
+        raise typer.BadParameter("--data-model is not implemented yet.")
 
-    if testbed:
-        typer.echo(f"Testbed: {testbed}")
-    else:
-        typer.echo(f"Inventory plugin: {inventory_plugin}")
+    assert testbed is not None  # Satisfies type checker after validation above.
 
-    if tags:
-        typer.echo(f"Tags filter: {', '.join(tags)}")
+    try:
+        report = asyncio.run(
+            run_test_plan(
+                mode=mode,
+                testbed_path=testbed,
+                plan_path=plan,
+                project_root=Path.cwd(),
+                reports_dir=Path.cwd() / "reports",
+            )
+        )
+    except RunExecutionError as error:
+        typer.secho(f"Configuration error: {error}", fg=typer.colors.RED)
+        raise typer.Exit(code=2) from error
 
-    if data_model:
-        typer.echo(f"Data model: {data_model}")
+    typer.echo(f"Run status: {report.summary.status}")
+    typer.echo("Report written to reports/run.json")
+    if report.summary.status != "passed":
+        raise typer.Exit(code=1)
 
 
 @app.command()
