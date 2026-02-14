@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from huginn.enums import ConnectionProtocol
 from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "loaders"
@@ -44,7 +45,7 @@ def test_load_testbed_parses_ssh_connection_and_credentials() -> None:
 
     assert device.groups == ["spine"]
     assert device.credentials["default"]["username"] == "admin"
-    assert device.connections["ssh"].protocol == "ssh"
+    assert device.connections["ssh"].protocol == ConnectionProtocol.SSH
     assert device.connections["ssh"].host == "10.0.0.1"
     assert device.connections["ssh"].options["auth_strict_key"] is False
 

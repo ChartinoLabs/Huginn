@@ -9,6 +9,7 @@ import pytest
 from typer.testing import CliRunner
 
 from huginn.cli import app
+from huginn.enums import BrokerType
 from huginn.models import Device
 
 
@@ -18,15 +19,19 @@ class _FakeCommandResult:
 
 
 class _FakeRuntimeBroker:
-    last_required_brokers: set[str] = set()
+    last_required_brokers: set[BrokerType] = set()
 
-    def __init__(self, *, required_brokers: set[str] | None = None) -> None:
-        self._planned_brokers = required_brokers or {"ssh"}
+    def __init__(
+        self,
+        *,
+        required_brokers: set[BrokerType] | None = None,
+    ) -> None:
+        self._planned_brokers = required_brokers or {BrokerType.SSH}
 
     async def connect_targets(
         self,
         targets: list[Device],
-        required_brokers: set[str],
+        required_brokers: set[BrokerType],
     ) -> None:
         _FakeRuntimeBroker.last_required_brokers = set(required_brokers)
         self._connected = {target.name for target in targets}
@@ -263,7 +268,7 @@ def test_runner_plans_brokers_from_job_declarations(
     )
 
     assert result.exit_code == 0
-    assert _FakeRuntimeBroker.last_required_brokers == {"netconf"}
+    assert _FakeRuntimeBroker.last_required_brokers == {BrokerType.NETCONF}
     report_data = _load_report(tmp_path)
     checks = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]["checks"]
     assert checks[0]["message"] == "get:leaf-01:/interfaces"

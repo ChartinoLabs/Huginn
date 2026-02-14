@@ -3,12 +3,13 @@
 from abc import ABC, abstractmethod
 
 from huginn.context import Context
+from huginn.enums import BrokerType
 
 
 class TestCase(ABC):
     """Abstract base class for Huginn test jobs."""
 
-    required_brokers: set[str] = {"ssh"}
+    required_brokers: set[BrokerType] = {BrokerType.SSH}
 
     @abstractmethod
     async def setup(self, context: Context) -> None:

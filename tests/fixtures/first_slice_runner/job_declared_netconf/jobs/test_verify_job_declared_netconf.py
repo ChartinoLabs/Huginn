@@ -1,12 +1,13 @@
 """Fixture job that declares NETCONF broker requirements."""
 
 from huginn import Context, ResultStatus, TestCase
+from huginn.enums import BrokerType
 
 
 class VerifyJobDeclaredNetconf(TestCase):
     """Exercise job-declared broker requirements in runner preflight."""
 
-    required_brokers = {"netconf"}
+    required_brokers = {BrokerType.NETCONF}
 
     async def setup(self, context: Context) -> None:
         """No-op setup."""

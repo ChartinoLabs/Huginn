@@ -5,6 +5,7 @@ from typing import cast
 
 import yaml
 
+from huginn.enums import ConnectionProtocol
 from huginn.models import (
     ConnectionDefinition,
     Device,
@@ -116,9 +117,14 @@ def _parse_connection_definition(
         f"Connection '{connection_name}' on '{device_name}' must be a mapping",
     )
 
-    protocol = _require_non_empty_string(
+    protocol_value = _require_non_empty_string(
         connection_mapping.get("protocol"),
         f"Connection '{connection_name}' on '{device_name}' must define protocol",
+    )
+    protocol = _load_connection_protocol(
+        protocol=protocol_value,
+        device_name=device_name,
+        connection_name=connection_name,
     )
     host = _require_non_empty_string(
         connection_mapping.get("host"),
@@ -136,11 +142,15 @@ def _parse_connection_definition(
         ),
     )
 
-    options = {
-        key: option_value
-        for key, option_value in connection_mapping.items()
-        if key not in {"protocol", "host", "port", "credential"}
-    }
+    options: dict[str, object] = {}
+    for key, option_value in connection_mapping.items():
+        if not isinstance(key, str):
+            raise ConfigurationError(
+                f"Connection '{connection_name}' on '{device_name}' has invalid key"
+            )
+        if key in {"protocol", "host", "port", "credential"}:
+            continue
+        options[key] = option_value
     return ConnectionDefinition(
         name=connection_name,
         protocol=protocol,
@@ -156,6 +166,23 @@ def _require_non_empty_string(value: object, error_message: str) -> str:
     if not isinstance(value, str) or not value:
         raise ConfigurationError(error_message)
     return value
+
+
+def _load_connection_protocol(
+    *,
+    protocol: str,
+    device_name: str,
+    connection_name: str,
+) -> ConnectionProtocol:
+    """Validate and parse a connection protocol identifier."""
+    try:
+        return ConnectionProtocol(protocol)
+    except ValueError as error:
+        supported = ", ".join(member.value for member in ConnectionProtocol)
+        raise ConfigurationError(
+            f"Connection '{connection_name}' on '{device_name}' has unsupported "
+            f"protocol '{protocol}'. Supported: {supported}"
+        ) from error
 
 
 def _require_optional_string(value: object, error_message: str) -> str | None:

@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from huginn.context import Context
-from huginn.enums import ExecutionMode, ResultStatus
+from huginn.enums import BrokerType, ExecutionMode, ResultStatus
 from huginn.jobs import JobLoadError, load_test_case_class
 from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
 from huginn.models import (
@@ -39,7 +39,7 @@ class PlannedExecution:
     """Preflight plan for a single test case execution."""
 
     test_case_class: type[TestCase] | None
-    required_brokers: set[str]
+    required_brokers: set[BrokerType]
     planning_error: str | None
 
 
@@ -134,20 +134,22 @@ def _plan_executions(
         except (JobLoadError, RuntimeBrokerError) as error:
             planned[test_case.test_id] = PlannedExecution(
                 test_case_class=None,
-                required_brokers={"ssh"},
+                required_brokers={BrokerType.SSH},
                 planning_error=str(error),
             )
     return planned
 
 
-def _required_brokers_for_test_case_class(test_case_class: type[TestCase]) -> set[str]:
+def _required_brokers_for_test_case_class(
+    test_case_class: type[TestCase],
+) -> set[BrokerType]:
     """Read and normalize required broker declarations from a test class."""
-    raw_required = getattr(test_case_class, "required_brokers", {"ssh"})
+    raw_required = getattr(test_case_class, "required_brokers", {BrokerType.SSH})
     if not isinstance(raw_required, set) or not raw_required:
         raise RuntimeBrokerError(
             f"{test_case_class.__name__}.required_brokers must be a non-empty set"
         )
-    normalized: set[str] = set()
+    normalized: set[BrokerType] = set()
     for broker in raw_required:
         if not isinstance(broker, str):
             raise RuntimeBrokerError(
@@ -157,14 +159,14 @@ def _required_brokers_for_test_case_class(test_case_class: type[TestCase]) -> se
     return normalized
 
 
-def _collect_planned_brokers(planned: dict[str, PlannedExecution]) -> set[str]:
+def _collect_planned_brokers(planned: dict[str, PlannedExecution]) -> set[BrokerType]:
     """Aggregate required brokers for all successfully planned test cases."""
-    required: set[str] = set()
+    required: set[BrokerType] = set()
     for execution in planned.values():
         if execution.planning_error is None:
             required.update(execution.required_brokers)
     if not required:
-        return {"ssh"}
+        return {BrokerType.SSH}
     return required
 
 
@@ -257,7 +259,7 @@ def _errored_test_case(
 async def _connect_targets_or_raise(
     broker: RuntimeBroker,
     targets: list[Device],
-    required_brokers: set[str],
+    required_brokers: set[BrokerType],
 ) -> None:
     """Connect all resolved target devices via runtime broker."""
     await broker.connect_targets(targets, required_brokers)
@@ -288,7 +290,7 @@ async def _disconnect_targets(broker: RuntimeBroker) -> str | None:
 
 def _create_broker(
     broker_factory: Callable[[], RuntimeBroker] | None,
-    required_brokers: set[str],
+    required_brokers: set[BrokerType],
 ) -> RuntimeBroker:
     """Construct a broker instance for one test case execution."""
     if broker_factory is None:
