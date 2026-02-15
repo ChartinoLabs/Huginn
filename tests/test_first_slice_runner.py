@@ -249,6 +249,7 @@ def test_run_errors_when_test_target_device_is_missing(
     report_data = _load_report(tmp_path)
     test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
     assert test_case["status"] == "errored"
+    assert test_case["error_code"] == "validation_error"
     assert "Unknown target device 'leaf-42'" in test_case["error"]
 
 
@@ -407,6 +408,7 @@ def test_run_skips_test_case_when_no_targets_match(
     report_data = _load_report(tmp_path)
     test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
     assert test_case["status"] == "skipped"
+    assert test_case["error_code"] is None
     assert "No devices matched target selectors" in test_case["error"]
 
 

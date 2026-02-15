@@ -61,3 +61,13 @@ class BrokerType(StrEnum):
     SSH = "ssh"
     HTTP = "http"
     NETCONF = "netconf"
+
+
+class ErrorCode(StrEnum):
+    """Structured error categories used in reports and CLI handling."""
+
+    CONFIGURATION_ERROR = "configuration_error"
+    VALIDATION_ERROR = "validation_error"
+    PLANNING_ERROR = "planning_error"
+    EXECUTION_ERROR = "execution_error"
+    BROKER_ERROR = "broker_error"

@@ -11,7 +11,7 @@ from typing import Annotated
 
 import typer
 
-from huginn.enums import ExecutionMode
+from huginn.enums import ErrorCode, ExecutionMode
 from huginn.runner import RunExecutionError, run_test_plan
 from huginn.validation import validate_inputs
 
@@ -116,8 +116,11 @@ def run(
             )
         )
     except RunExecutionError as error:
-        typer.secho(f"Configuration error: {error}", fg=typer.colors.RED)
-        raise typer.Exit(code=2) from error
+        typer.secho(
+            f"ERROR [{error.code.value}]: {error}",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=_exit_code_for_run_error(error.code)) from error
 
     typer.echo(f"Run status: {report.summary.status}")
     typer.echo("Report written to reports/run.json")
@@ -199,11 +202,28 @@ def validate(
 
     if not report.valid:
         for error in report.errors:
-            typer.secho(f"ERROR: {error}", fg=typer.colors.RED)
-        raise typer.Exit(code=1)
+            typer.secho(
+                f"ERROR [{error.code}]: {error.message}",
+                fg=typer.colors.RED,
+            )
+        raise typer.Exit(code=3)
 
     for warning in report.warnings:
-        typer.secho(f"WARNING: {warning}", fg=typer.colors.YELLOW)
+        typer.secho(
+            f"WARNING [{warning.code}]: {warning.message}",
+            fg=typer.colors.YELLOW,
+        )
+
+
+def _exit_code_for_run_error(code: ErrorCode) -> int:
+    """Map structured run errors to deterministic CLI exit codes."""
+    if code in {
+        ErrorCode.CONFIGURATION_ERROR,
+        ErrorCode.VALIDATION_ERROR,
+        ErrorCode.PLANNING_ERROR,
+    }:
+        return 2
+    return 1
 
 
 def _resolve_testbed_option(

@@ -100,6 +100,7 @@ class ExecutedTestCase:
     status: str
     checks: list[CheckResult] = field(default_factory=list)
     error: str | None = None
+    error_code: str | None = None
 
 
 @dataclass
