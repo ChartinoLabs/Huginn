@@ -1,0 +1,84 @@
+"""Integration tests for the CLI validate command."""
+
+import json
+import shutil
+from pathlib import Path
+from typing import Any
+
+import pytest
+from typer.testing import CliRunner
+
+from huginn.cli import app
+
+
+def test_validate_generates_report_for_valid_inputs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validate command writes a passing report for valid inputs."""
+    _stage_runner_fixture(tmp_path, "target_selectors")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "validate",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report = _load_validate_report(tmp_path)
+    assert report["valid"] is True
+    assert report["phase_order"] == ["phase-1"]
+    assert report["required_brokers"] == ["ssh"]
+
+
+def test_validate_reports_errors_for_invalid_target_reference(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validate command fails when target references unknown device name."""
+    _stage_runner_fixture(tmp_path, "unknown_target")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "validate",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 1
+    report = _load_validate_report(tmp_path)
+    assert report["valid"] is False
+    assert any("Unknown target device 'leaf-42'" in error for error in report["errors"])
+
+
+def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
+    """Copy a first-slice fixture scenario into a temporary directory."""
+    fixture_root = Path(__file__).resolve().parent / "fixtures" / "first_slice_runner"
+    source = fixture_root / fixture_name
+    for source_path in source.rglob("*"):
+        if source_path.is_dir():
+            continue
+        destination = tmp_path / source_path.relative_to(source)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, destination)
+
+
+def _load_validate_report(tmp_path: Path) -> dict[str, Any]:
+    """Load generated validate report payload."""
+    report_path = tmp_path / "reports" / "validate.json"
+    return json.loads(report_path.read_text(encoding="utf-8"))

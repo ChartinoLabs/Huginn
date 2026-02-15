@@ -256,7 +256,7 @@ def test_runner_plans_brokers_from_job_declarations(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Runner uses job-declared broker requirements from preflight planning."""
+    """Runner uses job-declared broker requirements from validation planning."""
     _stage_runner_fixture(tmp_path, "job_declared_netconf")
     monkeypatch.chdir(tmp_path)
 
