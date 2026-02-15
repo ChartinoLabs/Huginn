@@ -69,14 +69,14 @@ test_cases:
     job: tests/verify_ospf_neighbors.py
     tags: [ospf, routing, pre-change]
     target:
-      device_groups: [fabric-core]
+      groups: [fabric-core]
 
   "2.0.0-post":
     title: Verify OSPF Neighbors (Post-change)
     job: tests/verify_ospf_neighbors.py    # Same job, different ID = different parameters
     tags: [ospf, routing, post-change]
     target:
-      device_groups: [fabric-core]
+      groups: [fabric-core]
 
   # Change implementation
   change-001:
@@ -255,7 +255,7 @@ test_case_groups:
   spine-validation:
     description: Tests specific to spine switches
     target:
-      device_groups: [spine]
+      groups: [spine]
     tests: ["4.0.0", "4.0.1", "4.0.2"]
 ```
 
@@ -367,7 +367,7 @@ target:
 
 ```yaml
 target:
-  device_groups: [spine, datacenter-1]
+  groups: [spine, datacenter-1]
 ```
 
 #### Combined Targeting
@@ -375,8 +375,25 @@ target:
 ```yaml
 target:
   os: [nxos]
-  device_groups: [leaf]
+  groups: [leaf]
 # Targets: NX-OS devices that are also in the "leaf" device group
+```
+
+#### Explicit vs Dynamic Targeting
+
+For initial implementation, target selector modes are mutually exclusive:
+
+- **Explicit targeting**: use `target.devices`
+- **Dynamic targeting**: use `target.groups` and/or `target.os`
+
+Mixing `devices` with `groups` or `os` in the same `target` block is invalid and should fail validation.
+
+Invalid example:
+
+```yaml
+target:
+  devices: [leaf-01]
+  groups: [leaf]
 ```
 
 #### Empty Target
@@ -422,14 +439,14 @@ The `defaults` section provides fallback values:
 ```yaml
 defaults:
   target:
-    device_groups: [production]
+    groups: [production]
   tags: [regression]
 
 test_cases:
   "1.0.0":
     title: Verify Connectivity
     job: tests/verify_connectivity.py
-    # Inherits target: device_groups: [production]
+    # Inherits target: groups: [production]
     # Inherits tags: [regression]
 ```
 
@@ -474,7 +491,7 @@ test_cases:
     job: tests/routing/verify_bgp_neighbors.py
     tags: [bgp, routing]
     target:
-      device_groups: [fabric-core]
+      groups: [fabric-core]
 
   # OSPF tests - state WILL change, need separate pre/post test cases
   "3.0.0-pre":
@@ -482,28 +499,28 @@ test_cases:
     job: tests/routing/verify_ospf_neighbors.py
     tags: [ospf, routing, pre-change]
     target:
-      device_groups: [fabric-core]
+      groups: [fabric-core]
 
   "3.0.0-post":
     title: Verify OSPF Neighbors (Post-change)
     job: tests/routing/verify_ospf_neighbors.py
     tags: [ospf, routing, post-change]
     target:
-      device_groups: [fabric-core]
+      groups: [fabric-core]
 
   "3.1.0-pre":
     title: Verify OSPF Interface Config (Pre-change)
     job: tests/routing/verify_ospf_interfaces.py
     tags: [ospf, routing, pre-change]
     target:
-      device_groups: [fabric-core]
+      groups: [fabric-core]
 
   "3.1.0-post":
     title: Verify OSPF Interface Config (Post-change)
     job: tests/routing/verify_ospf_interfaces.py
     tags: [ospf, routing, post-change]
     target:
-      device_groups: [fabric-core]
+      groups: [fabric-core]
 
   # Change implementation
   change-001:
@@ -511,7 +528,7 @@ test_cases:
     job: tests/changes/apply_ospf_area_change.py
     tags: [change, ospf]
     target:
-      device_groups: [fabric-core]
+      groups: [fabric-core]
 
 test_case_groups:
   # Feature-specific groups (reusable building blocks)
