@@ -70,13 +70,18 @@ async def run_test_plan(
         required_brokers=planned_brokers,
     )
 
-    executed_phases = await _execute_phases_with_dependencies(
-        mode=mode,
-        testbed=testbed,
-        test_plan=test_plan,
-        planned_executions=planned_executions,
-        broker=runtime_broker,
-    )
+    try:
+        executed_phases = await _execute_phases_with_dependencies(
+            mode=mode,
+            testbed=testbed,
+            test_plan=test_plan,
+            planned_executions=planned_executions,
+            broker=runtime_broker,
+        )
+    finally:
+        disconnect_error = await _disconnect_runtime_broker(runtime_broker)
+        if disconnect_error is not None:
+            raise RunExecutionError(disconnect_error)
 
     summary = _build_summary(executed_phases)
     report = RunReport(summary=summary, phases=executed_phases)
@@ -304,7 +309,6 @@ async def _execute_test_case(
 
     test_case = planned.test_case_class()
     test_error: str | None = None
-    broker_error: str | None = None
 
     try:
         await _connect_targets_or_raise(
@@ -322,16 +326,12 @@ async def _execute_test_case(
         test_error = f"{error.__class__.__name__}: {error}"
     finally:
         test_error = await _run_cleanup(test_case, context, test_error)
-        broker_error = await _disconnect_targets(broker)
 
-    if test_error is not None or broker_error is not None:
-        final_error = test_error if test_error is not None else broker_error
-        if final_error is None:
-            final_error = "unknown execution error"
+    if test_error is not None:
         return _errored_test_case(
             definition,
             checks=result_collector.checks,
-            error=final_error,
+            error=test_error,
         )
 
     status = result_collector.derive_status().value
@@ -383,12 +383,12 @@ async def _run_cleanup(
     return test_error
 
 
-async def _disconnect_targets(broker: RuntimeBroker) -> str | None:
-    """Disconnect broker targets and return an error message when needed."""
+async def _disconnect_runtime_broker(broker: RuntimeBroker) -> str | None:
+    """Disconnect all runtime broker connections at run teardown."""
     try:
         await broker.disconnect_targets()
     except RuntimeBrokerError as disconnect_error:
-        return str(disconnect_error)
+        return f"Broker teardown failed: {disconnect_error}"
     return None
 
 

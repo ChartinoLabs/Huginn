@@ -20,6 +20,8 @@ class _FakeCommandResult:
 
 class _FakeRuntimeBroker:
     last_required_brokers: set[BrokerType] = set()
+    connect_invocations: int = 0
+    disconnect_invocations: int = 0
 
     def __init__(
         self,
@@ -33,10 +35,12 @@ class _FakeRuntimeBroker:
         targets: list[Device],
         required_brokers: set[BrokerType],
     ) -> None:
+        _FakeRuntimeBroker.connect_invocations += 1
         _FakeRuntimeBroker.last_required_brokers = set(required_brokers)
         self._connected = {target.name for target in targets}
 
     async def disconnect_targets(self) -> None:
+        _FakeRuntimeBroker.disconnect_invocations += 1
         self._connected = set()
 
     async def execute(self, target: Device, command: str) -> _FakeCommandResult:
@@ -93,6 +97,9 @@ class _FakeRuntimeBrokerClient:
 @pytest.fixture(autouse=True)
 def patch_runtime_broker(monkeypatch: pytest.MonkeyPatch) -> None:
     """Use a fake runtime broker to avoid network dependencies in tests."""
+    _FakeRuntimeBroker.last_required_brokers = set()
+    _FakeRuntimeBroker.connect_invocations = 0
+    _FakeRuntimeBroker.disconnect_invocations = 0
     monkeypatch.setattr("huginn.runner.RuntimeBroker", _FakeRuntimeBroker)
 
 
@@ -179,6 +186,7 @@ def test_cleanup_runs_when_test_errors(
 
     assert result.exit_code == 1
     assert (tmp_path / "cleanup.marker").exists()
+    assert _FakeRuntimeBroker.disconnect_invocations == 1
     report_data = _load_report(tmp_path)
     assert report_data["summary"]["status"] == "errored"
     assert report_data["summary"]["errored"] == 1
@@ -311,6 +319,34 @@ def test_phase_with_failed_dependency_is_marked_blocked(
 
     blocked_case = phase_2["test_case_groups"][0]["test_cases"][0]
     assert blocked_case["status"] == "blocked"
+
+
+def test_runner_disconnects_once_per_run(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Runner tears down runtime broker once after all test cases."""
+    _stage_runner_fixture(tmp_path, "connection_reuse")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert _FakeRuntimeBroker.connect_invocations == 2
+    assert _FakeRuntimeBroker.disconnect_invocations == 1
 
 
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:

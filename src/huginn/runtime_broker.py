@@ -89,6 +89,9 @@ class RuntimeBroker:
         try:
             for device in targets:
                 for broker_key in required_keys:
+                    handle_key = (device.name, broker_key)
+                    if handle_key in self._handles:
+                        continue
                     connection = _select_connection(
                         device=device,
                         broker_key=broker_key,
@@ -103,7 +106,7 @@ class RuntimeBroker:
                         options=connection.options,
                     )
                     handle = await self._brokers[broker_key].connect(config)
-                    self._handles[(device.name, broker_key)] = handle
+                    self._handles[handle_key] = handle
         except Exception as error:  # noqa: BLE001
             raise RuntimeBrokerError(str(error)) from error
 
