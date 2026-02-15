@@ -53,6 +53,17 @@ def _load_optional_string_list(value: object) -> list[str]:
     return _require_non_empty_string_list(value, "Expected non-empty string list")
 
 
+def _load_optional_string_list_allow_empty(value: object) -> list[str]:
+    """Load an optional list of non-empty strings, allowing empty list."""
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ConfigurationError("Expected string list")
+    if not all(isinstance(item, str) and item for item in value):
+        raise ConfigurationError("Expected string list")
+    return cast(list[str], value)
+
+
 def _load_credentials(value: object) -> dict[str, dict[str, str]]:
     """Load optional credential mappings for a device."""
     if value is None:
@@ -374,7 +385,12 @@ def _parse_phase(phase_name: object, raw_phase: object) -> Phase:
         phase_mapping.get("test_case_groups"),
         f"Phase '{phase_name}' must include non-empty 'test_case_groups'",
     )
-    return Phase(name=phase_name, test_case_groups=test_case_groups)
+    depends_on = _load_optional_string_list_allow_empty(phase_mapping.get("depends_on"))
+    return Phase(
+        name=phase_name,
+        test_case_groups=test_case_groups,
+        depends_on=depends_on,
+    )
 
 
 def _validate_test_case_group_references(
@@ -403,4 +419,13 @@ def _validate_phase_references(
         if missing:
             raise ConfigurationError(
                 f"Phase '{phase.name}' references undefined test case groups: {missing}"
+            )
+
+        missing_phase_dependencies = [
+            phase_name for phase_name in phase.depends_on if phase_name not in phases
+        ]
+        if missing_phase_dependencies:
+            raise ConfigurationError(
+                f"Phase '{phase.name}' references undefined depends_on phases: "
+                f"{missing_phase_dependencies}"
             )

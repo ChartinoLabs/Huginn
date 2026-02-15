@@ -15,6 +15,7 @@ from huginn.models import (
     ExecutedPhase,
     ExecutedTestCase,
     ExecutedTestCaseGroup,
+    Phase,
     RunReport,
     RunSummary,
     Testbed,
@@ -69,47 +70,150 @@ async def run_test_plan(
         required_brokers=planned_brokers,
     )
 
-    executed_phases: list[ExecutedPhase] = []
-
-    for phase in test_plan.phases.values():
-        executed_groups: list[ExecutedTestCaseGroup] = []
-        for group_name in phase.test_case_groups:
-            group = test_plan.test_case_groups[group_name]
-            executed_tests: list[ExecutedTestCase] = []
-            for test_id in group.tests:
-                test_case_definition = test_plan.test_cases[test_id]
-                executed_tests.append(
-                    await _execute_test_case(
-                        definition=test_case_definition,
-                        planned=planned_executions[test_case_definition.test_id],
-                        mode=mode,
-                        testbed=testbed,
-                        broker=runtime_broker,
-                    )
-                )
-
-            group_status = _derive_group_status(executed_tests)
-            executed_groups.append(
-                ExecutedTestCaseGroup(
-                    name=group.name,
-                    status=group_status.value,
-                    test_cases=executed_tests,
-                )
-            )
-
-        phase_status = _derive_phase_status(executed_groups)
-        executed_phases.append(
-            ExecutedPhase(
-                name=phase.name,
-                status=phase_status.value,
-                test_case_groups=executed_groups,
-            )
-        )
+    executed_phases = await _execute_phases_with_dependencies(
+        mode=mode,
+        testbed=testbed,
+        test_plan=test_plan,
+        planned_executions=planned_executions,
+        broker=runtime_broker,
+    )
 
     summary = _build_summary(executed_phases)
     report = RunReport(summary=summary, phases=executed_phases)
     _write_report(report=report, reports_dir=reports_dir)
     return report
+
+
+async def _execute_phases_with_dependencies(
+    *,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    broker: RuntimeBroker,
+) -> list[ExecutedPhase]:
+    """Execute phases while honoring phase dependency constraints."""
+    phase_results: dict[str, ExecutedPhase] = {}
+    pending = set(test_plan.phases.keys())
+
+    while pending:
+        progressed = False
+        for phase_name in list(pending):
+            phase = test_plan.phases[phase_name]
+            if not all(dep in phase_results for dep in phase.depends_on):
+                continue
+
+            if _is_blocked_by_dependencies(phase, phase_results):
+                executed_phase = _build_blocked_phase(phase, test_plan)
+            else:
+                executed_phase = await _execute_phase(
+                    phase=phase,
+                    mode=mode,
+                    testbed=testbed,
+                    test_plan=test_plan,
+                    planned_executions=planned_executions,
+                    broker=broker,
+                )
+
+            phase_results[phase_name] = executed_phase
+            pending.remove(phase_name)
+            progressed = True
+
+        if not progressed:
+            unresolved = sorted(pending)
+            raise RunExecutionError(
+                f"Unable to resolve phase dependencies for: {unresolved}"
+            )
+
+    return [phase_results[name] for name in test_plan.phases]
+
+
+def _is_blocked_by_dependencies(
+    phase: Phase,
+    phase_results: dict[str, ExecutedPhase],
+) -> bool:
+    """Return True when any dependency phase did not pass."""
+    blocking_statuses = {
+        ResultStatus.FAILED.value,
+        ResultStatus.ERRORED.value,
+        ResultStatus.BLOCKED.value,
+    }
+    return any(
+        phase_results[dependency].status in blocking_statuses
+        for dependency in phase.depends_on
+    )
+
+
+async def _execute_phase(
+    *,
+    phase: Phase,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    broker: RuntimeBroker,
+) -> ExecutedPhase:
+    """Execute all groups and test cases for a phase."""
+    executed_groups: list[ExecutedTestCaseGroup] = []
+    for group_name in phase.test_case_groups:
+        group = test_plan.test_case_groups[group_name]
+        executed_tests: list[ExecutedTestCase] = []
+        for test_id in group.tests:
+            test_case_definition = test_plan.test_cases[test_id]
+            executed_tests.append(
+                await _execute_test_case(
+                    definition=test_case_definition,
+                    planned=planned_executions[test_case_definition.test_id],
+                    mode=mode,
+                    testbed=testbed,
+                    broker=broker,
+                )
+            )
+
+        group_status = _derive_group_status(executed_tests)
+        executed_groups.append(
+            ExecutedTestCaseGroup(
+                name=group.name,
+                status=group_status.value,
+                test_cases=executed_tests,
+            )
+        )
+
+    phase_status = _derive_phase_status(executed_groups)
+    return ExecutedPhase(
+        name=phase.name,
+        status=phase_status.value,
+        test_case_groups=executed_groups,
+    )
+
+
+def _build_blocked_phase(phase: Phase, test_plan: TestPlan) -> ExecutedPhase:
+    """Build blocked phase output when dependencies failed."""
+    blocked_groups: list[ExecutedTestCaseGroup] = []
+    for group_name in phase.test_case_groups:
+        group = test_plan.test_case_groups[group_name]
+        blocked_tests = [
+            ExecutedTestCase(
+                test_id=test_id,
+                title=test_plan.test_cases[test_id].title,
+                status=ResultStatus.BLOCKED.value,
+                error="Blocked by failed phase dependency",
+            )
+            for test_id in group.tests
+        ]
+        blocked_groups.append(
+            ExecutedTestCaseGroup(
+                name=group.name,
+                status=ResultStatus.BLOCKED.value,
+                test_cases=blocked_tests,
+            )
+        )
+
+    return ExecutedPhase(
+        name=phase.name,
+        status=ResultStatus.BLOCKED.value,
+        test_case_groups=blocked_groups,
+    )
 
 
 def _plan_executions(

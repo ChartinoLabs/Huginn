@@ -274,6 +274,45 @@ def test_runner_plans_brokers_from_job_declarations(
     assert checks[0]["message"] == "get:leaf-01:/interfaces"
 
 
+def test_phase_with_failed_dependency_is_marked_blocked(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Downstream phases are blocked when dependency phase fails."""
+    _stage_runner_fixture(tmp_path, "phase_dependency_blocked")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 1
+    assert not (tmp_path / "phase2.executed").exists()
+
+    report_data = _load_report(tmp_path)
+    assert report_data["summary"]["failed"] == 1
+    assert report_data["summary"]["blocked"] == 1
+
+    phase_1 = report_data["phases"][0]
+    phase_2 = report_data["phases"][1]
+    assert phase_1["status"] == "failed"
+    assert phase_2["status"] == "blocked"
+
+    blocked_case = phase_2["test_case_groups"][0]["test_cases"][0]
+    assert blocked_case["status"] == "blocked"
+
+
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
     """Copy a fixture scenario into the temp execution directory."""
     fixture_root = Path(__file__).resolve().parent / "fixtures" / "first_slice_runner"

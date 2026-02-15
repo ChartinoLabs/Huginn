@@ -73,6 +73,16 @@ def test_load_test_plan_parses_test_case_device_targets() -> None:
     assert target.devices == ["spine-01"]
 
 
+def test_load_test_plan_parses_phase_dependencies() -> None:
+    """Parse optional depends_on phase references."""
+    path = FIXTURES / "plan_with_phase_dependency.yaml"
+
+    test_plan = load_test_plan(path)
+
+    assert test_plan.phases["phase-1"].depends_on == []
+    assert test_plan.phases["phase-2"].depends_on == ["phase-1"]
+
+
 def test_load_test_plan_rejects_missing_required_sections() -> None:
     """Raise when required top-level sections are missing."""
     path = FIXTURES / "plan_missing_sections.yaml"
@@ -97,6 +107,14 @@ def test_load_test_plan_rejects_phase_with_unknown_group() -> None:
         ConfigurationError,
         match="references undefined test case groups",
     ):
+        load_test_plan(path)
+
+
+def test_load_test_plan_rejects_unknown_phase_dependency() -> None:
+    """Raise when phase depends_on references missing phase names."""
+    path = FIXTURES / "plan_unknown_dependency.yaml"
+
+    with pytest.raises(ConfigurationError, match="undefined depends_on phases"):
         load_test_plan(path)
 
 

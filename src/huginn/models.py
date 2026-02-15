@@ -66,6 +66,7 @@ class Phase:
 
     name: str
     test_case_groups: list[str]
+    depends_on: list[str] = field(default_factory=list)
 
 
 @dataclass
