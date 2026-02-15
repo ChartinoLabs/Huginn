@@ -110,6 +110,7 @@ def run(
                 mode=mode,
                 testbed_path=testbed_path,
                 plan_path=plan,
+                tags=tags,
                 project_root=Path.cwd(),
                 reports_dir=Path.cwd() / "reports",
             )
@@ -189,6 +190,7 @@ def validate(
     report = validate_inputs(
         testbed_path=testbed_path,
         plan_path=plan,
+        tags=tags,
         project_root=Path.cwd(),
         reports_dir=Path.cwd() / "reports",
     )
@@ -226,8 +228,6 @@ def _resolve_testbed_option(
         raise typer.BadParameter(
             "--testbed and --inventory-plugin are mutually exclusive."
         )
-    if tags is not None:
-        raise typer.BadParameter("--tags filtering is not implemented yet.")
     if data_model is not None:
         raise typer.BadParameter("--data-model is not implemented yet.")
     return testbed

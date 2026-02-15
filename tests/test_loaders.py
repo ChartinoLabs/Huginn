@@ -86,6 +86,15 @@ def test_load_test_plan_parses_target_groups_and_os() -> None:
     assert target.os == ["nxos"]
 
 
+def test_load_test_plan_parses_test_case_tags() -> None:
+    """Parse optional test case tags list."""
+    path = FIXTURES / "plan_with_tags.yaml"
+
+    test_plan = load_test_plan(path)
+
+    assert test_plan.test_cases["1.0.0"].tags == ["ospf", "routing"]
+
+
 def test_load_test_plan_rejects_mixed_target_selectors() -> None:
     """Raise when explicit devices are mixed with groups/os selectors."""
     path = FIXTURES / "plan_with_mixed_target_selectors.yaml"

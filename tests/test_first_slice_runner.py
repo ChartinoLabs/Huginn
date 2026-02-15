@@ -470,6 +470,70 @@ def test_run_skips_when_hierarchical_target_intersection_is_empty(
     assert test_case["status"] == "skipped"
 
 
+def test_run_filters_test_cases_by_tags(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Run command executes only test cases matching requested tags."""
+    _stage_runner_fixture(tmp_path, "tag_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--tags",
+            "ospf",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert not (tmp_path / "unexpected.tag.execution").exists()
+    report_data = _load_report(tmp_path)
+    assert report_data["summary"]["total"] == 1
+    checks = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]["checks"]
+    assert checks[0]["message"] == "ran:ospf"
+
+
+def test_run_with_unmatched_tags_produces_empty_execution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unmatched tag filters prune all test cases and phases."""
+    _stage_runner_fixture(tmp_path, "tag_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--tags",
+            "isis",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report_data = _load_report(tmp_path)
+    assert report_data["summary"]["total"] == 0
+    assert report_data["phases"] == []
+
+
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
     """Copy a fixture scenario into the temp execution directory."""
     fixture_root = Path(__file__).resolve().parent / "fixtures" / "first_slice_runner"

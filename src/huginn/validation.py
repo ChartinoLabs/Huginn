@@ -7,6 +7,7 @@ from huginn.enums import BrokerType
 from huginn.jobs import JobLoadError, load_test_case_class
 from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
 from huginn.models import Phase, Testbed, TestCaseDefinition, TestCaseGroup, TestPlan
+from huginn.plan_filtering import filter_test_plan_by_tags
 from huginn.runner import _resolve_targets
 from huginn.runtime_broker import RuntimeBrokerError, normalize_broker_key
 from huginn.testcase import TestCase
@@ -40,13 +41,14 @@ def validate_inputs(
     *,
     testbed_path: Path,
     plan_path: Path,
+    tags: list[str] | None,
     project_root: Path,
     reports_dir: Path,
 ) -> ValidationReport:
     """Validate configuration and emit a validation report."""
     try:
         testbed = load_testbed(testbed_path)
-        test_plan = load_test_plan(plan_path)
+        test_plan = filter_test_plan_by_tags(load_test_plan(plan_path), tags)
     except ConfigurationError as error:
         report = _build_configuration_error_report(str(error))
         _write_report(report=report, reports_dir=reports_dir)
