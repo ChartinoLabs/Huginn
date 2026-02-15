@@ -60,6 +60,7 @@ class TestCaseGroup:
 
     name: str
     tests: list[str]
+    target: TargetDefinition | None = None
 
 
 @dataclass
@@ -69,6 +70,7 @@ class Phase:
     name: str
     test_case_groups: list[str]
     depends_on: list[str] = field(default_factory=list)
+    target: TargetDefinition | None = None
 
 
 @dataclass

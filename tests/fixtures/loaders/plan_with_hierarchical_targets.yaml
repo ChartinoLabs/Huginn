@@ -1,0 +1,23 @@
+test_cases:
+  "1.0.0":
+    title: Verify Hierarchy
+    job: jobs/verify.py
+    target:
+      devices:
+        - leaf-01
+
+test_case_groups:
+  group-1:
+    target:
+      os:
+        - nxos
+    tests:
+      - "1.0.0"
+
+phases:
+  phase-1:
+    target:
+      groups:
+        - leaf
+    test_case_groups:
+      - group-1

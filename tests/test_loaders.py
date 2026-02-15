@@ -94,6 +94,39 @@ def test_load_test_plan_rejects_mixed_target_selectors() -> None:
         load_test_plan(path)
 
 
+def test_load_test_plan_parses_hierarchical_targets() -> None:
+    """Parse phase/group/test-case target definitions."""
+    path = FIXTURES / "plan_with_hierarchical_targets.yaml"
+
+    test_plan = load_test_plan(path)
+
+    case_target = test_plan.test_cases["1.0.0"].target
+    group_target = test_plan.test_case_groups["group-1"].target
+    phase_target = test_plan.phases["phase-1"].target
+    assert case_target is not None
+    assert group_target is not None
+    assert phase_target is not None
+    assert case_target.devices == ["leaf-01"]
+    assert group_target.os == ["nxos"]
+    assert phase_target.groups == ["leaf"]
+
+
+def test_load_test_plan_rejects_mixed_group_target_selectors() -> None:
+    """Raise when group target mixes explicit and dynamic selectors."""
+    path = FIXTURES / "plan_with_mixed_group_target_selectors.yaml"
+
+    with pytest.raises(ConfigurationError, match="Test case group 'group-1'"):
+        load_test_plan(path)
+
+
+def test_load_test_plan_rejects_mixed_phase_target_selectors() -> None:
+    """Raise when phase target mixes explicit and dynamic selectors."""
+    path = FIXTURES / "plan_with_mixed_phase_target_selectors.yaml"
+
+    with pytest.raises(ConfigurationError, match="Phase 'phase-1'"):
+        load_test_plan(path)
+
+
 def test_load_test_plan_parses_phase_dependencies() -> None:
     """Parse optional depends_on phase references."""
     path = FIXTURES / "plan_with_phase_dependency.yaml"

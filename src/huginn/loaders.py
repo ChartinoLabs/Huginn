@@ -214,40 +214,40 @@ def _require_int(value: object, error_message: str) -> int:
 
 def _load_target_definition(
     value: object,
-    test_id: str,
+    context_name: str,
 ) -> TargetDefinition | None:
-    """Load optional test-case-level target definition."""
+    """Load optional target definition for a plan object."""
     if value is None:
         return None
 
     target_mapping = _require_mapping(
         value,
-        f"Test case '{test_id}' target must be a mapping",
+        f"{context_name} target must be a mapping",
     )
     devices = _load_target_selector_values(
         target_mapping.get("devices"),
-        test_id=test_id,
+        context_name=context_name,
         field_name="devices",
     )
     groups = _load_target_selector_values(
         target_mapping.get("groups"),
-        test_id=test_id,
+        context_name=context_name,
         field_name="groups",
     )
     os_values = _load_target_selector_values(
         target_mapping.get("os"),
-        test_id=test_id,
+        context_name=context_name,
         field_name="os",
     )
     target = TargetDefinition(devices=devices, groups=groups, os=os_values)
-    _validate_target_selector_exclusivity(test_id=test_id, target=target)
+    _validate_target_selector_exclusivity(context_name=context_name, target=target)
     return target
 
 
 def _load_target_selector_values(
     value: object,
     *,
-    test_id: str,
+    context_name: str,
     field_name: str,
 ) -> list[str] | None:
     """Load optional target selector list values."""
@@ -255,16 +255,13 @@ def _load_target_selector_values(
         return None
     return _require_non_empty_string_list(
         value,
-        (
-            f"Test case '{test_id}' target.{field_name} must be a non-empty "
-            "list of strings"
-        ),
+        (f"{context_name} target.{field_name} must be a non-empty list of strings"),
     )
 
 
 def _validate_target_selector_exclusivity(
     *,
-    test_id: str,
+    context_name: str,
     target: TargetDefinition,
 ) -> None:
     """Enforce mutually exclusive explicit vs dynamic target selectors."""
@@ -274,7 +271,7 @@ def _validate_target_selector_exclusivity(
         return
 
     raise ConfigurationError(
-        f"Test case '{test_id}' cannot define target.devices together with "
+        f"{context_name} cannot define target.devices together with "
         "target.groups and/or target.os. Use explicit device targets OR "
         "dynamic group/os selectors."
     )
@@ -352,7 +349,10 @@ def _load_test_cases(data: dict[str, object]) -> dict[str, TestCaseDefinition]:
 
         title = test_case_mapping.get("title")
         job = test_case_mapping.get("job")
-        target = _load_target_definition(test_case_mapping.get("target"), test_id)
+        target = _load_target_definition(
+            test_case_mapping.get("target"),
+            f"Test case '{test_id}'",
+        )
         if not isinstance(title, str) or not title:
             raise ConfigurationError(
                 f"Test case '{test_id}' must include non-empty 'title'"
@@ -400,7 +400,11 @@ def _parse_test_case_group(group_name: object, raw_group: object) -> TestCaseGro
         group_mapping.get("tests"),
         f"Test case group '{group_name}' must include non-empty 'tests'",
     )
-    return TestCaseGroup(name=group_name, tests=tests)
+    target = _load_target_definition(
+        group_mapping.get("target"),
+        f"Test case group '{group_name}'",
+    )
+    return TestCaseGroup(name=group_name, tests=tests, target=target)
 
 
 def _load_phases(data: dict[str, object]) -> dict[str, Phase]:
@@ -431,10 +435,15 @@ def _parse_phase(phase_name: object, raw_phase: object) -> Phase:
         f"Phase '{phase_name}' must include non-empty 'test_case_groups'",
     )
     depends_on = _load_optional_string_list_allow_empty(phase_mapping.get("depends_on"))
+    target = _load_target_definition(
+        phase_mapping.get("target"),
+        f"Phase '{phase_name}'",
+    )
     return Phase(
         name=phase_name,
         test_case_groups=test_case_groups,
         depends_on=depends_on,
+        target=target,
     )
 
 

@@ -410,6 +410,66 @@ def test_run_skips_test_case_when_no_targets_match(
     assert "No devices matched target selectors" in test_case["error"]
 
 
+def test_run_applies_phase_group_test_target_intersection(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Phase/group/test-case targets are intersected deterministically."""
+    _stage_runner_fixture(tmp_path, "hierarchical_targets")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report_data = _load_report(tmp_path)
+    checks = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]["checks"]
+    assert len(checks) == 1
+    assert checks[0]["message"] == "selected:leaf-02"
+
+
+def test_run_skips_when_hierarchical_target_intersection_is_empty(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Empty target set after phase/group/test intersections is skipped."""
+    _stage_runner_fixture(tmp_path, "hierarchical_no_match")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 1
+    assert not (tmp_path / "hierarchy.unexpected").exists()
+    report_data = _load_report(tmp_path)
+    test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    assert test_case["status"] == "skipped"
+
+
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
     """Copy a fixture scenario into the temp execution directory."""
     fixture_root = Path(__file__).resolve().parent / "fixtures" / "first_slice_runner"

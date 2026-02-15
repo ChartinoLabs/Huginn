@@ -21,6 +21,7 @@ from huginn.models import (
     TargetDefinition,
     Testbed,
     TestCaseDefinition,
+    TestCaseGroup,
     TestPlan,
 )
 from huginn.results import ResultCollector
@@ -168,6 +169,8 @@ async def _execute_phase(
             test_case_definition = test_plan.test_cases[test_id]
             executed_tests.append(
                 await _execute_test_case(
+                    phase=phase,
+                    group=group,
                     definition=test_case_definition,
                     planned=planned_executions[test_case_definition.test_id],
                     mode=mode,
@@ -282,13 +285,20 @@ def _collect_planned_brokers(planned: dict[str, PlannedExecution]) -> set[Broker
 
 async def _execute_test_case(
     *,
+    phase: Phase,
+    group: TestCaseGroup,
     definition: TestCaseDefinition,
     planned: PlannedExecution,
     mode: ExecutionMode,
     testbed: Testbed,
     broker: RuntimeBroker,
 ) -> ExecutedTestCase:
-    targets, target_error = _resolve_targets(testbed, definition)
+    targets, target_error = _resolve_targets(
+        testbed=testbed,
+        phase=phase,
+        group=group,
+        test_case=definition,
+    )
     if target_error is not None:
         return _errored_test_case(definition, error=target_error)
     if not targets:
@@ -423,42 +433,77 @@ def _create_broker(
 
 
 def _resolve_targets(
+    *,
     testbed: Testbed,
-    definition: TestCaseDefinition,
+    phase: Phase,
+    group: TestCaseGroup,
+    test_case: TestCaseDefinition,
 ) -> tuple[list[Device], str | None]:
-    """Resolve test targets from test-case definition and testbed."""
-    if definition.target is None:
-        return list(testbed.devices.values()), None
+    """Resolve targets with phase -> group -> test-case selector intersection."""
+    devices = list(testbed.devices.values())
 
-    target = definition.target
-    if target is None:
-        return list(testbed.devices.values()), None
-    selected_devices, error = _resolve_target_devices(testbed, definition, target)
-    if error is not None:
-        return [], error
+    for scope_name, target in (
+        (f"Phase '{phase.name}'", phase.target),
+        (f"Test case group '{group.name}'", group.target),
+        (f"Test case '{test_case.test_id}'", test_case.target),
+    ):
+        devices, error = _apply_target_scope(
+            devices=devices,
+            testbed=testbed,
+            target=target,
+            scope_name=scope_name,
+        )
+        if error is not None:
+            return [], error
 
-    return _apply_target_filters(selected_devices, target), None
+    return devices, None
 
 
 def _resolve_target_devices(
+    *,
     testbed: Testbed,
-    definition: TestCaseDefinition,
+    devices: list[Device],
     target: TargetDefinition,
+    scope_name: str,
 ) -> tuple[list[Device], str | None]:
     """Resolve target device list, validating explicit device references."""
     target_devices = target.devices
     if target_devices is None:
-        return list(testbed.devices.values()), None
+        return devices, None
 
+    allowed_names = {device.name for device in devices}
     selected_devices: list[Device] = []
     for device_name in target_devices:
         device = testbed.devices.get(device_name)
         if device is None:
-            return [], (
-                f"Unknown target device '{device_name}' for {definition.test_id}"
-            )
+            return [], f"Unknown target device '{device_name}' in {scope_name}"
+        if device_name not in allowed_names:
+            continue
         selected_devices.append(device)
     return selected_devices, None
+
+
+def _apply_target_scope(
+    *,
+    devices: list[Device],
+    testbed: Testbed,
+    target: TargetDefinition | None,
+    scope_name: str,
+) -> tuple[list[Device], str | None]:
+    """Apply one target scope to an incoming device set."""
+    if target is None:
+        return devices, None
+
+    selected_devices, error = _resolve_target_devices(
+        testbed=testbed,
+        devices=devices,
+        target=target,
+        scope_name=scope_name,
+    )
+    if error is not None:
+        return [], error
+
+    return _apply_target_filters(selected_devices, target), None
 
 
 def _apply_target_filters(
