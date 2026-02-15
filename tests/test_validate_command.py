@@ -60,10 +60,14 @@ def test_validate_reports_errors_for_invalid_target_reference(
         catch_exceptions=False,
     )
 
-    assert result.exit_code == 1
+    assert result.exit_code == 3
     report = _load_validate_report(tmp_path)
     assert report["valid"] is False
-    assert any("Unknown target device 'leaf-42'" in error for error in report["errors"])
+    assert report["errors"][0]["code"] == "validation_error"
+    assert any(
+        "Unknown target device 'leaf-42'" in error["message"]
+        for error in report["errors"]
+    )
 
 
 def test_validate_filters_test_cases_by_tags(

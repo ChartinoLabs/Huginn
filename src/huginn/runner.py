@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from huginn.context import Context
-from huginn.enums import BrokerType, ExecutionMode, ResultStatus
+from huginn.enums import BrokerType, ErrorCode, ExecutionMode, ResultStatus
 from huginn.jobs import JobLoadError, load_test_case_class
 from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
 from huginn.models import (
@@ -37,6 +37,11 @@ from huginn.testcase import TestCase
 class RunExecutionError(RuntimeError):
     """Raised when inputs cannot be loaded or jobs cannot be resolved."""
 
+    def __init__(self, message: str, code: ErrorCode) -> None:
+        """Initialize structured run execution error."""
+        super().__init__(message)
+        self.code = code
+
 
 @dataclass(frozen=True)
 class PlannedExecution:
@@ -62,7 +67,10 @@ async def run_test_plan(
         testbed = load_testbed(testbed_path)
         test_plan = filter_test_plan_by_tags(load_test_plan(plan_path), tags)
     except ConfigurationError as error:
-        raise RunExecutionError(str(error)) from error
+        raise RunExecutionError(
+            str(error),
+            code=ErrorCode.CONFIGURATION_ERROR,
+        ) from error
 
     planned_executions = _plan_executions(
         test_plan=test_plan,
@@ -85,7 +93,7 @@ async def run_test_plan(
     finally:
         disconnect_error = await _disconnect_runtime_broker(runtime_broker)
         if disconnect_error is not None:
-            raise RunExecutionError(disconnect_error)
+            raise RunExecutionError(disconnect_error, code=ErrorCode.BROKER_ERROR)
 
     summary = _build_summary(executed_phases)
     report = RunReport(summary=summary, phases=executed_phases)
@@ -131,7 +139,8 @@ async def _execute_phases_with_dependencies(
         if not progressed:
             unresolved = sorted(pending)
             raise RunExecutionError(
-                f"Unable to resolve phase dependencies for: {unresolved}"
+                f"Unable to resolve phase dependencies for: {unresolved}",
+                code=ErrorCode.VALIDATION_ERROR,
             )
 
     return [phase_results[name] for name in test_plan.phases]
@@ -302,7 +311,11 @@ async def _execute_test_case(
         test_case=definition,
     )
     if target_error is not None:
-        return _errored_test_case(definition, error=target_error)
+        return _errored_test_case(
+            definition,
+            error=target_error,
+            error_code=ErrorCode.VALIDATION_ERROR,
+        )
     if not targets:
         return _skipped_test_case(
             definition,
@@ -321,9 +334,17 @@ async def _execute_test_case(
     )
 
     if planned.planning_error is not None:
-        return _errored_test_case(definition, error=planned.planning_error)
+        return _errored_test_case(
+            definition,
+            error=planned.planning_error,
+            error_code=ErrorCode.PLANNING_ERROR,
+        )
     if planned.test_case_class is None:
-        return _errored_test_case(definition, error="Missing planned test case class")
+        return _errored_test_case(
+            definition,
+            error="Missing planned test case class",
+            error_code=ErrorCode.PLANNING_ERROR,
+        )
 
     test_case = planned.test_case_class()
     test_error: str | None = None
@@ -335,7 +356,11 @@ async def _execute_test_case(
             planned.required_brokers,
         )
     except RuntimeBrokerError as error:
-        return _errored_test_case(definition, error=str(error))
+        return _errored_test_case(
+            definition,
+            error=str(error),
+            error_code=ErrorCode.BROKER_ERROR,
+        )
 
     try:
         await test_case.setup(context)
@@ -350,6 +375,7 @@ async def _execute_test_case(
             definition,
             checks=result_collector.checks,
             error=test_error,
+            error_code=ErrorCode.EXECUTION_ERROR,
         )
 
     status = result_collector.derive_status().value
@@ -365,6 +391,7 @@ def _errored_test_case(
     definition: TestCaseDefinition,
     *,
     error: str,
+    error_code: ErrorCode,
     checks: list[CheckResult] | None = None,
 ) -> ExecutedTestCase:
     """Build a standardized errored test case output."""
@@ -375,6 +402,7 @@ def _errored_test_case(
         status=ResultStatus.ERRORED.value,
         checks=normalized_checks,
         error=error,
+        error_code=error_code.value,
     )
 
 

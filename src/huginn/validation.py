@@ -3,7 +3,7 @@
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from huginn.enums import BrokerType
+from huginn.enums import BrokerType, ErrorCode
 from huginn.jobs import JobLoadError, load_test_case_class
 from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
 from huginn.models import Phase, Testbed, TestCaseDefinition, TestCaseGroup, TestPlan
@@ -26,6 +26,14 @@ class ValidationCase:
 
 
 @dataclass
+class ValidationIssue:
+    """Structured validation issue with category code and message."""
+
+    code: str
+    message: str
+
+
+@dataclass
 class ValidationReport:
     """Top-level validation report."""
 
@@ -33,8 +41,8 @@ class ValidationReport:
     phase_order: list[str]
     required_brokers: list[str]
     test_cases: list[ValidationCase]
-    warnings: list[str]
-    errors: list[str]
+    warnings: list[ValidationIssue]
+    errors: list[ValidationIssue]
 
 
 def validate_inputs(
@@ -54,7 +62,7 @@ def validate_inputs(
         _write_report(report=report, reports_dir=reports_dir)
         return report
 
-    errors: list[str] = []
+    errors: list[ValidationIssue] = []
     phase_order, order_errors = _resolve_phase_order(test_plan)
     errors.extend(order_errors)
 
@@ -93,7 +101,12 @@ def _build_configuration_error_report(error: str) -> ValidationReport:
         required_brokers=[],
         test_cases=[],
         warnings=[],
-        errors=[error],
+        errors=[
+            ValidationIssue(
+                code=ErrorCode.CONFIGURATION_ERROR.value,
+                message=error,
+            )
+        ],
     )
 
 
@@ -103,11 +116,11 @@ def _collect_target_validations(
     testbed: Testbed,
     phase_order: list[str],
     required_by_case: dict[str, set[str]],
-) -> tuple[list[ValidationCase], list[str], list[str]]:
+) -> tuple[list[ValidationCase], list[ValidationIssue], list[ValidationIssue]]:
     """Resolve targets per execution node and collect warnings/errors."""
     test_cases: list[ValidationCase] = []
-    warnings: list[str] = []
-    errors: list[str] = []
+    warnings: list[ValidationIssue] = []
+    errors: list[ValidationIssue] = []
 
     for phase_name in phase_order:
         phase = test_plan.phases[phase_name]
@@ -122,9 +135,16 @@ def _collect_target_validations(
                     case=case,
                 )
                 if warning is not None:
-                    warnings.append(warning)
+                    warnings.append(
+                        ValidationIssue(code="validation_warning", message=warning)
+                    )
                 if error is not None:
-                    errors.append(error)
+                    errors.append(
+                        ValidationIssue(
+                            code=ErrorCode.VALIDATION_ERROR.value,
+                            message=error,
+                        )
+                    )
 
                 test_cases.append(
                     _build_validation_case(
@@ -188,10 +208,12 @@ def _collect_all_required_brokers(required_by_case: dict[str, set[str]]) -> list
     return sorted({broker for req in required_by_case.values() for broker in req})
 
 
-def _resolve_phase_order(test_plan: TestPlan) -> tuple[list[str], list[str]]:
+def _resolve_phase_order(
+    test_plan: TestPlan,
+) -> tuple[list[str], list[ValidationIssue]]:
     """Topologically sort phases by dependency order."""
     resolved: list[str] = []
-    errors: list[str] = []
+    errors: list[ValidationIssue] = []
     pending = set(test_plan.phases.keys())
 
     while pending:
@@ -204,7 +226,12 @@ def _resolve_phase_order(test_plan: TestPlan) -> tuple[list[str], list[str]]:
                 progressed = True
         if not progressed:
             errors.append(
-                f"Unable to resolve phase dependencies for: {sorted(pending)}"
+                ValidationIssue(
+                    code=ErrorCode.VALIDATION_ERROR.value,
+                    message=(
+                        f"Unable to resolve phase dependencies for: {sorted(pending)}"
+                    ),
+                )
             )
             break
 
@@ -215,7 +242,7 @@ def _collect_required_brokers(
     *,
     test_plan: TestPlan,
     project_root: Path,
-    errors: list[str],
+    errors: list[ValidationIssue],
 ) -> dict[str, set[str]]:
     """Load each job class and collect declared broker requirements."""
     required: dict[str, set[str]] = {}
@@ -229,7 +256,12 @@ def _collect_required_brokers(
                 test_case_class,
             )
         except (JobLoadError, RuntimeBrokerError) as error:
-            errors.append(f"{test_case.test_id}: {error}")
+            errors.append(
+                ValidationIssue(
+                    code=ErrorCode.PLANNING_ERROR.value,
+                    message=f"{test_case.test_id}: {error}",
+                )
+            )
             required[test_case.test_id] = {BrokerType.SSH.value}
     return required
 
