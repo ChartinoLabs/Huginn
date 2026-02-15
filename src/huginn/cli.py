@@ -12,6 +12,7 @@ from typing import Annotated
 import typer
 
 from huginn.enums import ExecutionMode
+from huginn.preflight import validate_inputs
 from huginn.runner import RunExecutionError, run_test_plan
 
 app = typer.Typer(
@@ -121,6 +122,86 @@ def run(
     typer.echo("Report written to reports/run.json")
     if report.summary.status != "passed":
         raise typer.Exit(code=1)
+
+
+@app.command()
+def validate(
+    plan: Annotated[
+        Path,
+        typer.Option(
+            "--plan",
+            "-p",
+            help="Path to test plan YAML file to validate.",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+        ),
+    ],
+    testbed: Annotated[
+        Path | None,
+        typer.Option(
+            "--testbed",
+            "-t",
+            help="Path to testbed YAML file defining device inventory.",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+        ),
+    ] = None,
+    tags: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--tags",
+            help="Reserved for future filtering support.",
+        ),
+    ] = None,
+    data_model: Annotated[
+        Path | None,
+        typer.Option(
+            "--data-model",
+            "-d",
+            help="Reserved for future data model support.",
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+        ),
+    ] = None,
+    inventory_plugin: Annotated[
+        str | None,
+        typer.Option(
+            "--inventory-plugin",
+            "-i",
+            help="Reserved for future inventory plugin support.",
+        ),
+    ] = None,
+) -> None:
+    """Validate testbed/plan inputs without executing tests."""
+    testbed_path = _resolve_testbed_option(
+        testbed=testbed,
+        inventory_plugin=inventory_plugin,
+        tags=tags,
+        data_model=data_model,
+    )
+
+    report = validate_inputs(
+        testbed_path=testbed_path,
+        plan_path=plan,
+        project_root=Path.cwd(),
+        reports_dir=Path.cwd() / "reports",
+    )
+    typer.echo(f"Validation status: {'passed' if report.valid else 'failed'}")
+    typer.echo("Report written to reports/validate.json")
+
+    if not report.valid:
+        for error in report.errors:
+            typer.secho(f"ERROR: {error}", fg=typer.colors.RED)
+        raise typer.Exit(code=1)
+
+    for warning in report.warnings:
+        typer.secho(f"WARNING: {warning}", fg=typer.colors.YELLOW)
 
 
 def _resolve_testbed_option(
