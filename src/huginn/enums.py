@@ -43,3 +43,21 @@ class ResultStatus(StrEnum):
     ERRORED = "errored"
     SKIPPED = "skipped"
     BLOCKED = "blocked"
+
+
+class ConnectionProtocol(StrEnum):
+    """Supported connection protocol identifiers in testbed definitions."""
+
+    SSH = "ssh"
+    HTTP = "http"
+    HTTPS = "https"
+    REST = "rest"
+    NETCONF = "netconf"
+
+
+class BrokerType(StrEnum):
+    """Canonical runtime broker identifiers."""
+
+    SSH = "ssh"
+    HTTP = "http"
+    NETCONF = "netconf"

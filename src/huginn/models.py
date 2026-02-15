@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass, field
 
+from huginn.enums import ConnectionProtocol
+
 
 @dataclass
 class Device:
@@ -19,7 +21,7 @@ class ConnectionDefinition:
     """A named device connection from the testbed."""
 
     name: str
-    protocol: str
+    protocol: ConnectionProtocol
     host: str
     port: int
     credential: str | None = None
