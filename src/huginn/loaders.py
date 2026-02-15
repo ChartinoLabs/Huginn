@@ -1,5 +1,6 @@
 """YAML loaders for testbed and test plan files."""
 
+import warnings
 from pathlib import Path
 from typing import cast
 
@@ -239,7 +240,9 @@ def _load_target_definition(
         test_id=test_id,
         field_name="os",
     )
-    return TargetDefinition(devices=devices, groups=groups, os=os_values)
+    target = TargetDefinition(devices=devices, groups=groups, os=os_values)
+    _warn_on_mixed_target_selectors(test_id=test_id, target=target)
+    return target
 
 
 def _load_target_selector_values(
@@ -257,6 +260,28 @@ def _load_target_selector_values(
             f"Test case '{test_id}' target.{field_name} must be a non-empty "
             "list of strings"
         ),
+    )
+
+
+def _warn_on_mixed_target_selectors(
+    *,
+    test_id: str,
+    target: TargetDefinition,
+) -> None:
+    """Warn when explicit devices are mixed with groups and/or os selectors."""
+    if target.devices is None:
+        return
+    if target.groups is None and target.os is None:
+        return
+
+    warnings.warn(
+        (
+            f"Test case '{test_id}' defines target.devices together with "
+            "target.groups and/or target.os. Selectors are intersected (AND), "
+            "so explicitly listed devices may be filtered out."
+        ),
+        UserWarning,
+        stacklevel=3,
     )
 
 

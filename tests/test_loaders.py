@@ -77,7 +77,8 @@ def test_load_test_plan_parses_target_groups_and_os() -> None:
     """Parse optional target groups and os selectors."""
     path = FIXTURES / "plan_with_target_selectors.yaml"
 
-    test_plan = load_test_plan(path)
+    with pytest.warns(UserWarning, match="Selectors are intersected"):
+        test_plan = load_test_plan(path)
 
     target = test_plan.test_cases["1.0.0"].target
     assert target is not None
