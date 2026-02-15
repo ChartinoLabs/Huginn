@@ -12,8 +12,8 @@ from typing import Annotated
 import typer
 
 from huginn.enums import ExecutionMode
-from huginn.preflight import validate_inputs
 from huginn.runner import RunExecutionError, run_test_plan
+from huginn.validation import validate_inputs
 
 app = typer.Typer(
     name="huginn",

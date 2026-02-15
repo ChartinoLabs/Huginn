@@ -1,4 +1,4 @@
-"""Preflight validation for testbed and test plan inputs."""
+"""Validation checks for testbed and test plan inputs."""
 
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -13,7 +13,7 @@ from huginn.testcase import TestCase
 
 
 @dataclass
-class PreflightCase:
+class ValidationCase:
     """Validation details for one phase/group/test-case execution node."""
 
     phase: str
@@ -25,13 +25,13 @@ class PreflightCase:
 
 
 @dataclass
-class PreflightReport:
-    """Top-level preflight validation report."""
+class ValidationReport:
+    """Top-level validation report."""
 
     valid: bool
     phase_order: list[str]
     required_brokers: list[str]
-    test_cases: list[PreflightCase]
+    test_cases: list[ValidationCase]
     warnings: list[str]
     errors: list[str]
 
@@ -42,8 +42,8 @@ def validate_inputs(
     plan_path: Path,
     project_root: Path,
     reports_dir: Path,
-) -> PreflightReport:
-    """Validate configuration and emit a preflight report."""
+) -> ValidationReport:
+    """Validate configuration and emit a validation report."""
     warnings: list[str] = []
     errors: list[str] = []
 
@@ -51,7 +51,7 @@ def validate_inputs(
         testbed = load_testbed(testbed_path)
         test_plan = load_test_plan(plan_path)
     except ConfigurationError as error:
-        report = PreflightReport(
+        report = ValidationReport(
             valid=False,
             phase_order=[],
             required_brokers=[],
@@ -71,7 +71,7 @@ def validate_inputs(
         errors=errors,
     )
 
-    test_cases: list[PreflightCase] = []
+    test_cases: list[ValidationCase] = []
     for phase_name in phase_order:
         phase = test_plan.phases[phase_name]
         for group_name in phase.test_case_groups:
@@ -96,7 +96,7 @@ def validate_inputs(
                         )
 
                 test_cases.append(
-                    PreflightCase(
+                    ValidationCase(
                         phase=phase.name,
                         group=group.name,
                         test_id=case.test_id,
@@ -109,7 +109,7 @@ def validate_inputs(
                 )
 
     all_required = sorted({b for req in required_by_case.values() for b in req})
-    report = PreflightReport(
+    report = ValidationReport(
         valid=not errors,
         phase_order=phase_order,
         required_brokers=all_required,
@@ -185,8 +185,8 @@ def _normalize_required_brokers(test_case_class: type[TestCase]) -> set[str]:
     return normalized
 
 
-def _write_report(report: PreflightReport, reports_dir: Path) -> None:
-    """Persist preflight report as JSON artifact."""
+def _write_report(report: ValidationReport, reports_dir: Path) -> None:
+    """Persist validation report as JSON artifact."""
     reports_dir.mkdir(parents=True, exist_ok=True)
     import json
 

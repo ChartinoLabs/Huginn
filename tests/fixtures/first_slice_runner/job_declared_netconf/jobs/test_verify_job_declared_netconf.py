@@ -5,7 +5,7 @@ from huginn.enums import BrokerType
 
 
 class VerifyJobDeclaredNetconf(TestCase):
-    """Exercise job-declared broker requirements in runner preflight."""
+    """Exercise job-declared broker requirements in runner validation."""
 
     required_brokers = {BrokerType.NETCONF}
 

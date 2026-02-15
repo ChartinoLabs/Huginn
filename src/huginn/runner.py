@@ -39,7 +39,7 @@ class RunExecutionError(RuntimeError):
 
 @dataclass(frozen=True)
 class PlannedExecution:
-    """Preflight plan for a single test case execution."""
+    """Validation plan for a single test case execution."""
 
     test_case_class: type[TestCase] | None
     required_brokers: set[BrokerType]
