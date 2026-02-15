@@ -1,6 +1,5 @@
 """YAML loaders for testbed and test plan files."""
 
-import warnings
 from pathlib import Path
 from typing import cast
 
@@ -241,7 +240,7 @@ def _load_target_definition(
         field_name="os",
     )
     target = TargetDefinition(devices=devices, groups=groups, os=os_values)
-    _warn_on_mixed_target_selectors(test_id=test_id, target=target)
+    _validate_target_selector_exclusivity(test_id=test_id, target=target)
     return target
 
 
@@ -263,25 +262,21 @@ def _load_target_selector_values(
     )
 
 
-def _warn_on_mixed_target_selectors(
+def _validate_target_selector_exclusivity(
     *,
     test_id: str,
     target: TargetDefinition,
 ) -> None:
-    """Warn when explicit devices are mixed with groups and/or os selectors."""
+    """Enforce mutually exclusive explicit vs dynamic target selectors."""
     if target.devices is None:
         return
     if target.groups is None and target.os is None:
         return
 
-    warnings.warn(
-        (
-            f"Test case '{test_id}' defines target.devices together with "
-            "target.groups and/or target.os. Selectors are intersected (AND), "
-            "so explicitly listed devices may be filtered out."
-        ),
-        UserWarning,
-        stacklevel=3,
+    raise ConfigurationError(
+        f"Test case '{test_id}' cannot define target.devices together with "
+        "target.groups and/or target.os. Use explicit device targets OR "
+        "dynamic group/os selectors."
     )
 
 

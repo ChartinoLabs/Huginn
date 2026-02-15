@@ -1,12 +1,12 @@
 test_cases:
   "1.0.0":
-    title: Verify selectors
+    title: Mixed selectors
     job: jobs/verify.py
     target:
+      devices:
+        - spine-01
       groups:
         - spine
-      os:
-        - nxos
 
 test_case_groups:
   group-1:
