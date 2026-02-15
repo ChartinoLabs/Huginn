@@ -224,15 +224,60 @@ def _load_target_definition(
         value,
         f"Test case '{test_id}' target must be a mapping",
     )
-    devices_value = target_mapping.get("devices")
-    if devices_value is None:
-        return TargetDefinition(devices=None)
-
-    devices = _require_non_empty_string_list(
-        devices_value,
-        f"Test case '{test_id}' target.devices must be a non-empty list of strings",
+    devices = _load_target_selector_values(
+        target_mapping.get("devices"),
+        test_id=test_id,
+        field_name="devices",
     )
-    return TargetDefinition(devices=devices)
+    groups = _load_target_selector_values(
+        target_mapping.get("groups"),
+        test_id=test_id,
+        field_name="groups",
+    )
+    os_values = _load_target_selector_values(
+        target_mapping.get("os"),
+        test_id=test_id,
+        field_name="os",
+    )
+    target = TargetDefinition(devices=devices, groups=groups, os=os_values)
+    _validate_target_selector_exclusivity(test_id=test_id, target=target)
+    return target
+
+
+def _load_target_selector_values(
+    value: object,
+    *,
+    test_id: str,
+    field_name: str,
+) -> list[str] | None:
+    """Load optional target selector list values."""
+    if value is None:
+        return None
+    return _require_non_empty_string_list(
+        value,
+        (
+            f"Test case '{test_id}' target.{field_name} must be a non-empty "
+            "list of strings"
+        ),
+    )
+
+
+def _validate_target_selector_exclusivity(
+    *,
+    test_id: str,
+    target: TargetDefinition,
+) -> None:
+    """Enforce mutually exclusive explicit vs dynamic target selectors."""
+    if target.devices is None:
+        return
+    if target.groups is None and target.os is None:
+        return
+
+    raise ConfigurationError(
+        f"Test case '{test_id}' cannot define target.devices together with "
+        "target.groups and/or target.os. Use explicit device targets OR "
+        "dynamic group/os selectors."
+    )
 
 
 def load_testbed(path: Path) -> Testbed:

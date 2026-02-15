@@ -349,6 +349,67 @@ def test_runner_disconnects_once_per_run(
     assert _FakeRuntimeBroker.disconnect_invocations == 1
 
 
+def test_run_applies_group_and_os_target_selectors(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Group and OS selectors filter target set with AND semantics."""
+    _stage_runner_fixture(tmp_path, "target_selectors")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report_data = _load_report(tmp_path)
+    checks = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]["checks"]
+    assert len(checks) == 1
+    assert checks[0]["message"] == "selected:leaf-02"
+
+
+def test_run_skips_test_case_when_no_targets_match(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """No matched targets marks test as skipped instead of errored."""
+    _stage_runner_fixture(tmp_path, "target_no_match")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 1
+    assert not (tmp_path / "unexpected.execution").exists()
+    report_data = _load_report(tmp_path)
+    test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    assert test_case["status"] == "skipped"
+    assert "No devices matched target selectors" in test_case["error"]
+
+
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
     """Copy a fixture scenario into the temp execution directory."""
     fixture_root = Path(__file__).resolve().parent / "fixtures" / "first_slice_runner"
