@@ -18,6 +18,7 @@ from huginn.models import (
     Phase,
     RunReport,
     RunSummary,
+    TargetDefinition,
     Testbed,
     TestCaseDefinition,
     TestPlan,
@@ -290,6 +291,11 @@ async def _execute_test_case(
     targets, target_error = _resolve_targets(testbed, definition)
     if target_error is not None:
         return _errored_test_case(definition, error=target_error)
+    if not targets:
+        return _skipped_test_case(
+            definition,
+            reason="No devices matched target selectors",
+        )
 
     result_collector = ResultCollector()
     context = Context(
@@ -360,6 +366,20 @@ def _errored_test_case(
     )
 
 
+def _skipped_test_case(
+    definition: TestCaseDefinition,
+    *,
+    reason: str,
+) -> ExecutedTestCase:
+    """Build a standardized skipped test case output."""
+    return ExecutedTestCase(
+        test_id=definition.test_id,
+        title=definition.title,
+        status=ResultStatus.SKIPPED.value,
+        error=reason,
+    )
+
+
 async def _connect_targets_or_raise(
     broker: RuntimeBroker,
     targets: list[Device],
@@ -407,16 +427,56 @@ def _resolve_targets(
     definition: TestCaseDefinition,
 ) -> tuple[list[Device], str | None]:
     """Resolve test targets from test-case definition and testbed."""
-    if definition.target is None or definition.target.devices is None:
+    if definition.target is None:
         return list(testbed.devices.values()), None
 
-    targets: list[Device] = []
-    for device_name in definition.target.devices:
+    target = definition.target
+    if target is None:
+        return list(testbed.devices.values()), None
+    selected_devices, error = _resolve_target_devices(testbed, definition, target)
+    if error is not None:
+        return [], error
+
+    return _apply_target_filters(selected_devices, target), None
+
+
+def _resolve_target_devices(
+    testbed: Testbed,
+    definition: TestCaseDefinition,
+    target: TargetDefinition,
+) -> tuple[list[Device], str | None]:
+    """Resolve target device list, validating explicit device references."""
+    target_devices = target.devices
+    if target_devices is None:
+        return list(testbed.devices.values()), None
+
+    selected_devices: list[Device] = []
+    for device_name in target_devices:
         device = testbed.devices.get(device_name)
         if device is None:
-            return [], f"Unknown target device '{device_name}' for {definition.test_id}"
-        targets.append(device)
-    return targets, None
+            return [], (
+                f"Unknown target device '{device_name}' for {definition.test_id}"
+            )
+        selected_devices.append(device)
+    return selected_devices, None
+
+
+def _apply_target_filters(
+    devices: list[Device],
+    target: TargetDefinition,
+) -> list[Device]:
+    """Apply optional groups/os filters to selected devices."""
+    group_filter = set(target.groups or [])
+    os_filter = set(target.os or [])
+
+    filtered: list[Device] = []
+    for device in devices:
+        if group_filter and not group_filter.intersection(device.groups):
+            continue
+        if os_filter and device.os not in os_filter:
+            continue
+        filtered.append(device)
+    return filtered
 
 
 def _derive_group_status(test_cases: list[ExecutedTestCase]) -> ResultStatus:

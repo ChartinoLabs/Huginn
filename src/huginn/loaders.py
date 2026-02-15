@@ -224,15 +224,40 @@ def _load_target_definition(
         value,
         f"Test case '{test_id}' target must be a mapping",
     )
-    devices_value = target_mapping.get("devices")
-    if devices_value is None:
-        return TargetDefinition(devices=None)
-
-    devices = _require_non_empty_string_list(
-        devices_value,
-        f"Test case '{test_id}' target.devices must be a non-empty list of strings",
+    devices = _load_target_selector_values(
+        target_mapping.get("devices"),
+        test_id=test_id,
+        field_name="devices",
     )
-    return TargetDefinition(devices=devices)
+    groups = _load_target_selector_values(
+        target_mapping.get("groups"),
+        test_id=test_id,
+        field_name="groups",
+    )
+    os_values = _load_target_selector_values(
+        target_mapping.get("os"),
+        test_id=test_id,
+        field_name="os",
+    )
+    return TargetDefinition(devices=devices, groups=groups, os=os_values)
+
+
+def _load_target_selector_values(
+    value: object,
+    *,
+    test_id: str,
+    field_name: str,
+) -> list[str] | None:
+    """Load optional target selector list values."""
+    if value is None:
+        return None
+    return _require_non_empty_string_list(
+        value,
+        (
+            f"Test case '{test_id}' target.{field_name} must be a non-empty "
+            "list of strings"
+        ),
+    )
 
 
 def load_testbed(path: Path) -> Testbed:

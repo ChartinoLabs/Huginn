@@ -33,6 +33,8 @@ class TargetDefinition:
     """Target filter subset for a test case."""
 
     devices: list[str] | None = None
+    groups: list[str] | None = None
+    os: list[str] | None = None
 
 
 @dataclass

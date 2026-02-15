@@ -1,0 +1,19 @@
+test_cases:
+  "1.0.0":
+    title: Select leaves with nxos
+    job: jobs/test_verify_targets.py
+    target:
+      groups:
+        - leaf
+      os:
+        - nxos
+
+test_case_groups:
+  group-1:
+    tests:
+      - "1.0.0"
+
+phases:
+  phase-1:
+    test_case_groups:
+      - group-1
