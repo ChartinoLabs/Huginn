@@ -53,6 +53,17 @@ def _load_optional_string_list(value: object) -> list[str]:
     return _require_non_empty_string_list(value, "Expected non-empty string list")
 
 
+def _load_optional_string_list_allow_empty_strings(value: object) -> list[str]:
+    """Load an optional list of non-empty strings, allowing empty list values."""
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ConfigurationError("Expected string list")
+    if not all(isinstance(item, str) and item for item in value):
+        raise ConfigurationError("Expected string list")
+    return cast(list[str], value)
+
+
 def _load_optional_string_list_allow_empty(value: object) -> list[str]:
     """Load an optional list of non-empty strings, allowing empty list."""
     if value is None:
@@ -349,6 +360,9 @@ def _load_test_cases(data: dict[str, object]) -> dict[str, TestCaseDefinition]:
 
         title = test_case_mapping.get("title")
         job = test_case_mapping.get("job")
+        tags = _load_optional_string_list_allow_empty_strings(
+            test_case_mapping.get("tags")
+        )
         target = _load_target_definition(
             test_case_mapping.get("target"),
             f"Test case '{test_id}'",
@@ -366,6 +380,7 @@ def _load_test_cases(data: dict[str, object]) -> dict[str, TestCaseDefinition]:
             test_id=test_id,
             title=title,
             job=job,
+            tags=tags,
             target=target,
         )
     return test_cases

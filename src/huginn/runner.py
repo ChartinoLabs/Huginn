@@ -24,6 +24,7 @@ from huginn.models import (
     TestCaseGroup,
     TestPlan,
 )
+from huginn.plan_filtering import filter_test_plan_by_tags
 from huginn.results import ResultCollector
 from huginn.runtime_broker import (
     RuntimeBroker,
@@ -51,6 +52,7 @@ async def run_test_plan(
     mode: ExecutionMode,
     testbed_path: Path,
     plan_path: Path,
+    tags: list[str] | None,
     project_root: Path,
     reports_dir: Path,
     broker_factory: Callable[[], RuntimeBroker] | None = None,
@@ -58,7 +60,7 @@ async def run_test_plan(
     """Execute a minimal test plan and persist JSON output."""
     try:
         testbed = load_testbed(testbed_path)
-        test_plan = load_test_plan(plan_path)
+        test_plan = filter_test_plan_by_tags(load_test_plan(plan_path), tags)
     except ConfigurationError as error:
         raise RunExecutionError(str(error)) from error
 

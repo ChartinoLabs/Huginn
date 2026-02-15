@@ -51,6 +51,7 @@ class TestCaseDefinition:
     test_id: str
     title: str
     job: str
+    tags: list[str] = field(default_factory=list)
     target: TargetDefinition | None = None
 
 
