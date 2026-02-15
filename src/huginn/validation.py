@@ -6,7 +6,7 @@ from pathlib import Path
 from huginn.enums import BrokerType
 from huginn.jobs import JobLoadError, load_test_case_class
 from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
-from huginn.models import TestPlan
+from huginn.models import Phase, Testbed, TestCaseDefinition, TestCaseGroup, TestPlan
 from huginn.runner import _resolve_targets
 from huginn.runtime_broker import RuntimeBrokerError, normalize_broker_key
 from huginn.testcase import TestCase
@@ -44,24 +44,15 @@ def validate_inputs(
     reports_dir: Path,
 ) -> ValidationReport:
     """Validate configuration and emit a validation report."""
-    warnings: list[str] = []
-    errors: list[str] = []
-
     try:
         testbed = load_testbed(testbed_path)
         test_plan = load_test_plan(plan_path)
     except ConfigurationError as error:
-        report = ValidationReport(
-            valid=False,
-            phase_order=[],
-            required_brokers=[],
-            test_cases=[],
-            warnings=[],
-            errors=[str(error)],
-        )
+        report = _build_configuration_error_report(str(error))
         _write_report(report=report, reports_dir=reports_dir)
         return report
 
+    errors: list[str] = []
     phase_order, order_errors = _resolve_phase_order(test_plan)
     errors.extend(order_errors)
 
@@ -71,54 +62,128 @@ def validate_inputs(
         errors=errors,
     )
 
+    test_cases, target_warnings, target_errors = _collect_target_validations(
+        test_plan=test_plan,
+        testbed=testbed,
+        phase_order=phase_order,
+        required_by_case=required_by_case,
+    )
+    errors.extend(target_errors)
+
+    all_required = _collect_all_required_brokers(required_by_case)
+    report = ValidationReport(
+        valid=not errors,
+        phase_order=phase_order,
+        required_brokers=all_required,
+        test_cases=test_cases,
+        warnings=target_warnings,
+        errors=errors,
+    )
+    _write_report(report=report, reports_dir=reports_dir)
+    return report
+
+
+def _build_configuration_error_report(error: str) -> ValidationReport:
+    """Build a report for fatal configuration parse/load errors."""
+    return ValidationReport(
+        valid=False,
+        phase_order=[],
+        required_brokers=[],
+        test_cases=[],
+        warnings=[],
+        errors=[error],
+    )
+
+
+def _collect_target_validations(
+    *,
+    test_plan: TestPlan,
+    testbed: Testbed,
+    phase_order: list[str],
+    required_by_case: dict[str, set[str]],
+) -> tuple[list[ValidationCase], list[str], list[str]]:
+    """Resolve targets per execution node and collect warnings/errors."""
     test_cases: list[ValidationCase] = []
+    warnings: list[str] = []
+    errors: list[str] = []
+
     for phase_name in phase_order:
         phase = test_plan.phases[phase_name]
         for group_name in phase.test_case_groups:
             group = test_plan.test_case_groups[group_name]
             for test_id in group.tests:
                 case = test_plan.test_cases[test_id]
-                targets, target_error = _resolve_targets(
+                target_names, warning, error = _validate_case_targets(
                     testbed=testbed,
                     phase=phase,
                     group=group,
-                    test_case=case,
+                    case=case,
                 )
-                if target_error is not None:
-                    errors.append(target_error)
-                    target_names: list[str] = []
-                else:
-                    target_names = [device.name for device in targets]
-                    if not target_names:
-                        warnings.append(
-                            f"{phase.name}/{group.name}/{case.test_id} "
-                            "has no matched targets"
-                        )
+                if warning is not None:
+                    warnings.append(warning)
+                if error is not None:
+                    errors.append(error)
 
                 test_cases.append(
-                    ValidationCase(
-                        phase=phase.name,
-                        group=group.name,
-                        test_id=case.test_id,
-                        title=case.title,
-                        required_brokers=sorted(
-                            required_by_case.get(case.test_id, set())
-                        ),
-                        targets=target_names,
+                    _build_validation_case(
+                        phase_name=phase.name,
+                        group_name=group.name,
+                        case=case,
+                        target_names=target_names,
+                        required_by_case=required_by_case,
                     )
                 )
 
-    all_required = sorted({b for req in required_by_case.values() for b in req})
-    report = ValidationReport(
-        valid=not errors,
-        phase_order=phase_order,
-        required_brokers=all_required,
-        test_cases=test_cases,
-        warnings=warnings,
-        errors=errors,
+    return test_cases, warnings, errors
+
+
+def _validate_case_targets(
+    *,
+    testbed: Testbed,
+    phase: Phase,
+    group: TestCaseGroup,
+    case: TestCaseDefinition,
+) -> tuple[list[str], str | None, str | None]:
+    """Resolve one case target set and return normalized diagnostics."""
+    targets, target_error = _resolve_targets(
+        testbed=testbed,
+        phase=phase,
+        group=group,
+        test_case=case,
     )
-    _write_report(report=report, reports_dir=reports_dir)
-    return report
+    if target_error is not None:
+        return [], None, target_error
+
+    target_names = [device.name for device in targets]
+    if target_names:
+        return target_names, None, None
+
+    warning = f"{phase.name}/{group.name}/{case.test_id} has no matched targets"
+    return [], warning, None
+
+
+def _build_validation_case(
+    *,
+    phase_name: str,
+    group_name: str,
+    case: TestCaseDefinition,
+    target_names: list[str],
+    required_by_case: dict[str, set[str]],
+) -> ValidationCase:
+    """Build one validation-case entry for the final report."""
+    return ValidationCase(
+        phase=phase_name,
+        group=group_name,
+        test_id=case.test_id,
+        title=case.title,
+        required_brokers=sorted(required_by_case.get(case.test_id, set())),
+        targets=target_names,
+    )
+
+
+def _collect_all_required_brokers(required_by_case: dict[str, set[str]]) -> list[str]:
+    """Collect sorted unique required brokers across all test cases."""
+    return sorted({broker for req in required_by_case.values() for broker in req})
 
 
 def _resolve_phase_order(test_plan: TestPlan) -> tuple[list[str], list[str]]:
