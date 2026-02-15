@@ -20,8 +20,11 @@ from huginn.runtime_broker import RuntimeBroker, RuntimeBrokerError
 @dataclass
 class _FakeBroker:
     broker_name: str
+    connect_calls: int = 0
+    disconnect_calls: int = 0
 
     async def connect(self, config: ConnectionConfig) -> ConnectionHandle:
+        self.connect_calls += 1
         return ConnectionHandle(
             broker_id=self.broker_name,
             device_name=config.device_name,
@@ -30,6 +33,7 @@ class _FakeBroker:
         )
 
     async def disconnect(self, handle: ConnectionHandle) -> None:
+        self.disconnect_calls += 1
         return None
 
     async def execute(self, handle: ConnectionHandle, command: str) -> CommandResult:
@@ -143,6 +147,22 @@ async def test_runtime_broker_requires_explicit_broker_when_multiple_connected()
     assert result.output == "netconf:execute:<rpc/>"
 
 
+@pytest.mark.asyncio
+async def test_runtime_broker_reuses_existing_connections() -> None:
+    """Repeated connect requests reuse existing target+broker handles."""
+    ssh_fake = _FakeBroker("ssh")
+    runtime = RuntimeBroker(
+        required_brokers={BrokerType.SSH},
+        ssh_broker=_fake_broker_instance(ssh_fake),
+    )
+    device = _device(protocol="ssh")
+
+    await runtime.connect_targets([device], {BrokerType.SSH})
+    await runtime.connect_targets([device], {BrokerType.SSH})
+
+    assert ssh_fake.connect_calls == 1
+
+
 def _device(
     *,
     protocol: str,
@@ -193,3 +213,7 @@ def _default_credentials() -> dict[str, dict[str, str]]:
 
 def _fake_broker(name: str) -> ConnectionBrokerProtocolV1:
     return cast(ConnectionBrokerProtocolV1, _FakeBroker(name))
+
+
+def _fake_broker_instance(broker: _FakeBroker) -> ConnectionBrokerProtocolV1:
+    return cast(ConnectionBrokerProtocolV1, broker)
