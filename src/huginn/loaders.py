@@ -433,11 +433,20 @@ def _parse_test_case_group(
             f"Test case group '{group_name}' must include at least one of "
             "'tests' or 'groups'"
         )
+    tags = _load_optional_string_list_allow_empty_strings(group_mapping.get("tags"))
     target = _load_target_definition(
         group_mapping.get("target"),
         f"Test case group '{group_name}'",
     )
-    return TestCaseGroup(name=group_name, tests=tests, target=target), includes
+    return (
+        TestCaseGroup(
+            name=group_name,
+            tests=tests,
+            tags=tags,
+            target=target,
+        ),
+        includes,
+    )
 
 
 def _load_optional_group_tests(value: object, *, group_name: str) -> list[str]:
@@ -539,6 +548,7 @@ def _flatten_nested_test_case_groups(
         resolved[group_name] = TestCaseGroup(
             name=group.name,
             tests=flatten(group_name),
+            tags=group.tags,
             target=group.target,
         )
     return resolved
