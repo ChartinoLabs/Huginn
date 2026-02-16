@@ -69,7 +69,7 @@ async def run_test_plan(
 ) -> RunReport:
     """Execute a minimal test plan and persist JSON output."""
     try:
-        testbed = resolve_inventory_testbed(
+        testbed = await resolve_inventory_testbed(
             testbed_path=testbed_path,
             inventory_plugin=inventory_plugin,
             project_root=project_root,
