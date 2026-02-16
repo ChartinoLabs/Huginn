@@ -10,13 +10,15 @@ from huginn import Context, ExecutionMode, LearningTestCase, ResultStatus
 
 @dataclass
 class _FakeParameters:
-    saved_payloads: list[object] = field(default_factory=list)
-    loaded_payload: object = field(default_factory=lambda: {"expected": True})
+    saved_payloads: list[dict[str, object]] = field(default_factory=list)
+    loaded_payload: dict[str, object] = field(
+        default_factory=lambda: {"expected": True}
+    )
 
-    async def save(self, data: object) -> None:
+    async def save(self, data: dict[str, object]) -> None:
         self.saved_payloads.append(data)
 
-    async def load(self) -> object:
+    async def load(self) -> dict[str, object]:
         return self.loaded_payload
 
 
@@ -36,20 +38,20 @@ class _FakeContext:
 
 
 class _ExampleLearningTest(LearningTestCase):
-    gathered_state: object = {"current": True}
-    compared: list[tuple[object, object]]
+    gathered_state: dict[str, object] = {"current": True}
+    compared: list[tuple[dict[str, object], dict[str, object]]]
 
     def __init__(self) -> None:
         self.compared = []
 
-    async def gather_state(self, context: Context) -> object:
+    async def gather_state(self, context: Context) -> dict[str, object]:
         return self.gathered_state
 
     async def compare_state(
         self,
         *,
-        expected: object,
-        current: object,
+        expected: dict[str, object],
+        current: dict[str, object],
         context: Context,
     ) -> None:
         self.compared.append((expected, current))

@@ -1,7 +1,6 @@
 """Base test case definition for Huginn jobs."""
 
 from abc import ABC, abstractmethod
-from typing import Any
 
 from huginn.context import Context
 from huginn.enums import BrokerType, ExecutionMode, ResultStatus
@@ -56,15 +55,15 @@ class LearningTestCase(TestCase, ABC):
         return None
 
     @abstractmethod
-    async def gather_state(self, context: Context) -> Any:  # noqa: ANN401
+    async def gather_state(self, context: Context) -> dict[str, object]:
         """Gather current state from targets for learning/testing flows."""
 
     @abstractmethod
     async def compare_state(
         self,
         *,
-        expected: Any,  # noqa: ANN401
-        current: Any,  # noqa: ANN401
+        expected: dict[str, object],
+        current: dict[str, object],
         context: Context,
     ) -> None:
         """Compare expected and current state, recording test results."""
