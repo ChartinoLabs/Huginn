@@ -869,6 +869,90 @@ def test_run_executes_test_cases_in_group_in_parallel(
     assert elapsed < 0.55
 
 
+def test_run_honors_group_serial_strategy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Group serial strategy executes test cases one-at-a-time."""
+    elapsed = _run_execution_strategy_fixture(
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        plan_name="plan_group_serial.yaml",
+    )
+
+    assert elapsed >= 0.55
+
+
+def test_run_honors_group_parallel_maximum_strategy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Group parallel.maximum limits test case concurrency."""
+    elapsed = _run_execution_strategy_fixture(
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        plan_name="plan_group_parallel_maximum_one.yaml",
+    )
+
+    assert elapsed >= 0.55
+
+
+def test_run_group_parallel_default_is_unbounded(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Group default parallel strategy runs test cases concurrently."""
+    elapsed = _run_execution_strategy_fixture(
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        plan_name="plan_group_parallel_default.yaml",
+    )
+
+    assert elapsed < 0.55
+
+
+def test_run_honors_phase_serial_strategy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Phase serial strategy executes groups one-at-a-time."""
+    elapsed = _run_execution_strategy_fixture(
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        plan_name="plan_phase_serial.yaml",
+    )
+
+    assert elapsed >= 0.55
+
+
+def test_run_honors_phase_parallel_strategy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Phase parallel strategy executes groups concurrently."""
+    elapsed = _run_execution_strategy_fixture(
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        plan_name="plan_phase_parallel.yaml",
+    )
+
+    assert elapsed < 0.55
+
+
+def test_run_honors_phase_parallel_maximum_strategy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Phase parallel.maximum limits group concurrency."""
+    elapsed = _run_execution_strategy_fixture(
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        plan_name="plan_phase_parallel_maximum_one.yaml",
+    )
+
+    assert elapsed >= 0.55
+
+
 def test_run_learning_mode_persists_parameters(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -966,6 +1050,37 @@ def test_run_testing_mode_errors_when_parameters_are_missing(
     test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
     assert test_case["status"] == "errored"
     assert "No learned parameters found" in test_case["error"]
+
+
+def _run_execution_strategy_fixture(
+    *,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    plan_name: str,
+) -> float:
+    """Run one execution-strategy fixture plan and return elapsed seconds."""
+    _stage_runner_fixture(tmp_path, "execution_strategy")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    start = perf_counter()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / plan_name),
+        ],
+        catch_exceptions=False,
+    )
+    elapsed = perf_counter() - start
+
+    assert result.exit_code == 0
+    return elapsed
 
 
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:

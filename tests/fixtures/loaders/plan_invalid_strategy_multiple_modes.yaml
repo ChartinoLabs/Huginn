@@ -1,0 +1,17 @@
+test_cases:
+  "1.0.0":
+    title: Verify inventory
+    job: jobs/verify_inventory.py
+
+test_case_groups:
+  invalid-group:
+    strategy:
+      serial: {}
+      parallel: {}
+    tests:
+      - "1.0.0"
+
+phases:
+  phase-1:
+    test_case_groups:
+      - invalid-group

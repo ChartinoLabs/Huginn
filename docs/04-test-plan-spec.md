@@ -203,6 +203,7 @@ test_case_groups:
 | `groups`      | list[string] | No       | List of test case group names to include                   |
 | `tags`        | list[string] | No       | Group-level tags (additive with test case tags)            |
 | `target`      | dict         | No       | Group-level targeting (intersected with test case targets) |
+| `strategy`    | dict         | No       | Group test execution strategy (`serial` or `parallel`)     |
 
 At least one of `tests` or `groups` must be specified.
 
@@ -262,6 +263,29 @@ test_case_groups:
 
 When both a group and test case specify targets, they are intersected.
 
+#### Group Execution Strategy
+
+Groups can control test-case execution mode:
+
+```yaml
+test_case_groups:
+  serial-group:
+    strategy:
+      serial: {}
+    tests: ["1.0.0", "1.1.0"]
+
+  bounded-parallel-group:
+    strategy:
+      parallel:
+        maximum: 5
+    tests: ["2.0.0", "2.1.0", "2.2.0"]
+```
+
+- `strategy.serial` runs test cases one-at-a-time.
+- `strategy.parallel` runs test cases concurrently.
+- `strategy.parallel.maximum` optionally bounds concurrency.
+- If `strategy` is omitted, group execution defaults to unbounded parallel.
+
 ### Phases
 
 Phases are the top-level organizational unit, representing stages of test execution. Phases declare dependencies on other phases to establish execution order.
@@ -291,6 +315,7 @@ phases:
 | `depends_on`       | list[string] | No       | Phases that must complete before this phase                      |
 | `test_case_groups` | list[string] | Yes      | Groups to execute in this phase                                  |
 | `target`           | dict         | No       | Phase-level targeting (intersected with group/test case targets) |
+| `strategy`         | dict         | No       | Group execution strategy within the phase (`serial`/`parallel`)  |
 
 #### Phase Dependencies
 
@@ -323,6 +348,29 @@ If a phase fails (any test case fails):
 - Results show **Partial** status with pass/fail counts
 
 #### Reusing Test Case Groups Across Phases
+
+#### Phase Group Execution Strategy
+
+Phases can control how referenced test case groups execute:
+
+```yaml
+phases:
+  pre-change:
+    strategy:
+      serial: {}
+    test_case_groups: [group-a, group-b]
+
+  post-change:
+    strategy:
+      parallel:
+        maximum: 2
+    test_case_groups: [group-c, group-d, group-e]
+```
+
+- `strategy.serial` executes groups in listed order.
+- `strategy.parallel` executes groups concurrently.
+- `strategy.parallel.maximum` optionally bounds concurrent groups.
+- If `strategy` is omitted, phase group execution defaults to unbounded parallel.
 
 The same test case group can appear in multiple phases. This is the key pattern for change validation:
 

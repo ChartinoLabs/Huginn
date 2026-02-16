@@ -1,12 +1,20 @@
 """Core data models for first-slice plan execution."""
 
 from dataclasses import dataclass, field
-from typing import TypeAlias
+from typing import Literal, TypeAlias
 
 from huginn.enums import ConnectionProtocol
 
 CredentialFields: TypeAlias = dict[str, str]
 CredentialMap: TypeAlias = dict[str, CredentialFields]
+
+
+@dataclass(frozen=True)
+class ExecutionStrategy:
+    """Execution strategy for phase groups or test cases in a group."""
+
+    mode: Literal["serial", "parallel"]
+    maximum: int | None = None
 
 
 @dataclass
@@ -68,6 +76,9 @@ class TestCaseGroup:
     tests: list[str]
     tags: list[str] = field(default_factory=list)
     target: TargetDefinition | None = None
+    strategy: ExecutionStrategy = field(
+        default_factory=lambda: ExecutionStrategy(mode="parallel")
+    )
 
 
 @dataclass
@@ -78,6 +89,9 @@ class Phase:
     test_case_groups: list[str]
     depends_on: list[str] = field(default_factory=list)
     target: TargetDefinition | None = None
+    strategy: ExecutionStrategy = field(
+        default_factory=lambda: ExecutionStrategy(mode="parallel")
+    )
 
 
 @dataclass
