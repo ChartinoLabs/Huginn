@@ -1,23 +1,69 @@
 """Utilities for filtering test plans before validation/execution."""
 
+from dataclasses import dataclass
+
 from huginn.models import Phase, TestCaseDefinition, TestCaseGroup, TestPlan
+
+
+@dataclass(frozen=True)
+class PlanFilterOptions:
+    """Include/exclude filters applied before validation and execution."""
+
+    tags: list[str] | None = None
+    exclude_tags: list[str] | None = None
+    phases: list[str] | None = None
+    test_case_groups: list[str] | None = None
+    test_ids: list[str] | None = None
 
 
 def filter_test_plan_by_tags(test_plan: TestPlan, tags: list[str] | None) -> TestPlan:
     """Filter a test plan by test-case tags and prune empty nodes."""
-    if tags is None:
+    return filter_test_plan(test_plan, PlanFilterOptions(tags=tags))
+
+
+def filter_test_plan(test_plan: TestPlan, filters: PlanFilterOptions) -> TestPlan:
+    """Apply plan filters and prune empty phases/groups/tests."""
+    if _is_noop(filters):
         return test_plan
 
-    tag_set = set(tags)
-    filtered_groups = _filter_groups(test_plan, tag_set)
+    include_tags = set(filters.tags or [])
+    exclude_tags = set(filters.exclude_tags or [])
+    phase_filter = set(filters.phases or [])
+    group_filter = set(filters.test_case_groups or [])
+    test_filter = set(filters.test_ids or [])
+
+    filtered_groups = _filter_groups(
+        test_plan,
+        include_tags=include_tags,
+        exclude_tags=exclude_tags,
+        group_filter=group_filter,
+        test_filter=test_filter,
+    )
     filtered_test_cases = _filter_test_cases(test_plan, filtered_groups)
-    filtered_phases = _filter_phases(test_plan, filtered_groups)
+    filtered_phases = _filter_phases(
+        test_plan,
+        filtered_groups,
+        phase_filter=phase_filter,
+    )
 
     _normalize_phase_dependencies(filtered_phases)
     return TestPlan(
         phases=filtered_phases,
         test_case_groups=filtered_groups,
         test_cases=filtered_test_cases,
+    )
+
+
+def _is_noop(filters: PlanFilterOptions) -> bool:
+    """Return True when no filters were provided."""
+    return not any(
+        (
+            filters.tags,
+            filters.exclude_tags,
+            filters.phases,
+            filters.test_case_groups,
+            filters.test_ids,
+        )
     )
 
 
@@ -38,18 +84,27 @@ def _filter_test_cases(
 
 def _filter_groups(
     test_plan: TestPlan,
-    tag_set: set[str],
+    *,
+    include_tags: set[str],
+    exclude_tags: set[str],
+    group_filter: set[str],
+    test_filter: set[str],
 ) -> dict[str, TestCaseGroup]:
-    """Filter groups to only include tests matching effective tags."""
+    """Filter groups to only include tests matching active filters."""
     filtered_groups: dict[str, TestCaseGroup] = {}
     for group_name, group in test_plan.test_case_groups.items():
+        if group_filter and group_name not in group_filter:
+            continue
+
         kept_tests = [
             test_id
             for test_id in group.tests
-            if _effective_tags_match(
+            if _test_matches_filters(
                 test_case=test_plan.test_cases[test_id],
                 group=group,
-                tag_set=tag_set,
+                include_tags=include_tags,
+                exclude_tags=exclude_tags,
+                test_filter=test_filter,
             )
         ]
         if not kept_tests:
@@ -63,25 +118,40 @@ def _filter_groups(
     return filtered_groups
 
 
-def _effective_tags_match(
+def _test_matches_filters(
     *,
     test_case: TestCaseDefinition,
     group: TestCaseGroup,
-    tag_set: set[str],
+    include_tags: set[str],
+    exclude_tags: set[str],
+    test_filter: set[str],
 ) -> bool:
-    """Return True when filter tags intersect test tags plus group tags."""
+    """Return True when a test case passes id/tag include and exclude filters."""
+    if test_filter and test_case.test_id not in test_filter:
+        return False
+
     effective_tags = set(test_case.tags)
     effective_tags.update(group.tags)
-    return bool(effective_tags.intersection(tag_set))
+
+    if include_tags and not include_tags.issubset(effective_tags):
+        return False
+    if exclude_tags and effective_tags.intersection(exclude_tags):
+        return False
+    return True
 
 
 def _filter_phases(
     test_plan: TestPlan,
     filtered_groups: dict[str, TestCaseGroup],
+    *,
+    phase_filter: set[str],
 ) -> dict[str, Phase]:
     """Filter phases to only include groups that remain after tag filtering."""
     filtered_phases: dict[str, Phase] = {}
     for phase_name, phase in test_plan.phases.items():
+        if phase_filter and phase_name not in phase_filter:
+            continue
+
         kept_groups = [
             group_name
             for group_name in phase.test_case_groups

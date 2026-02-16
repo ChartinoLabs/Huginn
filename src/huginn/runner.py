@@ -29,7 +29,7 @@ from huginn.models import (
     TestPlan,
 )
 from huginn.parameters import ParameterManager
-from huginn.plan_filtering import filter_test_plan_by_tags
+from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
 from huginn.results import ResultCollector
 from huginn.runtime_broker import (
     RuntimeBroker,
@@ -63,7 +63,7 @@ async def run_test_plan(
     testbed_path: Path | None,
     inventory_plugin: str | None,
     plan_path: Path,
-    tags: list[str] | None,
+    filters: PlanFilterOptions,
     project_root: Path,
     parameters_dir: Path,
     reports_dir: Path,
@@ -76,7 +76,7 @@ async def run_test_plan(
             inventory_plugin=inventory_plugin,
             project_root=project_root,
         )
-        test_plan = filter_test_plan_by_tags(load_test_plan(plan_path), tags)
+        test_plan = filter_test_plan(load_test_plan(plan_path), filters)
     except (ConfigurationError, InventoryPluginError) as error:
         raise RunExecutionError(
             str(error),
