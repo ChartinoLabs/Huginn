@@ -397,12 +397,21 @@ def _load_test_case_groups(data: dict[str, object]) -> dict[str, TestCaseGroup]:
         )
 
     groups: dict[str, TestCaseGroup] = {}
+    group_includes: dict[str, list[str]] = {}
     for group_name, raw_group in raw_groups.items():
-        groups[group_name] = _parse_test_case_group(group_name, raw_group)
-    return groups
+        group, includes = _parse_test_case_group(group_name, raw_group)
+        groups[group_name] = group
+        group_includes[group_name] = includes
+
+    _validate_nested_group_references(groups, group_includes)
+    _validate_nested_group_cycles(group_includes)
+    return _flatten_nested_test_case_groups(groups, group_includes)
 
 
-def _parse_test_case_group(group_name: object, raw_group: object) -> TestCaseGroup:
+def _parse_test_case_group(
+    group_name: object,
+    raw_group: object,
+) -> tuple[TestCaseGroup, list[str]]:
     """Parse and validate one test case group mapping entry."""
     if not isinstance(group_name, str):
         raise ConfigurationError("Test case group names must be strings")
@@ -411,15 +420,128 @@ def _parse_test_case_group(group_name: object, raw_group: object) -> TestCaseGro
         raw_group,
         f"Test case group '{group_name}' must be a mapping",
     )
-    tests = _require_non_empty_string_list(
+    tests = _load_optional_group_tests(
         group_mapping.get("tests"),
-        f"Test case group '{group_name}' must include non-empty 'tests'",
+        group_name=group_name,
     )
+    includes = _load_optional_group_includes(
+        group_mapping.get("groups"),
+        group_name=group_name,
+    )
+    if not tests and not includes:
+        raise ConfigurationError(
+            f"Test case group '{group_name}' must include at least one of "
+            "'tests' or 'groups'"
+        )
     target = _load_target_definition(
         group_mapping.get("target"),
         f"Test case group '{group_name}'",
     )
-    return TestCaseGroup(name=group_name, tests=tests, target=target)
+    return TestCaseGroup(name=group_name, tests=tests, target=target), includes
+
+
+def _load_optional_group_tests(value: object, *, group_name: str) -> list[str]:
+    """Load optional group tests list, allowing empty lists when groups exist."""
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ConfigurationError(
+            f"Test case group '{group_name}' must include non-empty 'tests'"
+        )
+    if not all(isinstance(item, str) and item for item in value):
+        raise ConfigurationError(
+            f"Test case group '{group_name}' must include non-empty 'tests'"
+        )
+    return cast(list[str], value)
+
+
+def _load_optional_group_includes(value: object, *, group_name: str) -> list[str]:
+    """Load optional nested group include list."""
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ConfigurationError(
+            f"Test case group '{group_name}' groups must be a list of strings"
+        )
+    if not all(isinstance(item, str) and item for item in value):
+        raise ConfigurationError(
+            f"Test case group '{group_name}' groups must be a list of strings"
+        )
+    return cast(list[str], value)
+
+
+def _validate_nested_group_references(
+    groups: dict[str, TestCaseGroup],
+    group_includes: dict[str, list[str]],
+) -> None:
+    """Ensure nested group references point to defined groups."""
+    for group_name, includes in group_includes.items():
+        missing = [include for include in includes if include not in groups]
+        if missing:
+            raise ConfigurationError(
+                f"Test case group '{group_name}' references undefined nested groups: "
+                f"{missing}"
+            )
+
+
+def _validate_nested_group_cycles(group_includes: dict[str, list[str]]) -> None:
+    """Ensure nested group includes form an acyclic graph."""
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def visit(group_name: str, chain: list[str]) -> None:
+        if group_name in visited:
+            return
+        if group_name in visiting:
+            cycle_start = chain.index(group_name)
+            cycle = chain[cycle_start:] + [group_name]
+            raise ConfigurationError(
+                "Nested test case group references form a cycle: " + " -> ".join(cycle)
+            )
+
+        visiting.add(group_name)
+        chain.append(group_name)
+        for include in group_includes[group_name]:
+            visit(include, chain)
+        chain.pop()
+        visiting.remove(group_name)
+        visited.add(group_name)
+
+    for group_name in group_includes:
+        visit(group_name, [])
+
+
+def _flatten_nested_test_case_groups(
+    groups: dict[str, TestCaseGroup],
+    group_includes: dict[str, list[str]],
+) -> dict[str, TestCaseGroup]:
+    """Expand nested group includes into flattened test id lists."""
+    cache: dict[str, list[str]] = {}
+
+    def flatten(group_name: str) -> list[str]:
+        if group_name in cache:
+            return cache[group_name]
+
+        flattened = list(groups[group_name].tests)
+        seen = set(flattened)
+        for include in group_includes[group_name]:
+            for test_id in flatten(include):
+                if test_id in seen:
+                    continue
+                seen.add(test_id)
+                flattened.append(test_id)
+
+        cache[group_name] = flattened
+        return flattened
+
+    resolved: dict[str, TestCaseGroup] = {}
+    for group_name, group in groups.items():
+        resolved[group_name] = TestCaseGroup(
+            name=group.name,
+            tests=flatten(group_name),
+            target=group.target,
+        )
+    return resolved
 
 
 def _load_phases(data: dict[str, object]) -> dict[str, Phase]:

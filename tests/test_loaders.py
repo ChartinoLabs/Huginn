@@ -187,3 +187,43 @@ def test_load_test_plan_rejects_invalid_tests_list() -> None:
 
     with pytest.raises(ConfigurationError, match="non-empty 'tests'"):
         load_test_plan(path)
+
+
+def test_load_test_plan_parses_nested_groups() -> None:
+    """Flatten nested test case group includes for execution."""
+    path = FIXTURES / "plan_with_nested_groups.yaml"
+
+    test_plan = load_test_plan(path)
+
+    assert test_plan.test_case_groups["ospf-tests"].tests == ["3.0.0", "3.1.0"]
+    assert test_plan.test_case_groups["bgp-tests"].tests == ["4.0.0"]
+    assert test_plan.test_case_groups["pre-change-validation"].tests == [
+        "1.0.0",
+        "3.0.0",
+        "3.1.0",
+        "4.0.0",
+    ]
+
+
+def test_load_test_plan_rejects_nested_group_with_unknown_group() -> None:
+    """Raise when nested group includes reference unknown group names."""
+    path = FIXTURES / "plan_unknown_nested_group.yaml"
+
+    with pytest.raises(ConfigurationError, match="undefined nested groups"):
+        load_test_plan(path)
+
+
+def test_load_test_plan_rejects_nested_group_cycles() -> None:
+    """Raise when nested group includes form a cycle."""
+    path = FIXTURES / "plan_nested_group_cycle.yaml"
+
+    with pytest.raises(ConfigurationError, match="form a cycle"):
+        load_test_plan(path)
+
+
+def test_load_test_plan_requires_tests_or_groups_for_group() -> None:
+    """Raise when a test case group declares neither tests nor groups."""
+    path = FIXTURES / "plan_group_missing_tests_and_groups.yaml"
+
+    with pytest.raises(ConfigurationError, match="at least one of 'tests' or 'groups'"):
+        load_test_plan(path)
