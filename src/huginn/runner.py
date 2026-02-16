@@ -9,10 +9,10 @@ from huginn.context import Context
 from huginn.enums import BrokerType, ErrorCode, ExecutionMode, ResultStatus
 from huginn.inventory_plugins import (
     InventoryPluginError,
-    resolve_inventory_testbed_path,
+    resolve_inventory_testbed,
 )
 from huginn.jobs import JobLoadError, load_test_case_class
-from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
+from huginn.loaders import ConfigurationError, load_test_plan
 from huginn.models import (
     CheckResult,
     Device,
@@ -69,12 +69,11 @@ async def run_test_plan(
 ) -> RunReport:
     """Execute a minimal test plan and persist JSON output."""
     try:
-        resolved_testbed = resolve_inventory_testbed_path(
+        testbed = resolve_inventory_testbed(
             testbed_path=testbed_path,
             inventory_plugin=inventory_plugin,
             project_root=project_root,
         )
-        testbed = load_testbed(resolved_testbed)
         test_plan = filter_test_plan_by_tags(load_test_plan(plan_path), tags)
     except (ConfigurationError, InventoryPluginError) as error:
         raise RunExecutionError(

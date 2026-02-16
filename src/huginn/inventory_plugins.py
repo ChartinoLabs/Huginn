@@ -4,45 +4,57 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
+from huginn.loaders import load_testbed
+from huginn.models import Testbed
+
 
 class InventoryPluginError(ValueError):
     """Raised when an inventory plugin cannot be resolved or executed."""
 
 
 class InventoryPlugin(Protocol):
-    """Protocol for inventory plugins that resolve testbed file paths."""
+    """Protocol for inventory plugins that resolve Testbed objects."""
 
-    def resolve_testbed_path(self, project_root: Path) -> Path:
-        """Resolve and return a testbed file path for execution."""
+    def resolve_testbed(self, project_root: Path) -> Testbed:
+        """Resolve and return a testbed object for execution."""
+        raise NotImplementedError
 
 
 @dataclass(frozen=True)
 class FileInventoryPlugin:
-    """Built-in plugin that resolves a testbed file path from spec input."""
+    """Built-in plugin that loads a testbed from a file path."""
 
     file_path: Path
 
-    def resolve_testbed_path(self, project_root: Path) -> Path:
-        """Resolve plugin file path against project root when relative."""
+    def resolve_testbed(self, project_root: Path) -> Testbed:
+        """Resolve plugin file path and load the resulting testbed."""
         if self.file_path.is_absolute():
-            return self.file_path
-        return (project_root / self.file_path).resolve()
+            resolved_path = self.file_path
+        else:
+            resolved_path = (project_root / self.file_path).resolve()
+
+        if not resolved_path.exists() or not resolved_path.is_file():
+            raise InventoryPluginError(
+                f"Inventory plugin resolved missing testbed file: {resolved_path}"
+            )
+
+        return load_testbed(resolved_path)
 
 
-def resolve_inventory_testbed_path(
+def resolve_inventory_testbed(
     *,
     testbed_path: Path | None,
     inventory_plugin: str | None,
     project_root: Path,
-) -> Path:
-    """Resolve testbed path from explicit file or inventory plugin spec."""
+) -> Testbed:
+    """Resolve testbed object from explicit file or inventory plugin spec."""
     if testbed_path is not None and inventory_plugin is not None:
         raise InventoryPluginError(
             "--testbed and --inventory-plugin are mutually exclusive."
         )
 
     if testbed_path is not None:
-        return testbed_path
+        return load_testbed(testbed_path)
 
     if inventory_plugin is None:
         raise InventoryPluginError(
@@ -50,12 +62,7 @@ def resolve_inventory_testbed_path(
         )
 
     plugin = _parse_inventory_plugin_spec(inventory_plugin)
-    resolved_testbed = plugin.resolve_testbed_path(project_root)
-    if not resolved_testbed.exists() or not resolved_testbed.is_file():
-        raise InventoryPluginError(
-            f"Inventory plugin resolved missing testbed file: {resolved_testbed}"
-        )
-    return resolved_testbed
+    return plugin.resolve_testbed(project_root)
 
 
 def _parse_inventory_plugin_spec(spec: str) -> InventoryPlugin:
