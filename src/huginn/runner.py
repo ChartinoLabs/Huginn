@@ -15,6 +15,7 @@ from huginn.inventory_plugins import (
 )
 from huginn.jobs import JobLoadError, load_test_case_class
 from huginn.loaders import ConfigurationError, load_test_plan
+from huginn.logging_helpers import log_debug, log_info, log_warning
 from huginn.models import (
     CheckResult,
     Device,
@@ -90,7 +91,7 @@ async def run_test_plan(
     broker_factory: Callable[[], RuntimeBroker] | None = None,
 ) -> RunReport:
     """Execute a minimal test plan and persist JSON output."""
-    _log_info(
+    log_info(
         output,
         "Run starting",
         mode=mode.value,
@@ -105,7 +106,7 @@ async def run_test_plan(
             project_root=project_root,
         )
         test_plan = filter_test_plan(load_test_plan(plan_path), filters)
-        _log_debug(
+        log_debug(
             output,
             "Configuration loaded",
             devices=len(testbed.devices),
@@ -130,7 +131,7 @@ async def run_test_plan(
     planning_errors = sum(
         1 for execution in planned_executions.values() if execution.planning_error
     )
-    _log_info(
+    log_info(
         output,
         "Execution planning complete",
         planned_test_cases=len(planned_executions),
@@ -160,7 +161,7 @@ async def run_test_plan(
             output=output,
         )
     finally:
-        _log_debug(output, "Run teardown starting")
+        log_debug(output, "Run teardown starting")
         disconnect_error, disconnect_traceback = await _disconnect_runtime_broker(
             runtime_broker
         )
@@ -185,7 +186,7 @@ async def run_test_plan(
             code=ErrorCode.CONFIGURATION_ERROR,
             traceback_text=traceback.format_exc(),
         ) from error
-    _log_info(
+    log_info(
         output,
         "Run completed",
         status=report.summary.status,
@@ -211,7 +212,7 @@ async def _execute_phases_with_dependencies(
     output: Output | None,
 ) -> list[ExecutedPhase]:
     """Execute phases while honoring phase dependency constraints."""
-    _log_debug(
+    log_debug(
         output,
         "Executing phases with dependency ordering",
         phase_count=len(test_plan.phases),
@@ -227,7 +228,7 @@ async def _execute_phases_with_dependencies(
                 continue
 
             if _is_blocked_by_dependencies(phase, phase_results):
-                _log_info(
+                log_info(
                     output,
                     "Phase blocked by dependencies",
                     phase=phase.name,
@@ -246,7 +247,7 @@ async def _execute_phases_with_dependencies(
                     output=output,
                 )
 
-            _log_info(
+            log_info(
                 output,
                 "Phase finished",
                 phase=phase.name,
@@ -295,7 +296,7 @@ async def _execute_phase(
     output: Output | None,
 ) -> ExecutedPhase:
     """Execute all groups and test cases for a phase."""
-    _log_debug(
+    log_debug(
         output,
         "Phase execution starting",
         phase=phase.name,
@@ -466,7 +467,7 @@ async def _execute_group(
 ) -> ExecutedTestCaseGroup:
     """Execute one group using its configured strategy."""
     group = test_plan.test_case_groups[group_name]
-    _log_debug(
+    log_debug(
         output,
         "Group execution starting",
         phase=phase.name,
@@ -502,7 +503,7 @@ async def _execute_group(
         )
 
     group_status = _derive_group_status(executed_tests)
-    _log_debug(
+    log_debug(
         output,
         "Group execution finished",
         phase=phase.name,
@@ -703,7 +704,7 @@ def _plan_executions(
                 skip_reason=skip_reason,
             )
         except (JobLoadError, RuntimeBrokerError) as error:
-            _log_warning(
+            log_warning(
                 output,
                 "Planning failed for test case",
                 test_id=test_case.test_id,
@@ -761,7 +762,7 @@ async def _execute_test_case(
     parameters_dir: Path,
     output: Output | None,
 ) -> ExecutedTestCase:
-    _log_debug(
+    log_debug(
         output,
         "Test execution starting",
         phase=phase.name,
@@ -776,7 +777,7 @@ async def _execute_test_case(
         test_case=definition,
     )
     if target_error is not None:
-        _log_warning(
+        log_warning(
             output,
             "Test target resolution failed",
             phase=phase.name,
@@ -790,7 +791,7 @@ async def _execute_test_case(
             error_code=ErrorCode.VALIDATION_ERROR,
         )
     if not targets:
-        _log_info(
+        log_info(
             output,
             "Test skipped due to empty target set",
             phase=phase.name,
@@ -819,7 +820,7 @@ async def _execute_test_case(
     )
 
     if planned.planning_error is not None:
-        _log_warning(
+        log_warning(
             output,
             "Test skipped due to planning error",
             test_id=definition.test_id,
@@ -835,7 +836,7 @@ async def _execute_test_case(
     if planned.skip_reason is not None:
         return _skipped_test_case(definition, reason=planned.skip_reason)
     if planned.test_case_class is None:
-        _log_warning(
+        log_warning(
             output,
             "Planned test class missing",
             test_id=definition.test_id,
@@ -854,7 +855,7 @@ async def _execute_test_case(
         await test_case.setup(context)
         await test_case.test(context)
     except Exception as error:  # noqa: BLE001
-        _log_warning(
+        log_warning(
             output,
             "Test execution raised exception",
             test_id=definition.test_id,
@@ -871,7 +872,7 @@ async def _execute_test_case(
         )
 
     if test_error is not None:
-        _log_warning(
+        log_warning(
             output,
             "Test finished with error",
             test_id=definition.test_id,
@@ -886,7 +887,7 @@ async def _execute_test_case(
         )
 
     status = result_collector.derive_status().value
-    _log_debug(
+    log_debug(
         output,
         "Test execution finished",
         test_id=definition.test_id,
@@ -965,13 +966,13 @@ async def _prime_runtime_connections(
     )
 
     try:
-        _log_debug(
+        log_debug(
             output,
             "Runtime connection priming starting",
             broker_sets=len(targets_by_brokers),
         )
         for required_brokers, target_lookup in targets_by_brokers.items():
-            _log_debug(
+            log_debug(
                 output,
                 "Priming broker connection set",
                 required_brokers=sorted(broker.value for broker in required_brokers),
@@ -982,7 +983,7 @@ async def _prime_runtime_connections(
                 list(target_lookup.values()),
                 set(required_brokers),
             )
-        _log_debug(output, "Runtime connection priming completed")
+        log_debug(output, "Runtime connection priming completed")
     except RuntimeBrokerError as error:
         raise RunExecutionError(
             str(error),
@@ -1099,27 +1100,6 @@ async def _disconnect_runtime_broker(
             traceback.format_exc(),
         )
     return None, None
-
-
-def _log_debug(output: Output | None, message: str, **fields: object) -> None:
-    """Write debug log if output logging is enabled."""
-    if output is None:
-        return
-    output.log_debug_fields(message, **fields)
-
-
-def _log_info(output: Output | None, message: str, **fields: object) -> None:
-    """Write info log if output logging is enabled."""
-    if output is None:
-        return
-    output.log_info_fields(message, **fields)
-
-
-def _log_warning(output: Output | None, message: str, **fields: object) -> None:
-    """Write warning log if output logging is enabled."""
-    if output is None:
-        return
-    output.log_warning_fields(message, **fields)
 
 
 def _create_broker(

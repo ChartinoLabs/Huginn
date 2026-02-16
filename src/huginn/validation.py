@@ -10,6 +10,7 @@ from huginn.inventory_plugins import (
 )
 from huginn.jobs import JobLoadError, load_test_case_class
 from huginn.loaders import ConfigurationError, load_test_plan
+from huginn.logging_helpers import log_debug, log_info, log_warning
 from huginn.models import Phase, Testbed, TestCaseDefinition, TestCaseGroup, TestPlan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
@@ -67,7 +68,7 @@ async def validate_inputs(
     output: Output | None = None,
 ) -> ValidationReport:
     """Validate configuration and emit a validation report."""
-    _log_info(
+    log_info(
         output,
         "Validation starting",
         plan=plan_path,
@@ -81,7 +82,7 @@ async def validate_inputs(
             project_root=project_root,
         )
         test_plan = filter_test_plan(load_test_plan(plan_path), filters)
-        _log_debug(
+        log_debug(
             output,
             "Validation inputs loaded",
             devices=len(testbed.devices),
@@ -90,7 +91,7 @@ async def validate_inputs(
             test_cases=len(test_plan.test_cases),
         )
     except (ConfigurationError, InventoryPluginError) as error:
-        _log_warning(output, "Validation configuration load failed", error=error)
+        log_warning(output, "Validation configuration load failed", error=error)
         report = _build_configuration_error_report(str(error))
         _write_reports(
             report=report,
@@ -101,7 +102,7 @@ async def validate_inputs(
 
     errors: list[ValidationIssue] = []
     phase_order, order_errors = _resolve_phase_order(test_plan)
-    _log_debug(
+    log_debug(
         output,
         "Phase order resolved",
         phase_order=phase_order,
@@ -139,7 +140,7 @@ async def validate_inputs(
         reports_dir=reports_dir,
         report_plugins=report_plugins,
     )
-    _log_info(
+    log_info(
         output,
         "Validation completed",
         valid=report.valid,
@@ -194,7 +195,7 @@ def _collect_target_validations(
                     case=case,
                 )
                 if warning is not None:
-                    _log_warning(
+                    log_warning(
                         output,
                         "Validation target warning",
                         phase=phase.name,
@@ -206,7 +207,7 @@ def _collect_target_validations(
                         ValidationIssue(code="validation_warning", message=warning)
                     )
                 if error is not None:
-                    _log_warning(
+                    log_warning(
                         output,
                         "Validation target error",
                         phase=phase.name,
@@ -332,7 +333,7 @@ def _collect_required_brokers(
                 test_case_class,
             )
         except (JobLoadError, RuntimeBrokerError) as error:
-            _log_warning(
+            log_warning(
                 output,
                 "Validation planning failed",
                 test_id=test_case.test_id,
@@ -378,24 +379,3 @@ def _write_reports(
         reports_dir=reports_dir,
         plugins=report_plugins or resolve_report_plugins(None),
     )
-
-
-def _log_debug(output: Output | None, message: str, **fields: object) -> None:
-    """Write debug log if output logging is enabled."""
-    if output is None:
-        return
-    output.log_debug_fields(message, **fields)
-
-
-def _log_info(output: Output | None, message: str, **fields: object) -> None:
-    """Write info log if output logging is enabled."""
-    if output is None:
-        return
-    output.log_info_fields(message, **fields)
-
-
-def _log_warning(output: Output | None, message: str, **fields: object) -> None:
-    """Write warning log if output logging is enabled."""
-    if output is None:
-        return
-    output.log_warning_fields(message, **fields)
