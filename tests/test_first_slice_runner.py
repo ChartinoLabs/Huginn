@@ -223,6 +223,39 @@ def test_run_honors_test_case_device_targets(
     assert checks[0]["message"] == "ok:leaf-01"
 
 
+def test_run_records_command_executions_in_report(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Command execution details are persisted with each executed test case."""
+    _stage_runner_fixture(tmp_path, "command_recording")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report_data = _load_report(tmp_path)
+    test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    command_execution = test_case["command_executions"][0]
+    assert command_execution["device"] == "leaf-01"
+    assert command_execution["command"] == "show version"
+    assert command_execution["output"] == "ok:leaf-01"
+    assert command_execution["parsed"] == {"vendor": "cisco"}
+
+
 def test_run_errors_when_test_target_device_is_missing(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
