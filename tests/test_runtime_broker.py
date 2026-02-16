@@ -260,6 +260,26 @@ async def test_runtime_broker_deduplicates_concurrent_execute_requests() -> None
 
 
 @pytest.mark.asyncio
+async def test_runtime_broker_serializes_concurrent_commands_per_channel() -> None:
+    """Different concurrent commands on one channel execute one-at-a-time."""
+    ssh_fake = _ConcurrencySensitiveFakeBroker("ssh")
+    runtime = RuntimeBroker(
+        required_brokers={BrokerType.SSH},
+        ssh_broker=_fake_broker_instance(ssh_fake),
+    )
+    device = _device(protocol="ssh")
+
+    await runtime.connect_targets([device], {BrokerType.SSH})
+    await asyncio.gather(
+        runtime.execute(device, "show version", use_cache=False),
+        runtime.execute(device, "show inventory", use_cache=False),
+    )
+
+    assert ssh_fake.execute_calls == 2
+    assert ssh_fake.max_execute_in_flight == 1
+
+
+@pytest.mark.asyncio
 async def test_runtime_broker_caches_get_with_kwargs() -> None:
     """Identical get calls with kwargs reuse cached output."""
     netconf_fake = _FakeBroker("netconf")
@@ -376,6 +396,26 @@ class _SlowFakeBroker(_FakeBroker):
         """Yield during execute to force concurrent command overlap."""
         await asyncio.sleep(0.01)
         return await super().execute(handle, command)
+
+
+@dataclass
+class _ConcurrencySensitiveFakeBroker(_FakeBroker):
+    """Fake broker that tracks maximum simultaneous execute calls."""
+
+    execute_in_flight: int = 0
+    max_execute_in_flight: int = 0
+
+    async def execute(self, handle: ConnectionHandle, command: str) -> CommandResult:
+        """Track concurrent execute entry and exit around a small await."""
+        self.execute_in_flight += 1
+        if self.execute_in_flight > self.max_execute_in_flight:
+            self.max_execute_in_flight = self.execute_in_flight
+
+        try:
+            await asyncio.sleep(0.01)
+            return await super().execute(handle, command)
+        finally:
+            self.execute_in_flight -= 1
 
 
 def _fake_broker(name: str) -> ConnectionBrokerProtocolV1:
