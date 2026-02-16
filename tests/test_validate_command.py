@@ -129,6 +129,59 @@ def test_validate_with_unmatched_tags_has_empty_execution_set(
     assert report["test_cases"] == []
 
 
+def test_validate_supports_file_inventory_plugin(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validate command resolves testbed via file inventory plugin."""
+    _stage_runner_fixture(tmp_path, "tag_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "validate",
+            "--inventory-plugin",
+            "file:testbed.yaml",
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report = _load_validate_report(tmp_path)
+    assert report["valid"] is True
+
+
+def test_validate_reports_inventory_plugin_errors(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validate command reports unsupported inventory plugin errors."""
+    _stage_runner_fixture(tmp_path, "tag_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "validate",
+            "--inventory-plugin",
+            "unknown:foo",
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 3
+    report = _load_validate_report(tmp_path)
+    assert report["valid"] is False
+    assert report["errors"][0]["code"] == "configuration_error"
+
+
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
     """Copy a first-slice fixture scenario into a temporary directory."""
     fixture_root = Path(__file__).resolve().parent / "fixtures" / "first_slice_runner"
