@@ -3,7 +3,7 @@
 from huginn.cli import main
 from huginn.context import Context
 from huginn.enums import ExecutionMode, ResultStatus
-from huginn.testcase import LearningTestCase, TestCase
+from huginn.testcase import ApplicabilityResult, LearningTestCase, TestCase
 
 __all__ = [
     "main",
@@ -12,4 +12,5 @@ __all__ = [
     "Context",
     "TestCase",
     "LearningTestCase",
+    "ApplicabilityResult",
 ]
