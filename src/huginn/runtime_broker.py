@@ -15,7 +15,7 @@ from huginn.brokers import (
 )
 from huginn.brokers.protocol import CommandResult
 from huginn.enums import BrokerType, ConnectionProtocol
-from huginn.models import ConnectionDefinition, Device
+from huginn.models import ConnectionDefinition, CredentialFields, Device
 
 _CacheOperation = Literal["execute", "get"]
 _CacheKwargs = tuple[tuple[str, str], ...]
@@ -524,7 +524,7 @@ def normalize_broker_key(
 def _resolve_credential(
     device: Device,
     credential_name: str | None,
-) -> dict[str, str]:
+) -> CredentialFields:
     """Resolve connection credential by name with default fallback."""
     resolved_name = credential_name or "default"
     if resolved_name not in device.credentials:

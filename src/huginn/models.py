@@ -1,8 +1,12 @@
 """Core data models for first-slice plan execution."""
 
 from dataclasses import dataclass, field
+from typing import TypeAlias
 
 from huginn.enums import ConnectionProtocol
+
+CredentialFields: TypeAlias = dict[str, str]
+CredentialMap: TypeAlias = dict[str, CredentialFields]
 
 
 @dataclass
@@ -12,7 +16,7 @@ class Device:
     name: str
     os: str
     groups: list[str] = field(default_factory=list)
-    credentials: dict[str, dict[str, str]] = field(default_factory=dict)
+    credentials: CredentialMap = field(default_factory=dict)
     connections: dict[str, "ConnectionDefinition"] = field(default_factory=dict)
 
 
@@ -42,7 +46,7 @@ class Testbed:
     """In-memory representation of a testbed file."""
 
     devices: dict[str, Device]
-    credentials: dict[str, dict[str, str]] = field(default_factory=dict)
+    credentials: CredentialMap = field(default_factory=dict)
 
 
 @dataclass
