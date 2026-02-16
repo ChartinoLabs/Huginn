@@ -28,6 +28,7 @@ from huginn.models import (
     TestCaseGroup,
     TestPlan,
 )
+from huginn.parameters import ParameterManager
 from huginn.plan_filtering import filter_test_plan_by_tags
 from huginn.results import ResultCollector
 from huginn.runtime_broker import (
@@ -64,6 +65,7 @@ async def run_test_plan(
     plan_path: Path,
     tags: list[str] | None,
     project_root: Path,
+    parameters_dir: Path,
     reports_dir: Path,
     broker_factory: Callable[[], RuntimeBroker] | None = None,
 ) -> RunReport:
@@ -98,6 +100,7 @@ async def run_test_plan(
             test_plan=test_plan,
             planned_executions=planned_executions,
             broker=runtime_broker,
+            parameters_dir=parameters_dir,
         )
     finally:
         disconnect_error = await _disconnect_runtime_broker(runtime_broker)
@@ -117,6 +120,7 @@ async def _execute_phases_with_dependencies(
     test_plan: TestPlan,
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
+    parameters_dir: Path,
 ) -> list[ExecutedPhase]:
     """Execute phases while honoring phase dependency constraints."""
     phase_results: dict[str, ExecutedPhase] = {}
@@ -139,6 +143,7 @@ async def _execute_phases_with_dependencies(
                     test_plan=test_plan,
                     planned_executions=planned_executions,
                     broker=broker,
+                    parameters_dir=parameters_dir,
                 )
 
             phase_results[phase_name] = executed_phase
@@ -179,6 +184,7 @@ async def _execute_phase(
     test_plan: TestPlan,
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
+    parameters_dir: Path,
 ) -> ExecutedPhase:
     """Execute all groups and test cases for a phase."""
     executed_groups: list[ExecutedTestCaseGroup] = []
@@ -196,6 +202,7 @@ async def _execute_phase(
                     mode=mode,
                     testbed=testbed,
                     broker=broker,
+                    parameters_dir=parameters_dir,
                 )
             )
 
@@ -312,6 +319,7 @@ async def _execute_test_case(
     mode: ExecutionMode,
     testbed: Testbed,
     broker: RuntimeBroker,
+    parameters_dir: Path,
 ) -> ExecutedTestCase:
     targets, target_error = _resolve_targets(
         testbed=testbed,
@@ -339,6 +347,10 @@ async def _execute_test_case(
         testbed=testbed,
         targets=targets,
         broker=broker,
+        parameters=ParameterManager(
+            parameters_dir=parameters_dir,
+            test_id=definition.test_id,
+        ),
         results=result_collector,
     )
 
