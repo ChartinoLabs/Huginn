@@ -252,7 +252,9 @@ def _resolve_phase_order(
 
     while pending:
         progressed = False
-        for phase_name in list(pending):
+        for phase_name in test_plan.phases:
+            if phase_name not in pending:
+                continue
             phase = test_plan.phases[phase_name]
             if all(dep in resolved for dep in phase.depends_on):
                 resolved.append(phase_name)
