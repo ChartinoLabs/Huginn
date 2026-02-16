@@ -177,6 +177,7 @@ Result statuses (`ResultStatus` enum):
 
 - `PASSED`: Check succeeded
 - `FAILED`: Check failed
+- `NOT_APPLICABLE`: Check did not apply to the target at runtime
 - `SKIPPED`: Check was skipped
 - `ERRORED`: Check encountered an error
 - `INFO`: Informational (no impact on overall status)

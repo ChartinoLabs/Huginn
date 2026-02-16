@@ -162,7 +162,7 @@ async def test_learning_testcase_filters_targets_by_applicability() -> None:
     assert test_case.gathered_target_names == ["leaf-01"]
     assert test_case.compared == [({"expected": True}, {"current": True})]
     assert context.results.entries[0] == (
-        ResultStatus.SKIPPED,
+        ResultStatus.NOT_APPLICABLE,
         "leaf-02: feature not enabled",
     )
 
@@ -181,6 +181,6 @@ async def test_learning_testcase_skips_when_no_applicable_targets() -> None:
     assert test_case.compared == []
     assert context.parameters.saved_payloads == []
     assert context.results.entries == [
-        (ResultStatus.SKIPPED, "leaf-01: protocol not configured"),
-        (ResultStatus.SKIPPED, "No applicable targets after applicability check"),
+        (ResultStatus.NOT_APPLICABLE, "leaf-01: protocol not configured"),
+        (ResultStatus.INFO, "No applicable targets after applicability check"),
     ]

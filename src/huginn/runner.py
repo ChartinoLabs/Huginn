@@ -963,6 +963,10 @@ def _derive_status_from_values(statuses: list[str]) -> ResultStatus:
         return ResultStatus.ERRORED
     if any(status == ResultStatus.FAILED.value for status in statuses):
         return ResultStatus.FAILED
+    if statuses and all(
+        status == ResultStatus.NOT_APPLICABLE.value for status in statuses
+    ):
+        return ResultStatus.NOT_APPLICABLE
     if statuses and all(status == ResultStatus.SKIPPED.value for status in statuses):
         return ResultStatus.SKIPPED
     return ResultStatus.PASSED
@@ -978,6 +982,7 @@ def _build_summary(phases: list[ExecutedPhase]) -> RunSummary:
         passed=counts[ResultStatus.PASSED.value],
         failed=counts[ResultStatus.FAILED.value],
         errored=counts[ResultStatus.ERRORED.value],
+        not_applicable=counts[ResultStatus.NOT_APPLICABLE.value],
         skipped=counts[ResultStatus.SKIPPED.value],
         blocked=counts[ResultStatus.BLOCKED.value],
     )

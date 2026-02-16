@@ -1,10 +1,16 @@
 """Result collection utilities for test execution."""
 
 from dataclasses import dataclass, field
+from typing import Protocol, runtime_checkable
 
 from huginn.brokers.protocol import CommandResult
 from huginn.enums import ResultStatus
 from huginn.models import CheckResult, CommandExecution
+
+
+@runtime_checkable
+class _OutputCarrier(Protocol):
+    output: str
 
 
 @dataclass
@@ -36,7 +42,7 @@ class ResultCollector:
             elapsed_ms = output.elapsed_ms
             cached = output.cached
             parsed_payload = parsed if parsed is not None else output.structured
-        elif hasattr(output, "output") and isinstance(output.output, str):
+        elif isinstance(output, _OutputCarrier):
             output_text = output.output
             parsed_payload = parsed
         else:
@@ -60,9 +66,16 @@ class ResultCollector:
             return ResultStatus.ERRORED
         if any(check.status == ResultStatus.FAILED.value for check in self.checks):
             return ResultStatus.FAILED
+
         non_info_checks = [
             check for check in self.checks if check.status != ResultStatus.INFO.value
         ]
+        if non_info_checks and all(
+            check.status == ResultStatus.NOT_APPLICABLE.value
+            for check in non_info_checks
+        ):
+            return ResultStatus.NOT_APPLICABLE
+
         if non_info_checks and all(
             check.status == ResultStatus.SKIPPED.value for check in non_info_checks
         ):

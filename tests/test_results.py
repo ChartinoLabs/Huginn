@@ -24,6 +24,15 @@ def test_result_collector_returns_skipped_for_skipped_plus_info_checks() -> None
     assert collector.derive_status() == ResultStatus.SKIPPED
 
 
+def test_result_collector_returns_not_applicable_for_not_applicable_checks() -> None:
+    """Not-applicable checks yield NOT_APPLICABLE aggregate status."""
+    collector = ResultCollector()
+    collector.add_result(ResultStatus.NOT_APPLICABLE, "feature not enabled")
+    collector.add_result(ResultStatus.INFO, "target in maintenance window")
+
+    assert collector.derive_status() == ResultStatus.NOT_APPLICABLE
+
+
 def test_result_collector_returns_failed_when_failed_and_info_present() -> None:
     """Failure still dominates informational checks."""
     collector = ResultCollector()

@@ -55,13 +55,13 @@ class LearningTestCase(TestCase, ABC):
                 "Target not applicable for this test",
             )
             context.results.add_result(
-                ResultStatus.SKIPPED,
+                ResultStatus.NOT_APPLICABLE,
                 f"{target.name}: {reason}",
             )
 
         if not applicable_targets:
             context.results.add_result(
-                ResultStatus.SKIPPED,
+                ResultStatus.INFO,
                 "No applicable targets after applicability check",
             )
             return

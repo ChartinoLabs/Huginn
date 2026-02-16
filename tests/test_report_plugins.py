@@ -70,6 +70,7 @@ def _build_minimal_run_report() -> "RunReport":
             passed=0,
             failed=0,
             errored=0,
+            not_applicable=0,
             skipped=0,
             blocked=0,
         ),
