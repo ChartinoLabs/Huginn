@@ -1,28 +1,26 @@
 """Fixture job module for learning/testing parameter persistence."""
 
-from huginn import Context, ExecutionMode, ResultStatus, TestCase
+from huginn import Context, LearningTestCase, ResultStatus
 
 
-class VerifyLearnedParameters(TestCase):
+class VerifyLearnedParameters(LearningTestCase):
     """Save parameters in learning mode and compare in testing mode."""
 
-    async def setup(self, context: Context) -> None:
-        """No-op setup for fixture."""
-        return None
-
-    async def test(self, context: Context) -> None:
-        """Exercise context.parameters save/load behavior by execution mode."""
-        current = {
+    async def gather_state(self, context: Context) -> dict[str, object]:
+        """Collect deterministic state used for learning/testing assertions."""
+        return {
             "target_count": len(context.targets),
             "target_names": sorted(device.name for device in context.targets),
         }
 
-        if context.mode == ExecutionMode.LEARNING:
-            await context.parameters.save(current)
-            context.results.add_result(ResultStatus.PASSED, "parameters learned")
-            return
-
-        expected = await context.parameters.load()
+    async def compare_state(
+        self,
+        *,
+        expected: dict[str, object],
+        current: dict[str, object],
+        context: Context,
+    ) -> None:
+        """Compare learned and current state in testing mode."""
         if expected == current:
             context.results.add_result(ResultStatus.PASSED, "parameters matched")
             return
@@ -31,7 +29,3 @@ class VerifyLearnedParameters(TestCase):
             ResultStatus.FAILED,
             f"parameters mismatched: expected={expected}, current={current}",
         )
-
-    async def cleanup(self, context: Context) -> None:
-        """No-op cleanup for fixture."""
-        return None

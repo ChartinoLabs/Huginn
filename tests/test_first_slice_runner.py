@@ -986,6 +986,37 @@ def test_run_learning_mode_persists_parameters(
     }
 
 
+def test_run_learning_mode_skips_non_learning_testcases(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Learning mode skips tests that do not inherit LearningTestCase."""
+    _stage_runner_fixture(tmp_path, "passed")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "learning",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 1
+    report_data = _load_report(tmp_path)
+    test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    assert test_case["status"] == "skipped"
+    assert "inherit LearningTestCase" in test_case["error"]
+    assert report_data["summary"]["skipped"] == 1
+
+
 def test_run_testing_mode_loads_learned_parameters(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

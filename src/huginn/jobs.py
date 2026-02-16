@@ -1,6 +1,7 @@
 """Job loading utilities for test case execution."""
 
 from importlib.util import module_from_spec, spec_from_file_location
+from inspect import isabstract
 from pathlib import Path
 from types import ModuleType
 
@@ -64,6 +65,8 @@ def _load_explicit_class(
         raise JobLoadError(
             f"Job class '{class_name}' in '{raw_job}' must inherit from TestCase"
         )
+    if isabstract(class_obj):
+        raise JobLoadError(f"Job class '{class_name}' in '{raw_job}' must be concrete")
     return class_obj
 
 
@@ -74,6 +77,8 @@ def _load_first_test_case_class(module: ModuleType, raw_job: str) -> type[TestCa
             isinstance(value, type)
             and issubclass(value, TestCase)
             and value is not TestCase
+            and value.__module__ == module.__name__
+            and not isabstract(value)
         ):
             candidates.append(value)
 
