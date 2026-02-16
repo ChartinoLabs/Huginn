@@ -591,6 +591,181 @@ def test_run_inventory_plugin_errors_map_to_configuration_exit(
     assert "configuration_error" in result.stdout
 
 
+def test_run_filters_by_phase_option(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Phase filter runs only selected phase execution nodes."""
+    _stage_runner_fixture(tmp_path, "cli_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--phase",
+            "post-change",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report = _load_report(tmp_path)
+    assert [phase["name"] for phase in report["phases"]] == ["post-change"]
+    assert report["summary"]["total"] == 1
+
+
+def test_run_filters_by_test_case_group_option(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Group filter keeps matching group and prunes others."""
+    _stage_runner_fixture(tmp_path, "cli_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--test-case-group",
+            "pre-checks",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report = _load_report(tmp_path)
+    executed_groups = [
+        group["name"]
+        for phase in report["phases"]
+        for group in phase["test_case_groups"]
+    ]
+    assert executed_groups == ["pre-checks"]
+    assert report["summary"]["total"] == 2
+
+
+def test_run_filters_by_test_id_option(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test-id filter runs only selected test case ids."""
+    _stage_runner_fixture(tmp_path, "cli_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--test-id",
+            "1.0.1",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report = _load_report(tmp_path)
+    executed_ids = [
+        case["test_id"]
+        for phase in report["phases"]
+        for group in phase["test_case_groups"]
+        for case in group["test_cases"]
+    ]
+    assert executed_ids == ["1.0.1"]
+
+
+def test_run_filters_by_exclude_tags_option(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exclude-tags filter removes matching tests from execution."""
+    _stage_runner_fixture(tmp_path, "cli_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--exclude-tags",
+            "slow",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report = _load_report(tmp_path)
+    executed_ids = [
+        case["test_id"]
+        for phase in report["phases"]
+        for group in phase["test_case_groups"]
+        for case in group["test_cases"]
+    ]
+    assert set(executed_ids) == {"1.0.0", "2.0.0"}
+
+
+def test_run_filters_by_comma_separated_tags_with_all_match_semantics(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Comma-separated tags are parsed and all requested tags must match."""
+    _stage_runner_fixture(tmp_path, "cli_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--tags",
+            "ospf,post",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report = _load_report(tmp_path)
+    executed_ids = [
+        case["test_id"]
+        for phase in report["phases"]
+        for group in phase["test_case_groups"]
+        for case in group["test_cases"]
+    ]
+    assert executed_ids == ["2.0.0"]
+
+
 def test_run_learning_mode_persists_parameters(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

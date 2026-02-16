@@ -182,6 +182,68 @@ def test_validate_reports_inventory_plugin_errors(
     assert report["errors"][0]["code"] == "configuration_error"
 
 
+def test_validate_filters_by_phase_and_test_case_group(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validate command applies phase and group filters before planning."""
+    _stage_runner_fixture(tmp_path, "cli_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "validate",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--phase",
+            "pre-change",
+            "--test-case-group",
+            "pre-checks",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report = _load_validate_report(tmp_path)
+    assert report["phase_order"] == ["pre-change"]
+    assert {case["test_id"] for case in report["test_cases"]} == {"1.0.0", "1.0.1"}
+
+
+def test_validate_filters_by_test_id_and_exclude_tags(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validate command supports test-id and exclude-tags filters."""
+    _stage_runner_fixture(tmp_path, "cli_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "validate",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--test-id",
+            "1.0.1",
+            "--exclude-tags",
+            "slow",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report = _load_validate_report(tmp_path)
+    assert report["phase_order"] == []
+    assert report["test_cases"] == []
+
+
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
     """Copy a first-slice fixture scenario into a temporary directory."""
     fixture_root = Path(__file__).resolve().parent / "fixtures" / "first_slice_runner"
