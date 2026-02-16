@@ -959,17 +959,25 @@ def _derive_phase_status(groups: list[ExecutedTestCaseGroup]) -> ResultStatus:
 
 
 def _derive_status_from_values(statuses: list[str]) -> ResultStatus:
-    if any(status == ResultStatus.ERRORED.value for status in statuses):
+    if _contains_status(statuses, ResultStatus.ERRORED):
         return ResultStatus.ERRORED
-    if any(status == ResultStatus.FAILED.value for status in statuses):
+    if _contains_status(statuses, ResultStatus.FAILED):
         return ResultStatus.FAILED
-    if statuses and all(
-        status == ResultStatus.NOT_APPLICABLE.value for status in statuses
-    ):
+    if _all_statuses_match(statuses, ResultStatus.NOT_APPLICABLE):
         return ResultStatus.NOT_APPLICABLE
-    if statuses and all(status == ResultStatus.SKIPPED.value for status in statuses):
+    if _all_statuses_match(statuses, ResultStatus.SKIPPED):
         return ResultStatus.SKIPPED
     return ResultStatus.PASSED
+
+
+def _contains_status(statuses: list[str], status: ResultStatus) -> bool:
+    """Return True when the given status exists in values."""
+    return any(value == status.value for value in statuses)
+
+
+def _all_statuses_match(statuses: list[str], status: ResultStatus) -> bool:
+    """Return True when all values match the given status."""
+    return bool(statuses) and all(value == status.value for value in statuses)
 
 
 def _build_summary(phases: list[ExecutedPhase]) -> RunSummary:
