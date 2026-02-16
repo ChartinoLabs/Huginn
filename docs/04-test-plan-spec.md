@@ -188,10 +188,6 @@ description: <description>           # Optional: plan description
 data_model:                          # Optional: external data model
   path: <path/to/data/directory>
 
-defaults:                            # Optional: default values
-  target: {}
-  tags: []
-
 test_cases:                          # Required: test case definitions
   <test-id>:
     title: <title>
@@ -646,25 +642,6 @@ huginn run --tags critical,fast
 
 Test case groups can also define `tags`. Effective filtering tags are the union of test-case tags and group tags for each execution context.
 
-### Defaults
-
-The `defaults` section provides fallback values:
-
-```yaml
-defaults:
-  target:
-    groups: [production]
-  tags: [regression]
-
-test_cases:
-  "1.0.0":
-    title: Verify Connectivity
-    job: tests/verify_connectivity.py
-    # Inherits target: groups: [production]
-    # Inherits tags: [regression]
-```
-
-Explicit values override defaults.
 
 ## Complete Example
 
@@ -678,9 +655,6 @@ description: >
 
 data_model:
   path: ./nac/data/  # Optional: Network as Code data model
-
-defaults:
-  tags: [change-validation]
 
 test_cases:
   # Connectivity tests - state should not change
