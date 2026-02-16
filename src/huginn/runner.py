@@ -191,7 +191,6 @@ async def _execute_phase(
     executed_groups: list[ExecutedTestCaseGroup] = []
     for group_name in phase.test_case_groups:
         group = test_plan.test_case_groups[group_name]
-        connect_lock = asyncio.Lock()
         execution_tasks: list[asyncio.Task[ExecutedTestCase]] = []
         for test_id in group.tests:
             test_case_definition = test_plan.test_cases[test_id]
@@ -206,7 +205,6 @@ async def _execute_phase(
                         testbed=testbed,
                         broker=broker,
                         parameters_dir=parameters_dir,
-                        connect_lock=connect_lock,
                     )
                 )
             )
@@ -326,7 +324,6 @@ async def _execute_test_case(
     testbed: Testbed,
     broker: RuntimeBroker,
     parameters_dir: Path,
-    connect_lock: asyncio.Lock,
 ) -> ExecutedTestCase:
     targets, target_error = _resolve_targets(
         testbed=testbed,
@@ -378,12 +375,11 @@ async def _execute_test_case(
     test_error: str | None = None
 
     try:
-        async with connect_lock:
-            await _connect_targets_or_raise(
-                broker,
-                targets,
-                planned.required_brokers,
-            )
+        await _connect_targets_or_raise(
+            broker,
+            targets,
+            planned.required_brokers,
+        )
     except RuntimeBrokerError as error:
         return _errored_test_case(
             definition,
