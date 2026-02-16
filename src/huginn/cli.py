@@ -174,6 +174,22 @@ def run(
         show_logs=show_logs,
         log_file=log_file,
     )
+    output.status(f"Starting run in {mode.value} mode")
+    output.log_debug_fields(
+        "CLI run options",
+        plan=plan,
+        testbed=testbed_path,
+        inventory_plugin=inventory_plugin,
+        report_plugin=report_plugin,
+        tags=tags,
+        exclude_tags=exclude_tags,
+        phase=phase,
+        test_case_group=test_case_group,
+        test_id=test_id,
+        log_level="DEBUG" if debug else log_level,
+        show_logs=show_logs,
+        log_file=log_file,
+    )
 
     try:
         report_plugins = _resolve_report_plugins_option(report_plugin)
@@ -205,6 +221,18 @@ def run(
         raise typer.Exit(code=_exit_code_for_run_error(error.code)) from error
 
     output.status(f"Run status: {report.summary.status}")
+    output.status(
+        "Summary: "
+        f"total={report.summary.total} "
+        f"passed={report.summary.passed} "
+        f"failed={report.summary.failed} "
+        f"errored={report.summary.errored} "
+        f"not_applicable={report.summary.not_applicable} "
+        f"skipped={report.summary.skipped} "
+        f"blocked={report.summary.blocked}"
+    )
+    if report.summary.total == 0:
+        output.warning("No test cases were selected for execution")
     output.status("Report artifacts written to reports/")
     if report.summary.status != "passed":
         raise typer.Exit(code=1)
@@ -334,6 +362,22 @@ def validate(
         show_logs=show_logs,
         log_file=log_file,
     )
+    output.status("Starting validation")
+    output.log_debug_fields(
+        "CLI validate options",
+        plan=plan,
+        testbed=testbed_path,
+        inventory_plugin=inventory_plugin,
+        report_plugin=report_plugin,
+        tags=tags,
+        exclude_tags=exclude_tags,
+        phase=phase,
+        test_case_group=test_case_group,
+        test_id=test_id,
+        log_level="DEBUG" if debug else log_level,
+        show_logs=show_logs,
+        log_file=log_file,
+    )
     report_plugins = _resolve_report_plugins_option(report_plugin)
     try:
         report = asyncio.run(
@@ -359,6 +403,12 @@ def validate(
         output.error(traceback.format_exc())
         raise typer.Exit(code=2) from error
     output.status(f"Validation status: {'passed' if report.valid else 'failed'}")
+    output.status(
+        "Summary: "
+        f"test_cases={len(report.test_cases)} "
+        f"warnings={len(report.warnings)} "
+        f"errors={len(report.errors)}"
+    )
     output.status("Report artifacts written to reports/")
 
     if not report.valid:
