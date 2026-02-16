@@ -191,6 +191,9 @@ def test_cleanup_runs_when_test_errors(
     report_data = _load_report(tmp_path)
     assert report_data["summary"]["status"] == "errored"
     assert report_data["summary"]["errored"] == 1
+    errored_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    assert errored_case["error_traceback"] is not None
+    assert "Traceback (most recent call last)" in errored_case["error_traceback"]
 
 
 def test_run_honors_test_case_device_targets(
@@ -623,6 +626,7 @@ def test_run_inventory_plugin_errors_map_to_configuration_exit(
 
     assert result.exit_code == 2
     assert "configuration_error" in result.stdout
+    assert "Traceback (most recent call last)" in result.stdout
 
 
 def test_run_rejects_unsupported_report_plugin(

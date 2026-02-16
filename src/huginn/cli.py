@@ -5,6 +5,7 @@ against infrastructure testbeds.
 """
 
 import asyncio
+import traceback
 from importlib.metadata import version as get_version
 from pathlib import Path
 from typing import Annotated
@@ -171,6 +172,8 @@ def run(
             f"ERROR [{error.code.value}]: {error}",
             fg=typer.colors.RED,
         )
+        if error.traceback_text:
+            typer.secho(error.traceback_text, fg=typer.colors.RED)
         raise typer.Exit(code=_exit_code_for_run_error(error.code)) from error
 
     typer.echo(f"Run status: {report.summary.status}")
@@ -299,6 +302,7 @@ def validate(
             f"ERROR [{ErrorCode.CONFIGURATION_ERROR.value}]: {error}",
             fg=typer.colors.RED,
         )
+        typer.secho(traceback.format_exc(), fg=typer.colors.RED)
         raise typer.Exit(code=2) from error
     typer.echo(f"Validation status: {'passed' if report.valid else 'failed'}")
     typer.echo("Report artifacts written to reports/")

@@ -1,6 +1,7 @@
 """Minimal end-to-end test plan runner for first implementation slice."""
 
 import asyncio
+import traceback
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -49,10 +50,17 @@ from huginn.testcase import TestCase
 class RunExecutionError(RuntimeError):
     """Raised when inputs cannot be loaded or jobs cannot be resolved."""
 
-    def __init__(self, message: str, code: ErrorCode) -> None:
+    def __init__(
+        self,
+        message: str,
+        code: ErrorCode,
+        *,
+        traceback_text: str | None = None,
+    ) -> None:
         """Initialize structured run execution error."""
         super().__init__(message)
         self.code = code
+        self.traceback_text = traceback_text
 
 
 @dataclass(frozen=True)
@@ -62,6 +70,7 @@ class PlannedExecution:
     test_case_class: type[TestCase] | None
     required_brokers: set[BrokerType]
     planning_error: str | None
+    planning_error_traceback: str | None = None
 
 
 async def run_test_plan(
@@ -89,6 +98,7 @@ async def run_test_plan(
         raise RunExecutionError(
             str(error),
             code=ErrorCode.CONFIGURATION_ERROR,
+            traceback_text=traceback.format_exc(),
         ) from error
 
     planned_executions = _plan_executions(
@@ -117,9 +127,15 @@ async def run_test_plan(
             parameters_dir=parameters_dir,
         )
     finally:
-        disconnect_error = await _disconnect_runtime_broker(runtime_broker)
+        disconnect_error, disconnect_traceback = await _disconnect_runtime_broker(
+            runtime_broker
+        )
         if disconnect_error is not None:
-            raise RunExecutionError(disconnect_error, code=ErrorCode.BROKER_ERROR)
+            raise RunExecutionError(
+                disconnect_error,
+                code=ErrorCode.BROKER_ERROR,
+                traceback_text=disconnect_traceback,
+            )
 
     summary = _build_summary(executed_phases)
     report = RunReport(summary=summary, phases=executed_phases)
@@ -133,6 +149,7 @@ async def run_test_plan(
         raise RunExecutionError(
             str(error),
             code=ErrorCode.CONFIGURATION_ERROR,
+            traceback_text=traceback.format_exc(),
         ) from error
     return report
 
@@ -297,12 +314,14 @@ def _plan_executions(
                 test_case_class=test_case_class,
                 required_brokers=required_brokers,
                 planning_error=None,
+                planning_error_traceback=None,
             )
         except (JobLoadError, RuntimeBrokerError) as error:
             planned[test_case.test_id] = PlannedExecution(
                 test_case_class=None,
                 required_brokers={BrokerType.SSH},
                 planning_error=str(error),
+                planning_error_traceback=traceback.format_exc(),
             )
     return planned
 
@@ -386,6 +405,7 @@ async def _execute_test_case(
             definition,
             error=planned.planning_error,
             error_code=ErrorCode.PLANNING_ERROR,
+            error_traceback=planned.planning_error_traceback,
         )
     if planned.test_case_class is None:
         return _errored_test_case(
@@ -396,14 +416,21 @@ async def _execute_test_case(
 
     test_case = planned.test_case_class()
     test_error: str | None = None
+    test_error_traceback: str | None = None
 
     try:
         await test_case.setup(context)
         await test_case.test(context)
     except Exception as error:  # noqa: BLE001
         test_error = f"{error.__class__.__name__}: {error}"
+        test_error_traceback = traceback.format_exc()
     finally:
-        test_error = await _run_cleanup(test_case, context, test_error)
+        test_error, test_error_traceback = await _run_cleanup(
+            test_case,
+            context,
+            test_error,
+            test_error_traceback,
+        )
 
     if test_error is not None:
         return _errored_test_case(
@@ -411,6 +438,7 @@ async def _execute_test_case(
             checks=result_collector.checks,
             error=test_error,
             error_code=ErrorCode.EXECUTION_ERROR,
+            error_traceback=test_error_traceback,
         )
 
     status = result_collector.derive_status().value
@@ -429,6 +457,7 @@ def _errored_test_case(
     error: str,
     error_code: ErrorCode,
     checks: list[CheckResult] | None = None,
+    error_traceback: str | None = None,
 ) -> ExecutedTestCase:
     """Build a standardized errored test case output."""
     normalized_checks: list[CheckResult] = checks if checks is not None else []
@@ -440,6 +469,7 @@ def _errored_test_case(
         command_executions=[],
         error=error,
         error_code=error_code.value,
+        error_traceback=error_traceback,
     )
 
 
@@ -507,30 +537,49 @@ async def _prime_runtime_connections(
                 set(required_brokers),
             )
     except RuntimeBrokerError as error:
-        raise RunExecutionError(str(error), code=ErrorCode.BROKER_ERROR) from error
+        raise RunExecutionError(
+            str(error),
+            code=ErrorCode.BROKER_ERROR,
+            traceback_text=traceback.format_exc(),
+        ) from error
 
 
 async def _run_cleanup(
     test_case: TestCase,
     context: Context,
     test_error: str | None,
-) -> str | None:
+    test_error_traceback: str | None,
+) -> tuple[str | None, str | None]:
     """Run test cleanup and preserve first execution error."""
     try:
         await test_case.cleanup(context)
     except Exception as cleanup_error:  # noqa: BLE001
+        cleanup_traceback = traceback.format_exc()
         if test_error is None:
-            return f"{cleanup_error.__class__.__name__}: {cleanup_error}"
-    return test_error
+            return (
+                f"{cleanup_error.__class__.__name__}: {cleanup_error}",
+                cleanup_traceback,
+            )
+        if test_error_traceback is None:
+            return test_error, cleanup_traceback
+        return test_error, (
+            f"{test_error_traceback}\n\nDuring cleanup:\n{cleanup_traceback}"
+        )
+    return test_error, test_error_traceback
 
 
-async def _disconnect_runtime_broker(broker: RuntimeBroker) -> str | None:
+async def _disconnect_runtime_broker(
+    broker: RuntimeBroker,
+) -> tuple[str | None, str | None]:
     """Disconnect all runtime broker connections at run teardown."""
     try:
         await broker.disconnect_targets()
     except RuntimeBrokerError as disconnect_error:
-        return f"Broker teardown failed: {disconnect_error}"
-    return None
+        return (
+            f"Broker teardown failed: {disconnect_error}",
+            traceback.format_exc(),
+        )
+    return None, None
 
 
 def _create_broker(

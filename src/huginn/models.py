@@ -120,6 +120,7 @@ class ExecutedTestCase:
     command_executions: list[CommandExecution] = field(default_factory=list)
     error: str | None = None
     error_code: str | None = None
+    error_traceback: str | None = None
 
 
 @dataclass
