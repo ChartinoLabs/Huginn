@@ -625,8 +625,8 @@ def test_run_inventory_plugin_errors_map_to_configuration_exit(
     )
 
     assert result.exit_code == 2
-    assert "configuration_error" in result.stdout
-    assert "Traceback (most recent call last)" in result.stdout
+    assert "configuration_error" in result.stderr
+    assert "Traceback (most recent call last)" in result.stderr
 
 
 def test_run_rejects_unsupported_report_plugin(

@@ -13,6 +13,7 @@ from typing import Annotated
 import typer
 
 from huginn.enums import ErrorCode, ExecutionMode
+from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
 from huginn.report_plugins import (
     ReportPlugin,
@@ -127,6 +128,28 @@ def run(
             help="Report plugin(s) to write artifacts (default: json).",
         ),
     ] = None,
+    debug: Annotated[
+        bool,
+        typer.Option("--debug", help="Enable DEBUG-level logging."),
+    ] = False,
+    log_level: Annotated[
+        str,
+        typer.Option(
+            "--log-level",
+            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+        ),
+    ] = "INFO",
+    show_logs: Annotated[
+        bool,
+        typer.Option(
+            "--show-logs",
+            help="Stream logs to console in addition to file.",
+        ),
+    ] = False,
+    log_file: Annotated[
+        Path | None,
+        typer.Option("--log-file", help="Path to log file (default: ./huginn.log)."),
+    ] = None,
 ) -> None:
     """Execute a test plan against infrastructure.
 
@@ -143,6 +166,13 @@ def run(
         testbed=testbed,
         inventory_plugin=inventory_plugin,
         data_model=data_model,
+    )
+
+    output = _build_output(
+        debug=debug,
+        log_level=log_level,
+        show_logs=show_logs,
+        log_file=log_file,
     )
 
     try:
@@ -165,19 +195,17 @@ def run(
                 parameters_dir=Path.cwd() / "parameters",
                 reports_dir=Path.cwd() / "reports",
                 report_plugins=report_plugins,
+                output=output,
             )
         )
     except RunExecutionError as error:
-        typer.secho(
-            f"ERROR [{error.code.value}]: {error}",
-            fg=typer.colors.RED,
-        )
+        output.error(f"ERROR [{error.code.value}]: {error}")
         if error.traceback_text:
-            typer.secho(error.traceback_text, fg=typer.colors.RED)
+            output.error(error.traceback_text)
         raise typer.Exit(code=_exit_code_for_run_error(error.code)) from error
 
-    typer.echo(f"Run status: {report.summary.status}")
-    typer.echo("Report artifacts written to reports/")
+    output.status(f"Run status: {report.summary.status}")
+    output.status("Report artifacts written to reports/")
     if report.summary.status != "passed":
         raise typer.Exit(code=1)
 
@@ -270,6 +298,28 @@ def validate(
             help="Report plugin(s) to write artifacts (default: json).",
         ),
     ] = None,
+    debug: Annotated[
+        bool,
+        typer.Option("--debug", help="Enable DEBUG-level logging."),
+    ] = False,
+    log_level: Annotated[
+        str,
+        typer.Option(
+            "--log-level",
+            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+        ),
+    ] = "INFO",
+    show_logs: Annotated[
+        bool,
+        typer.Option(
+            "--show-logs",
+            help="Stream logs to console in addition to file.",
+        ),
+    ] = False,
+    log_file: Annotated[
+        Path | None,
+        typer.Option("--log-file", help="Path to log file (default: ./huginn.log)."),
+    ] = None,
 ) -> None:
     """Validate testbed/plan inputs without executing tests."""
     testbed_path = _resolve_testbed_option(
@@ -278,6 +328,12 @@ def validate(
         data_model=data_model,
     )
 
+    output = _build_output(
+        debug=debug,
+        log_level=log_level,
+        show_logs=show_logs,
+        log_file=log_file,
+    )
     report_plugins = _resolve_report_plugins_option(report_plugin)
     try:
         report = asyncio.run(
@@ -295,31 +351,23 @@ def validate(
                 project_root=Path.cwd(),
                 reports_dir=Path.cwd() / "reports",
                 report_plugins=report_plugins,
+                output=output,
             )
         )
     except ReportPluginError as error:
-        typer.secho(
-            f"ERROR [{ErrorCode.CONFIGURATION_ERROR.value}]: {error}",
-            fg=typer.colors.RED,
-        )
-        typer.secho(traceback.format_exc(), fg=typer.colors.RED)
+        output.error(f"ERROR [{ErrorCode.CONFIGURATION_ERROR.value}]: {error}")
+        output.error(traceback.format_exc())
         raise typer.Exit(code=2) from error
-    typer.echo(f"Validation status: {'passed' if report.valid else 'failed'}")
-    typer.echo("Report artifacts written to reports/")
+    output.status(f"Validation status: {'passed' if report.valid else 'failed'}")
+    output.status("Report artifacts written to reports/")
 
     if not report.valid:
         for error in report.errors:
-            typer.secho(
-                f"ERROR [{error.code}]: {error.message}",
-                fg=typer.colors.RED,
-            )
+            output.error(f"ERROR [{error.code}]: {error.message}")
         raise typer.Exit(code=3)
 
     for warning in report.warnings:
-        typer.secho(
-            f"WARNING [{warning.code}]: {warning.message}",
-            fg=typer.colors.YELLOW,
-        )
+        output.warning(f"WARNING [{warning.code}]: {warning.message}")
 
 
 def _exit_code_for_run_error(code: ErrorCode) -> int:
@@ -397,6 +445,22 @@ def _resolve_report_plugins_option(values: list[str] | None) -> list[ReportPlugi
         return resolve_report_plugins(specs)
     except ReportPluginError as error:
         raise typer.BadParameter(str(error)) from error
+
+
+def _build_output(
+    *,
+    debug: bool,
+    log_level: str,
+    show_logs: bool,
+    log_file: Path | None,
+) -> Output:
+    """Build output coordinator for console and logging streams."""
+    resolved_log_level = "DEBUG" if debug else log_level
+    return Output(
+        show_logs=show_logs,
+        log_level=resolved_log_level,
+        log_file=log_file,
+    )
 
 
 @app.command()
