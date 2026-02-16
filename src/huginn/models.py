@@ -61,6 +61,7 @@ class TestCaseGroup:
 
     name: str
     tests: list[str]
+    tags: list[str] = field(default_factory=list)
     target: TargetDefinition | None = None
 
 

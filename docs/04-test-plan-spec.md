@@ -201,6 +201,7 @@ test_case_groups:
 | `description` | string       | No       | Group description                                          |
 | `tests`       | list[string] | No       | List of test case IDs                                      |
 | `groups`      | list[string] | No       | List of test case group names to include                   |
+| `tags`        | list[string] | No       | Group-level tags (additive with test case tags)            |
 | `target`      | dict         | No       | Group-level targeting (intersected with test case targets) |
 
 At least one of `tests` or `groups` must be specified.
@@ -414,6 +415,8 @@ huginn run --tags critical,fast
 ```
 
 **Important**: Filtered tests do not appear in results. If you filter to run only OSPF tests, only those tests appear in the report.
+
+Test case groups can also define `tags`. Effective filtering tags are the union of test-case tags and group tags for each execution context.
 
 ### Defaults
 
