@@ -591,6 +591,105 @@ def test_run_inventory_plugin_errors_map_to_configuration_exit(
     assert "configuration_error" in result.stdout
 
 
+def test_run_learning_mode_persists_parameters(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Learning mode writes learned parameters for the executing test case."""
+    _stage_runner_fixture(tmp_path, "learning_testing_parameters")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "learning",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    parameter_path = tmp_path / "parameters" / "1.0.0.json"
+    assert parameter_path.exists()
+    saved = json.loads(parameter_path.read_text(encoding="utf-8"))
+    assert saved == {
+        "target_count": 1,
+        "target_names": ["leaf-01"],
+    }
+
+
+def test_run_testing_mode_loads_learned_parameters(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Testing mode loads previously learned parameters and validates state."""
+    _stage_runner_fixture(tmp_path, "learning_testing_parameters")
+    monkeypatch.chdir(tmp_path)
+
+    parameters_dir = tmp_path / "parameters"
+    parameters_dir.mkdir(parents=True, exist_ok=True)
+    (parameters_dir / "1.0.0.json").write_text(
+        json.dumps({"target_count": 1, "target_names": ["leaf-01"]}),
+        encoding="utf-8",
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report_data = _load_report(tmp_path)
+    checks = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]["checks"]
+    assert checks[0]["message"] == "parameters matched"
+
+
+def test_run_testing_mode_errors_when_parameters_are_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Testing mode surfaces missing learned parameter files as execution errors."""
+    _stage_runner_fixture(tmp_path, "learning_testing_parameters")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 1
+    report_data = _load_report(tmp_path)
+    test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    assert test_case["status"] == "errored"
+    assert "No learned parameters found" in test_case["error"]
+
+
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
     """Copy a fixture scenario into the temp execution directory."""
     fixture_root = Path(__file__).resolve().parent / "fixtures" / "first_slice_runner"

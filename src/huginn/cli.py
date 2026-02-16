@@ -112,6 +112,7 @@ def run(
                 plan_path=plan,
                 tags=tags,
                 project_root=Path.cwd(),
+                parameters_dir=Path.cwd() / "parameters",
                 reports_dir=Path.cwd() / "reports",
             )
         )

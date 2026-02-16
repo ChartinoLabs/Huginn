@@ -5,6 +5,7 @@ from typing import Any
 
 from huginn.enums import ExecutionMode
 from huginn.models import Device, Testbed
+from huginn.parameters import ParameterManager
 from huginn.results import ResultCollector
 
 
@@ -18,4 +19,7 @@ class Context:
     testbed: Testbed
     targets: list[Device]
     broker: Any  # noqa: ANN401
+    parameters: ParameterManager
     results: ResultCollector
+    # TODO: Implement data model loading/injection when this capability is scoped in.
+    data_model: dict[str, object] | None = None
