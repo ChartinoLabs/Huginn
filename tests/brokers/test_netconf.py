@@ -108,6 +108,10 @@ class TestPlatformMapping:
         """Test mapping iosxe to cisco_iosxe."""
         assert broker._get_netconf_platform("iosxe") == "cisco_iosxe"
 
+    def test_map_ios(self, broker: NETCONFBroker) -> None:
+        """Test mapping ios to cisco_iosxe."""
+        assert broker._get_netconf_platform("ios") == "cisco_iosxe"
+
     def test_map_nxos(self, broker: NETCONFBroker) -> None:
         """Test mapping nxos to cisco_nxos."""
         assert broker._get_netconf_platform("nxos") == "cisco_nxos"

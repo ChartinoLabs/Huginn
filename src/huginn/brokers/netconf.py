@@ -37,6 +37,7 @@ PROTOCOL_VERSION = 1
 # Mapping from testbed OS identifiers to scrapli_netconf platform strings.
 # NETCONF implementations vary by vendor, requiring platform-specific handling.
 OS_TO_NETCONF_PLATFORM: dict[str, str] = {
+    "ios": "cisco_iosxe",
     "iosxe": "cisco_iosxe",
     "nxos": "cisco_nxos",
     "iosxr": "cisco_iosxr",
@@ -52,6 +53,7 @@ class NETCONFBroker:
     operations following the NETCONF protocol (RFC 6241).
 
     The broker maps testbed OS identifiers to scrapli_netconf platform strings:
+    - ios → cisco_iosxe
     - iosxe → cisco_iosxe
     - nxos → cisco_nxos
     - iosxr → cisco_iosxr
