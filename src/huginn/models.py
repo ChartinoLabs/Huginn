@@ -42,6 +42,7 @@ class Testbed:
     """In-memory representation of a testbed file."""
 
     devices: dict[str, Device]
+    credentials: dict[str, dict[str, str]] = field(default_factory=dict)
 
 
 @dataclass

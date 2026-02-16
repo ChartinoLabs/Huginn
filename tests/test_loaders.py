@@ -50,6 +50,25 @@ def test_load_testbed_parses_ssh_connection_and_credentials() -> None:
     assert device.connections["ssh"].options["auth_strict_key"] is False
 
 
+def test_load_testbed_applies_global_credentials_with_device_overrides() -> None:
+    """Global credentials are inherited and device credentials override by name."""
+    path = FIXTURES / "testbed_with_global_credentials.yaml"
+
+    testbed = load_testbed(path)
+
+    assert testbed.credentials["default"]["username"] == "global-admin"
+    assert (
+        testbed.devices["spine-01"].credentials["default"]["username"] == "global-admin"
+    )
+    assert (
+        testbed.devices["spine-01"].credentials["readonly"]["username"] == "global-ro"
+    )
+    assert (
+        testbed.devices["leaf-01"].credentials["default"]["username"] == "device-admin"
+    )
+    assert testbed.devices["leaf-01"].credentials["readonly"]["username"] == "global-ro"
+
+
 def test_load_test_plan_success() -> None:
     """Load a minimal valid test plan file."""
     path = FIXTURES / "plan_valid.yaml"

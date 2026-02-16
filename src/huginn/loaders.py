@@ -291,6 +291,7 @@ def _validate_target_selector_exclusivity(
 def load_testbed(path: Path) -> Testbed:
     """Load a testbed file with minimal first-slice validation."""
     data = _load_yaml(path)
+    global_credentials = _load_credentials(data.get("credentials"))
     raw_devices = _require_mapping(
         data.get("devices"),
         "Testbed must include a non-empty 'devices' mapping",
@@ -315,14 +316,28 @@ def load_testbed(path: Path) -> Testbed:
             name=device_name,
             os=os_name,
             groups=_load_optional_string_list(device_mapping.get("groups")),
-            credentials=_load_credentials(device_mapping.get("credentials")),
+            credentials=_merge_credentials(
+                global_credentials,
+                _load_credentials(device_mapping.get("credentials")),
+            ),
             connections=_load_connections(
                 device_name,
                 device_mapping.get("connections"),
             ),
         )
 
-    return Testbed(devices=devices)
+    return Testbed(devices=devices, credentials=global_credentials)
+
+
+def _merge_credentials(
+    global_credentials: dict[str, dict[str, str]],
+    device_credentials: dict[str, dict[str, str]],
+) -> dict[str, dict[str, str]]:
+    """Merge global credentials with device-local overrides."""
+    merged = {name: dict(values) for name, values in global_credentials.items()}
+    for name, values in device_credentials.items():
+        merged[name] = dict(values)
+    return merged
 
 
 def load_test_plan(path: Path) -> TestPlan:
