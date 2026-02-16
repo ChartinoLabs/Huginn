@@ -104,6 +104,7 @@ class RuntimeBroker:
             tuple[str, BrokerType],
             asyncio.Task[ConnectionHandle],
         ] = {}
+        self._operation_locks: dict[tuple[str, BrokerType], asyncio.Lock] = {}
         self._command_cache: dict[_CacheKey, CommandResult] = {}
         self._inflight_commands: dict[_CacheKey, asyncio.Task[CommandResult]] = {}
 
@@ -210,6 +211,7 @@ class RuntimeBroker:
             cache_key=cache_key,
             use_cache=use_cache,
             bust_cache=bust_cache,
+            lock_key=(target.name, broker_key),
             operation=lambda: self._brokers[broker_key].execute(handle, command),
         )
 
@@ -237,6 +239,7 @@ class RuntimeBroker:
             cache_key=cache_key,
             use_cache=use_cache,
             bust_cache=bust_cache,
+            lock_key=(target.name, broker_key),
             operation=lambda: self._brokers[broker_key].get(handle, path, **kwargs),
         )
 
@@ -251,10 +254,10 @@ class RuntimeBroker:
         """Run an edit-style operation for a target device."""
         broker_key = self._resolve_broker_key(target=target, broker=broker)
         handle = self._require_handle(target=target, broker_key=broker_key)
-        try:
-            return await self._brokers[broker_key].edit(handle, config, **kwargs)
-        except Exception as error:  # noqa: BLE001
-            raise RuntimeBrokerError(str(error)) from error
+        return await self._run_operation(
+            operation=lambda: self._brokers[broker_key].edit(handle, config, **kwargs),
+            lock_key=(target.name, broker_key),
+        )
 
     def clear_cache(self) -> None:
         """Clear all cached command responses for the active run."""
@@ -357,6 +360,7 @@ class RuntimeBroker:
         cache_key: "_CacheKey",
         use_cache: bool,
         bust_cache: bool,
+        lock_key: tuple[str, BrokerType],
         operation: "_Operation",
     ) -> CommandResult:
         """Execute an operation with cache and single-flight semantics."""
@@ -364,7 +368,7 @@ class RuntimeBroker:
             self._command_cache.pop(cache_key, None)
 
         if not use_cache:
-            return await self._run_operation(operation)
+            return await self._run_operation(operation, lock_key=lock_key)
 
         cached = self._command_cache.get(cache_key)
         if cached is not None:
@@ -372,7 +376,9 @@ class RuntimeBroker:
 
         task = self._inflight_commands.get(cache_key)
         if task is None:
-            task = asyncio.create_task(self._run_operation(operation))
+            task = asyncio.create_task(
+                self._run_operation(operation, lock_key=lock_key)
+            )
             self._inflight_commands[cache_key] = task
 
         try:
@@ -385,7 +391,32 @@ class RuntimeBroker:
         self._inflight_commands.pop(cache_key, None)
         return result
 
-    async def _run_operation(self, operation: "_Operation") -> CommandResult:
+    async def _run_operation(
+        self,
+        operation: "_Operation",
+        *,
+        lock_key: tuple[str, BrokerType] | None = None,
+    ) -> CommandResult:
+        """Run one broker operation and normalize raised errors."""
+        if lock_key is not None:
+            return await self._run_locked_operation(
+                lock_key=lock_key, operation=operation
+            )
+
+        return await self._run_unlocked_operation(operation)
+
+    async def _run_locked_operation(
+        self,
+        *,
+        lock_key: tuple[str, BrokerType],
+        operation: "_Operation",
+    ) -> CommandResult:
+        """Run one broker operation under per-device+broker lock."""
+        lock = self._operation_locks.setdefault(lock_key, asyncio.Lock())
+        async with lock:
+            return await self._run_unlocked_operation(operation)
+
+    async def _run_unlocked_operation(self, operation: "_Operation") -> CommandResult:
         """Run one broker operation and normalize raised errors."""
         try:
             return await operation()
