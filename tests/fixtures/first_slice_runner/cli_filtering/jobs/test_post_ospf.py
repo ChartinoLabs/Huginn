@@ -3,7 +3,7 @@
 from huginn import Context, ResultStatus, TestCase
 
 
-class TestPostOspf(TestCase):
+class VerifyPostOspf(TestCase):
     """Emit marker result for post-change ospf case."""
 
     async def setup(self, context: Context) -> None:

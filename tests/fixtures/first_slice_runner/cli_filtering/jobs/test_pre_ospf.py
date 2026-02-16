@@ -3,7 +3,7 @@
 from huginn import Context, ResultStatus, TestCase
 
 
-class TestPreOspf(TestCase):
+class VerifyPreOspf(TestCase):
     """Emit marker result for pre-change ospf case."""
 
     async def setup(self, context: Context) -> None:

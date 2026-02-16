@@ -3,7 +3,7 @@
 from huginn import Context, ResultStatus, TestCase
 
 
-class TestPreSlow(TestCase):
+class VerifyPreSlow(TestCase):
     """Emit marker result for pre-change slow case."""
 
     async def setup(self, context: Context) -> None:
