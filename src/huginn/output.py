@@ -2,6 +2,7 @@
 
 import logging
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 
 from rich.console import Console
@@ -49,19 +50,66 @@ class Output:
 
     def log_debug(self, message: str, *args: object) -> None:
         """Write a DEBUG log entry."""
-        self.logger.debug(message, *args)
+        self.logger.debug(self._append_fields(message), *args)
+
+    def log_debug_fields(self, message: str, **fields: object) -> None:
+        """Write a DEBUG log entry with structured key/value fields."""
+        self.logger.debug(self._append_fields(message, fields))
 
     def log_info(self, message: str, *args: object) -> None:
         """Write an INFO log entry."""
-        self.logger.info(message, *args)
+        self.logger.info(self._append_fields(message), *args)
+
+    def log_info_fields(self, message: str, **fields: object) -> None:
+        """Write an INFO log entry with structured key/value fields."""
+        self.logger.info(self._append_fields(message, fields))
 
     def log_warning(self, message: str, *args: object) -> None:
         """Write a WARNING log entry."""
-        self.logger.warning(message, *args)
+        self.logger.warning(self._append_fields(message), *args)
+
+    def log_warning_fields(self, message: str, **fields: object) -> None:
+        """Write a WARNING log entry with structured key/value fields."""
+        self.logger.warning(self._append_fields(message, fields))
 
     def log_error(self, message: str, *args: object) -> None:
         """Write an ERROR log entry."""
-        self.logger.error(message, *args)
+        self.logger.error(self._append_fields(message), *args)
+
+    def log_error_fields(self, message: str, **fields: object) -> None:
+        """Write an ERROR log entry with structured key/value fields."""
+        self.logger.error(self._append_fields(message, fields))
+
+    def _append_fields(
+        self,
+        message: str,
+        fields: Mapping[str, object] | None = None,
+    ) -> str:
+        """Append deterministic key/value fields to a log message."""
+        if not fields:
+            return message
+        serialized = " ".join(
+            f"{key}={self._serialize_field_value(value)}"
+            for key, value in sorted(fields.items())
+        )
+        return f"{message} {serialized}"
+
+    def _serialize_field_value(self, value: object) -> str:
+        """Serialize one field value into a stable token."""
+        if value is None:
+            return "none"
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if isinstance(value, (int, float)):
+            return str(value)
+
+        text = str(value)
+        if not text:
+            return '""'
+        if any(character.isspace() for character in text):
+            escaped = text.replace('"', '\\"')
+            return f'"{escaped}"'
+        return text
 
     def _configure_logger(self, *, show_logs: bool, log_level: str) -> None:
         """Configure logger handlers and level for current process."""

@@ -10,6 +10,7 @@ from huginn.inventory_plugins import (
 )
 from huginn.jobs import JobLoadError, load_test_case_class
 from huginn.loaders import ConfigurationError, load_test_plan
+from huginn.logging_helpers import log_debug, log_info, log_warning
 from huginn.models import Phase, Testbed, TestCaseDefinition, TestCaseGroup, TestPlan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
@@ -67,8 +68,13 @@ async def validate_inputs(
     output: Output | None = None,
 ) -> ValidationReport:
     """Validate configuration and emit a validation report."""
-    if output is not None:
-        output.log_info("Starting validation for plan %s", plan_path)
+    log_info(
+        output,
+        "Validation starting",
+        plan=plan_path,
+        testbed=testbed_path,
+        inventory_plugin=inventory_plugin,
+    )
     try:
         testbed = await resolve_inventory_testbed(
             testbed_path=testbed_path,
@@ -76,7 +82,16 @@ async def validate_inputs(
             project_root=project_root,
         )
         test_plan = filter_test_plan(load_test_plan(plan_path), filters)
+        log_debug(
+            output,
+            "Validation inputs loaded",
+            devices=len(testbed.devices),
+            phases=len(test_plan.phases),
+            groups=len(test_plan.test_case_groups),
+            test_cases=len(test_plan.test_cases),
+        )
     except (ConfigurationError, InventoryPluginError) as error:
+        log_warning(output, "Validation configuration load failed", error=error)
         report = _build_configuration_error_report(str(error))
         _write_reports(
             report=report,
@@ -87,12 +102,19 @@ async def validate_inputs(
 
     errors: list[ValidationIssue] = []
     phase_order, order_errors = _resolve_phase_order(test_plan)
+    log_debug(
+        output,
+        "Phase order resolved",
+        phase_order=phase_order,
+        dependency_errors=len(order_errors),
+    )
     errors.extend(order_errors)
 
     required_by_case = _collect_required_brokers(
         test_plan=test_plan,
         project_root=project_root,
         errors=errors,
+        output=output,
     )
 
     test_cases, target_warnings, target_errors = _collect_target_validations(
@@ -100,6 +122,7 @@ async def validate_inputs(
         testbed=testbed,
         phase_order=phase_order,
         required_by_case=required_by_case,
+        output=output,
     )
     errors.extend(target_errors)
 
@@ -117,13 +140,15 @@ async def validate_inputs(
         reports_dir=reports_dir,
         report_plugins=report_plugins,
     )
-    if output is not None:
-        output.log_info(
-            "Validation completed: valid=%s warnings=%d errors=%d",
-            report.valid,
-            len(report.warnings),
-            len(report.errors),
-        )
+    log_info(
+        output,
+        "Validation completed",
+        valid=report.valid,
+        warnings=len(report.warnings),
+        errors=len(report.errors),
+        test_cases=len(report.test_cases),
+        required_brokers=report.required_brokers,
+    )
     return report
 
 
@@ -150,6 +175,7 @@ def _collect_target_validations(
     testbed: Testbed,
     phase_order: list[str],
     required_by_case: dict[str, set[str]],
+    output: Output | None,
 ) -> tuple[list[ValidationCase], list[ValidationIssue], list[ValidationIssue]]:
     """Resolve targets per execution node and collect warnings/errors."""
     test_cases: list[ValidationCase] = []
@@ -169,10 +195,26 @@ def _collect_target_validations(
                     case=case,
                 )
                 if warning is not None:
+                    log_warning(
+                        output,
+                        "Validation target warning",
+                        phase=phase.name,
+                        group=group.name,
+                        test_id=case.test_id,
+                        warning=warning,
+                    )
                     warnings.append(
                         ValidationIssue(code="validation_warning", message=warning)
                     )
                 if error is not None:
+                    log_warning(
+                        output,
+                        "Validation target error",
+                        phase=phase.name,
+                        group=group.name,
+                        test_id=case.test_id,
+                        error=error,
+                    )
                     errors.append(
                         ValidationIssue(
                             code=ErrorCode.VALIDATION_ERROR.value,
@@ -277,6 +319,7 @@ def _collect_required_brokers(
     test_plan: TestPlan,
     project_root: Path,
     errors: list[ValidationIssue],
+    output: Output | None,
 ) -> dict[str, set[str]]:
     """Load each job class and collect declared broker requirements."""
     required: dict[str, set[str]] = {}
@@ -290,6 +333,12 @@ def _collect_required_brokers(
                 test_case_class,
             )
         except (JobLoadError, RuntimeBrokerError) as error:
+            log_warning(
+                output,
+                "Validation planning failed",
+                test_id=test_case.test_id,
+                error=error,
+            )
             errors.append(
                 ValidationIssue(
                     code=ErrorCode.PLANNING_ERROR.value,
