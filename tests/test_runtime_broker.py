@@ -1,5 +1,6 @@
 """Unit tests for runtime broker protocol selection and dispatch."""
 
+import asyncio
 from dataclasses import dataclass
 from typing import cast
 
@@ -163,6 +164,24 @@ async def test_runtime_broker_reuses_existing_connections() -> None:
     assert ssh_fake.connect_calls == 1
 
 
+@pytest.mark.asyncio
+async def test_runtime_broker_deduplicates_concurrent_connect_requests() -> None:
+    """Concurrent connect calls share one in-flight connect per target+broker."""
+    ssh_fake = _SlowFakeBroker("ssh")
+    runtime = RuntimeBroker(
+        required_brokers={BrokerType.SSH},
+        ssh_broker=_fake_broker_instance(ssh_fake),
+    )
+    device = _device(protocol="ssh")
+
+    await asyncio.gather(
+        runtime.connect_targets([device], {BrokerType.SSH}),
+        runtime.connect_targets([device], {BrokerType.SSH}),
+    )
+
+    assert ssh_fake.connect_calls == 1
+
+
 def _device(
     *,
     protocol: str,
@@ -209,6 +228,15 @@ def _device_with_connections(*, protocols: list[str]) -> Device:
 
 def _default_credentials() -> dict[str, dict[str, str]]:
     return {"default": {"username": "admin", "password": "admin"}}
+
+
+@dataclass
+class _SlowFakeBroker(_FakeBroker):
+    """Fake broker that yields during connect to force call overlap."""
+
+    async def connect(self, config: ConnectionConfig) -> ConnectionHandle:
+        await asyncio.sleep(0.01)
+        return await super().connect(config)
 
 
 def _fake_broker(name: str) -> ConnectionBrokerProtocolV1:

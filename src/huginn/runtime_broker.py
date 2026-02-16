@@ -1,5 +1,6 @@
 """Runtime broker abstraction for protocol-aware target operations."""
 
+import asyncio
 from dataclasses import dataclass
 
 from huginn.brokers import (
@@ -78,6 +79,10 @@ class RuntimeBroker:
             netconf_broker=netconf_broker,
         )
         self._handles: dict[tuple[str, BrokerType], ConnectionHandle] = {}
+        self._inflight_connections: dict[
+            tuple[str, BrokerType],
+            asyncio.Task[ConnectionHandle],
+        ] = {}
 
     async def connect_targets(
         self,
@@ -89,26 +94,54 @@ class RuntimeBroker:
         try:
             for device in targets:
                 for broker_key in required_keys:
-                    handle_key = (device.name, broker_key)
-                    if handle_key in self._handles:
-                        continue
-                    connection = _select_connection(
-                        device=device,
-                        broker_key=broker_key,
-                    )
-                    credential = _resolve_credential(device, connection.credential)
-                    config = ConnectionConfig(
-                        device_name=device.name,
-                        host=connection.host,
-                        port=connection.port,
-                        os=device.os,
-                        credentials=credential,
-                        options=connection.options,
-                    )
-                    handle = await self._brokers[broker_key].connect(config)
-                    self._handles[handle_key] = handle
+                    await self._connect_target_broker_pair(device, broker_key)
         except Exception as error:  # noqa: BLE001
             raise RuntimeBrokerError(str(error)) from error
+
+    async def _connect_target_broker_pair(
+        self,
+        device: Device,
+        broker_key: BrokerType,
+    ) -> None:
+        """Connect one target+broker pair once across concurrent callers."""
+        handle_key = (device.name, broker_key)
+        if handle_key in self._handles:
+            return
+
+        task = self._inflight_connections.get(handle_key)
+        if task is None:
+            task = asyncio.create_task(self._open_connection(device, broker_key))
+            self._inflight_connections[handle_key] = task
+
+        try:
+            handle = await task
+        except Exception:
+            self._inflight_connections.pop(handle_key, None)
+            raise
+
+        self._handles.setdefault(handle_key, handle)
+        self._inflight_connections.pop(handle_key, None)
+
+    async def _open_connection(
+        self,
+        device: Device,
+        broker_key: BrokerType,
+    ) -> ConnectionHandle:
+        """Open and return one runtime connection handle."""
+        connection = _select_connection(
+            device=device,
+            broker_key=broker_key,
+        )
+        credential = _resolve_credential(device, connection.credential)
+        config = ConnectionConfig(
+            device_name=device.name,
+            host=connection.host,
+            port=connection.port,
+            os=device.os,
+            credentials=credential,
+            options=connection.options,
+        )
+        return await self._brokers[broker_key].connect(config)
 
     async def disconnect_targets(self) -> None:
         """Close any established target connections."""
