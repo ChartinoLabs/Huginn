@@ -93,6 +93,18 @@ class CheckResult:
 
 
 @dataclass
+class CommandExecution:
+    """Recorded command execution details for reporting/debugging."""
+
+    device: str
+    command: str
+    output: str
+    parsed: dict[str, object] | None = None
+    elapsed_ms: float | None = None
+    cached: bool | None = None
+
+
+@dataclass
 class ExecutedTestCase:
     """Execution output for a single test case."""
 
@@ -100,6 +112,7 @@ class ExecutedTestCase:
     title: str
     status: str
     checks: list[CheckResult] = field(default_factory=list)
+    command_executions: list[CommandExecution] = field(default_factory=list)
     error: str | None = None
     error_code: str | None = None
 

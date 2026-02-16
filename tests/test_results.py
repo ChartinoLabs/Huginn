@@ -1,5 +1,8 @@
 """Unit tests for test-case result collection and status derivation."""
 
+from dataclasses import dataclass
+
+from huginn.brokers.protocol import CommandResult
 from huginn.enums import ResultStatus
 from huginn.results import ResultCollector
 
@@ -37,3 +40,46 @@ def test_result_collector_returns_errored_when_errored_and_info_present() -> Non
     collector.add_result(ResultStatus.ERRORED, "JSONDecodeError")
 
     assert collector.derive_status() == ResultStatus.ERRORED
+
+
+def test_result_collector_records_command_execution_from_command_result() -> None:
+    """CommandResult payloads are captured with output/cache metadata."""
+    collector = ResultCollector()
+    collector.add_command_execution(
+        device="leaf-01",
+        command="show ip ospf neighbor",
+        output=CommandResult(
+            output="neighbor output",
+            structured={"neighbors": 3},
+            elapsed_ms=15.2,
+            cached=True,
+        ),
+    )
+
+    execution = collector.command_executions[0]
+    assert execution.device == "leaf-01"
+    assert execution.command == "show ip ospf neighbor"
+    assert execution.output == "neighbor output"
+    assert execution.parsed == {"neighbors": 3}
+    assert execution.elapsed_ms == 15.2
+    assert execution.cached is True
+
+
+def test_result_collector_records_command_execution_from_output_attribute() -> None:
+    """Objects with an output attribute are normalized for recording."""
+
+    @dataclass
+    class _FakeOutput:
+        output: str
+
+    collector = ResultCollector()
+    collector.add_command_execution(
+        device="leaf-02",
+        command="show version",
+        output=_FakeOutput(output="version output"),
+        parsed={"model": "n9k"},
+    )
+
+    execution = collector.command_executions[0]
+    assert execution.output == "version output"
+    assert execution.parsed == {"model": "n9k"}

@@ -402,6 +402,7 @@ async def _execute_test_case(
         title=definition.title,
         status=status,
         checks=result_collector.checks,
+        command_executions=result_collector.command_executions,
     )
 
 
@@ -419,6 +420,7 @@ def _errored_test_case(
         title=definition.title,
         status=ResultStatus.ERRORED.value,
         checks=normalized_checks,
+        command_executions=[],
         error=error,
         error_code=error_code.value,
     )
@@ -434,6 +436,7 @@ def _skipped_test_case(
         test_id=definition.test_id,
         title=definition.title,
         status=ResultStatus.SKIPPED.value,
+        command_executions=[],
         error=reason,
     )
 
