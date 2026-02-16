@@ -30,6 +30,7 @@ from huginn.models import (
     TestCaseGroup,
     TestPlan,
 )
+from huginn.output import Output
 from huginn.parameters import ParameterManager
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
 from huginn.report_plugins import (
@@ -84,9 +85,12 @@ async def run_test_plan(
     parameters_dir: Path,
     reports_dir: Path,
     report_plugins: list[ReportPlugin] | None = None,
+    output: Output | None = None,
     broker_factory: Callable[[], RuntimeBroker] | None = None,
 ) -> RunReport:
     """Execute a minimal test plan and persist JSON output."""
+    if output is not None:
+        output.log_info("Starting run mode=%s plan=%s", mode.value, plan_path)
     try:
         testbed = await resolve_inventory_testbed(
             testbed_path=testbed_path,
@@ -125,6 +129,7 @@ async def run_test_plan(
             planned_executions=planned_executions,
             broker=runtime_broker,
             parameters_dir=parameters_dir,
+            output=output,
         )
     finally:
         disconnect_error, disconnect_traceback = await _disconnect_runtime_broker(
@@ -151,6 +156,15 @@ async def run_test_plan(
             code=ErrorCode.CONFIGURATION_ERROR,
             traceback_text=traceback.format_exc(),
         ) from error
+    if output is not None:
+        output.log_info(
+            "Run completed status=%s total=%d passed=%d failed=%d errored=%d",
+            report.summary.status,
+            report.summary.total,
+            report.summary.passed,
+            report.summary.failed,
+            report.summary.errored,
+        )
     return report
 
 
@@ -162,6 +176,7 @@ async def _execute_phases_with_dependencies(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    output: Output | None,
 ) -> list[ExecutedPhase]:
     """Execute phases while honoring phase dependency constraints."""
     phase_results: dict[str, ExecutedPhase] = {}
@@ -185,6 +200,7 @@ async def _execute_phases_with_dependencies(
                     planned_executions=planned_executions,
                     broker=broker,
                     parameters_dir=parameters_dir,
+                    output=output,
                 )
 
             phase_results[phase_name] = executed_phase
@@ -226,6 +242,7 @@ async def _execute_phase(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    output: Output | None,
 ) -> ExecutedPhase:
     """Execute all groups and test cases for a phase."""
     if phase.strategy.mode == "serial":
@@ -237,6 +254,7 @@ async def _execute_phase(
             planned_executions=planned_executions,
             broker=broker,
             parameters_dir=parameters_dir,
+            output=output,
         )
     else:
         executed_groups = await _execute_phase_groups_parallel(
@@ -247,6 +265,7 @@ async def _execute_phase(
             planned_executions=planned_executions,
             broker=broker,
             parameters_dir=parameters_dir,
+            output=output,
         )
 
     phase_status = _derive_phase_status(executed_groups)
@@ -266,6 +285,7 @@ async def _execute_phase_groups_serial(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    output: Output | None,
 ) -> list[ExecutedTestCaseGroup]:
     """Execute test case groups in phase order, one at a time."""
     executed_groups: list[ExecutedTestCaseGroup] = []
@@ -280,6 +300,7 @@ async def _execute_phase_groups_serial(
                 planned_executions=planned_executions,
                 broker=broker,
                 parameters_dir=parameters_dir,
+                output=output,
             )
         )
     return executed_groups
@@ -294,6 +315,7 @@ async def _execute_phase_groups_parallel(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    output: Output | None,
 ) -> list[ExecutedTestCaseGroup]:
     """Execute test case groups in parallel with optional max concurrency."""
     semaphore = _build_parallel_semaphore(phase.strategy.maximum)
@@ -313,6 +335,7 @@ async def _execute_phase_groups_parallel(
                     planned_executions=planned_executions,
                     broker=broker,
                     parameters_dir=parameters_dir,
+                    output=output,
                 )
             )
         )
@@ -334,6 +357,7 @@ async def _execute_group_with_optional_semaphore(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    output: Output | None,
 ) -> tuple[int, ExecutedTestCaseGroup]:
     """Execute one group with optional phase-level concurrency limiting."""
     if semaphore is None:
@@ -348,6 +372,7 @@ async def _execute_group_with_optional_semaphore(
                 planned_executions=planned_executions,
                 broker=broker,
                 parameters_dir=parameters_dir,
+                output=output,
             ),
         )
 
@@ -363,6 +388,7 @@ async def _execute_group_with_optional_semaphore(
                 planned_executions=planned_executions,
                 broker=broker,
                 parameters_dir=parameters_dir,
+                output=output,
             ),
         )
 
@@ -377,6 +403,7 @@ async def _execute_group(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    output: Output | None,
 ) -> ExecutedTestCaseGroup:
     """Execute one group using its configured strategy."""
     group = test_plan.test_case_groups[group_name]
@@ -391,6 +418,7 @@ async def _execute_group(
             planned_executions=planned_executions,
             broker=broker,
             parameters_dir=parameters_dir,
+            output=output,
         )
     else:
         executed_tests = await _execute_group_tests_parallel(
@@ -402,6 +430,7 @@ async def _execute_group(
             planned_executions=planned_executions,
             broker=broker,
             parameters_dir=parameters_dir,
+            output=output,
         )
 
     group_status = _derive_group_status(executed_tests)
@@ -422,6 +451,7 @@ async def _execute_group_tests_serial(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    output: Output | None,
 ) -> list[ExecutedTestCase]:
     """Execute tests in group order, one at a time."""
     executed_tests: list[ExecutedTestCase] = []
@@ -437,6 +467,7 @@ async def _execute_group_tests_serial(
                 testbed=testbed,
                 broker=broker,
                 parameters_dir=parameters_dir,
+                output=output,
             )
         )
     return executed_tests
@@ -452,6 +483,7 @@ async def _execute_group_tests_parallel(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    output: Output | None,
 ) -> list[ExecutedTestCase]:
     """Execute tests in parallel with optional max concurrency."""
     semaphore = _build_parallel_semaphore(group.strategy.maximum)
@@ -472,6 +504,7 @@ async def _execute_group_tests_parallel(
                     testbed=testbed,
                     broker=broker,
                     parameters_dir=parameters_dir,
+                    output=output,
                 )
             )
         )
@@ -493,6 +526,7 @@ async def _execute_test_case_with_optional_semaphore(
     testbed: Testbed,
     broker: RuntimeBroker,
     parameters_dir: Path,
+    output: Output | None,
 ) -> tuple[int, ExecutedTestCase]:
     """Execute one test case with optional group-level concurrency limiting."""
     if semaphore is None:
@@ -507,6 +541,7 @@ async def _execute_test_case_with_optional_semaphore(
                 testbed=testbed,
                 broker=broker,
                 parameters_dir=parameters_dir,
+                output=output,
             ),
         )
 
@@ -522,6 +557,7 @@ async def _execute_test_case_with_optional_semaphore(
                 testbed=testbed,
                 broker=broker,
                 parameters_dir=parameters_dir,
+                output=output,
             ),
         )
 
@@ -632,6 +668,7 @@ async def _execute_test_case(
     testbed: Testbed,
     broker: RuntimeBroker,
     parameters_dir: Path,
+    output: Output | None,
 ) -> ExecutedTestCase:
     targets, target_error = _resolve_targets(
         testbed=testbed,
@@ -659,6 +696,7 @@ async def _execute_test_case(
         testbed=testbed,
         targets=targets,
         broker=broker,
+        output=output,
         parameters=ParameterManager(
             parameters_dir=parameters_dir,
             test_id=definition.test_id,

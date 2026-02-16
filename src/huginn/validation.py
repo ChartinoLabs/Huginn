@@ -11,6 +11,7 @@ from huginn.inventory_plugins import (
 from huginn.jobs import JobLoadError, load_test_case_class
 from huginn.loaders import ConfigurationError, load_test_plan
 from huginn.models import Phase, Testbed, TestCaseDefinition, TestCaseGroup, TestPlan
+from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
 from huginn.report_plugins import (
     ReportPlugin,
@@ -63,8 +64,11 @@ async def validate_inputs(
     project_root: Path,
     reports_dir: Path,
     report_plugins: list[ReportPlugin] | None = None,
+    output: Output | None = None,
 ) -> ValidationReport:
     """Validate configuration and emit a validation report."""
+    if output is not None:
+        output.log_info("Starting validation for plan %s", plan_path)
     try:
         testbed = await resolve_inventory_testbed(
             testbed_path=testbed_path,
@@ -113,6 +117,13 @@ async def validate_inputs(
         reports_dir=reports_dir,
         report_plugins=report_plugins,
     )
+    if output is not None:
+        output.log_info(
+            "Validation completed: valid=%s warnings=%d errors=%d",
+            report.valid,
+            len(report.warnings),
+            len(report.errors),
+        )
     return report
 
 
