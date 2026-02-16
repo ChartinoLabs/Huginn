@@ -1,7 +1,9 @@
 """Runtime broker abstraction for protocol-aware target operations."""
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import Literal
 
 from huginn.brokers import (
     ConnectionBrokerProtocolV1,
@@ -15,6 +17,11 @@ from huginn.brokers.protocol import CommandResult
 from huginn.enums import BrokerType, ConnectionProtocol
 from huginn.models import ConnectionDefinition, Device
 
+_CacheOperation = Literal["execute", "get"]
+_CacheKwargs = tuple[tuple[str, str], ...]
+_CacheKey = tuple[_CacheOperation, str, BrokerType, str, _CacheKwargs]
+_Operation = Callable[[], Awaitable[CommandResult]]
+
 
 class RuntimeBrokerError(RuntimeError):
     """Raised when runtime broker operations cannot be completed."""
@@ -27,21 +34,35 @@ class RuntimeBrokerClient:
     _runtime_broker: "RuntimeBroker"
     _broker_key: BrokerType
 
-    async def execute(self, target: Device, command: str) -> CommandResult:
+    async def execute(
+        self,
+        target: Device,
+        command: str,
+        *,
+        use_cache: bool = True,
+        bust_cache: bool = False,
+    ) -> CommandResult:
         """Execute a command using the pinned broker type."""
         return await self._runtime_broker.execute(
             target,
             command,
             broker=self._broker_key,
+            use_cache=use_cache,
+            bust_cache=bust_cache,
         )
 
-    async def get(self, target: Device, path: str, **kwargs: object) -> CommandResult:
+    async def get(
+        self,
+        target: Device,
+        path: str,
+        **kwargs: object,
+    ) -> CommandResult:
         """Run a GET-style operation using the pinned broker type."""
-        return await self._runtime_broker.get(
+        return await self._runtime_broker._get_with_pinned_broker(
             target,
             path,
             broker=self._broker_key,
-            **kwargs,
+            kwargs=kwargs,
         )
 
     async def edit(
@@ -83,6 +104,8 @@ class RuntimeBroker:
             tuple[str, BrokerType],
             asyncio.Task[ConnectionHandle],
         ] = {}
+        self._command_cache: dict[_CacheKey, CommandResult] = {}
+        self._inflight_commands: dict[_CacheKey, asyncio.Task[CommandResult]] = {}
 
     async def connect_targets(
         self,
@@ -170,14 +193,25 @@ class RuntimeBroker:
         command: str,
         *,
         broker: BrokerType | None = None,
+        use_cache: bool = True,
+        bust_cache: bool = False,
     ) -> CommandResult:
         """Execute a command for a target device."""
         broker_key = self._resolve_broker_key(target=target, broker=broker)
         handle = self._require_handle(target=target, broker_key=broker_key)
-        try:
-            return await self._brokers[broker_key].execute(handle, command)
-        except Exception as error:  # noqa: BLE001
-            raise RuntimeBrokerError(str(error)) from error
+        cache_key = _build_cache_key(
+            operation="execute",
+            target=target,
+            broker_key=broker_key,
+            payload=command,
+            kwargs={},
+        )
+        return await self._run_cached_operation(
+            cache_key=cache_key,
+            use_cache=use_cache,
+            bust_cache=bust_cache,
+            operation=lambda: self._brokers[broker_key].execute(handle, command),
+        )
 
     async def get(
         self,
@@ -185,15 +219,26 @@ class RuntimeBroker:
         path: str,
         *,
         broker: BrokerType | None = None,
+        use_cache: bool = True,
+        bust_cache: bool = False,
         **kwargs: object,
     ) -> CommandResult:
         """Run a GET-style operation for a target device."""
         broker_key = self._resolve_broker_key(target=target, broker=broker)
         handle = self._require_handle(target=target, broker_key=broker_key)
-        try:
-            return await self._brokers[broker_key].get(handle, path, **kwargs)
-        except Exception as error:  # noqa: BLE001
-            raise RuntimeBrokerError(str(error)) from error
+        cache_key = _build_cache_key(
+            operation="get",
+            target=target,
+            broker_key=broker_key,
+            payload=path,
+            kwargs=kwargs,
+        )
+        return await self._run_cached_operation(
+            cache_key=cache_key,
+            use_cache=use_cache,
+            bust_cache=bust_cache,
+            operation=lambda: self._brokers[broker_key].get(handle, path, **kwargs),
+        )
 
     async def edit(
         self,
@@ -211,6 +256,47 @@ class RuntimeBroker:
         except Exception as error:  # noqa: BLE001
             raise RuntimeBrokerError(str(error)) from error
 
+    def clear_cache(self) -> None:
+        """Clear all cached command responses for the active run."""
+        self._command_cache.clear()
+
+    def invalidate_execute_cache(
+        self,
+        *,
+        target: Device,
+        command: str,
+        broker: BrokerType | None = None,
+    ) -> None:
+        """Invalidate one cached execute response for a target command."""
+        broker_key = self._resolve_broker_key(target=target, broker=broker)
+        cache_key = _build_cache_key(
+            operation="execute",
+            target=target,
+            broker_key=broker_key,
+            payload=command,
+            kwargs={},
+        )
+        self._command_cache.pop(cache_key, None)
+
+    def invalidate_get_cache(
+        self,
+        *,
+        target: Device,
+        path: str,
+        broker: BrokerType | None = None,
+        **kwargs: object,
+    ) -> None:
+        """Invalidate one cached get response for a target/path/kwargs tuple."""
+        broker_key = self._resolve_broker_key(target=target, broker=broker)
+        cache_key = _build_cache_key(
+            operation="get",
+            target=target,
+            broker_key=broker_key,
+            payload=path,
+            kwargs=kwargs,
+        )
+        self._command_cache.pop(cache_key, None)
+
     def for_protocol(
         self,
         protocol: str | ConnectionProtocol | BrokerType,
@@ -222,6 +308,89 @@ class RuntimeBroker:
                 f"Broker '{broker_key}' was not planned for this run"
             )
         return RuntimeBrokerClient(_runtime_broker=self, _broker_key=broker_key)
+
+    async def _get_with_pinned_broker(
+        self,
+        target: Device,
+        path: str,
+        *,
+        broker: BrokerType,
+        kwargs: dict[str, object],
+    ) -> CommandResult:
+        """Proxy get() for pinned clients while validating cache controls."""
+        normalized_kwargs = dict(kwargs)
+        use_cache = self._pop_bool_option(
+            normalized_kwargs,
+            "use_cache",
+            default=True,
+        )
+        bust_cache = self._pop_bool_option(
+            normalized_kwargs,
+            "bust_cache",
+            default=False,
+        )
+        return await self.get(
+            target,
+            path,
+            broker=broker,
+            use_cache=use_cache,
+            bust_cache=bust_cache,
+            **normalized_kwargs,
+        )
+
+    @staticmethod
+    def _pop_bool_option(
+        kwargs: dict[str, object],
+        key: str,
+        *,
+        default: bool,
+    ) -> bool:
+        """Pop and validate boolean option from keyword arguments."""
+        raw_value = kwargs.pop(key, default)
+        if not isinstance(raw_value, bool):
+            raise RuntimeBrokerError(f"'{key}' must be a boolean value")
+        return raw_value
+
+    async def _run_cached_operation(
+        self,
+        *,
+        cache_key: "_CacheKey",
+        use_cache: bool,
+        bust_cache: bool,
+        operation: "_Operation",
+    ) -> CommandResult:
+        """Execute an operation with cache and single-flight semantics."""
+        if bust_cache:
+            self._command_cache.pop(cache_key, None)
+
+        if not use_cache:
+            return await self._run_operation(operation)
+
+        cached = self._command_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        task = self._inflight_commands.get(cache_key)
+        if task is None:
+            task = asyncio.create_task(self._run_operation(operation))
+            self._inflight_commands[cache_key] = task
+
+        try:
+            result = await task
+        except Exception:
+            self._inflight_commands.pop(cache_key, None)
+            raise
+
+        self._command_cache[cache_key] = result
+        self._inflight_commands.pop(cache_key, None)
+        return result
+
+    async def _run_operation(self, operation: "_Operation") -> CommandResult:
+        """Run one broker operation and normalize raised errors."""
+        try:
+            return await operation()
+        except Exception as error:  # noqa: BLE001
+            raise RuntimeBrokerError(str(error)) from error
 
     def _resolve_broker_key(
         self,
@@ -363,3 +532,18 @@ def _resolve_credential(
             f"Device '{device.name}' is missing credential '{resolved_name}'"
         )
     return device.credentials[resolved_name]
+
+
+def _build_cache_key(
+    *,
+    operation: _CacheOperation,
+    target: Device,
+    broker_key: BrokerType,
+    payload: str,
+    kwargs: dict[str, object],
+) -> _CacheKey:
+    """Build canonical cache key for an operation call."""
+    normalized_kwargs = tuple(
+        sorted((key, repr(value)) for key, value in kwargs.items())
+    )
+    return (operation, target.name, broker_key, payload, normalized_kwargs)
