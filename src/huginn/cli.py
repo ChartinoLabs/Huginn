@@ -13,6 +13,11 @@ import typer
 
 from huginn.enums import ErrorCode, ExecutionMode
 from huginn.plan_filtering import PlanFilterOptions
+from huginn.report_plugins import (
+    ReportPlugin,
+    ReportPluginError,
+    resolve_report_plugins,
+)
 from huginn.runner import RunExecutionError, run_test_plan
 from huginn.validation import validate_inputs
 
@@ -114,6 +119,13 @@ def run(
             help="Use an inventory plugin instead of a static testbed YAML file.",
         ),
     ] = None,
+    report_plugin: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--report-plugin",
+            help="Report plugin(s) to write artifacts (default: json).",
+        ),
+    ] = None,
 ) -> None:
     """Execute a test plan against infrastructure.
 
@@ -133,6 +145,7 @@ def run(
     )
 
     try:
+        report_plugins = _resolve_report_plugins_option(report_plugin)
         filters = _build_plan_filters(
             tags=tags,
             exclude_tags=exclude_tags,
@@ -150,6 +163,7 @@ def run(
                 project_root=Path.cwd(),
                 parameters_dir=Path.cwd() / "parameters",
                 reports_dir=Path.cwd() / "reports",
+                report_plugins=report_plugins,
             )
         )
     except RunExecutionError as error:
@@ -160,7 +174,7 @@ def run(
         raise typer.Exit(code=_exit_code_for_run_error(error.code)) from error
 
     typer.echo(f"Run status: {report.summary.status}")
-    typer.echo("Report written to reports/run.json")
+    typer.echo("Report artifacts written to reports/")
     if report.summary.status != "passed":
         raise typer.Exit(code=1)
 
@@ -246,6 +260,13 @@ def validate(
             help="Use an inventory plugin instead of a static testbed YAML file.",
         ),
     ] = None,
+    report_plugin: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--report-plugin",
+            help="Report plugin(s) to write artifacts (default: json).",
+        ),
+    ] = None,
 ) -> None:
     """Validate testbed/plan inputs without executing tests."""
     testbed_path = _resolve_testbed_option(
@@ -254,24 +275,33 @@ def validate(
         data_model=data_model,
     )
 
-    report = asyncio.run(
-        validate_inputs(
-            testbed_path=testbed_path,
-            inventory_plugin=inventory_plugin,
-            plan_path=plan,
-            filters=_build_plan_filters(
-                tags=tags,
-                exclude_tags=exclude_tags,
-                phases=phase,
-                test_case_groups=test_case_group,
-                test_ids=test_id,
-            ),
-            project_root=Path.cwd(),
-            reports_dir=Path.cwd() / "reports",
+    report_plugins = _resolve_report_plugins_option(report_plugin)
+    try:
+        report = asyncio.run(
+            validate_inputs(
+                testbed_path=testbed_path,
+                inventory_plugin=inventory_plugin,
+                plan_path=plan,
+                filters=_build_plan_filters(
+                    tags=tags,
+                    exclude_tags=exclude_tags,
+                    phases=phase,
+                    test_case_groups=test_case_group,
+                    test_ids=test_id,
+                ),
+                project_root=Path.cwd(),
+                reports_dir=Path.cwd() / "reports",
+                report_plugins=report_plugins,
+            )
         )
-    )
+    except ReportPluginError as error:
+        typer.secho(
+            f"ERROR [{ErrorCode.CONFIGURATION_ERROR.value}]: {error}",
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=2) from error
     typer.echo(f"Validation status: {'passed' if report.valid else 'failed'}")
-    typer.echo("Report written to reports/validate.json")
+    typer.echo("Report artifacts written to reports/")
 
     if not report.valid:
         for error in report.errors:
@@ -354,6 +384,15 @@ def _split_csv_option_values(values: list[str] | None) -> list[str] | None:
             seen.add(item)
             normalized.append(item)
     return normalized or None
+
+
+def _resolve_report_plugins_option(values: list[str] | None) -> list[ReportPlugin]:
+    """Resolve CLI report plugin specs into concrete plugin instances."""
+    try:
+        specs = _split_csv_option_values(values)
+        return resolve_report_plugins(specs)
+    except ReportPluginError as error:
+        raise typer.BadParameter(str(error)) from error
 
 
 @app.command()
