@@ -6,7 +6,9 @@ broker implementations must follow, along with supporting data types.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, TypeAlias, runtime_checkable
+
+CredentialFields: TypeAlias = dict[str, str]
 
 
 class ConnectionState(Enum):
@@ -71,7 +73,7 @@ class ConnectionConfig:
     host: str
     port: int
     os: str | None = None
-    credentials: dict[str, Any] = field(default_factory=dict)
+    credentials: CredentialFields = field(default_factory=dict)
     options: dict[str, Any] = field(default_factory=dict)
 
 

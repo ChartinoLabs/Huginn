@@ -8,6 +8,8 @@ import yaml
 from huginn.enums import ConnectionProtocol
 from huginn.models import (
     ConnectionDefinition,
+    CredentialFields,
+    CredentialMap,
     Device,
     Phase,
     TargetDefinition,
@@ -75,13 +77,13 @@ def _load_optional_string_list_allow_empty(value: object) -> list[str]:
     return cast(list[str], value)
 
 
-def _load_credentials(value: object) -> dict[str, dict[str, str]]:
+def _load_credentials(value: object) -> CredentialMap:
     """Load optional credential mappings for a device."""
     if value is None:
         return {}
 
     credentials_mapping = _require_mapping(value, "credentials must be a mapping")
-    credentials: dict[str, dict[str, str]] = {}
+    credentials: CredentialMap = {}
     for credential_name, raw_credential in credentials_mapping.items():
         if not isinstance(credential_name, str) or not credential_name:
             raise ConfigurationError("Credential names must be non-empty strings")
@@ -89,7 +91,7 @@ def _load_credentials(value: object) -> dict[str, dict[str, str]]:
             raw_credential,
             f"Credential '{credential_name}' must be a mapping",
         )
-        normalized: dict[str, str] = {}
+        normalized: CredentialFields = {}
         for key, credential_value in credential_mapping.items():
             if not isinstance(key, str) or not key:
                 raise ConfigurationError(
@@ -291,6 +293,7 @@ def _validate_target_selector_exclusivity(
 def load_testbed(path: Path) -> Testbed:
     """Load a testbed file with minimal first-slice validation."""
     data = _load_yaml(path)
+    global_credentials = _load_credentials(data.get("credentials"))
     raw_devices = _require_mapping(
         data.get("devices"),
         "Testbed must include a non-empty 'devices' mapping",
@@ -315,14 +318,28 @@ def load_testbed(path: Path) -> Testbed:
             name=device_name,
             os=os_name,
             groups=_load_optional_string_list(device_mapping.get("groups")),
-            credentials=_load_credentials(device_mapping.get("credentials")),
+            credentials=_merge_credentials(
+                global_credentials,
+                _load_credentials(device_mapping.get("credentials")),
+            ),
             connections=_load_connections(
                 device_name,
                 device_mapping.get("connections"),
             ),
         )
 
-    return Testbed(devices=devices)
+    return Testbed(devices=devices, credentials=global_credentials)
+
+
+def _merge_credentials(
+    global_credentials: CredentialMap,
+    device_credentials: CredentialMap,
+) -> CredentialMap:
+    """Merge global credentials with device-local overrides."""
+    merged = {name: dict(values) for name, values in global_credentials.items()}
+    for name, values in device_credentials.items():
+        merged[name] = dict(values)
+    return merged
 
 
 def load_test_plan(path: Path) -> TestPlan:
