@@ -178,7 +178,7 @@ def validate(
         typer.Option(
             "--inventory-plugin",
             "-i",
-            help="Reserved for future inventory plugin support.",
+            help="Use an inventory plugin instead of a static testbed YAML file.",
         ),
     ] = None,
 ) -> None:
@@ -189,13 +189,15 @@ def validate(
         data_model=data_model,
     )
 
-    report = validate_inputs(
-        testbed_path=testbed_path,
-        inventory_plugin=inventory_plugin,
-        plan_path=plan,
-        tags=tags,
-        project_root=Path.cwd(),
-        reports_dir=Path.cwd() / "reports",
+    report = asyncio.run(
+        validate_inputs(
+            testbed_path=testbed_path,
+            inventory_plugin=inventory_plugin,
+            plan_path=plan,
+            tags=tags,
+            project_root=Path.cwd(),
+            reports_dir=Path.cwd() / "reports",
+        )
     )
     typer.echo(f"Validation status: {'passed' if report.valid else 'failed'}")
     typer.echo("Report written to reports/validate.json")

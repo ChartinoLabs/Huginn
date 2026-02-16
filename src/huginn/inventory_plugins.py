@@ -1,6 +1,8 @@
 """Inventory plugin contract and built-in plugin resolution."""
 
+from collections.abc import Awaitable
 from dataclasses import dataclass
+from inspect import isawaitable
 from pathlib import Path
 from typing import Protocol
 
@@ -15,7 +17,7 @@ class InventoryPluginError(ValueError):
 class InventoryPlugin(Protocol):
     """Protocol for inventory plugins that resolve Testbed objects."""
 
-    def resolve_testbed(self, project_root: Path) -> Testbed:
+    def resolve_testbed(self, project_root: Path) -> Testbed | Awaitable[Testbed]:
         """Resolve and return a testbed object for execution."""
         raise NotImplementedError
 
@@ -26,7 +28,7 @@ class FileInventoryPlugin:
 
     file_path: Path
 
-    def resolve_testbed(self, project_root: Path) -> Testbed:
+    async def resolve_testbed(self, project_root: Path) -> Testbed:
         """Resolve plugin file path and load the resulting testbed."""
         if self.file_path.is_absolute():
             resolved_path = self.file_path
@@ -41,7 +43,7 @@ class FileInventoryPlugin:
         return load_testbed(resolved_path)
 
 
-def resolve_inventory_testbed(
+async def resolve_inventory_testbed(
     *,
     testbed_path: Path | None,
     inventory_plugin: str | None,
@@ -62,7 +64,27 @@ def resolve_inventory_testbed(
         )
 
     plugin = _parse_inventory_plugin_spec(inventory_plugin)
-    return plugin.resolve_testbed(project_root)
+    return await _resolve_plugin_testbed(plugin=plugin, project_root=project_root)
+
+
+async def _resolve_plugin_testbed(
+    *,
+    plugin: InventoryPlugin,
+    project_root: Path,
+) -> Testbed:
+    """Resolve a testbed from plugin, supporting sync and async plugin methods."""
+    resolved = plugin.resolve_testbed(project_root)
+    if isawaitable(resolved):
+        awaited = await resolved
+        return _ensure_testbed(awaited)
+    return _ensure_testbed(resolved)
+
+
+def _ensure_testbed(value: object) -> Testbed:
+    """Validate plugin output is a Testbed instance."""
+    if not isinstance(value, Testbed):
+        raise InventoryPluginError("Inventory plugin must resolve a Testbed object")
+    return value
 
 
 def _parse_inventory_plugin_spec(spec: str) -> InventoryPlugin:

@@ -49,7 +49,7 @@ class ValidationReport:
     errors: list[ValidationIssue]
 
 
-def validate_inputs(
+async def validate_inputs(
     *,
     testbed_path: Path | None,
     inventory_plugin: str | None,
@@ -60,7 +60,7 @@ def validate_inputs(
 ) -> ValidationReport:
     """Validate configuration and emit a validation report."""
     try:
-        testbed = resolve_inventory_testbed(
+        testbed = await resolve_inventory_testbed(
             testbed_path=testbed_path,
             inventory_plugin=inventory_plugin,
             project_root=project_root,
