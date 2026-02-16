@@ -1,0 +1,29 @@
+test_cases:
+  "1.0.0":
+    title: Verify inventory
+    job: jobs/verify_inventory.py
+  "1.1.0":
+    title: Verify lldp
+    job: jobs/verify_lldp.py
+
+test_case_groups:
+  serial-group:
+    strategy:
+      serial: {}
+    tests:
+      - "1.0.0"
+  parallel-group:
+    strategy:
+      parallel:
+        maximum: 3
+    tests:
+      - "1.1.0"
+
+phases:
+  phase-1:
+    strategy:
+      parallel:
+        maximum: 2
+    test_case_groups:
+      - serial-group
+      - parallel-group

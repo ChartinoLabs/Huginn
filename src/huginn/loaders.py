@@ -11,6 +11,7 @@ from huginn.models import (
     CredentialFields,
     CredentialMap,
     Device,
+    ExecutionStrategy,
     Phase,
     TargetDefinition,
     Testbed,
@@ -451,6 +452,10 @@ def _parse_test_case_group(
             "'tests' or 'groups'"
         )
     tags = _load_optional_string_list_allow_empty_strings(group_mapping.get("tags"))
+    strategy = _load_execution_strategy(
+        group_mapping.get("strategy"),
+        context_name=f"Test case group '{group_name}'",
+    )
     target = _load_target_definition(
         group_mapping.get("target"),
         f"Test case group '{group_name}'",
@@ -461,6 +466,7 @@ def _parse_test_case_group(
             tests=tests,
             tags=tags,
             target=target,
+            strategy=strategy,
         ),
         includes,
     )
@@ -567,6 +573,7 @@ def _flatten_nested_test_case_groups(
             tests=flatten(group_name),
             tags=group.tags,
             target=group.target,
+            strategy=group.strategy,
         )
     return resolved
 
@@ -599,6 +606,10 @@ def _parse_phase(phase_name: object, raw_phase: object) -> Phase:
         f"Phase '{phase_name}' must include non-empty 'test_case_groups'",
     )
     depends_on = _load_optional_string_list_allow_empty(phase_mapping.get("depends_on"))
+    strategy = _load_execution_strategy(
+        phase_mapping.get("strategy"),
+        context_name=f"Phase '{phase_name}'",
+    )
     target = _load_target_definition(
         phase_mapping.get("target"),
         f"Phase '{phase_name}'",
@@ -608,7 +619,95 @@ def _parse_phase(phase_name: object, raw_phase: object) -> Phase:
         test_case_groups=test_case_groups,
         depends_on=depends_on,
         target=target,
+        strategy=strategy,
     )
+
+
+def _load_execution_strategy(value: object, *, context_name: str) -> ExecutionStrategy:
+    """Load optional execution strategy mapping for phases/groups."""
+    if value is None:
+        return ExecutionStrategy(mode="parallel")
+
+    strategy_mapping = _require_mapping(
+        value,
+        f"{context_name} strategy must be a mapping",
+    )
+    if not strategy_mapping:
+        raise ConfigurationError(
+            f"{context_name} strategy must define one of 'serial' or 'parallel'"
+        )
+
+    strategy_mode = _resolve_strategy_mode(strategy_mapping, context_name=context_name)
+    if strategy_mode == "serial":
+        return _load_serial_strategy(
+            strategy_mapping=strategy_mapping,
+            context_name=context_name,
+        )
+
+    parallel_value = strategy_mapping.get("parallel")
+    return _load_parallel_strategy(parallel_value, context_name=context_name)
+
+
+def _resolve_strategy_mode(
+    strategy_mapping: dict[str, object],
+    *,
+    context_name: str,
+) -> str:
+    """Resolve and validate declared strategy mode key."""
+    serial_present = "serial" in strategy_mapping
+    parallel_present = "parallel" in strategy_mapping
+    if serial_present and parallel_present:
+        raise ConfigurationError(
+            f"{context_name} strategy cannot define both 'serial' and 'parallel'"
+        )
+    if not serial_present and not parallel_present:
+        raise ConfigurationError(
+            f"{context_name} strategy must define one of 'serial' or 'parallel'"
+        )
+    return "serial" if serial_present else "parallel"
+
+
+def _load_serial_strategy(
+    *,
+    strategy_mapping: dict[str, object],
+    context_name: str,
+) -> ExecutionStrategy:
+    """Load strategy.serial and validate empty/null payload."""
+    serial_value = strategy_mapping.get("serial")
+    if serial_value not in (None, {}):
+        raise ConfigurationError(
+            f"{context_name} strategy.serial must be null or empty mapping"
+        )
+    return ExecutionStrategy(mode="serial")
+
+
+def _load_parallel_strategy(
+    parallel_value: object,
+    *,
+    context_name: str,
+) -> ExecutionStrategy:
+    """Load strategy.parallel and validate optional maximum setting."""
+    if parallel_value is None:
+        return ExecutionStrategy(mode="parallel")
+
+    parallel_mapping = _require_mapping(
+        parallel_value,
+        f"{context_name} strategy.parallel must be null or a mapping",
+    )
+    unsupported_keys = [key for key in parallel_mapping if key != "maximum"]
+    if unsupported_keys:
+        raise ConfigurationError(
+            f"{context_name} strategy.parallel has unsupported keys: {unsupported_keys}"
+        )
+
+    maximum_value = parallel_mapping.get("maximum")
+    if maximum_value is None:
+        return ExecutionStrategy(mode="parallel")
+    if not isinstance(maximum_value, int) or maximum_value <= 0:
+        raise ConfigurationError(
+            f"{context_name} strategy.parallel.maximum must be a positive integer"
+        )
+    return ExecutionStrategy(mode="parallel", maximum=maximum_value)
 
 
 def _validate_test_case_group_references(

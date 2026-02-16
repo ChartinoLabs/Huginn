@@ -228,35 +228,25 @@ async def _execute_phase(
     parameters_dir: Path,
 ) -> ExecutedPhase:
     """Execute all groups and test cases for a phase."""
-    executed_groups: list[ExecutedTestCaseGroup] = []
-    for group_name in phase.test_case_groups:
-        group = test_plan.test_case_groups[group_name]
-        execution_tasks: list[asyncio.Task[ExecutedTestCase]] = []
-        for test_id in group.tests:
-            test_case_definition = test_plan.test_cases[test_id]
-            execution_tasks.append(
-                asyncio.create_task(
-                    _execute_test_case(
-                        phase=phase,
-                        group=group,
-                        definition=test_case_definition,
-                        planned=planned_executions[test_case_definition.test_id],
-                        mode=mode,
-                        testbed=testbed,
-                        broker=broker,
-                        parameters_dir=parameters_dir,
-                    )
-                )
-            )
-        executed_tests = await asyncio.gather(*execution_tasks)
-
-        group_status = _derive_group_status(executed_tests)
-        executed_groups.append(
-            ExecutedTestCaseGroup(
-                name=group.name,
-                status=group_status.value,
-                test_cases=executed_tests,
-            )
+    if phase.strategy.mode == "serial":
+        executed_groups = await _execute_phase_groups_serial(
+            phase=phase,
+            mode=mode,
+            testbed=testbed,
+            test_plan=test_plan,
+            planned_executions=planned_executions,
+            broker=broker,
+            parameters_dir=parameters_dir,
+        )
+    else:
+        executed_groups = await _execute_phase_groups_parallel(
+            phase=phase,
+            mode=mode,
+            testbed=testbed,
+            test_plan=test_plan,
+            planned_executions=planned_executions,
+            broker=broker,
+            parameters_dir=parameters_dir,
         )
 
     phase_status = _derive_phase_status(executed_groups)
@@ -265,6 +255,282 @@ async def _execute_phase(
         status=phase_status.value,
         test_case_groups=executed_groups,
     )
+
+
+async def _execute_phase_groups_serial(
+    *,
+    phase: Phase,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    broker: RuntimeBroker,
+    parameters_dir: Path,
+) -> list[ExecutedTestCaseGroup]:
+    """Execute test case groups in phase order, one at a time."""
+    executed_groups: list[ExecutedTestCaseGroup] = []
+    for group_name in phase.test_case_groups:
+        executed_groups.append(
+            await _execute_group(
+                phase=phase,
+                group_name=group_name,
+                mode=mode,
+                testbed=testbed,
+                test_plan=test_plan,
+                planned_executions=planned_executions,
+                broker=broker,
+                parameters_dir=parameters_dir,
+            )
+        )
+    return executed_groups
+
+
+async def _execute_phase_groups_parallel(
+    *,
+    phase: Phase,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    broker: RuntimeBroker,
+    parameters_dir: Path,
+) -> list[ExecutedTestCaseGroup]:
+    """Execute test case groups in parallel with optional max concurrency."""
+    semaphore = _build_parallel_semaphore(phase.strategy.maximum)
+    tasks: list[asyncio.Task[tuple[int, ExecutedTestCaseGroup]]] = []
+
+    for index, group_name in enumerate(phase.test_case_groups):
+        tasks.append(
+            asyncio.create_task(
+                _execute_group_with_optional_semaphore(
+                    index=index,
+                    semaphore=semaphore,
+                    phase=phase,
+                    group_name=group_name,
+                    mode=mode,
+                    testbed=testbed,
+                    test_plan=test_plan,
+                    planned_executions=planned_executions,
+                    broker=broker,
+                    parameters_dir=parameters_dir,
+                )
+            )
+        )
+
+    indexed_groups = await asyncio.gather(*tasks)
+    indexed_groups.sort(key=lambda item: item[0])
+    return [group for _, group in indexed_groups]
+
+
+async def _execute_group_with_optional_semaphore(
+    *,
+    index: int,
+    semaphore: asyncio.Semaphore | None,
+    phase: Phase,
+    group_name: str,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    broker: RuntimeBroker,
+    parameters_dir: Path,
+) -> tuple[int, ExecutedTestCaseGroup]:
+    """Execute one group with optional phase-level concurrency limiting."""
+    if semaphore is None:
+        return (
+            index,
+            await _execute_group(
+                phase=phase,
+                group_name=group_name,
+                mode=mode,
+                testbed=testbed,
+                test_plan=test_plan,
+                planned_executions=planned_executions,
+                broker=broker,
+                parameters_dir=parameters_dir,
+            ),
+        )
+
+    async with semaphore:
+        return (
+            index,
+            await _execute_group(
+                phase=phase,
+                group_name=group_name,
+                mode=mode,
+                testbed=testbed,
+                test_plan=test_plan,
+                planned_executions=planned_executions,
+                broker=broker,
+                parameters_dir=parameters_dir,
+            ),
+        )
+
+
+async def _execute_group(
+    *,
+    phase: Phase,
+    group_name: str,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    broker: RuntimeBroker,
+    parameters_dir: Path,
+) -> ExecutedTestCaseGroup:
+    """Execute one group using its configured strategy."""
+    group = test_plan.test_case_groups[group_name]
+
+    if group.strategy.mode == "serial":
+        executed_tests = await _execute_group_tests_serial(
+            phase=phase,
+            group=group,
+            mode=mode,
+            testbed=testbed,
+            test_plan=test_plan,
+            planned_executions=planned_executions,
+            broker=broker,
+            parameters_dir=parameters_dir,
+        )
+    else:
+        executed_tests = await _execute_group_tests_parallel(
+            phase=phase,
+            group=group,
+            mode=mode,
+            testbed=testbed,
+            test_plan=test_plan,
+            planned_executions=planned_executions,
+            broker=broker,
+            parameters_dir=parameters_dir,
+        )
+
+    group_status = _derive_group_status(executed_tests)
+    return ExecutedTestCaseGroup(
+        name=group.name,
+        status=group_status.value,
+        test_cases=executed_tests,
+    )
+
+
+async def _execute_group_tests_serial(
+    *,
+    phase: Phase,
+    group: TestCaseGroup,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    broker: RuntimeBroker,
+    parameters_dir: Path,
+) -> list[ExecutedTestCase]:
+    """Execute tests in group order, one at a time."""
+    executed_tests: list[ExecutedTestCase] = []
+    for test_id in group.tests:
+        test_case_definition = test_plan.test_cases[test_id]
+        executed_tests.append(
+            await _execute_test_case(
+                phase=phase,
+                group=group,
+                definition=test_case_definition,
+                planned=planned_executions[test_case_definition.test_id],
+                mode=mode,
+                testbed=testbed,
+                broker=broker,
+                parameters_dir=parameters_dir,
+            )
+        )
+    return executed_tests
+
+
+async def _execute_group_tests_parallel(
+    *,
+    phase: Phase,
+    group: TestCaseGroup,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    broker: RuntimeBroker,
+    parameters_dir: Path,
+) -> list[ExecutedTestCase]:
+    """Execute tests in parallel with optional max concurrency."""
+    semaphore = _build_parallel_semaphore(group.strategy.maximum)
+    tasks: list[asyncio.Task[tuple[int, ExecutedTestCase]]] = []
+
+    for index, test_id in enumerate(group.tests):
+        test_case_definition = test_plan.test_cases[test_id]
+        tasks.append(
+            asyncio.create_task(
+                _execute_test_case_with_optional_semaphore(
+                    index=index,
+                    semaphore=semaphore,
+                    phase=phase,
+                    group=group,
+                    definition=test_case_definition,
+                    planned=planned_executions[test_case_definition.test_id],
+                    mode=mode,
+                    testbed=testbed,
+                    broker=broker,
+                    parameters_dir=parameters_dir,
+                )
+            )
+        )
+
+    indexed_tests = await asyncio.gather(*tasks)
+    indexed_tests.sort(key=lambda item: item[0])
+    return [test_case for _, test_case in indexed_tests]
+
+
+async def _execute_test_case_with_optional_semaphore(
+    *,
+    index: int,
+    semaphore: asyncio.Semaphore | None,
+    phase: Phase,
+    group: TestCaseGroup,
+    definition: TestCaseDefinition,
+    planned: PlannedExecution,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    broker: RuntimeBroker,
+    parameters_dir: Path,
+) -> tuple[int, ExecutedTestCase]:
+    """Execute one test case with optional group-level concurrency limiting."""
+    if semaphore is None:
+        return (
+            index,
+            await _execute_test_case(
+                phase=phase,
+                group=group,
+                definition=definition,
+                planned=planned,
+                mode=mode,
+                testbed=testbed,
+                broker=broker,
+                parameters_dir=parameters_dir,
+            ),
+        )
+
+    async with semaphore:
+        return (
+            index,
+            await _execute_test_case(
+                phase=phase,
+                group=group,
+                definition=definition,
+                planned=planned,
+                mode=mode,
+                testbed=testbed,
+                broker=broker,
+                parameters_dir=parameters_dir,
+            ),
+        )
+
+
+def _build_parallel_semaphore(maximum: int | None) -> asyncio.Semaphore | None:
+    """Build optional concurrency semaphore from strategy maximum."""
+    if maximum is None:
+        return None
+    return asyncio.Semaphore(maximum)
 
 
 def _build_blocked_phase(phase: Phase, test_plan: TestPlan) -> ExecutedPhase:

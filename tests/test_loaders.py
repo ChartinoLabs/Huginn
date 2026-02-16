@@ -123,6 +123,36 @@ def test_load_test_plan_parses_test_case_group_tags() -> None:
     assert test_plan.test_case_groups["routing"].tags == ["network", "critical"]
 
 
+def test_load_test_plan_parses_execution_strategies() -> None:
+    """Parse phase and group execution strategy mappings."""
+    path = FIXTURES / "plan_with_execution_strategies.yaml"
+
+    test_plan = load_test_plan(path)
+
+    assert test_plan.phases["phase-1"].strategy.mode == "parallel"
+    assert test_plan.phases["phase-1"].strategy.maximum == 2
+    assert test_plan.test_case_groups["serial-group"].strategy.mode == "serial"
+    assert test_plan.test_case_groups["serial-group"].strategy.maximum is None
+    assert test_plan.test_case_groups["parallel-group"].strategy.mode == "parallel"
+    assert test_plan.test_case_groups["parallel-group"].strategy.maximum == 3
+
+
+def test_load_test_plan_rejects_strategy_with_multiple_modes() -> None:
+    """Reject strategies that define both serial and parallel keys."""
+    path = FIXTURES / "plan_invalid_strategy_multiple_modes.yaml"
+
+    with pytest.raises(ConfigurationError, match="cannot define both"):
+        load_test_plan(path)
+
+
+def test_load_test_plan_rejects_strategy_with_invalid_maximum() -> None:
+    """Reject parallel strategy maximum values that are not positive ints."""
+    path = FIXTURES / "plan_invalid_strategy_maximum.yaml"
+
+    with pytest.raises(ConfigurationError, match="must be a positive integer"):
+        load_test_plan(path)
+
+
 def test_load_test_plan_rejects_mixed_target_selectors() -> None:
     """Raise when explicit devices are mixed with groups/os selectors."""
     path = FIXTURES / "plan_with_mixed_target_selectors.yaml"
