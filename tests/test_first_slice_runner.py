@@ -347,7 +347,7 @@ def test_runner_disconnects_once_per_run(
     )
 
     assert result.exit_code == 0
-    assert _FakeRuntimeBroker.connect_invocations == 2
+    assert _FakeRuntimeBroker.connect_invocations == 1
     assert _FakeRuntimeBroker.disconnect_invocations == 1
 
 

@@ -95,6 +95,12 @@ async def run_test_plan(
     )
 
     try:
+        await _prime_runtime_connections(
+            testbed=testbed,
+            test_plan=test_plan,
+            planned_executions=planned_executions,
+            broker=runtime_broker,
+        )
         executed_phases = await _execute_phases_with_dependencies(
             mode=mode,
             testbed=testbed,
@@ -375,19 +381,6 @@ async def _execute_test_case(
     test_error: str | None = None
 
     try:
-        await _connect_targets_or_raise(
-            broker,
-            targets,
-            planned.required_brokers,
-        )
-    except RuntimeBrokerError as error:
-        return _errored_test_case(
-            definition,
-            error=str(error),
-            error_code=ErrorCode.BROKER_ERROR,
-        )
-
-    try:
         await test_case.setup(context)
         await test_case.test(context)
     except Exception as error:  # noqa: BLE001
@@ -452,6 +445,49 @@ async def _connect_targets_or_raise(
 ) -> None:
     """Connect all resolved target devices via runtime broker."""
     await broker.connect_targets(targets, required_brokers)
+
+
+async def _prime_runtime_connections(
+    *,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    broker: RuntimeBroker,
+) -> None:
+    """Connect all planned test targets once before phase execution."""
+    targets_by_brokers: dict[frozenset[BrokerType], dict[str, Device]] = {}
+
+    for phase in test_plan.phases.values():
+        for group_name in phase.test_case_groups:
+            group = test_plan.test_case_groups[group_name]
+            for test_id in group.tests:
+                definition = test_plan.test_cases[test_id]
+                planned = planned_executions[test_id]
+                if planned.planning_error is not None:
+                    continue
+                targets, target_error = _resolve_targets(
+                    testbed=testbed,
+                    phase=phase,
+                    group=group,
+                    test_case=definition,
+                )
+                if target_error is not None or not targets:
+                    continue
+
+                broker_key = frozenset(planned.required_brokers)
+                grouped_targets = targets_by_brokers.setdefault(broker_key, {})
+                for target in targets:
+                    grouped_targets[target.name] = target
+
+    try:
+        for required_brokers, target_lookup in targets_by_brokers.items():
+            await _connect_targets_or_raise(
+                broker,
+                list(target_lookup.values()),
+                set(required_brokers),
+            )
+    except RuntimeBrokerError as error:
+        raise RunExecutionError(str(error), code=ErrorCode.BROKER_ERROR) from error
 
 
 async def _run_cleanup(

@@ -92,9 +92,16 @@ class RuntimeBroker:
         """Open required broker connections for all target devices."""
         required_keys = _normalize_required_brokers(required_brokers)
         try:
+            tasks: list[asyncio.Task[None]] = []
             for device in targets:
                 for broker_key in required_keys:
-                    await self._connect_target_broker_pair(device, broker_key)
+                    tasks.append(
+                        asyncio.create_task(
+                            self._connect_target_broker_pair(device, broker_key)
+                        )
+                    )
+            if tasks:
+                await asyncio.gather(*tasks)
         except Exception as error:  # noqa: BLE001
             raise RuntimeBrokerError(str(error)) from error
 
@@ -148,8 +155,12 @@ class RuntimeBroker:
         handles = list(self._handles.items())
         self._handles.clear()
         try:
-            for (_, broker_key), handle in handles:
-                await self._brokers[broker_key].disconnect(handle)
+            tasks = [
+                asyncio.create_task(self._brokers[broker_key].disconnect(handle))
+                for (_, broker_key), handle in handles
+            ]
+            if tasks:
+                await asyncio.gather(*tasks)
         except Exception as error:  # noqa: BLE001
             raise RuntimeBrokerError(str(error)) from error
 
