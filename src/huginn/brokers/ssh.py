@@ -13,6 +13,7 @@ from scrapli.driver.generic import AsyncGenericDriver
 from scrapli.exceptions import (
     ScrapliAuthenticationFailed,
     ScrapliConnectionError,
+    ScrapliConnectionNotOpened,
     ScrapliTimeout,
 )
 
@@ -38,6 +39,7 @@ PROTOCOL_VERSION = 1
 # See: https://carlmontanari.github.io/scrapli/user_guide/project_details/#supported-platforms
 # TODO: Refactor to use OS enums from core inventory module when implemented.
 OS_TO_SCRAPLI_PLATFORM: dict[str, str] = {
+    "ios": "cisco_iosxe",
     "iosxe": "cisco_iosxe",
     "nxos": "cisco_nxos",
     "iosxr": "cisco_iosxr",
@@ -54,6 +56,7 @@ class SSHBroker:
     and configuration operations.
 
     The broker maps testbed OS identifiers to Scrapli platform strings:
+    - ios → cisco_iosxe
     - iosxe → cisco_iosxe
     - nxos → cisco_nxos
     - iosxr → cisco_iosxr
@@ -202,7 +205,11 @@ class SSHBroker:
 
         driver = self._connections.pop(handle.device_name)
         self._configs.pop(handle.device_name, None)
-        await driver.close()
+        try:
+            await driver.close()
+        except ScrapliConnectionNotOpened:
+            # Treat already-closed channels as successful teardown.
+            return
 
     async def is_alive(self, handle: ConnectionHandle) -> bool:
         """Check if a connection is still alive.

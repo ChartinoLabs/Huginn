@@ -6,6 +6,7 @@ import pytest
 from scrapli.exceptions import (
     ScrapliAuthenticationFailed,
     ScrapliConnectionError,
+    ScrapliConnectionNotOpened,
     ScrapliTimeout,
 )
 
@@ -106,6 +107,10 @@ class TestPlatformMapping:
     def test_map_iosxe(self, broker: SSHBroker) -> None:
         """Test mapping iosxe to cisco_iosxe."""
         assert broker._get_scrapli_platform("iosxe") == "cisco_iosxe"
+
+    def test_map_ios(self, broker: SSHBroker) -> None:
+        """Test mapping ios to cisco_iosxe."""
+        assert broker._get_scrapli_platform("ios") == "cisco_iosxe"
 
     def test_map_iosxr(self, broker: SSHBroker) -> None:
         """Test mapping iosxr to cisco_iosxr."""
@@ -225,6 +230,23 @@ class TestDisconnect:
     ) -> None:
         """Test disconnect with invalid handle."""
         with pytest.raises(InvalidHandleError):
+            await broker.disconnect(connection_handle)
+
+    @pytest.mark.asyncio
+    async def test_disconnect_tolerates_already_closed_connection(
+        self,
+        broker: SSHBroker,
+        connection_config: ConnectionConfig,
+        connection_handle: ConnectionHandle,
+    ) -> None:
+        """Disconnect should succeed if Scrapli reports channel already closed."""
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
+            mock_driver = AsyncMock()
+            mock_driver.close.side_effect = ScrapliConnectionNotOpened("not open")
+            mock_driver_class.return_value = mock_driver
+
+            await broker.connect(connection_config)
+
             await broker.disconnect(connection_handle)
 
 
