@@ -164,6 +164,7 @@ class RunSummary:
     passed: int
     failed: int
     errored: int
+    not_applicable: int
     skipped: int
     blocked: int
 

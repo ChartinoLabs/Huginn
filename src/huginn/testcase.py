@@ -1,9 +1,19 @@
 """Base test case definition for Huginn jobs."""
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
 from huginn.context import Context
 from huginn.enums import BrokerType, ExecutionMode, ResultStatus
+from huginn.models import Device
+
+
+@dataclass
+class ApplicabilityResult:
+    """Outcome of dynamic applicability checks for assigned targets."""
+
+    applicable: list[Device] = field(default_factory=list)
+    not_applicable: dict[str, str] = field(default_factory=dict)
 
 
 class TestCase(ABC):
@@ -33,6 +43,30 @@ class LearningTestCase(TestCase, ABC):
 
     async def test(self, context: Context) -> None:
         """Save state in learning mode or compare state in testing mode."""
+        applicability = await self.check_applicability(context)
+        original_targets = list(context.targets)
+        applicable_targets = list(applicability.applicable)
+
+        for target in original_targets:
+            if target in applicable_targets:
+                continue
+            reason = applicability.not_applicable.get(
+                target.name,
+                "Target not applicable for this test",
+            )
+            context.results.add_result(
+                ResultStatus.NOT_APPLICABLE,
+                f"{target.name}: {reason}",
+            )
+
+        if not applicable_targets:
+            context.results.add_result(
+                ResultStatus.INFO,
+                "No applicable targets after applicability check",
+            )
+            return
+
+        context.targets = applicable_targets
         current_state = await self.gather_state(context)
 
         if context.mode == ExecutionMode.LEARNING:
@@ -49,6 +83,10 @@ class LearningTestCase(TestCase, ABC):
             current=current_state,
             context=context,
         )
+
+    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+        """Return applicable targets and reasons for non-applicable ones."""
+        return ApplicabilityResult(applicable=list(context.targets), not_applicable={})
 
     async def cleanup(self, context: Context) -> None:
         """Default no-op cleanup for learning/testing style tests."""

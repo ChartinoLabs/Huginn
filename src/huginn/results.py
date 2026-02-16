@@ -1,10 +1,16 @@
 """Result collection utilities for test execution."""
 
 from dataclasses import dataclass, field
+from typing import Protocol, runtime_checkable
 
 from huginn.brokers.protocol import CommandResult
 from huginn.enums import ResultStatus
 from huginn.models import CheckResult, CommandExecution
+
+
+@runtime_checkable
+class _OutputCarrier(Protocol):
+    output: str
 
 
 @dataclass
@@ -36,7 +42,7 @@ class ResultCollector:
             elapsed_ms = output.elapsed_ms
             cached = output.cached
             parsed_payload = parsed if parsed is not None else output.structured
-        elif hasattr(output, "output") and isinstance(output.output, str):
+        elif isinstance(output, _OutputCarrier):
             output_text = output.output
             parsed_payload = parsed
         else:
@@ -56,15 +62,32 @@ class ResultCollector:
 
     def derive_status(self) -> ResultStatus:
         """Compute overall test status from collected checks."""
-        if any(check.status == ResultStatus.ERRORED.value for check in self.checks):
+        if self._has_status(ResultStatus.ERRORED):
             return ResultStatus.ERRORED
-        if any(check.status == ResultStatus.FAILED.value for check in self.checks):
+        if self._has_status(ResultStatus.FAILED):
             return ResultStatus.FAILED
-        non_info_checks = [
-            check for check in self.checks if check.status != ResultStatus.INFO.value
-        ]
-        if non_info_checks and all(
-            check.status == ResultStatus.SKIPPED.value for check in non_info_checks
-        ):
+
+        non_info_checks = self._non_info_checks()
+        if self._all_checks_match(non_info_checks, ResultStatus.NOT_APPLICABLE):
+            return ResultStatus.NOT_APPLICABLE
+        if self._all_checks_match(non_info_checks, ResultStatus.SKIPPED):
             return ResultStatus.SKIPPED
         return ResultStatus.PASSED
+
+    def _has_status(self, status: ResultStatus) -> bool:
+        """Return True when any check has the requested status."""
+        return any(check.status == status.value for check in self.checks)
+
+    def _non_info_checks(self) -> list[CheckResult]:
+        """Return checks excluding informational entries."""
+        return [
+            check for check in self.checks if check.status != ResultStatus.INFO.value
+        ]
+
+    @staticmethod
+    def _all_checks_match(
+        checks: list[CheckResult],
+        status: ResultStatus,
+    ) -> bool:
+        """Return True when all checks match the given status."""
+        return bool(checks) and all(check.status == status.value for check in checks)

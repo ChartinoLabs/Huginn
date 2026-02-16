@@ -31,8 +31,8 @@ class ResultStatus(StrEnum):
     - FAILED: One or more assertions did not match expected state.
     - INFO: Informational note with no impact on pass/fail.
     - ERRORED: An exception occurred during execution.
-    - SKIPPED: The test case was in scope but determined at runtime to be
-      not applicable (e.g., feature not configured in data model, no matching targets).
+    - NOT_APPLICABLE: Check was out of scope for the target at runtime.
+    - SKIPPED: The test case did not execute because it was intentionally skipped.
     - BLOCKED: The test case could not run because a dependency (phase or group) failed.
 
     Test cases filtered out before execution (e.g., by tags) do not appear in
@@ -43,6 +43,7 @@ class ResultStatus(StrEnum):
     FAILED = "failed"
     INFO = "info"
     ERRORED = "errored"
+    NOT_APPLICABLE = "not_applicable"
     SKIPPED = "skipped"
     BLOCKED = "blocked"
 

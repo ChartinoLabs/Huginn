@@ -177,6 +177,7 @@ Result statuses (`ResultStatus` enum):
 
 - `PASSED`: Check succeeded
 - `FAILED`: Check failed
+- `NOT_APPLICABLE`: Check did not apply to the target at runtime
 - `SKIPPED`: Check was skipped
 - `ERRORED`: Check encountered an error
 - `INFO`: Informational (no impact on overall status)
@@ -443,9 +444,12 @@ class VerifyOSPFNeighbors(LearningTestCase):
 `LearningTestCase` provides default no-op `setup()`/`cleanup()` and implements `test()` as:
 
 1. Call `gather_state(context)`
-2. If `context.mode == LEARNING`, save with `context.parameters.save(...)`
-3. Otherwise load expected state with `context.parameters.load()`
-4. Call `compare_state(expected=..., current=..., context=...)`
+2. Call `check_applicability(context)` (override optional)
+3. Record skipped results for non-applicable targets
+4. If no targets are applicable, record skip and return
+5. If `context.mode == LEARNING`, save with `context.parameters.save(...)`
+6. Otherwise load expected state with `context.parameters.load()`
+7. Call `compare_state(expected=..., current=..., context=...)`
 
 This keeps jobs focused on state collection and comparison logic.
 
