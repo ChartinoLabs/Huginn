@@ -16,7 +16,7 @@ class ParameterManager:
     parameters_dir: Path
     test_id: str
 
-    async def save(self, payload: object) -> None:
+    async def save(self, payload: dict[str, object]) -> None:
         """Persist learned parameters for the current test case."""
         self.parameters_dir.mkdir(parents=True, exist_ok=True)
         try:
@@ -33,7 +33,7 @@ class ParameterManager:
                 f"Unable to write parameters for test '{self.test_id}': {error}"
             ) from error
 
-    async def load(self) -> object:
+    async def load(self) -> dict[str, object]:
         """Load previously learned parameters for the current test case."""
         parameter_file = self._parameter_file()
         if not parameter_file.exists():
@@ -43,7 +43,13 @@ class ParameterManager:
             )
 
         try:
-            return json.loads(parameter_file.read_text(encoding="utf-8"))
+            loaded = json.loads(parameter_file.read_text(encoding="utf-8"))
+            if not isinstance(loaded, dict):
+                raise ParameterStoreError(
+                    "Learned parameters JSON must be a mapping at top level for "
+                    f"test '{self.test_id}'"
+                )
+            return loaded
         except json.JSONDecodeError as error:
             raise ParameterStoreError(
                 f"Invalid learned parameters JSON for test '{self.test_id}': {error}"

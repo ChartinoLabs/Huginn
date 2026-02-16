@@ -416,6 +416,39 @@ class VerifyOSPFNeighbors(TestCase):
                     )
 ```
 
+### Reusable Base Class: `LearningTestCase`
+
+For tests that follow the same learning/testing flow, inherit from `LearningTestCase`:
+
+```python
+from huginn import Context, LearningTestCase
+
+
+class VerifyOSPFNeighbors(LearningTestCase):
+    async def gather_state(self, context: Context) -> dict:
+        # Gather current state for all targets
+        ...
+
+    async def compare_state(
+        self,
+        *,
+        expected: dict,
+        current: dict,
+        context: Context,
+    ) -> None:
+        # Compare expected vs current and record results
+        ...
+```
+
+`LearningTestCase` provides default no-op `setup()`/`cleanup()` and implements `test()` as:
+
+1. Call `gather_state(context)`
+2. If `context.mode == LEARNING`, save with `context.parameters.save(...)`
+3. Otherwise load expected state with `context.parameters.load()`
+4. Call `compare_state(expected=..., current=..., context=...)`
+
+This keeps jobs focused on state collection and comparison logic.
+
 ## Async Patterns
 
 All test methods are async. This enables efficient parallel operations.
