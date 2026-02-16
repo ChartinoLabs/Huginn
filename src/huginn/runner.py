@@ -3,7 +3,7 @@
 import asyncio
 from collections import Counter
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 
 from huginn.context import Context
@@ -31,6 +31,12 @@ from huginn.models import (
 )
 from huginn.parameters import ParameterManager
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
+from huginn.report_plugins import (
+    ReportPlugin,
+    ReportPluginError,
+    resolve_report_plugins,
+    write_run_reports,
+)
 from huginn.results import ResultCollector
 from huginn.runtime_broker import (
     RuntimeBroker,
@@ -68,6 +74,7 @@ async def run_test_plan(
     project_root: Path,
     parameters_dir: Path,
     reports_dir: Path,
+    report_plugins: list[ReportPlugin] | None = None,
     broker_factory: Callable[[], RuntimeBroker] | None = None,
 ) -> RunReport:
     """Execute a minimal test plan and persist JSON output."""
@@ -116,7 +123,17 @@ async def run_test_plan(
 
     summary = _build_summary(executed_phases)
     report = RunReport(summary=summary, phases=executed_phases)
-    _write_report(report=report, reports_dir=reports_dir)
+    try:
+        write_run_reports(
+            report=report,
+            reports_dir=reports_dir,
+            plugins=report_plugins or resolve_report_plugins(None),
+        )
+    except ReportPluginError as error:
+        raise RunExecutionError(
+            str(error),
+            code=ErrorCode.CONFIGURATION_ERROR,
+        ) from error
     return report
 
 
@@ -659,11 +676,3 @@ def _collect_test_case_statuses(phases: list[ExecutedPhase]) -> list[str]:
             for test_case in group.test_cases:
                 statuses.append(test_case.status)
     return statuses
-
-
-def _write_report(report: RunReport, reports_dir: Path) -> None:
-    reports_dir.mkdir(parents=True, exist_ok=True)
-    report_path = reports_dir / "run.json"
-    import json
-
-    report_path.write_text(json.dumps(asdict(report), indent=2), encoding="utf-8")

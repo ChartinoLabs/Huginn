@@ -1,6 +1,6 @@
 """Validation checks for testbed and test plan inputs."""
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 
 from huginn.enums import BrokerType, ErrorCode
@@ -12,6 +12,11 @@ from huginn.jobs import JobLoadError, load_test_case_class
 from huginn.loaders import ConfigurationError, load_test_plan
 from huginn.models import Phase, Testbed, TestCaseDefinition, TestCaseGroup, TestPlan
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
+from huginn.report_plugins import (
+    ReportPlugin,
+    resolve_report_plugins,
+    write_validation_reports,
+)
 from huginn.runner import _resolve_targets
 from huginn.runtime_broker import RuntimeBrokerError, normalize_broker_key
 from huginn.testcase import TestCase
@@ -57,6 +62,7 @@ async def validate_inputs(
     filters: PlanFilterOptions,
     project_root: Path,
     reports_dir: Path,
+    report_plugins: list[ReportPlugin] | None = None,
 ) -> ValidationReport:
     """Validate configuration and emit a validation report."""
     try:
@@ -68,7 +74,11 @@ async def validate_inputs(
         test_plan = filter_test_plan(load_test_plan(plan_path), filters)
     except (ConfigurationError, InventoryPluginError) as error:
         report = _build_configuration_error_report(str(error))
-        _write_report(report=report, reports_dir=reports_dir)
+        _write_reports(
+            report=report,
+            reports_dir=reports_dir,
+            report_plugins=report_plugins,
+        )
         return report
 
     errors: list[ValidationIssue] = []
@@ -98,7 +108,11 @@ async def validate_inputs(
         warnings=target_warnings,
         errors=errors,
     )
-    _write_report(report=report, reports_dir=reports_dir)
+    _write_reports(
+        report=report,
+        reports_dir=reports_dir,
+        report_plugins=report_plugins,
+    )
     return report
 
 
@@ -293,10 +307,15 @@ def _normalize_required_brokers(test_case_class: type[TestCase]) -> set[str]:
     return normalized
 
 
-def _write_report(report: ValidationReport, reports_dir: Path) -> None:
-    """Persist validation report as JSON artifact."""
-    reports_dir.mkdir(parents=True, exist_ok=True)
-    import json
-
-    report_path = reports_dir / "validate.json"
-    report_path.write_text(json.dumps(asdict(report), indent=2), encoding="utf-8")
+def _write_reports(
+    *,
+    report: ValidationReport,
+    reports_dir: Path,
+    report_plugins: list[ReportPlugin] | None,
+) -> None:
+    """Persist validation report through configured report plugins."""
+    write_validation_reports(
+        report=report,
+        reports_dir=reports_dir,
+        plugins=report_plugins or resolve_report_plugins(None),
+    )

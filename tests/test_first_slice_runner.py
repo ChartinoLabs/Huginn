@@ -625,6 +625,34 @@ def test_run_inventory_plugin_errors_map_to_configuration_exit(
     assert "configuration_error" in result.stdout
 
 
+def test_run_rejects_unsupported_report_plugin(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unsupported report plugin names fail argument validation."""
+    _stage_runner_fixture(tmp_path, "passed")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--report-plugin",
+            "html",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 2
+
+
 def test_run_filters_by_phase_option(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
