@@ -29,6 +29,7 @@ class ResultStatus(StrEnum):
 
     - PASSED: All assertions succeeded.
     - FAILED: One or more assertions did not match expected state.
+    - INFO: Informational note with no impact on pass/fail.
     - ERRORED: An exception occurred during execution.
     - SKIPPED: The test case was in scope but determined at runtime to be
       not applicable (e.g., feature not configured in data model, no matching targets).
@@ -40,6 +41,7 @@ class ResultStatus(StrEnum):
 
     PASSED = "passed"
     FAILED = "failed"
+    INFO = "info"
     ERRORED = "errored"
     SKIPPED = "skipped"
     BLOCKED = "blocked"

@@ -22,8 +22,11 @@ class ResultCollector:
             return ResultStatus.ERRORED
         if any(check.status == ResultStatus.FAILED.value for check in self.checks):
             return ResultStatus.FAILED
-        if self.checks and all(
-            check.status == ResultStatus.SKIPPED.value for check in self.checks
+        non_info_checks = [
+            check for check in self.checks if check.status != ResultStatus.INFO.value
+        ]
+        if non_info_checks and all(
+            check.status == ResultStatus.SKIPPED.value for check in non_info_checks
         ):
             return ResultStatus.SKIPPED
         return ResultStatus.PASSED
