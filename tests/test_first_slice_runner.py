@@ -3,6 +3,7 @@
 import json
 import shutil
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 import pytest
@@ -764,6 +765,43 @@ def test_run_filters_by_comma_separated_tags_with_all_match_semantics(
         for case in group["test_cases"]
     ]
     assert executed_ids == ["2.0.0"]
+
+
+def test_run_executes_test_cases_in_group_in_parallel(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test cases in a group execute concurrently rather than serially."""
+    _stage_runner_fixture(tmp_path, "parallel_group_execution")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    start = perf_counter()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+    elapsed = perf_counter() - start
+
+    assert result.exit_code == 0
+    report = _load_report(tmp_path)
+    executed_ids = [
+        case["test_id"]
+        for phase in report["phases"]
+        for group in phase["test_case_groups"]
+        for case in group["test_cases"]
+    ]
+    assert executed_ids == ["1.0.0", "1.0.1"]
+    assert elapsed < 0.55
 
 
 def test_run_learning_mode_persists_parameters(

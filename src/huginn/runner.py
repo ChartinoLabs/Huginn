@@ -1,5 +1,6 @@
 """Minimal end-to-end test plan runner for first implementation slice."""
 
+import asyncio
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
@@ -190,21 +191,26 @@ async def _execute_phase(
     executed_groups: list[ExecutedTestCaseGroup] = []
     for group_name in phase.test_case_groups:
         group = test_plan.test_case_groups[group_name]
-        executed_tests: list[ExecutedTestCase] = []
+        connect_lock = asyncio.Lock()
+        execution_tasks: list[asyncio.Task[ExecutedTestCase]] = []
         for test_id in group.tests:
             test_case_definition = test_plan.test_cases[test_id]
-            executed_tests.append(
-                await _execute_test_case(
-                    phase=phase,
-                    group=group,
-                    definition=test_case_definition,
-                    planned=planned_executions[test_case_definition.test_id],
-                    mode=mode,
-                    testbed=testbed,
-                    broker=broker,
-                    parameters_dir=parameters_dir,
+            execution_tasks.append(
+                asyncio.create_task(
+                    _execute_test_case(
+                        phase=phase,
+                        group=group,
+                        definition=test_case_definition,
+                        planned=planned_executions[test_case_definition.test_id],
+                        mode=mode,
+                        testbed=testbed,
+                        broker=broker,
+                        parameters_dir=parameters_dir,
+                        connect_lock=connect_lock,
+                    )
                 )
             )
+        executed_tests = await asyncio.gather(*execution_tasks)
 
         group_status = _derive_group_status(executed_tests)
         executed_groups.append(
@@ -320,6 +326,7 @@ async def _execute_test_case(
     testbed: Testbed,
     broker: RuntimeBroker,
     parameters_dir: Path,
+    connect_lock: asyncio.Lock,
 ) -> ExecutedTestCase:
     targets, target_error = _resolve_targets(
         testbed=testbed,
@@ -371,11 +378,12 @@ async def _execute_test_case(
     test_error: str | None = None
 
     try:
-        await _connect_targets_or_raise(
-            broker,
-            targets,
-            planned.required_brokers,
-        )
+        async with connect_lock:
+            await _connect_targets_or_raise(
+                broker,
+                targets,
+                planned.required_brokers,
+            )
     except RuntimeBrokerError as error:
         return _errored_test_case(
             definition,
