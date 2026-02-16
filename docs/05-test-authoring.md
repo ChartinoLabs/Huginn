@@ -453,6 +453,8 @@ class VerifyOSPFNeighbors(LearningTestCase):
 
 This keeps jobs focused on state collection and comparison logic.
 
+When running `huginn run --mode learning`, only tests inheriting `LearningTestCase` are executed. Tests inheriting `TestCase` directly are skipped by design in learning mode.
+
 ## Async Patterns
 
 All test methods are async. This enables efficient parallel operations.
