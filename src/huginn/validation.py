@@ -4,8 +4,12 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from huginn.enums import BrokerType, ErrorCode
+from huginn.inventory_plugins import (
+    InventoryPluginError,
+    resolve_inventory_testbed,
+)
 from huginn.jobs import JobLoadError, load_test_case_class
-from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
+from huginn.loaders import ConfigurationError, load_test_plan
 from huginn.models import Phase, Testbed, TestCaseDefinition, TestCaseGroup, TestPlan
 from huginn.plan_filtering import filter_test_plan_by_tags
 from huginn.runner import _resolve_targets
@@ -47,7 +51,8 @@ class ValidationReport:
 
 def validate_inputs(
     *,
-    testbed_path: Path,
+    testbed_path: Path | None,
+    inventory_plugin: str | None,
     plan_path: Path,
     tags: list[str] | None,
     project_root: Path,
@@ -55,9 +60,13 @@ def validate_inputs(
 ) -> ValidationReport:
     """Validate configuration and emit a validation report."""
     try:
-        testbed = load_testbed(testbed_path)
+        testbed = resolve_inventory_testbed(
+            testbed_path=testbed_path,
+            inventory_plugin=inventory_plugin,
+            project_root=project_root,
+        )
         test_plan = filter_test_plan_by_tags(load_test_plan(plan_path), tags)
-    except ConfigurationError as error:
+    except (ConfigurationError, InventoryPluginError) as error:
         report = _build_configuration_error_report(str(error))
         _write_report(report=report, reports_dir=reports_dir)
         return report

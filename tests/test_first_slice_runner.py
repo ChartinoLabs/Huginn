@@ -536,6 +536,61 @@ def test_run_with_unmatched_tags_produces_empty_execution(
     assert report_data["phases"] == []
 
 
+def test_run_supports_file_inventory_plugin(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Run command resolves testbed via built-in file inventory plugin."""
+    _stage_runner_fixture(tmp_path, "passed")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--inventory-plugin",
+            "file:testbed.yaml",
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report_data = _load_report(tmp_path)
+    assert report_data["summary"]["status"] == "passed"
+
+
+def test_run_inventory_plugin_errors_map_to_configuration_exit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unsupported inventory plugins exit with configuration error code."""
+    _stage_runner_fixture(tmp_path, "passed")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--inventory-plugin",
+            "unknown:foo",
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 2
+    assert "configuration_error" in result.stdout
+
+
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
     """Copy a fixture scenario into the temp execution directory."""
     fixture_root = Path(__file__).resolve().parent / "fixtures" / "first_slice_runner"

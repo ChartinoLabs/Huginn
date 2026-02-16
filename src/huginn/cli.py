@@ -100,7 +100,6 @@ def run(
     testbed_path = _resolve_testbed_option(
         testbed=testbed,
         inventory_plugin=inventory_plugin,
-        tags=tags,
         data_model=data_model,
     )
 
@@ -109,6 +108,7 @@ def run(
             run_test_plan(
                 mode=mode,
                 testbed_path=testbed_path,
+                inventory_plugin=inventory_plugin,
                 plan_path=plan,
                 tags=tags,
                 project_root=Path.cwd(),
@@ -186,12 +186,12 @@ def validate(
     testbed_path = _resolve_testbed_option(
         testbed=testbed,
         inventory_plugin=inventory_plugin,
-        tags=tags,
         data_model=data_model,
     )
 
     report = validate_inputs(
         testbed_path=testbed_path,
+        inventory_plugin=inventory_plugin,
         plan_path=plan,
         tags=tags,
         project_root=Path.cwd(),
@@ -230,24 +230,19 @@ def _resolve_testbed_option(
     *,
     testbed: Path | None,
     inventory_plugin: str | None,
-    tags: list[str] | None,
     data_model: Path | None,
-) -> Path:
+) -> Path | None:
     """Validate first-slice options and return required testbed path."""
-    if testbed is None:
-        if inventory_plugin is None:
-            raise typer.BadParameter(
-                "Either --testbed or --inventory-plugin must be specified."
-            )
-        raise typer.BadParameter(
-            "--inventory-plugin is not supported in this implementation slice. "
-            "Use --testbed."
-        )
-
-    if inventory_plugin is not None:
+    if testbed is not None and inventory_plugin is not None:
         raise typer.BadParameter(
             "--testbed and --inventory-plugin are mutually exclusive."
         )
+
+    if testbed is None and inventory_plugin is None:
+        raise typer.BadParameter(
+            "Either --testbed or --inventory-plugin must be specified."
+        )
+
     if data_model is not None:
         raise typer.BadParameter("--data-model is not implemented yet.")
     return testbed
