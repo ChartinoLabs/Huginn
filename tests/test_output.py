@@ -1,5 +1,6 @@
 """Unit tests for output and logging coordination."""
 
+import re
 from pathlib import Path
 
 from huginn.output import Output
@@ -62,3 +63,15 @@ def test_output_logs_structured_fields_in_stable_format(tmp_path: Path) -> None:
     assert "optional=none" in contents
     assert "plan=test_plan.yaml" in contents
     assert "retries=2" in contents
+
+
+def test_output_status_includes_timestamp_prefix(tmp_path: Path) -> None:
+    """User-facing status lines include millisecond timestamp prefix."""
+    output = Output(log_file=tmp_path / "huginn.log")
+
+    with output.console.capture() as capture:
+        output.status("hello")
+
+    rendered = capture.get()
+    assert "hello" in rendered
+    assert re.search(r"\d{2}:\d{2}:\d{2}\.\d{3}", rendered)

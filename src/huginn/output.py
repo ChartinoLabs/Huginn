@@ -3,9 +3,16 @@
 import logging
 import sys
 from collections.abc import Mapping
+from datetime import datetime
 from pathlib import Path
 
 from rich.console import Console
+from rich.text import Text
+
+
+def _console_log_time(timestamp: datetime) -> Text:
+    """Render a timestamp with millisecond precision for console output."""
+    return Text(timestamp.strftime("%H:%M:%S.%f")[:-3])
 
 
 class Output:
@@ -25,8 +32,17 @@ class Output:
             log_level: Logger level name (DEBUG/INFO/WARNING/ERROR).
             log_file: Optional explicit file path for logs.
         """
-        self.console = Console()
-        self.error_console = Console(stderr=True)
+        self.console = Console(
+            log_time=True,
+            log_path=False,
+            log_time_format=_console_log_time,
+        )
+        self.error_console = Console(
+            stderr=True,
+            log_time=True,
+            log_path=False,
+            log_time_format=_console_log_time,
+        )
         self.logger = logging.getLogger("huginn")
         self.logger.propagate = False
         self.log_file = log_file or Path.cwd() / "huginn.log"
@@ -34,19 +50,19 @@ class Output:
 
     def status(self, message: str) -> None:
         """Print a neutral status message to stdout."""
-        self.console.print(message, markup=False)
+        self.console.log(message, markup=False)
 
     def success(self, message: str) -> None:
         """Print a success message to stdout."""
-        self.console.print(message, style="green", markup=False)
+        self.console.log(message, style="green", markup=False)
 
     def warning(self, message: str) -> None:
         """Print a warning message to stdout."""
-        self.console.print(message, style="yellow", markup=False)
+        self.console.log(message, style="yellow", markup=False)
 
     def error(self, message: str) -> None:
         """Print an error message to stderr."""
-        self.error_console.print(message, style="red", markup=False)
+        self.error_console.log(message, style="red", markup=False)
 
     def log_debug(self, message: str, *args: object) -> None:
         """Write a DEBUG log entry."""
