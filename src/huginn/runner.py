@@ -6,6 +6,7 @@ from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 
 from huginn.context import Context
 from huginn.enums import BrokerType, ErrorCode, ExecutionMode, ResultStatus
@@ -91,6 +92,7 @@ async def run_test_plan(
     broker_factory: Callable[[], RuntimeBroker] | None = None,
 ) -> RunReport:
     """Execute a minimal test plan and persist JSON output."""
+    run_started = perf_counter()
     log_info(
         output,
         "Run starting",
@@ -99,6 +101,8 @@ async def run_test_plan(
         testbed=testbed_path,
         inventory_plugin=inventory_plugin,
     )
+    _emit_status(output, "Loading inventory and test plan")
+    load_started = perf_counter()
     try:
         testbed = await resolve_inventory_testbed(
             testbed_path=testbed_path,
@@ -120,7 +124,13 @@ async def run_test_plan(
             code=ErrorCode.CONFIGURATION_ERROR,
             traceback_text=traceback.format_exc(),
         ) from error
+    _emit_status(
+        output,
+        f"Loaded inventory and test plan in {_format_elapsed(load_started)}",
+    )
 
+    _emit_status(output, "Planning test execution")
+    planning_started = perf_counter()
     planned_executions = _plan_executions(
         mode=mode,
         test_plan=test_plan,
@@ -138,12 +148,23 @@ async def run_test_plan(
         planning_errors=planning_errors,
         required_brokers=sorted(broker.value for broker in planned_brokers),
     )
+    _emit_status(
+        output,
+        (
+            "Planned test execution in "
+            f"{_format_elapsed(planning_started)} "
+            f"(tests={len(planned_executions)} errors={planning_errors})"
+        ),
+    )
+    _emit_phase_order(output, list(test_plan.phases))
     runtime_broker = _create_broker(
         broker_factory=broker_factory,
         required_brokers=planned_brokers,
     )
 
     try:
+        _emit_status(output, "Priming runtime connections")
+        priming_started = perf_counter()
         await _prime_runtime_connections(
             testbed=testbed,
             test_plan=test_plan,
@@ -151,6 +172,13 @@ async def run_test_plan(
             broker=runtime_broker,
             output=output,
         )
+        _emit_status(
+            output,
+            f"Primed runtime connections in {_format_elapsed(priming_started)}",
+        )
+
+        _emit_status(output, "Executing phases")
+        execution_started = perf_counter()
         executed_phases = await _execute_phases_with_dependencies(
             mode=mode,
             testbed=testbed,
@@ -159,6 +187,10 @@ async def run_test_plan(
             broker=runtime_broker,
             parameters_dir=parameters_dir,
             output=output,
+        )
+        _emit_status(
+            output,
+            f"Finished phase execution in {_format_elapsed(execution_started)}",
         )
     finally:
         log_debug(output, "Run teardown starting")
@@ -198,6 +230,7 @@ async def run_test_plan(
         skipped=report.summary.skipped,
         blocked=report.summary.blocked,
     )
+    _emit_status(output, f"Run completed in {_format_elapsed(run_started)}")
     return report
 
 
@@ -230,6 +263,10 @@ async def _execute_phases_with_dependencies(
                 continue
 
             if _is_blocked_by_dependencies(phase, phase_results):
+                _emit_status(
+                    output,
+                    f"Skipping phase: {phase.name} (blocked by dependencies)",
+                )
                 log_info(
                     output,
                     "Phase blocked by dependencies",
@@ -238,6 +275,7 @@ async def _execute_phases_with_dependencies(
                 )
                 executed_phase = _build_blocked_phase(phase, test_plan)
             else:
+                _emit_status(output, f"Starting phase: {phase.name}")
                 executed_phase = await _execute_phase(
                     phase=phase,
                     mode=mode,
@@ -255,6 +293,7 @@ async def _execute_phases_with_dependencies(
                 phase=phase.name,
                 status=executed_phase.status,
             )
+            _emit_phase_rollup(output, executed_phase)
 
             phase_results[phase_name] = executed_phase
             pending.remove(phase_name)
@@ -764,6 +803,7 @@ async def _execute_test_case(
     parameters_dir: Path,
     output: Output | None,
 ) -> ExecutedTestCase:
+    _emit_status(output, f"Starting test: {definition.test_id} ({definition.title})")
     log_debug(
         output,
         "Test execution starting",
@@ -787,6 +827,12 @@ async def _execute_test_case(
             test_id=definition.test_id,
             error=target_error,
         )
+        _emit_test_result(
+            output,
+            definition,
+            status=ResultStatus.ERRORED.value,
+            detail=target_error,
+        )
         return _errored_test_case(
             definition,
             error=target_error,
@@ -799,6 +845,12 @@ async def _execute_test_case(
             phase=phase.name,
             group=group.name,
             test_id=definition.test_id,
+        )
+        _emit_test_result(
+            output,
+            definition,
+            status=ResultStatus.SKIPPED.value,
+            detail="No devices matched target selectors",
         )
         return _skipped_test_case(
             definition,
@@ -828,6 +880,12 @@ async def _execute_test_case(
             test_id=definition.test_id,
             error=planned.planning_error,
         )
+        _emit_test_result(
+            output,
+            definition,
+            status=ResultStatus.ERRORED.value,
+            detail=planned.planning_error,
+        )
         return _errored_test_case(
             definition,
             error=planned.planning_error,
@@ -836,12 +894,24 @@ async def _execute_test_case(
         )
 
     if planned.skip_reason is not None:
+        _emit_test_result(
+            output,
+            definition,
+            status=ResultStatus.SKIPPED.value,
+            detail=planned.skip_reason,
+        )
         return _skipped_test_case(definition, reason=planned.skip_reason)
     if planned.test_case_class is None:
         log_warning(
             output,
             "Planned test class missing",
             test_id=definition.test_id,
+        )
+        _emit_test_result(
+            output,
+            definition,
+            status=ResultStatus.ERRORED.value,
+            detail="Missing planned test case class",
         )
         return _errored_test_case(
             definition,
@@ -880,6 +950,12 @@ async def _execute_test_case(
             test_id=definition.test_id,
             error=test_error,
         )
+        _emit_test_result(
+            output,
+            definition,
+            status=ResultStatus.ERRORED.value,
+            detail=test_error,
+        )
         return _errored_test_case(
             definition,
             checks=result_collector.checks,
@@ -897,6 +973,7 @@ async def _execute_test_case(
         checks=len(result_collector.checks),
         command_executions=len(result_collector.command_executions),
     )
+    _emit_test_result(output, definition, status=status)
     return ExecutedTestCase(
         test_id=definition.test_id,
         title=definition.title,
@@ -974,16 +1051,57 @@ async def _prime_runtime_connections(
             broker_sets=len(targets_by_brokers),
         )
         for required_brokers, target_lookup in targets_by_brokers.items():
+            method_names = sorted(broker_type.value for broker_type in required_brokers)
+            target_names = sorted(target_lookup)
+            broker_name = broker.__class__.__name__
+            set_started = perf_counter()
+            _emit_status(
+                output,
+                (
+                    "Priming connection set: "
+                    f"broker={broker_name} "
+                    f"methods={','.join(method_names)} "
+                    f"targets={','.join(target_names)}"
+                ),
+            )
+            log_info(
+                output,
+                "Priming connection set",
+                broker=broker_name,
+                methods=method_names,
+                targets=target_names,
+                target_count=len(target_names),
+            )
             log_debug(
                 output,
                 "Priming broker connection set",
-                required_brokers=sorted(broker.value for broker in required_brokers),
-                targets=sorted(target_lookup.keys()),
+                required_brokers=method_names,
+                targets=target_names,
             )
             await _connect_targets_or_raise(
                 broker,
                 list(target_lookup.values()),
                 set(required_brokers),
+            )
+            elapsed = _format_elapsed(set_started)
+            _emit_status(
+                output,
+                (
+                    "Primed connection set: "
+                    f"broker={broker_name} "
+                    f"methods={','.join(method_names)} "
+                    f"targets={','.join(target_names)} "
+                    f"duration={elapsed}"
+                ),
+            )
+            log_info(
+                output,
+                "Primed connection set",
+                broker=broker_name,
+                methods=method_names,
+                targets=target_names,
+                target_count=len(target_names),
+                duration=elapsed,
             )
         log_debug(output, "Runtime connection priming completed")
     except RuntimeBrokerError as error:
@@ -1112,6 +1230,69 @@ def _create_broker(
     if broker_factory is None:
         return RuntimeBroker(required_brokers=required_brokers)
     return broker_factory()
+
+
+def _emit_status(output: Output | None, message: str) -> None:
+    """Print user-facing run status messages when output is available."""
+    if output is None:
+        return
+    output.status(message)
+
+
+def _emit_phase_order(output: Output | None, phase_names: list[str]) -> None:
+    """Emit configured phase execution order to stdout."""
+    if not phase_names:
+        _emit_status(output, "Phase order: (none)")
+        return
+    _emit_status(output, f"Phase order: {' -> '.join(phase_names)}")
+
+
+def _emit_phase_rollup(output: Output | None, phase: ExecutedPhase) -> None:
+    """Emit per-phase status counts after completion."""
+    statuses = _collect_phase_statuses(phase)
+    counts = Counter(statuses)
+    _emit_status(
+        output,
+        "Phase complete: "
+        f"{phase.name} "
+        f"status={phase.status} "
+        f"total={len(statuses)} "
+        f"passed={counts[ResultStatus.PASSED.value]} "
+        f"failed={counts[ResultStatus.FAILED.value]} "
+        f"errored={counts[ResultStatus.ERRORED.value]} "
+        f"not_applicable={counts[ResultStatus.NOT_APPLICABLE.value]} "
+        f"skipped={counts[ResultStatus.SKIPPED.value]} "
+        f"blocked={counts[ResultStatus.BLOCKED.value]}",
+    )
+
+
+def _collect_phase_statuses(phase: ExecutedPhase) -> list[str]:
+    """Collect statuses for all tests within one executed phase."""
+    statuses: list[str] = []
+    for group in phase.test_case_groups:
+        for test_case in group.test_cases:
+            statuses.append(test_case.status)
+    return statuses
+
+
+def _emit_test_result(
+    output: Output | None,
+    definition: TestCaseDefinition,
+    *,
+    status: str,
+    detail: str | None = None,
+) -> None:
+    """Emit one-line test completion status to stdout."""
+    suffix = f" ({detail})" if detail else ""
+    _emit_status(
+        output,
+        f"Finished test: {definition.test_id} status={status}{suffix}",
+    )
+
+
+def _format_elapsed(started_at: float) -> str:
+    """Format elapsed seconds from a perf_counter start timestamp."""
+    return f"{perf_counter() - started_at:.3f}s"
 
 
 def _resolve_targets(
