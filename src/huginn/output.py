@@ -7,11 +7,12 @@ from datetime import datetime
 from pathlib import Path
 
 from rich.console import Console
+from rich.text import Text
 
 
-def _console_log_time(timestamp: datetime) -> str:
+def _console_log_time(timestamp: datetime) -> Text:
     """Render a timestamp with millisecond precision for console output."""
-    return timestamp.strftime("%H:%M:%S.%f")[:-3]
+    return Text(timestamp.strftime("%H:%M:%S.%f")[:-3])
 
 
 class Output:
