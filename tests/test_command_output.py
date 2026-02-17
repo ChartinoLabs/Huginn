@@ -1,6 +1,6 @@
 """Unit tests for command output heuristics."""
 
-from huginn.command_output import is_command_unsupported
+from huginn.utils.commands import is_command_unsupported
 
 
 def test_is_command_unsupported_matches_common_error_markers() -> None:
