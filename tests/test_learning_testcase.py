@@ -40,6 +40,7 @@ class _FakeResults:
 @dataclass
 class _FakeContext:
     mode: ExecutionMode
+    test_title: str = "Example Test"
     targets: list["_FakeDevice"] = field(default_factory=list)
     parameters: _FakeParameters = field(default_factory=_FakeParameters)
     results: _FakeResults = field(default_factory=_FakeResults)
@@ -100,6 +101,13 @@ class _NoApplicableLearningTest(_ExampleLearningTest):
                 target.name: "protocol not configured" for target in targets
             },
         )
+
+
+class _MetadataLearningTest(_ExampleLearningTest):
+    DESCRIPTION = "Validate expected payload for {{ parameters.device }}"
+    SETUP = "Connect to {{ parameters.device }}"
+    PROCEDURE = "Compare state for {{ parameters.device }}"
+    PASS_FAIL_CRITERIA = "Pass when baseline matches {{ parameters.device }}"
 
 
 @pytest.mark.asyncio
@@ -183,4 +191,54 @@ async def test_learning_testcase_skips_when_no_applicable_targets() -> None:
     assert context.results.entries == [
         (ResultStatus.NOT_APPLICABLE, "leaf-01: protocol not configured"),
         (ResultStatus.INFO, "No applicable targets after applicability check"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_learning_testcase_renders_metadata_in_testing_mode() -> None:
+    """Testing mode renders metadata templates using expected parameters."""
+    test_case = _MetadataLearningTest()
+    context = _FakeContext(
+        mode=ExecutionMode.TESTING,
+        test_title="Rendered Metadata",
+        targets=[_FakeDevice(name="leaf-01")],
+        parameters=_FakeParameters(loaded_payload={"device": "leaf-01"}),
+    )
+
+    await test_case.test(cast(Context, context))
+
+    assert test_case.compared == [({"device": "leaf-01"}, {"current": True})]
+    assert context.results.entries == [
+        (
+            ResultStatus.INFO,
+            "Test Metadata: Rendered Metadata\n"
+            "\n"
+            "Description:\n"
+            "Validate expected payload for leaf-01\n"
+            "\n"
+            "Setup:\n"
+            "Connect to leaf-01\n"
+            "\n"
+            "Procedure:\n"
+            "Compare state for leaf-01\n"
+            "\n"
+            "Pass/Fail Criteria:\n"
+            "Pass when baseline matches leaf-01",
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_learning_testcase_skips_metadata_in_learning_mode() -> None:
+    """Learning mode does not emit rendered metadata output."""
+    test_case = _MetadataLearningTest()
+    context = _FakeContext(
+        mode=ExecutionMode.LEARNING,
+        targets=[_FakeDevice(name="leaf-01")],
+    )
+
+    await test_case.test(cast(Context, context))
+
+    assert context.results.entries == [
+        (ResultStatus.PASSED, "Learned parameters saved successfully")
     ]

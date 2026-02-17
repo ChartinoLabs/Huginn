@@ -3,9 +3,17 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
+from jinja2 import Environment
+
 from huginn.context import Context
 from huginn.enums import BrokerType, ExecutionMode, ResultStatus
 from huginn.models import Device
+
+_METADATA_TEMPLATE_ENV = Environment(
+    autoescape=False,
+    trim_blocks=True,
+    lstrip_blocks=True,
+)
 
 
 @dataclass
@@ -36,6 +44,11 @@ class TestCase(ABC):
 
 class LearningTestCase(TestCase, ABC):
     """Reusable base class for learning/testing state comparison patterns."""
+
+    DESCRIPTION: str | None = None
+    SETUP: str | None = None
+    PROCEDURE: str | None = None
+    PASS_FAIL_CRITERIA: str | None = None
 
     async def setup(self, context: Context) -> None:
         """Default no-op setup for learning/testing style tests."""
@@ -78,6 +91,7 @@ class LearningTestCase(TestCase, ABC):
             return
 
         expected_state = await context.parameters.load()
+        self._add_rendered_metadata_result(context=context, parameters=expected_state)
         await self.compare_state(
             expected=expected_state,
             current=current_state,
@@ -91,6 +105,41 @@ class LearningTestCase(TestCase, ABC):
     async def cleanup(self, context: Context) -> None:
         """Default no-op cleanup for learning/testing style tests."""
         return None
+
+    def _add_rendered_metadata_result(
+        self,
+        *,
+        context: Context,
+        parameters: dict[str, object],
+    ) -> None:
+        """Render optional metadata templates and append one INFO result."""
+        metadata_sections = self._metadata_sections()
+        if not metadata_sections:
+            return
+
+        title = f"Test Metadata: {context.test_title}"
+        lines: list[str] = [title]
+        for heading, template in metadata_sections:
+            rendered = _METADATA_TEMPLATE_ENV.from_string(template).render(
+                parameters=parameters
+            )
+            lines.extend(["", f"{heading}:", rendered.strip()])
+
+        context.results.add_result(ResultStatus.INFO, "\n".join(lines).strip())
+
+    def _metadata_sections(self) -> list[tuple[str, str]]:
+        """Return available metadata templates in report display order."""
+        sections: list[tuple[str, str | None]] = [
+            ("Description", self.DESCRIPTION),
+            ("Setup", self.SETUP),
+            ("Procedure", self.PROCEDURE),
+            ("Pass/Fail Criteria", self.PASS_FAIL_CRITERIA),
+        ]
+        return [
+            (heading, template.strip())
+            for heading, template in sections
+            if isinstance(template, str) and template.strip()
+        ]
 
     @abstractmethod
     async def gather_state(self, context: Context) -> dict[str, object]:
