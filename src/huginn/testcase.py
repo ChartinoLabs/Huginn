@@ -10,7 +10,7 @@ from huginn.enums import BrokerType, ExecutionMode, ResultStatus
 from huginn.models import Device
 
 _METADATA_TEMPLATE_ENV = Environment(
-    autoescape=False,
+    autoescape=True,
     trim_blocks=True,
     lstrip_blocks=True,
 )
