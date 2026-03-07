@@ -36,7 +36,7 @@ def test_resolve_report_plugins_rejects_unsupported_plugin() -> None:
 
 
 def test_json_report_plugin_writes_validate_report(tmp_path: Path) -> None:
-    """Built-in JSON plugin writes validate.json artifact."""
+    """Built-in JSON plugin writes timestamped validation artifacts."""
     plugin = resolve_report_plugins(["json"])[0]
     report = ValidationReport(
         valid=True,
@@ -47,9 +47,11 @@ def test_json_report_plugin_writes_validate_report(tmp_path: Path) -> None:
         errors=[],
     )
 
-    report_path = plugin.write_validation_report(report, tmp_path / "reports")
+    report_path = plugin.write_validation_report(report, tmp_path / "results")
 
     assert report_path.name == "validate.json"
+    assert report_path.parent.parent == tmp_path / "results"
+    assert report_path.parent.name.endswith("-validate")
     payload = json.loads(report_path.read_text(encoding="utf-8"))
     assert payload["valid"] is True
 

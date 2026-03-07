@@ -162,7 +162,7 @@ Executes a single test:
 
 Generates hierarchical validation and run artifacts (phases → groups → test cases):
 
-- Validation artifact written to `reports/validate.json`
+- Validation artifact written to `results/<timestamp>-validate/validate.json`
 - Run summary artifact written to `results/<timestamp>-<mode>/run.json`
 - Per-test case JSON artifacts with command output and granular results
 - Aggregate status indicators (Passed, Partial, Failed, Blocked, Skipped)
@@ -748,7 +748,9 @@ project/
 │   └── 2.0.0_verify_bgp_parameters.json
 ├── reports/                # Validation artifacts (auto-generated)
 │   └── validate.json
-└── results/                # Run artifacts (auto-generated)
+└── results/                # Validation and run artifacts (auto-generated)
+    ├── 2026-Feb-07-16-35-10-validate/
+    │   └── validate.json
     └── 2026-Feb-07-16-38-43-testing/
         ├── run.json
         └── test-cases/

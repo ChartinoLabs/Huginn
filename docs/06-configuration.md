@@ -26,7 +26,6 @@ inventory_plugin = ""              # Plugin name (e.g., "huginn-netbox")
 
 # Output paths
 parameters_dir = "parameters"      # Learned parameters directory
-reports_dir = "reports"            # Validation report directory
 logs_dir = "logs"                  # Log files directory
 
 # Execution settings
@@ -133,21 +132,19 @@ See [Architecture - Inventory Plugins](02-architecture.md#inventory-plugins) for
 ```toml
 [tool.huginn]
 parameters_dir = "parameters"
-reports_dir = "reports"
 logs_dir = "logs"
 ```
 
 | Setting          | Type   | Default        | Description                           |
 | ---------------- | ------ | -------------- | ------------------------------------- |
 | `parameters_dir` | string | `"parameters"` | Directory for learned parameter files |
-| `reports_dir`    | string | `"reports"`    | Directory for validation reports      |
 | `logs_dir`       | string | `"logs"`       | Directory for log files               |
 
 Paths are relative to the project root (directory containing `pyproject.toml`).
 
-Validation artifacts are written under `reports/`. Run artifacts are written under
-`results/<timestamp>-<mode>/`, with one `run.json` file for the run and one
-`result.json` file per test case.
+Run and validation artifacts are written under `results/`. Validation writes
+`results/<timestamp>-validate/validate.json`. Run execution writes
+`results/<timestamp>-<mode>/run.json`, with one `result.json` file per test case.
 
 ### Execution Settings
 
@@ -317,7 +314,6 @@ mode = "testing"
 
 # Paths
 parameters_dir = "data/parameters"
-reports_dir = "output/reports"
 logs_dir = "output/logs"
 
 # Execution
