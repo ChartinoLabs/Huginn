@@ -95,7 +95,7 @@ The execution mode for a test run. Huginn supports two modes:
 
 ### Run
 
-A single execution of a test plan against a testbed. A run establishes connections to all devices, executes phases in dependency order, executes test case groups within each phase, collects results, and writes run artifacts under `results/<timestamp>-<mode>/`. Test cases filtered out by tags or other criteria do not appear in run results.
+A single execution of a test plan against a testbed. A run establishes connections to all devices, executes phases in dependency order, executes test case groups within each phase, collects results, and generates reports. Test cases filtered out by tags or other criteria do not appear in run results.
 
 ### Context
 
