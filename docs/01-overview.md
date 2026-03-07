@@ -93,10 +93,11 @@ The framework can execute multiple tests in parallel within a test case group. I
 
 ### Comprehensive Reporting
 
-Huginn generates detailed HTML reports:
+Huginn generates structured JSON artifacts for both validation and execution:
 
-- Per-test reports with command output, parsed data, and granular results
-- Summary reports aggregating results across all tests
+- Validation writes `reports/validate.json`
+- Each run writes `results/<timestamp>-<mode>/run.json`
+- Each test case in a run writes its own `result.json` with command output, parsed data, and granular checks
 
 ## Comparison to Existing Frameworks
 

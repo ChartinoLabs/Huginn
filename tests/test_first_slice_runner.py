@@ -1127,6 +1127,23 @@ def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
 
 
 def _load_report(tmp_path: Path) -> dict[str, Any]:
-    """Load the generated run report from the default reports directory."""
-    report_path = tmp_path / "reports" / "run.json"
-    return json.loads(report_path.read_text(encoding="utf-8"))
+    """Load the generated run report and hydrate per-test-case details."""
+    run_reports = sorted((tmp_path / "results").glob("*/run.json"))
+    assert run_reports, "expected a run.json artifact under results/"
+
+    report_path = run_reports[-1]
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+
+    for phase in payload["phases"]:
+        for group in phase["test_case_groups"]:
+            hydrated_cases: list[dict[str, Any]] = []
+            for test_case in group["test_cases"]:
+                hydrated_case = dict(test_case)
+                result_path = hydrated_case.pop("result_path")
+                test_case_payload = json.loads(
+                    (report_path.parent / result_path).read_text(encoding="utf-8")
+                )
+                hydrated_cases.append({**hydrated_case, **test_case_payload})
+            group["test_cases"] = hydrated_cases
+
+    return payload

@@ -160,11 +160,11 @@ Executes a single test:
 
 ### Reporter
 
-Generates test reports with hierarchical structure (phases → groups → test cases):
+Generates hierarchical validation and run artifacts (phases → groups → test cases):
 
-- Summary report with phase-level results (collapsible/expandable)
-- Per-test case group results with pass/fail counts
-- Per-test HTML reports with command output and granular results
+- Validation artifact written to `reports/validate.json`
+- Run summary artifact written to `results/<timestamp>-<mode>/run.json`
+- Per-test case JSON artifacts with command output and granular results
 - Aggregate status indicators (Passed, Partial, Failed, Blocked, Skipped)
 - Structured output (JSON) for CI/CD integration
 
@@ -559,12 +559,13 @@ Huginn supports optional plugins for extensibility without bloating the core.
 
 ### Plugin Types
 
-| Type           | Purpose                               | Example                           |
-| -------------- | ------------------------------------- | --------------------------------- |
-| **Inventory**  | Dynamic testbed from external sources | NetBox, IPAM/DDI, CSV/Excel       |
-| **Connection** | Additional connection protocols       | NETCONF, gNMI, SNMP               |
-| **Parser**     | Output parsing (typically via Muninn) | Vendor-specific parsers           |
-| **Hook**       | Lifecycle callbacks                   | Pre-test setup, post-test cleanup |
+| Type           | Purpose                               | Example                                  |
+| -------------- | ------------------------------------- | ---------------------------------------- |
+| **Inventory**  | Dynamic testbed from external sources | NetBox, IPAM/DDI, CSV/Excel              |
+| **Connection** | Additional connection protocols       | NETCONF, gNMI, SNMP                      |
+| **Reporter**   | Transform run artifacts for consumers | HTML dashboards, JUnit XML, Slack digest |
+| **Parser**     | Output parsing (typically via Muninn) | Vendor-specific parsers                  |
+| **Hook**       | Lifecycle callbacks                   | Pre-test setup, post-test cleanup        |
 
 ### Inventory Plugins
 
@@ -635,6 +636,22 @@ huginn run --inventory-plugin huginn-netbox
 # Override with static testbed (ignores plugin)
 huginn run --testbed testbed.yaml
 ```
+
+### Reporter Plugins
+
+Reporter plugins consume Huginn's structured validation and run artifacts and render
+them for downstream consumers. The built-in JSON reporter writes canonical artifacts
+to disk, and additional plugins can layer on alternate presentations or export
+formats without changing test execution.
+
+**Use Cases:**
+
+- **Human-friendly views**: HTML dashboards, static sites, searchable drill-down UIs
+- **Tooling integration**: JUnit XML for CI systems, custom JSON for data pipelines
+- **Notifications**: Slack summaries, email digests, incident attachments
+
+This keeps the execution core focused on producing stable machine-readable artifacts
+while allowing reporting formats to evolve independently.
 
 ### Hook System
 
@@ -729,11 +746,16 @@ project/
 ├── parameters/             # Learned state (auto-generated)
 │   ├── 1.0.0_verify_ospf_parameters.json
 │   └── 2.0.0_verify_bgp_parameters.json
-└── reports/                # Generated reports (auto-generated)
-    ├── summary.html
-    └── results/
-        ├── 1.0.0_verify_ospf.html
-        └── 2.0.0_verify_bgp.html
+├── reports/                # Validation artifacts (auto-generated)
+│   └── validate.json
+└── results/                # Run artifacts (auto-generated)
+    └── 2026-Feb-07-16-38-43-testing/
+        ├── run.json
+        └── test-cases/
+            ├── 1.0.0_verify_ospf/
+            │   └── result.json
+            └── 2.0.0_verify_bgp/
+                └── result.json
 ```
 
 ## Next Steps
