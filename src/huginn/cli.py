@@ -393,7 +393,7 @@ def validate(
                     test_ids=test_id,
                 ),
                 project_root=Path.cwd(),
-                reports_dir=Path.cwd() / "reports",
+                results_dir=Path.cwd() / "results",
                 report_plugins=report_plugins,
                 output=output,
             )
@@ -409,7 +409,7 @@ def validate(
         f"warnings={len(report.warnings)} "
         f"errors={len(report.errors)}"
     )
-    output.status("Report artifacts written to reports/")
+    output.status("Validation artifacts written to results/")
 
     if not report.valid:
         for error in report.errors:

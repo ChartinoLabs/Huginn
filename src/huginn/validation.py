@@ -63,7 +63,7 @@ async def validate_inputs(
     plan_path: Path,
     filters: PlanFilterOptions,
     project_root: Path,
-    reports_dir: Path,
+    results_dir: Path,
     report_plugins: list[ReportPlugin] | None = None,
     output: Output | None = None,
 ) -> ValidationReport:
@@ -95,7 +95,7 @@ async def validate_inputs(
         report = _build_configuration_error_report(str(error))
         _write_reports(
             report=report,
-            reports_dir=reports_dir,
+            results_dir=results_dir,
             report_plugins=report_plugins,
         )
         return report
@@ -137,7 +137,7 @@ async def validate_inputs(
     )
     _write_reports(
         report=report,
-        reports_dir=reports_dir,
+        results_dir=results_dir,
         report_plugins=report_plugins,
     )
     log_info(
@@ -372,12 +372,12 @@ def _normalize_required_brokers(test_case_class: type[TestCase]) -> set[str]:
 def _write_reports(
     *,
     report: ValidationReport,
-    reports_dir: Path,
+    results_dir: Path,
     report_plugins: list[ReportPlugin] | None,
 ) -> None:
     """Persist validation report through configured report plugins."""
     write_validation_reports(
         report=report,
-        reports_dir=reports_dir,
+        results_dir=results_dir,
         plugins=report_plugins or resolve_report_plugins(None),
     )

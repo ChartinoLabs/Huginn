@@ -45,7 +45,7 @@ class ReportPlugin(Protocol):
     def write_validation_report(
         self,
         report: "ValidationReport",
-        reports_dir: Path,
+        results_dir: Path,
     ) -> Path:
         """Persist a validation report artifact and return its path."""
         raise NotImplementedError
@@ -90,10 +90,11 @@ class JsonReportPlugin:
     def write_validation_report(
         self,
         report: "ValidationReport",
-        reports_dir: Path,
+        results_dir: Path,
     ) -> Path:
-        """Write validation report JSON artifact."""
-        return _write_json(reports_dir / self.validation_filename, asdict(report))
+        """Write validation JSON artifact under a timestamped results directory."""
+        validate_dir = _create_timestamped_results_dir(results_dir, suffix="validate")
+        return _write_json(validate_dir / self.validation_filename, asdict(report))
 
 
 def resolve_report_plugins(specs: list[str] | None) -> list[ReportPlugin]:
@@ -124,14 +125,14 @@ def write_run_reports(
 def write_validation_reports(
     *,
     report: "ValidationReport",
-    reports_dir: Path,
+    results_dir: Path,
     plugins: Iterable[ReportPlugin],
 ) -> list[Path]:
     """Write validation report artifacts through configured plugins."""
     paths: list[Path] = []
     for plugin in plugins:
         try:
-            paths.append(plugin.write_validation_report(report, reports_dir))
+            paths.append(plugin.write_validation_report(report, results_dir))
         except Exception as error:  # noqa: BLE001
             raise ReportPluginError(
                 "Report plugin "
@@ -182,15 +183,25 @@ def _create_timestamped_run_dir(
     mode: ExecutionMode | None = None,
 ) -> Path:
     """Create a unique timestamped directory for one run."""
+    suffix = mode.value if mode is not None else None
+    return _create_timestamped_results_dir(results_dir, suffix=suffix)
+
+
+def _create_timestamped_results_dir(
+    results_dir: Path,
+    *,
+    suffix: str | None = None,
+) -> Path:
+    """Create a unique timestamped directory under results/."""
     base_name = datetime.now().strftime("%Y-%b-%d-%H-%M-%S")
-    if mode is not None:
-        base_name = f"{base_name}-{mode.value}"
+    if suffix is not None:
+        base_name = f"{base_name}-{suffix}"
     candidate = results_dir / base_name
-    suffix = 1
+    collision_suffix = 1
 
     while candidate.exists():
-        candidate = results_dir / f"{base_name}-{suffix:02d}"
-        suffix += 1
+        candidate = results_dir / f"{base_name}-{collision_suffix:02d}"
+        collision_suffix += 1
 
     candidate.mkdir(parents=True, exist_ok=False)
     return candidate

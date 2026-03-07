@@ -95,7 +95,7 @@ The framework can execute multiple tests in parallel within a test case group. I
 
 Huginn generates structured JSON artifacts for both validation and execution:
 
-- Validation writes `reports/validate.json`
+- Validation writes `results/<timestamp>-validate/validate.json`
 - Each run writes `results/<timestamp>-<mode>/run.json`
 - Each test case in a run writes its own `result.json` with command output, parsed data, and granular checks
 

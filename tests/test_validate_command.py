@@ -284,5 +284,7 @@ def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
 
 def _load_validate_report(tmp_path: Path) -> dict[str, Any]:
     """Load generated validate report payload."""
-    report_path = tmp_path / "reports" / "validate.json"
+    validate_reports = sorted((tmp_path / "results").glob("*-validate/validate.json"))
+    assert validate_reports, "expected a validate.json artifact under results/"
+    report_path = validate_reports[-1]
     return json.loads(report_path.read_text(encoding="utf-8"))
