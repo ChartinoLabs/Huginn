@@ -24,7 +24,7 @@ from huginn.models import (
     ExecutedTestCase,
     ExecutedTestCaseGroup,
     Phase,
-    RunReport,
+    RunResult,
     RunSummary,
     TargetDefinition,
     Testbed,
@@ -35,12 +35,7 @@ from huginn.models import (
 from huginn.output import Output
 from huginn.parameters import ParameterManager
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
-from huginn.report_plugins import (
-    ReportPlugin,
-    ReportPluginError,
-    resolve_report_plugins,
-    write_run_reports,
-)
+from huginn.result_store import ResultWriteError, write_run_result
 from huginn.results import ResultCollector
 from huginn.runtime_broker import (
     RuntimeBroker,
@@ -87,10 +82,9 @@ async def run_test_plan(
     project_root: Path,
     parameters_dir: Path,
     results_dir: Path,
-    report_plugins: list[ReportPlugin] | None = None,
     output: Output | None = None,
     broker_factory: Callable[[], RuntimeBroker] | None = None,
-) -> RunReport:
+) -> RunResult:
     """Execute a minimal test plan and persist run artifacts."""
     run_started = perf_counter()
     log_info(
@@ -205,15 +199,10 @@ async def run_test_plan(
             )
 
     summary = _build_summary(executed_phases)
-    report = RunReport(summary=summary, phases=executed_phases)
+    result = RunResult(summary=summary, phases=executed_phases)
     try:
-        write_run_reports(
-            report=report,
-            results_dir=results_dir,
-            plugins=report_plugins or resolve_report_plugins(None),
-            mode=mode,
-        )
-    except ReportPluginError as error:
+        write_run_result(result=result, results_dir=results_dir, mode=mode)
+    except ResultWriteError as error:
         raise RunExecutionError(
             str(error),
             code=ErrorCode.CONFIGURATION_ERROR,
@@ -222,17 +211,17 @@ async def run_test_plan(
     log_info(
         output,
         "Run completed",
-        status=report.summary.status,
-        total=report.summary.total,
-        passed=report.summary.passed,
-        failed=report.summary.failed,
-        errored=report.summary.errored,
-        not_applicable=report.summary.not_applicable,
-        skipped=report.summary.skipped,
-        blocked=report.summary.blocked,
+        status=result.summary.status,
+        total=result.summary.total,
+        passed=result.summary.passed,
+        failed=result.summary.failed,
+        errored=result.summary.errored,
+        not_applicable=result.summary.not_applicable,
+        skipped=result.summary.skipped,
+        blocked=result.summary.blocked,
     )
     _emit_status(output, f"Run completed in {_format_elapsed(run_started)}")
-    return report
+    return result
 
 
 async def _execute_phases_with_dependencies(

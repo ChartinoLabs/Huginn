@@ -170,8 +170,8 @@ class RunSummary:
 
 
 @dataclass
-class RunReport:
-    """Top-level run report payload written to disk."""
+class RunResult:
+    """Top-level run result payload written to disk."""
 
     summary: RunSummary
     phases: list[ExecutedPhase]

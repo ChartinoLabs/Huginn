@@ -5,7 +5,6 @@ against infrastructure testbeds.
 """
 
 import asyncio
-import traceback
 from importlib.metadata import version as get_version
 from pathlib import Path
 from typing import Annotated
@@ -15,11 +14,6 @@ import typer
 from huginn.enums import ErrorCode, ExecutionMode
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
-from huginn.report_plugins import (
-    ReportPlugin,
-    ReportPluginError,
-    resolve_report_plugins,
-)
 from huginn.runner import RunExecutionError, run_test_plan
 from huginn.validation import validate_inputs
 
@@ -121,13 +115,6 @@ def run(
             help="Use an inventory plugin instead of a static testbed YAML file.",
         ),
     ] = None,
-    report_plugin: Annotated[
-        list[str] | None,
-        typer.Option(
-            "--report-plugin",
-            help="Report plugin(s) to write artifacts (default: json).",
-        ),
-    ] = None,
     debug: Annotated[
         bool,
         typer.Option("--debug", help="Enable DEBUG-level logging."),
@@ -180,7 +167,6 @@ def run(
         plan=plan,
         testbed=testbed_path,
         inventory_plugin=inventory_plugin,
-        report_plugin=report_plugin,
         tags=tags,
         exclude_tags=exclude_tags,
         phase=phase,
@@ -192,7 +178,6 @@ def run(
     )
 
     try:
-        report_plugins = _resolve_report_plugins_option(report_plugin)
         filters = _build_plan_filters(
             tags=tags,
             exclude_tags=exclude_tags,
@@ -200,7 +185,7 @@ def run(
             test_case_groups=test_case_group,
             test_ids=test_id,
         )
-        report = asyncio.run(
+        result = asyncio.run(
             run_test_plan(
                 mode=mode,
                 testbed_path=testbed_path,
@@ -210,7 +195,6 @@ def run(
                 project_root=Path.cwd(),
                 parameters_dir=Path.cwd() / "parameters",
                 results_dir=Path.cwd() / "results",
-                report_plugins=report_plugins,
                 output=output,
             )
         )
@@ -220,21 +204,21 @@ def run(
             output.error(error.traceback_text)
         raise typer.Exit(code=_exit_code_for_run_error(error.code)) from error
 
-    output.status(f"Run status: {report.summary.status}")
+    output.status(f"Run status: {result.summary.status}")
     output.status(
         "Summary: "
-        f"total={report.summary.total} "
-        f"passed={report.summary.passed} "
-        f"failed={report.summary.failed} "
-        f"errored={report.summary.errored} "
-        f"not_applicable={report.summary.not_applicable} "
-        f"skipped={report.summary.skipped} "
-        f"blocked={report.summary.blocked}"
+        f"total={result.summary.total} "
+        f"passed={result.summary.passed} "
+        f"failed={result.summary.failed} "
+        f"errored={result.summary.errored} "
+        f"not_applicable={result.summary.not_applicable} "
+        f"skipped={result.summary.skipped} "
+        f"blocked={result.summary.blocked}"
     )
-    if report.summary.total == 0:
+    if result.summary.total == 0:
         output.warning("No test cases were selected for execution")
     output.status("Run artifacts written to results/")
-    if report.summary.status != "passed":
+    if result.summary.status != "passed":
         raise typer.Exit(code=1)
 
 
@@ -319,13 +303,6 @@ def validate(
             help="Use an inventory plugin instead of a static testbed YAML file.",
         ),
     ] = None,
-    report_plugin: Annotated[
-        list[str] | None,
-        typer.Option(
-            "--report-plugin",
-            help="Report plugin(s) to write artifacts (default: json).",
-        ),
-    ] = None,
     debug: Annotated[
         bool,
         typer.Option("--debug", help="Enable DEBUG-level logging."),
@@ -368,7 +345,6 @@ def validate(
         plan=plan,
         testbed=testbed_path,
         inventory_plugin=inventory_plugin,
-        report_plugin=report_plugin,
         tags=tags,
         exclude_tags=exclude_tags,
         phase=phase,
@@ -378,45 +354,38 @@ def validate(
         show_logs=show_logs,
         log_file=log_file,
     )
-    report_plugins = _resolve_report_plugins_option(report_plugin)
-    try:
-        report = asyncio.run(
-            validate_inputs(
-                testbed_path=testbed_path,
-                inventory_plugin=inventory_plugin,
-                plan_path=plan,
-                filters=_build_plan_filters(
-                    tags=tags,
-                    exclude_tags=exclude_tags,
-                    phases=phase,
-                    test_case_groups=test_case_group,
-                    test_ids=test_id,
-                ),
-                project_root=Path.cwd(),
-                results_dir=Path.cwd() / "results",
-                report_plugins=report_plugins,
-                output=output,
-            )
+    result = asyncio.run(
+        validate_inputs(
+            testbed_path=testbed_path,
+            inventory_plugin=inventory_plugin,
+            plan_path=plan,
+            filters=_build_plan_filters(
+                tags=tags,
+                exclude_tags=exclude_tags,
+                phases=phase,
+                test_case_groups=test_case_group,
+                test_ids=test_id,
+            ),
+            project_root=Path.cwd(),
+            results_dir=Path.cwd() / "results",
+            output=output,
         )
-    except ReportPluginError as error:
-        output.error(f"ERROR [{ErrorCode.CONFIGURATION_ERROR.value}]: {error}")
-        output.error(traceback.format_exc())
-        raise typer.Exit(code=2) from error
-    output.status(f"Validation status: {'passed' if report.valid else 'failed'}")
+    )
+    output.status(f"Validation status: {'passed' if result.valid else 'failed'}")
     output.status(
         "Summary: "
-        f"test_cases={len(report.test_cases)} "
-        f"warnings={len(report.warnings)} "
-        f"errors={len(report.errors)}"
+        f"test_cases={len(result.test_cases)} "
+        f"warnings={len(result.warnings)} "
+        f"errors={len(result.errors)}"
     )
     output.status("Validation artifacts written to results/")
 
-    if not report.valid:
-        for error in report.errors:
+    if not result.valid:
+        for error in result.errors:
             output.error(f"ERROR [{error.code}]: {error.message}")
         raise typer.Exit(code=3)
 
-    for warning in report.warnings:
+    for warning in result.warnings:
         output.warning(f"WARNING [{warning.code}]: {warning.message}")
 
 
@@ -486,15 +455,6 @@ def _split_csv_option_values(values: list[str] | None) -> list[str] | None:
             seen.add(item)
             normalized.append(item)
     return normalized or None
-
-
-def _resolve_report_plugins_option(values: list[str] | None) -> list[ReportPlugin]:
-    """Resolve CLI report plugin specs into concrete plugin instances."""
-    try:
-        specs = _split_csv_option_values(values)
-        return resolve_report_plugins(specs)
-    except ReportPluginError as error:
-        raise typer.BadParameter(str(error)) from error
 
 
 def _build_output(
