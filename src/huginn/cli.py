@@ -209,7 +209,7 @@ def run(
                 filters=filters,
                 project_root=Path.cwd(),
                 parameters_dir=Path.cwd() / "parameters",
-                reports_dir=Path.cwd() / "reports",
+                results_dir=Path.cwd() / "results",
                 report_plugins=report_plugins,
                 output=output,
             )
@@ -233,7 +233,7 @@ def run(
     )
     if report.summary.total == 0:
         output.warning("No test cases were selected for execution")
-    output.status("Report artifacts written to reports/")
+    output.status("Run artifacts written to results/")
     if report.summary.status != "passed":
         raise typer.Exit(code=1)
 

@@ -86,12 +86,12 @@ async def run_test_plan(
     filters: PlanFilterOptions,
     project_root: Path,
     parameters_dir: Path,
-    reports_dir: Path,
+    results_dir: Path,
     report_plugins: list[ReportPlugin] | None = None,
     output: Output | None = None,
     broker_factory: Callable[[], RuntimeBroker] | None = None,
 ) -> RunReport:
-    """Execute a minimal test plan and persist JSON output."""
+    """Execute a minimal test plan and persist run artifacts."""
     run_started = perf_counter()
     log_info(
         output,
@@ -209,8 +209,9 @@ async def run_test_plan(
     try:
         write_run_reports(
             report=report,
-            reports_dir=reports_dir,
+            results_dir=results_dir,
             plugins=report_plugins or resolve_report_plugins(None),
+            mode=mode,
         )
     except ReportPluginError as error:
         raise RunExecutionError(
