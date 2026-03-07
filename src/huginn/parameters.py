@@ -1,6 +1,7 @@
 """Persistence helpers for learned test parameters."""
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -16,7 +17,7 @@ class ParameterManager:
     parameters_dir: Path
     test_id: str
 
-    async def save(self, payload: dict[str, object]) -> None:
+    async def save(self, payload: Mapping[str, object]) -> None:
         """Persist learned parameters for the current test case."""
         self.parameters_dir.mkdir(parents=True, exist_ok=True)
         try:
