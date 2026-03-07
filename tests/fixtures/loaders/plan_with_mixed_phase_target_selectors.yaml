@@ -1,0 +1,19 @@
+test_cases:
+  "1.0.0":
+    title: Mixed Phase Target
+    job: jobs/verify.py
+
+test_case_groups:
+  group-1:
+    tests:
+      - "1.0.0"
+
+phases:
+  phase-1:
+    target:
+      devices:
+        - leaf-01
+      os:
+        - nxos
+    test_case_groups:
+      - group-1

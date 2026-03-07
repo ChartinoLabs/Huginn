@@ -1,0 +1,14 @@
+test_cases:
+  "1.0.0":
+    title: Record command execution
+    job: jobs/test_verify_command_recording.py
+
+test_case_groups:
+  validation:
+    tests:
+      - "1.0.0"
+
+phases:
+  phase-1:
+    test_case_groups:
+      - validation

@@ -1,0 +1,23 @@
+test_cases:
+  "1.0.0":
+    title: Sleep one
+    job: jobs/test_sleep_one.py
+  "1.1.0":
+    title: Sleep two
+    job: jobs/test_sleep_two.py
+
+test_case_groups:
+  group-one:
+    tests:
+      - "1.0.0"
+  group-two:
+    tests:
+      - "1.1.0"
+
+phases:
+  phase-1:
+    strategy:
+      serial: {}
+    test_case_groups:
+      - group-one
+      - group-two

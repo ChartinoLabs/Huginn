@@ -1,0 +1,18 @@
+test_cases:
+  "1.0.0":
+    title: Parallel case one
+    job: jobs/test_parallel_case_one.py
+  "1.0.1":
+    title: Parallel case two
+    job: jobs/test_parallel_case_two.py
+
+test_case_groups:
+  parallel-group:
+    tests:
+      - "1.0.0"
+      - "1.0.1"
+
+phases:
+  phase-1:
+    test_case_groups:
+      - parallel-group
