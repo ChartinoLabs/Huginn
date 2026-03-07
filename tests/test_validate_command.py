@@ -182,32 +182,6 @@ def test_validate_reports_inventory_plugin_errors(
     assert report["errors"][0]["code"] == "configuration_error"
 
 
-def test_validate_rejects_unsupported_report_plugin(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Unsupported report plugin names fail argument validation."""
-    _stage_runner_fixture(tmp_path, "tag_filtering")
-    monkeypatch.chdir(tmp_path)
-
-    runner = CliRunner()
-    result = runner.invoke(
-        app,
-        [
-            "validate",
-            "--testbed",
-            str(tmp_path / "testbed.yaml"),
-            "--plan",
-            str(tmp_path / "test_plan.yaml"),
-            "--report-plugin",
-            "html",
-        ],
-        catch_exceptions=False,
-    )
-
-    assert result.exit_code == 2
-
-
 def test_validate_filters_by_phase_and_test_case_group(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

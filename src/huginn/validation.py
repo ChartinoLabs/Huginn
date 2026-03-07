@@ -14,11 +14,7 @@ from huginn.logging_helpers import log_debug, log_info, log_warning
 from huginn.models import Phase, Testbed, TestCaseDefinition, TestCaseGroup, TestPlan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
-from huginn.report_plugins import (
-    ReportPlugin,
-    resolve_report_plugins,
-    write_validation_reports,
-)
+from huginn.result_store import write_validation_result
 from huginn.runner import _resolve_targets
 from huginn.runtime_broker import RuntimeBrokerError, normalize_broker_key
 from huginn.testcase import TestCase
@@ -45,8 +41,8 @@ class ValidationIssue:
 
 
 @dataclass
-class ValidationReport:
-    """Top-level validation report."""
+class ValidationResult:
+    """Top-level validation result."""
 
     valid: bool
     phase_order: list[str]
@@ -64,10 +60,9 @@ async def validate_inputs(
     filters: PlanFilterOptions,
     project_root: Path,
     results_dir: Path,
-    report_plugins: list[ReportPlugin] | None = None,
     output: Output | None = None,
-) -> ValidationReport:
-    """Validate configuration and emit a validation report."""
+) -> ValidationResult:
+    """Validate configuration and emit a validation result."""
     log_info(
         output,
         "Validation starting",
@@ -92,13 +87,9 @@ async def validate_inputs(
         )
     except (ConfigurationError, InventoryPluginError) as error:
         log_warning(output, "Validation configuration load failed", error=error)
-        report = _build_configuration_error_report(str(error))
-        _write_reports(
-            report=report,
-            results_dir=results_dir,
-            report_plugins=report_plugins,
-        )
-        return report
+        result = _build_configuration_error_result(str(error))
+        _write_result(result=result, results_dir=results_dir)
+        return result
 
     errors: list[ValidationIssue] = []
     phase_order, order_errors = _resolve_phase_order(test_plan)
@@ -127,7 +118,7 @@ async def validate_inputs(
     errors.extend(target_errors)
 
     all_required = _collect_all_required_brokers(required_by_case)
-    report = ValidationReport(
+    result = ValidationResult(
         valid=not errors,
         phase_order=phase_order,
         required_brokers=all_required,
@@ -135,26 +126,22 @@ async def validate_inputs(
         warnings=target_warnings,
         errors=errors,
     )
-    _write_reports(
-        report=report,
-        results_dir=results_dir,
-        report_plugins=report_plugins,
-    )
+    _write_result(result=result, results_dir=results_dir)
     log_info(
         output,
         "Validation completed",
-        valid=report.valid,
-        warnings=len(report.warnings),
-        errors=len(report.errors),
-        test_cases=len(report.test_cases),
-        required_brokers=report.required_brokers,
+        valid=result.valid,
+        warnings=len(result.warnings),
+        errors=len(result.errors),
+        test_cases=len(result.test_cases),
+        required_brokers=result.required_brokers,
     )
-    return report
+    return result
 
 
-def _build_configuration_error_report(error: str) -> ValidationReport:
-    """Build a report for fatal configuration parse/load errors."""
-    return ValidationReport(
+def _build_configuration_error_result(error: str) -> ValidationResult:
+    """Build a result for fatal configuration parse/load errors."""
+    return ValidationResult(
         valid=False,
         phase_order=[],
         required_brokers=[],
@@ -268,7 +255,7 @@ def _build_validation_case(
     target_names: list[str],
     required_by_case: dict[str, set[str]],
 ) -> ValidationCase:
-    """Build one validation-case entry for the final report."""
+    """Build one validation-case entry for the final result."""
     return ValidationCase(
         phase=phase_name,
         group=group_name,
@@ -369,15 +356,10 @@ def _normalize_required_brokers(test_case_class: type[TestCase]) -> set[str]:
     return normalized
 
 
-def _write_reports(
+def _write_result(
     *,
-    report: ValidationReport,
+    result: ValidationResult,
     results_dir: Path,
-    report_plugins: list[ReportPlugin] | None,
 ) -> None:
-    """Persist validation report through configured report plugins."""
-    write_validation_reports(
-        report=report,
-        results_dir=results_dir,
-        plugins=report_plugins or resolve_report_plugins(None),
-    )
+    """Persist validation result through Huginn's canonical JSON writer."""
+    write_validation_result(result=result, results_dir=results_dir)
