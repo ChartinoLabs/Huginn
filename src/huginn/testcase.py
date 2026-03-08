@@ -86,6 +86,10 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
         context.targets = applicable_targets
         current_state = await self.gather_state(context)
 
+        derive_status = getattr(context.results, "derive_status", None)
+        if callable(derive_status) and derive_status() == ResultStatus.ERRORED:
+            return
+
         if context.mode == ExecutionMode.LEARNING:
             await context.parameters.save(current_state)
             context.results.add_result(
