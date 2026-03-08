@@ -205,9 +205,9 @@ def _collect_target_validations(
                         log_warning(
                             output,
                             "Validation target warning",
-                            scenario=scenario.name,
-                            phase=phase.name,
-                            group=group.name,
+                            scenario=scenario.identifier,
+                            phase=phase.identifier,
+                            group=group.identifier,
                             test_id=case.test_id,
                             warning=warning,
                         )
@@ -218,9 +218,9 @@ def _collect_target_validations(
                         log_warning(
                             output,
                             "Validation target error",
-                            scenario=scenario.name,
-                            phase=phase.name,
-                            group=group.name,
+                            scenario=scenario.identifier,
+                            phase=phase.identifier,
+                            group=group.identifier,
                             test_id=case.test_id,
                             error=error,
                         )
@@ -233,9 +233,9 @@ def _collect_target_validations(
 
                     test_cases.append(
                         _build_validation_case(
-                            scenario_name=scenario.name,
-                            phase_name=phase.name,
-                            group_name=group.name,
+                            scenario_name=scenario.identifier,
+                            phase_name=phase.identifier,
+                            group_name=group.identifier,
                             case=case,
                             target_names=target_names,
                             required_by_case=required_by_case,
@@ -266,7 +266,9 @@ def _validate_case_targets(
     if target_names:
         return target_names, None, None
 
-    warning = f"{phase.name}/{group.name}/{case.test_id} has no matched targets"
+    warning = (
+        f"{phase.identifier}/{group.identifier}/{case.test_id} has no matched targets"
+    )
     return [], warning, None
 
 
@@ -339,7 +341,7 @@ def _resolve_scenario_phase_order(
                     code=ErrorCode.VALIDATION_ERROR.value,
                     message=(
                         "Unable to resolve phase dependencies in scenario "
-                        f"'{scenario.name}' for: {sorted(pending)}"
+                        f"'{scenario.identifier}' for: {sorted(pending)}"
                     ),
                 )
             )

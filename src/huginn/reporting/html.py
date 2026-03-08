@@ -159,7 +159,8 @@ def _build_scenario_views(
         counts = _count_statuses(scenario_statuses)
         scenario_views.append(
             {
-                "name": scenario.name,
+                "id": scenario.identifier,
+                "name": scenario.display_name,
                 "status": scenario.status,
                 "status_class": _status_class(scenario.status),
                 "chips": [
@@ -189,7 +190,8 @@ def _build_phase_view(
     ]
     counts = _count_statuses(phase_statuses)
     return {
-        "name": phase.name,
+        "id": phase.identifier,
+        "name": phase.display_name,
         "status": phase.status,
         "status_class": _status_class(phase.status),
         "chips": [
@@ -212,7 +214,8 @@ def _build_group_view(
     statuses = [test_case.status for test_case in group.test_cases]
     counts = _count_statuses(statuses)
     return {
-        "name": group.name,
+        "id": group.identifier,
+        "name": group.display_name,
         "status": group.status,
         "status_class": _status_class(group.status),
         "chips": [
@@ -235,9 +238,9 @@ def _collect_test_case_locations(result: RunResult) -> list[_TestCaseLocation]:
     """Collect phase and group location data for each test case."""
     return [
         _TestCaseLocation(
-            scenario_name=scenario.name,
-            phase_name=phase.name,
-            group_name=group.name,
+            scenario_name=scenario.display_name,
+            phase_name=phase.display_name,
+            group_name=group.display_name,
             test_case=test_case,
         )
         for scenario in result.scenarios

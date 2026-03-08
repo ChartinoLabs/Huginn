@@ -30,8 +30,8 @@ def test_write_standard_html_report_writes_dashboard_and_detail_pages(
         reports_dir=tmp_path / "reports",
         results_run_dir=tmp_path / "results" / "2026-Mar-07-12-00-00-testing",
         test_case_result_paths={
-            "Scenario 1::Phase 1::Group A::test-1": "test-cases/test-1/result.json",
-            "Scenario 1::Phase 1::Group A::test-2": "test-cases/test-2/result.json",
+            "scenario-1::phase-1::group-a::test-1": "test-cases/test-1/result.json",
+            "scenario-1::phase-1::group-a::test-2": "test-cases/test-2/result.json",
         },
     )
 
@@ -43,6 +43,7 @@ def test_write_standard_html_report_writes_dashboard_and_detail_pages(
     assert latest_link.resolve() == dashboard_path.parent.resolve()
     dashboard = dashboard_path.read_text(encoding="utf-8")
     assert "Test Results Summary" in dashboard
+    assert "scenario-1" not in dashboard
     assert "Scenario 1" in dashboard
     assert "Phase 1" in dashboard
     assert "Group A" in dashboard
@@ -77,8 +78,8 @@ def test_write_standard_html_report_updates_latest_symlink(tmp_path: Path) -> No
         reports_dir=tmp_path / "reports",
         results_run_dir=tmp_path / "results" / "2026-Mar-07-12-00-00-testing",
         test_case_result_paths={
-            "Scenario 1::Phase 1::Group A::test-1": "test-cases/test-1/result.json",
-            "Scenario 1::Phase 1::Group A::test-2": "test-cases/test-2/result.json",
+            "scenario-1::phase-1::group-a::test-1": "test-cases/test-1/result.json",
+            "scenario-1::phase-1::group-a::test-2": "test-cases/test-2/result.json",
         },
     )
     second_dashboard = write_standard_html_report(
@@ -86,8 +87,8 @@ def test_write_standard_html_report_updates_latest_symlink(tmp_path: Path) -> No
         reports_dir=tmp_path / "reports",
         results_run_dir=tmp_path / "results" / "2026-Mar-07-12-05-00-testing",
         test_case_result_paths={
-            "Scenario 1::Phase 1::Group A::test-1": "test-cases/test-1/result.json",
-            "Scenario 1::Phase 1::Group A::test-2": "test-cases/test-2/result.json",
+            "scenario-1::phase-1::group-a::test-1": "test-cases/test-1/result.json",
+            "scenario-1::phase-1::group-a::test-2": "test-cases/test-2/result.json",
         },
     )
 
@@ -116,21 +117,24 @@ def test_write_standard_html_report_handles_duplicate_test_ids_across_scenarios(
         ),
         scenarios=[
             ExecutedScenario(
+                identifier="scenario-1",
                 name="Scenario 1",
                 status="passed",
                 phases=[
                     ExecutedPhase(
-                        name="steady-state",
+                        identifier="steady-state",
+                        name="Steady State",
                         status="passed",
                         test_case_groups=[
                             ExecutedTestCaseGroup(
+                                identifier="group-a",
                                 name="Group A",
                                 status="passed",
                                 test_cases=[
                                     ExecutedTestCase(
-                                        scenario="Scenario 1",
+                                        scenario="scenario-1",
                                         phase="steady-state",
-                                        group="Group A",
+                                        group="group-a",
                                         test_id="test-1",
                                         title="Scenario 1 test",
                                         status="passed",
@@ -148,21 +152,24 @@ def test_write_standard_html_report_handles_duplicate_test_ids_across_scenarios(
                 ],
             ),
             ExecutedScenario(
+                identifier="scenario-2",
                 name="Scenario 2",
                 status="passed",
                 phases=[
                     ExecutedPhase(
-                        name="steady-state",
+                        identifier="steady-state",
+                        name="Steady State",
                         status="passed",
                         test_case_groups=[
                             ExecutedTestCaseGroup(
+                                identifier="group-a",
                                 name="Group A",
                                 status="passed",
                                 test_cases=[
                                     ExecutedTestCase(
-                                        scenario="Scenario 2",
+                                        scenario="scenario-2",
                                         phase="steady-state",
-                                        group="Group A",
+                                        group="group-a",
                                         test_id="test-1",
                                         title="Scenario 2 test",
                                         status="passed",
@@ -187,10 +194,10 @@ def test_write_standard_html_report_handles_duplicate_test_ids_across_scenarios(
         reports_dir=tmp_path / "reports",
         results_run_dir=tmp_path / "results" / "2026-Mar-07-12-00-00-testing",
         test_case_result_paths={
-            "Scenario 1::steady-state::Group A::test-1": (
+            "scenario-1::steady-state::group-a::test-1": (
                 "test-cases/scenario-1-steady-state-test-1/result.json"
             ),
-            "Scenario 2::steady-state::Group A::test-1": (
+            "scenario-2::steady-state::group-a::test-1": (
                 "test-cases/scenario-2-steady-state-test-1/result.json"
             ),
         },
@@ -226,21 +233,24 @@ def _build_run_result() -> "RunResult":
         ),
         scenarios=[
             ExecutedScenario(
+                identifier="scenario-1",
                 name="Scenario 1",
                 status="failed",
                 phases=[
                     ExecutedPhase(
+                        identifier="phase-1",
                         name="Phase 1",
                         status="failed",
                         test_case_groups=[
                             ExecutedTestCaseGroup(
+                                identifier="group-a",
                                 name="Group A",
                                 status="failed",
                                 test_cases=[
                                     ExecutedTestCase(
-                                        scenario="Scenario 1",
-                                        phase="Phase 1",
-                                        group="Group A",
+                                        scenario="scenario-1",
+                                        phase="phase-1",
+                                        group="group-a",
                                         test_id="test-1",
                                         title="Version Check",
                                         status="passed",
@@ -285,9 +295,9 @@ def _build_run_result() -> "RunResult":
                                         ],
                                     ),
                                     ExecutedTestCase(
-                                        scenario="Scenario 1",
-                                        phase="Phase 1",
-                                        group="Group A",
+                                        scenario="scenario-1",
+                                        phase="phase-1",
+                                        group="group-a",
                                         test_id="test-2",
                                         title="Interface Health",
                                         status="failed",

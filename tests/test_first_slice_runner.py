@@ -938,13 +938,18 @@ def test_run_honors_phase_parallel_strategy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Phase parallel strategy executes groups concurrently."""
-    elapsed = _run_execution_strategy_fixture(
+    parallel_elapsed = _run_execution_strategy_fixture(
         tmp_path=tmp_path,
         monkeypatch=monkeypatch,
         plan_name="plan_phase_parallel.yaml",
     )
+    serial_elapsed = _run_execution_strategy_fixture(
+        tmp_path=tmp_path,
+        monkeypatch=monkeypatch,
+        plan_name="plan_phase_serial.yaml",
+    )
 
-    assert elapsed < 0.55
+    assert parallel_elapsed < serial_elapsed
 
 
 def test_run_honors_phase_parallel_maximum_strategy(

@@ -465,10 +465,15 @@ def _parse_test_case_group(
         group_mapping.get("target"),
         f"Test case group '{group_name}'",
     )
+    display_name = _require_optional_string(
+        group_mapping.get("name"),
+        f"Test case group '{group_name}' name must be a string",
+    )
     return (
         TestCaseGroup(
-            name=group_name,
+            identifier=group_name,
             tests=tests,
+            name=display_name,
             tags=tags,
             target=target,
             strategy=strategy,
@@ -574,8 +579,9 @@ def _flatten_nested_test_case_groups(
     resolved: dict[str, TestCaseGroup] = {}
     for group_name, group in groups.items():
         resolved[group_name] = TestCaseGroup(
-            name=group.name,
+            identifier=group.identifier,
             tests=flatten(group_name),
+            name=group.name,
             tags=group.tags,
             target=group.target,
             strategy=group.strategy,
@@ -620,7 +626,11 @@ def _parse_scenario(scenario_name: object, raw_scenario: object) -> Scenario:
     phases: dict[str, Phase] = {}
     for phase_name, raw_phase in raw_phases.items():
         phases[phase_name] = _parse_phase(scenario_name, phase_name, raw_phase)
-    return Scenario(name=scenario_name, phases=phases)
+    display_name = _require_optional_string(
+        scenario_mapping.get("name"),
+        f"Scenario '{scenario_name}' name must be a string",
+    )
+    return Scenario(identifier=scenario_name, phases=phases, name=display_name)
 
 
 def _parse_phase(
@@ -652,9 +662,14 @@ def _parse_phase(
         phase_mapping.get("target"),
         f"Phase '{phase_name}' in scenario '{scenario_name}'",
     )
+    display_name = _require_optional_string(
+        phase_mapping.get("name"),
+        f"Phase '{phase_name}' in scenario '{scenario_name}' name must be a string",
+    )
     return Phase(
-        name=phase_name,
+        identifier=phase_name,
         test_case_groups=test_case_groups,
+        name=display_name,
         depends_on=depends_on,
         target=target,
         strategy=strategy,
@@ -756,7 +771,7 @@ def _validate_test_case_group_references(
         missing = [test_id for test_id in group.tests if test_id not in test_cases]
         if missing:
             raise ConfigurationError(
-                f"Test case group '{group.name}' references undefined test ids:"
+                f"Test case group '{group.identifier}' references undefined test ids:"
                 f" {missing}"
             )
 
@@ -774,7 +789,8 @@ def _validate_scenario_references(
             ]
             if missing:
                 raise ConfigurationError(
-                    f"Phase '{phase.name}' in scenario '{scenario.name}' references "
+                    f"Phase '{phase.identifier}' in scenario '{scenario.identifier}' "
+                    "references "
                     f"undefined test case groups: {missing}"
                 )
 
@@ -785,7 +801,8 @@ def _validate_scenario_references(
             ]
             if missing_phase_dependencies:
                 raise ConfigurationError(
-                    f"Phase '{phase.name}' in scenario '{scenario.name}' references "
+                    f"Phase '{phase.identifier}' in scenario '{scenario.identifier}' "
+                    "references "
                     "undefined depends_on phases: "
                     f"{missing_phase_dependencies}"
                 )

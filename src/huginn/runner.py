@@ -256,7 +256,7 @@ async def _execute_scenarios(
     )
     executed_scenarios: list[ExecutedScenario] = []
     for scenario in test_plan.scenarios.values():
-        _emit_status(output, f"Starting scenario: {scenario.name}")
+        _emit_status(output, f"Starting scenario: {scenario.identifier}")
         executed_scenario = await _execute_scenario(
             scenario=scenario,
             mode=mode,
@@ -286,7 +286,7 @@ async def _execute_scenario(
     log_debug(
         output,
         "Executing scenario phases",
-        scenario=scenario.name,
+        scenario=scenario.identifier,
         phase_count=len(scenario.phases),
     )
     phase_results: dict[str, ExecutedPhase] = {}
@@ -304,25 +304,25 @@ async def _execute_scenario(
             if _is_blocked_by_dependencies(phase, phase_results):
                 _emit_status(
                     output,
-                    f"Skipping phase: {phase.name} (blocked by dependencies)",
+                    (f"Skipping phase: {phase.identifier} (blocked by dependencies)"),
                 )
                 log_info(
                     output,
                     "Phase blocked by dependencies",
-                    scenario=scenario.name,
-                    phase=phase.name,
+                    scenario=scenario.identifier,
+                    phase=phase.identifier,
                     depends_on=phase.depends_on,
                 )
                 executed_phase = _build_blocked_phase(
-                    scenario_name=scenario.name,
+                    scenario_name=scenario.identifier,
                     phase=phase,
                     test_plan=test_plan,
                     reason="Blocked by failed phase dependency",
                 )
             else:
-                _emit_status(output, f"  Starting phase: {phase.name}")
+                _emit_status(output, f"  Starting phase: {phase.identifier}")
                 executed_phase = await _execute_phase(
-                    scenario_name=scenario.name,
+                    scenario_name=scenario.identifier,
                     phase=phase,
                     mode=mode,
                     testbed=testbed,
@@ -333,14 +333,14 @@ async def _execute_scenario(
                     output=output,
                 )
 
-            log_info(
-                output,
-                "Phase finished",
-                scenario=scenario.name,
-                phase=phase.name,
-                status=executed_phase.status,
-            )
-            _emit_phase_rollup(output, scenario.name, executed_phase)
+                log_info(
+                    output,
+                    "Phase finished",
+                    scenario=scenario.identifier,
+                    phase=phase.identifier,
+                    status=executed_phase.status,
+                )
+            _emit_phase_rollup(output, scenario.identifier, executed_phase)
 
             phase_results[phase_name] = executed_phase
             pending.remove(phase_name)
@@ -352,10 +352,10 @@ async def _execute_scenario(
                         continue
                     remaining_phase = scenario.phases[remaining_phase_name]
                     phase_results[remaining_phase_name] = _build_blocked_phase(
-                        scenario_name=scenario.name,
+                        scenario_name=scenario.identifier,
                         phase=remaining_phase,
                         test_plan=test_plan,
-                        reason=f"Blocked because phase '{phase.name}' failed",
+                        reason=(f"Blocked because phase '{phase.identifier}' failed"),
                     )
                 pending.clear()
                 break
@@ -367,15 +367,16 @@ async def _execute_scenario(
         raise RunExecutionError(
             (
                 "Unable to resolve phase dependencies in scenario "
-                f"'{scenario.name}' for: {unresolved}"
+                f"'{scenario.identifier}' for: {unresolved}"
             ),
             code=ErrorCode.VALIDATION_ERROR,
         )
 
     executed_phases = [phase_results[name] for name in scenario.phases]
     return ExecutedScenario(
-        name=scenario.name,
+        identifier=scenario.identifier,
         status=_derive_scenario_status(executed_phases).value,
+        name=scenario.name,
         phases=executed_phases,
     )
 
@@ -412,7 +413,7 @@ async def _execute_phase(
     log_debug(
         output,
         "Phase execution starting",
-        phase=phase.name,
+        phase=phase.identifier,
         mode=mode.value,
         group_count=len(phase.test_case_groups),
         strategy=phase.strategy.mode,
@@ -445,8 +446,9 @@ async def _execute_phase(
 
     phase_status = _derive_phase_status(executed_groups)
     return ExecutedPhase(
-        name=phase.name,
+        identifier=phase.identifier,
         status=phase_status.value,
+        name=phase.name,
         test_case_groups=executed_groups,
     )
 
@@ -593,8 +595,8 @@ async def _execute_group(
     log_debug(
         output,
         "Group execution starting",
-        phase=phase.name,
-        group=group.name,
+        phase=phase.identifier,
+        group=group.identifier,
         test_count=len(group.tests),
         strategy=group.strategy.mode,
         maximum=group.strategy.maximum,
@@ -631,13 +633,14 @@ async def _execute_group(
     log_debug(
         output,
         "Group execution finished",
-        phase=phase.name,
-        group=group.name,
+        phase=phase.identifier,
+        group=group.identifier,
         status=group_status.value,
     )
     return ExecutedTestCaseGroup(
-        name=group.name,
+        identifier=group.identifier,
         status=group_status.value,
+        name=group.name,
         test_cases=executed_tests,
     )
 
@@ -791,8 +794,8 @@ def _build_blocked_phase(
         blocked_tests = [
             ExecutedTestCase(
                 scenario=scenario_name,
-                phase=phase.name,
-                group=group.name,
+                phase=phase.identifier,
+                group=group.identifier,
                 test_id=test_id,
                 title=test_plan.test_cases[test_id].title,
                 status=ResultStatus.BLOCKED.value,
@@ -802,15 +805,17 @@ def _build_blocked_phase(
         ]
         blocked_groups.append(
             ExecutedTestCaseGroup(
-                name=group.name,
+                identifier=group.identifier,
                 status=ResultStatus.BLOCKED.value,
+                name=group.name,
                 test_cases=blocked_tests,
             )
         )
 
     return ExecutedPhase(
-        name=phase.name,
+        identifier=phase.identifier,
         status=ResultStatus.BLOCKED.value,
+        name=phase.name,
         test_case_groups=blocked_groups,
     )
 
@@ -909,8 +914,8 @@ async def _execute_test_case(
         output,
         "Test execution starting",
         scenario=scenario_name,
-        phase=phase.name,
-        group=group.name,
+        phase=phase.identifier,
+        group=group.identifier,
         test_id=definition.test_id,
         mode=mode.value,
     )
@@ -925,8 +930,8 @@ async def _execute_test_case(
             output,
             "Test target resolution failed",
             scenario=scenario_name,
-            phase=phase.name,
-            group=group.name,
+            phase=phase.identifier,
+            group=group.identifier,
             test_id=definition.test_id,
             error=target_error,
         )
@@ -938,8 +943,8 @@ async def _execute_test_case(
         )
         return _errored_test_case(
             scenario_name=scenario_name,
-            phase_name=phase.name,
-            group_name=group.name,
+            phase_name=phase.identifier,
+            group_name=group.identifier,
             definition=definition,
             error=target_error,
             error_code=ErrorCode.VALIDATION_ERROR,
@@ -949,8 +954,8 @@ async def _execute_test_case(
             output,
             "Test skipped due to empty target set",
             scenario=scenario_name,
-            phase=phase.name,
-            group=group.name,
+            phase=phase.identifier,
+            group=group.identifier,
             test_id=definition.test_id,
         )
         _emit_test_result(
@@ -961,8 +966,8 @@ async def _execute_test_case(
         )
         return _skipped_test_case(
             scenario_name=scenario_name,
-            phase_name=phase.name,
-            group_name=group.name,
+            phase_name=phase.identifier,
+            group_name=group.identifier,
             definition=definition,
             reason="No devices matched target selectors",
         )
@@ -998,8 +1003,8 @@ async def _execute_test_case(
         )
         return _errored_test_case(
             scenario_name=scenario_name,
-            phase_name=phase.name,
-            group_name=group.name,
+            phase_name=phase.identifier,
+            group_name=group.identifier,
             definition=definition,
             error=planned.planning_error,
             error_code=ErrorCode.PLANNING_ERROR,
@@ -1015,8 +1020,8 @@ async def _execute_test_case(
         )
         return _skipped_test_case(
             scenario_name=scenario_name,
-            phase_name=phase.name,
-            group_name=group.name,
+            phase_name=phase.identifier,
+            group_name=group.identifier,
             definition=definition,
             reason=planned.skip_reason,
         )
@@ -1034,8 +1039,8 @@ async def _execute_test_case(
         )
         return _errored_test_case(
             scenario_name=scenario_name,
-            phase_name=phase.name,
-            group_name=group.name,
+            phase_name=phase.identifier,
+            group_name=group.identifier,
             definition=definition,
             error="Missing planned test case class",
             error_code=ErrorCode.PLANNING_ERROR,
@@ -1080,8 +1085,8 @@ async def _execute_test_case(
         )
         return _errored_test_case(
             scenario_name=scenario_name,
-            phase_name=phase.name,
-            group_name=group.name,
+            phase_name=phase.identifier,
+            group_name=group.identifier,
             definition=definition,
             checks=result_collector.checks,
             error=test_error,
@@ -1101,8 +1106,8 @@ async def _execute_test_case(
     _emit_test_result(output, definition, status=status)
     return ExecutedTestCase(
         scenario=scenario_name,
-        phase=phase.name,
-        group=group.name,
+        phase=phase.identifier,
+        group=group.identifier,
         test_id=definition.test_id,
         title=definition.title,
         status=status,
@@ -1391,7 +1396,7 @@ def _emit_execution_order(output: Output | None, test_plan: TestPlan) -> None:
 
     _emit_status(output, "Execution order:")
     for scenario in test_plan.scenarios.values():
-        _emit_status(output, f"  Scenario: {scenario.name}")
+        _emit_status(output, f"  Scenario: {scenario.identifier}")
         if not scenario.phases:
             _emit_status(output, "    Phases: (none)")
             continue
@@ -1411,7 +1416,7 @@ def _emit_phase_rollup(
         output,
         "Phase complete: "
         f"{scenario_name}."
-        f"{phase.name} "
+        f"{phase.identifier} "
         f"status={phase.status} "
         f"total={len(statuses)} "
         f"passed={counts[ResultStatus.PASSED.value]} "
@@ -1463,8 +1468,8 @@ def _resolve_targets(
     devices = list(testbed.devices.values())
 
     for scope_name, target in (
-        (f"Phase '{phase.name}'", phase.target),
-        (f"Test case group '{group.name}'", group.target),
+        (f"Phase '{phase.identifier}'", phase.target),
+        (f"Test case group '{group.identifier}'", group.target),
         (f"Test case '{test_case.test_id}'", test_case.target),
     ):
         devices, error = _apply_target_scope(

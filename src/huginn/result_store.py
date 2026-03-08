@@ -188,13 +188,15 @@ def _build_scenario_payload(
     test_case_paths: dict[str, str],
 ) -> dict[str, Any]:
     """Serialize one executed scenario without inlining test details."""
-    return {
-        "name": scenario.name,
+    payload: dict[str, Any] = {
+        "id": scenario.identifier,
+        "name": scenario.display_name,
         "status": scenario.status,
         "phases": [
             _build_phase_payload(phase, test_case_paths) for phase in scenario.phases
         ],
     }
+    return payload
 
 
 def _build_phase_payload(
@@ -202,14 +204,16 @@ def _build_phase_payload(
     test_case_paths: dict[str, str],
 ) -> dict[str, Any]:
     """Serialize one executed phase without inlining test details."""
-    return {
-        "name": phase.name,
+    payload: dict[str, Any] = {
+        "id": phase.identifier,
+        "name": phase.display_name,
         "status": phase.status,
         "test_case_groups": [
             _build_group_payload(group, test_case_paths)
             for group in phase.test_case_groups
         ],
     }
+    return payload
 
 
 def _build_group_payload(
@@ -217,14 +221,16 @@ def _build_group_payload(
     test_case_paths: dict[str, str],
 ) -> dict[str, Any]:
     """Serialize one executed test case group without check payloads."""
-    return {
-        "name": group.name,
+    payload: dict[str, Any] = {
+        "id": group.identifier,
+        "name": group.display_name,
         "status": group.status,
         "test_cases": [
             _build_test_case_summary_payload(test_case, test_case_paths)
             for test_case in group.test_cases
         ],
     }
+    return payload
 
 
 def _build_test_case_summary_payload(
