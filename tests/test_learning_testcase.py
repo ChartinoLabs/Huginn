@@ -110,6 +110,20 @@ class _MetadataLearningTest(_ExampleLearningTest):
     PASS_FAIL_CRITERIA = "Pass when baseline matches {{ parameters.device }}"
 
 
+class _GenericLearningTest(LearningTestCase[dict[str, object]]):
+    async def gather_state(self, context: Context) -> dict[str, object]:
+        return {"current": True}
+
+    async def compare_state(
+        self,
+        *,
+        expected: dict[str, object],
+        current: dict[str, object],
+        context: Context,
+    ) -> None:
+        return None
+
+
 @pytest.mark.asyncio
 async def test_learning_testcase_saves_state_in_learning_mode() -> None:
     """Learning mode saves gathered state and records success check."""
@@ -242,3 +256,10 @@ async def test_learning_testcase_skips_metadata_in_learning_mode() -> None:
     assert context.results.entries == [
         (ResultStatus.PASSED, "Learned parameters saved successfully")
     ]
+
+
+def test_learning_testcase_supports_generic_subscripts() -> None:
+    """Generic subscription remains available for typed job definitions."""
+    test_case = _GenericLearningTest()
+
+    assert isinstance(test_case, LearningTestCase)
