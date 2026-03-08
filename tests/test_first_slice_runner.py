@@ -999,6 +999,76 @@ def test_run_learning_mode_persists_parameters(
     }
 
 
+def test_run_learning_mode_writes_html_report(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Learning mode writes the standard HTML report alongside run results."""
+    _stage_runner_fixture(tmp_path, "learning_testing_parameters")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "learning",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert (tmp_path / "reports" / "latest" / "index.html").exists()
+    assert "Run report written to reports/latest/" in result.stdout
+
+
+def test_run_learning_mode_deduplicates_reused_test_ids(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Learning mode executes a reused test id once across scenarios."""
+    _stage_runner_fixture(tmp_path, "duplicate_learning_parameters")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "learning",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert result.stdout.count("Starting test: 1.0.0") == 1
+    assert (
+        "Skipping test: 1.0.0 (Learn shared parameters once) already learned "
+        "earlier in this run" in result.stdout
+    )
+    invocation_counter = json.loads(
+        (tmp_path / "learning-invocations.json").read_text(encoding="utf-8")
+    )
+    assert invocation_counter == {"count": 1}
+
+    report_data = _load_report(tmp_path)
+    scenarios = report_data["scenarios"]
+    assert [scenario["id"] for scenario in scenarios] == ["scenario-1", "scenario-2"]
+    assert _first_test_case(report_data)["status"] == "passed"
+    second_test_case = scenarios[1]["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    assert second_test_case["status"] == "passed"
+
+
 def test_run_learning_mode_skips_non_learning_testcases(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

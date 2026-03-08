@@ -1,6 +1,7 @@
 """Minimal end-to-end test plan runner for first implementation slice."""
 
 import asyncio
+import copy
 import traceback
 from collections import Counter
 from collections.abc import Callable
@@ -255,6 +256,9 @@ async def _execute_scenarios(
         scenario_count=len(test_plan.scenarios),
     )
     executed_scenarios: list[ExecutedScenario] = []
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None = None
+    if mode == ExecutionMode.LEARNING:
+        learning_execution_cache = {}
     for scenario in test_plan.scenarios.values():
         _emit_status(output, f"Starting scenario: {scenario.identifier}")
         executed_scenario = await _execute_scenario(
@@ -265,6 +269,7 @@ async def _execute_scenarios(
             planned_executions=planned_executions,
             broker=broker,
             parameters_dir=parameters_dir,
+            learning_execution_cache=learning_execution_cache,
             output=output,
         )
         executed_scenarios.append(executed_scenario)
@@ -280,6 +285,7 @@ async def _execute_scenario(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> ExecutedScenario:
     """Execute one scenario and halt on the first non-passing phase."""
@@ -312,6 +318,7 @@ async def _execute_scenario(
             planned_executions=planned_executions,
             broker=broker,
             parameters_dir=parameters_dir,
+            learning_execution_cache=learning_execution_cache,
             output=output,
             phase_results=phase_results,
         )
@@ -367,6 +374,7 @@ async def _execute_ready_phase(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
     phase_results: dict[str, ExecutedPhase],
 ) -> ExecutedPhase:
@@ -389,6 +397,7 @@ async def _execute_ready_phase(
         planned_executions=planned_executions,
         broker=broker,
         parameters_dir=parameters_dir,
+        learning_execution_cache=learning_execution_cache,
         output=output,
     )
     log_info(
@@ -506,6 +515,7 @@ async def _execute_phase(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> ExecutedPhase:
     """Execute all groups and test cases for a phase."""
@@ -528,6 +538,7 @@ async def _execute_phase(
             planned_executions=planned_executions,
             broker=broker,
             parameters_dir=parameters_dir,
+            learning_execution_cache=learning_execution_cache,
             output=output,
         )
     else:
@@ -540,6 +551,7 @@ async def _execute_phase(
             planned_executions=planned_executions,
             broker=broker,
             parameters_dir=parameters_dir,
+            learning_execution_cache=learning_execution_cache,
             output=output,
         )
 
@@ -562,6 +574,7 @@ async def _execute_phase_groups_serial(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> list[ExecutedTestCaseGroup]:
     """Execute test case groups in phase order, one at a time."""
@@ -578,6 +591,7 @@ async def _execute_phase_groups_serial(
                 planned_executions=planned_executions,
                 broker=broker,
                 parameters_dir=parameters_dir,
+                learning_execution_cache=learning_execution_cache,
                 output=output,
             )
         )
@@ -594,6 +608,7 @@ async def _execute_phase_groups_parallel(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> list[ExecutedTestCaseGroup]:
     """Execute test case groups in parallel with optional max concurrency."""
@@ -615,6 +630,7 @@ async def _execute_phase_groups_parallel(
                     planned_executions=planned_executions,
                     broker=broker,
                     parameters_dir=parameters_dir,
+                    learning_execution_cache=learning_execution_cache,
                     output=output,
                 )
             )
@@ -638,6 +654,7 @@ async def _execute_group_with_optional_semaphore(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> tuple[int, ExecutedTestCaseGroup]:
     """Execute one group with optional phase-level concurrency limiting."""
@@ -654,6 +671,7 @@ async def _execute_group_with_optional_semaphore(
                 planned_executions=planned_executions,
                 broker=broker,
                 parameters_dir=parameters_dir,
+                learning_execution_cache=learning_execution_cache,
                 output=output,
             ),
         )
@@ -671,6 +689,7 @@ async def _execute_group_with_optional_semaphore(
                 planned_executions=planned_executions,
                 broker=broker,
                 parameters_dir=parameters_dir,
+                learning_execution_cache=learning_execution_cache,
                 output=output,
             ),
         )
@@ -687,6 +706,7 @@ async def _execute_group(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> ExecutedTestCaseGroup:
     """Execute one group using its configured strategy."""
@@ -712,6 +732,7 @@ async def _execute_group(
             planned_executions=planned_executions,
             broker=broker,
             parameters_dir=parameters_dir,
+            learning_execution_cache=learning_execution_cache,
             output=output,
         )
     else:
@@ -725,6 +746,7 @@ async def _execute_group(
             planned_executions=planned_executions,
             broker=broker,
             parameters_dir=parameters_dir,
+            learning_execution_cache=learning_execution_cache,
             output=output,
         )
 
@@ -755,6 +777,7 @@ async def _execute_group_tests_serial(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> list[ExecutedTestCase]:
     """Execute tests in group order, one at a time."""
@@ -772,6 +795,7 @@ async def _execute_group_tests_serial(
                 testbed=testbed,
                 broker=broker,
                 parameters_dir=parameters_dir,
+                learning_execution_cache=learning_execution_cache,
                 output=output,
             )
         )
@@ -789,6 +813,7 @@ async def _execute_group_tests_parallel(
     planned_executions: dict[str, PlannedExecution],
     broker: RuntimeBroker,
     parameters_dir: Path,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> list[ExecutedTestCase]:
     """Execute tests in parallel with optional max concurrency."""
@@ -811,6 +836,7 @@ async def _execute_group_tests_parallel(
                     testbed=testbed,
                     broker=broker,
                     parameters_dir=parameters_dir,
+                    learning_execution_cache=learning_execution_cache,
                     output=output,
                 )
             )
@@ -834,6 +860,7 @@ async def _execute_test_case_with_optional_semaphore(
     testbed: Testbed,
     broker: RuntimeBroker,
     parameters_dir: Path,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> tuple[int, ExecutedTestCase]:
     """Execute one test case with optional group-level concurrency limiting."""
@@ -850,6 +877,7 @@ async def _execute_test_case_with_optional_semaphore(
                 testbed=testbed,
                 broker=broker,
                 parameters_dir=parameters_dir,
+                learning_execution_cache=learning_execution_cache,
                 output=output,
             ),
         )
@@ -867,6 +895,7 @@ async def _execute_test_case_with_optional_semaphore(
                 testbed=testbed,
                 broker=broker,
                 parameters_dir=parameters_dir,
+                learning_execution_cache=learning_execution_cache,
                 output=output,
             ),
         )
@@ -996,6 +1025,78 @@ def _collect_planned_brokers(planned: dict[str, PlannedExecution]) -> set[Broker
 
 
 async def _execute_test_case(
+    *,
+    scenario_name: str,
+    phase: Phase,
+    group: TestCaseGroup,
+    definition: TestCaseDefinition,
+    planned: PlannedExecution,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    broker: RuntimeBroker,
+    parameters_dir: Path,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
+    output: Output | None,
+) -> ExecutedTestCase:
+    if mode != ExecutionMode.LEARNING or learning_execution_cache is None:
+        return await _execute_test_case_once(
+            scenario_name=scenario_name,
+            phase=phase,
+            group=group,
+            definition=definition,
+            planned=planned,
+            mode=mode,
+            testbed=testbed,
+            broker=broker,
+            parameters_dir=parameters_dir,
+            output=output,
+        )
+
+    cached_execution = learning_execution_cache.get(definition.test_id)
+    if cached_execution is None:
+        cached_execution = asyncio.create_task(
+            _execute_test_case_once(
+                scenario_name=scenario_name,
+                phase=phase,
+                group=group,
+                definition=definition,
+                planned=planned,
+                mode=mode,
+                testbed=testbed,
+                broker=broker,
+                parameters_dir=parameters_dir,
+                output=output,
+            )
+        )
+        learning_execution_cache[definition.test_id] = cached_execution
+    else:
+        _emit_status(
+            output,
+            (
+                "Skipping test: "
+                f"{definition.test_id} ({definition.title}) "
+                "already learned earlier in this run"
+            ),
+        )
+        log_info(
+            output,
+            "Reusing learned test execution",
+            test_id=definition.test_id,
+            scenario=scenario_name,
+            phase=phase.identifier,
+            group=group.identifier,
+        )
+
+    executed_test_case = await cached_execution
+    return _clone_executed_test_case_for_location(
+        executed_test_case,
+        scenario_name=scenario_name,
+        phase_name=phase.identifier,
+        group_name=group.identifier,
+    )
+
+
+async def _execute_test_case_once(
     *,
     scenario_name: str,
     phase: Phase,
@@ -1243,6 +1344,21 @@ def _errored_test_case(
         error_code=error_code.value,
         error_traceback=error_traceback,
     )
+
+
+def _clone_executed_test_case_for_location(
+    test_case: ExecutedTestCase,
+    *,
+    scenario_name: str,
+    phase_name: str,
+    group_name: str,
+) -> ExecutedTestCase:
+    """Copy an executed test case while updating its execution location."""
+    cloned = copy.deepcopy(test_case)
+    cloned.scenario = scenario_name
+    cloned.phase = phase_name
+    cloned.group = group_name
+    return cloned
 
 
 def _skipped_test_case(

@@ -227,6 +227,7 @@ def run(
     if result.summary.total == 0:
         output.warning("No test cases were selected for execution")
     output.status("Run artifacts written to results/")
+    output.status("Run report written to reports/latest/")
     if result.summary.status != "passed":
         raise typer.Exit(code=1)
 
