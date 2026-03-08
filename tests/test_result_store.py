@@ -10,6 +10,7 @@ from huginn.models import (
     ExecutedPhase,
     ExecutedTestCase,
     ExecutedTestCaseGroup,
+    MetadataSection,
     RunSummary,
 )
 from huginn.result_store import write_run_result, write_validation_result
@@ -46,12 +47,13 @@ def test_write_run_result_writes_summary_and_test_case_json(tmp_path: Path) -> N
     """Run writes a summary file plus one JSON result per test case."""
     result = _build_run_result_with_test_case()
 
-    result_path = write_run_result(
+    run_files = write_run_result(
         result=result,
         results_dir=tmp_path / "results",
         mode=ExecutionMode.TESTING,
     )
 
+    result_path = run_files.run_json_path
     assert result_path.name == "run.json"
     assert result_path.parent.parent == tmp_path / "results"
     assert result_path.parent.name.endswith("-testing")
@@ -67,6 +69,7 @@ def test_write_run_result_writes_summary_and_test_case_json(tmp_path: Path) -> N
         (result_path.parent / test_case["result_path"]).read_text(encoding="utf-8")
     )
     assert test_case_payload["checks"][0]["message"] == "all good"
+    assert test_case_payload["metadata_sections"][0]["heading"] == "Description"
 
 
 def _build_run_result_with_test_case() -> "RunResult":
@@ -97,6 +100,12 @@ def _build_run_result_with_test_case() -> "RunResult":
                                 test_id="test-1",
                                 title="Test 1",
                                 status="passed",
+                                metadata_sections=[
+                                    MetadataSection(
+                                        heading="Description",
+                                        content="Test the happy path.",
+                                    )
+                                ],
                                 checks=[
                                     CheckResult(
                                         status="passed",

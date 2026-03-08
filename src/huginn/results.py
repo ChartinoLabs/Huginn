@@ -5,7 +5,7 @@ from typing import Protocol, runtime_checkable
 
 from huginn.brokers.protocol import CommandResult
 from huginn.enums import ResultStatus
-from huginn.models import CheckResult, CommandExecution
+from huginn.models import CheckResult, CommandExecution, MetadataSection
 
 
 @runtime_checkable
@@ -17,8 +17,13 @@ class _OutputCarrier(Protocol):
 class ResultCollector:
     """Collect check-level results for one test case."""
 
+    metadata_sections: list[MetadataSection] = field(default_factory=list)
     checks: list[CheckResult] = field(default_factory=list)
     command_executions: list[CommandExecution] = field(default_factory=list)
+
+    def add_metadata_section(self, heading: str, content: str) -> None:
+        """Record one rendered metadata section for reporting."""
+        self.metadata_sections.append(MetadataSection(heading=heading, content=content))
 
     def add_result(self, status: ResultStatus, message: str) -> None:
         """Record a check result entry."""

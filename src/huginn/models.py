@@ -112,6 +112,14 @@ class CheckResult:
 
 
 @dataclass
+class MetadataSection:
+    """One rendered metadata section for a test case."""
+
+    heading: str
+    content: str
+
+
+@dataclass
 class CommandExecution:
     """Recorded command execution details for reporting/debugging."""
 
@@ -130,6 +138,7 @@ class ExecutedTestCase:
     test_id: str
     title: str
     status: str
+    metadata_sections: list[MetadataSection] = field(default_factory=list)
     checks: list[CheckResult] = field(default_factory=list)
     command_executions: list[CommandExecution] = field(default_factory=list)
     error: str | None = None

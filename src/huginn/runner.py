@@ -35,6 +35,7 @@ from huginn.models import (
 from huginn.output import Output
 from huginn.parameters import ParameterManager
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
+from huginn.reporting.html import ReportRenderError, write_standard_html_report
 from huginn.result_store import ResultWriteError, write_run_result
 from huginn.results import ResultCollector
 from huginn.runtime_broker import (
@@ -201,8 +202,14 @@ async def run_test_plan(
     summary = _build_summary(executed_phases)
     result = RunResult(summary=summary, phases=executed_phases)
     try:
-        write_run_result(result=result, results_dir=results_dir, mode=mode)
-    except ResultWriteError as error:
+        run_files = write_run_result(result=result, results_dir=results_dir, mode=mode)
+        dashboard_path = write_standard_html_report(
+            result=result,
+            reports_dir=project_root / "reports",
+            results_run_dir=run_files.run_dir,
+            test_case_result_paths=run_files.test_case_paths,
+        )
+    except (ResultWriteError, ReportRenderError) as error:
         raise RunExecutionError(
             str(error),
             code=ErrorCode.CONFIGURATION_ERROR,
@@ -220,6 +227,8 @@ async def run_test_plan(
         skipped=result.summary.skipped,
         blocked=result.summary.blocked,
     )
+    log_info(output, "HTML report written", path=str(dashboard_path))
+    _emit_status(output, f"HTML report written to {dashboard_path}")
     _emit_status(output, f"Run completed in {_format_elapsed(run_started)}")
     return result
 
@@ -968,6 +977,7 @@ async def _execute_test_case(
         test_id=definition.test_id,
         title=definition.title,
         status=status,
+        metadata_sections=result_collector.metadata_sections,
         checks=result_collector.checks,
         command_executions=result_collector.command_executions,
     )
@@ -987,6 +997,7 @@ def _errored_test_case(
         test_id=definition.test_id,
         title=definition.title,
         status=ResultStatus.ERRORED.value,
+        metadata_sections=[],
         checks=normalized_checks,
         command_executions=[],
         error=error,
@@ -1005,6 +1016,7 @@ def _skipped_test_case(
         test_id=definition.test_id,
         title=definition.title,
         status=ResultStatus.SKIPPED.value,
+        metadata_sections=[],
         command_executions=[],
         error=reason,
     )

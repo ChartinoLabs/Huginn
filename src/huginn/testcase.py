@@ -127,7 +127,9 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
             rendered = _METADATA_TEMPLATE_ENV.from_string(template).render(
                 parameters=parameters
             )
-            lines.extend(["", f"{heading}:", rendered.strip()])
+            rendered_text = rendered.strip()
+            context.results.add_metadata_section(heading, rendered_text)
+            lines.extend(["", f"{heading}:", rendered_text])
 
         context.results.add_result(ResultStatus.INFO, "\n".join(lines).strip())
 

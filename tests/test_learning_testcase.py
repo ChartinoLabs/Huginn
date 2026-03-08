@@ -12,7 +12,7 @@ from huginn import (
     LearningTestCase,
     ResultStatus,
 )
-from huginn.models import Device
+from huginn.models import Device, MetadataSection
 
 
 @dataclass
@@ -32,6 +32,10 @@ class _FakeParameters:
 @dataclass
 class _FakeResults:
     entries: list[tuple[ResultStatus, str]] = field(default_factory=list)
+    metadata_sections: list[MetadataSection] = field(default_factory=list)
+
+    def add_metadata_section(self, heading: str, content: str) -> None:
+        self.metadata_sections.append(MetadataSection(heading=heading, content=content))
 
     def add_result(self, status: ResultStatus, message: str) -> None:
         self.entries.append((status, message))
@@ -239,6 +243,24 @@ async def test_learning_testcase_renders_metadata_in_testing_mode() -> None:
             "Pass/Fail Criteria:\n"
             "Pass when baseline matches leaf-01",
         )
+    ]
+    assert context.results.metadata_sections == [
+        MetadataSection(
+            heading="Description",
+            content="Validate expected payload for leaf-01",
+        ),
+        MetadataSection(
+            heading="Setup",
+            content="Connect to leaf-01",
+        ),
+        MetadataSection(
+            heading="Procedure",
+            content="Compare state for leaf-01",
+        ),
+        MetadataSection(
+            heading="Pass/Fail Criteria",
+            content="Pass when baseline matches leaf-01",
+        ),
     ]
 
 
