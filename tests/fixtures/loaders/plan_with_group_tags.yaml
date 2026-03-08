@@ -1,17 +1,17 @@
 test_cases:
-  "1.0.0":
+  1.0.0:
     title: Verify OSPF
     job: jobs/verify_ospf.py
-
 test_case_groups:
   routing:
     tags:
-      - network
-      - critical
+    - network
+    - critical
     tests:
-      - "1.0.0"
-
-phases:
-  phase-1:
-    test_case_groups:
-      - routing
+    - 1.0.0
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - routing

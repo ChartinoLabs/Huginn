@@ -35,7 +35,8 @@ def test_validate_generates_report_for_valid_inputs(
     assert result.exit_code == 0
     report = _load_validate_report(tmp_path)
     assert report["valid"] is True
-    assert report["phase_order"] == ["phase-1"]
+    assert report["scenario_order"] == ["scenario-1"]
+    assert report["phase_order"] == ["scenario-1.phase-1"]
     assert report["required_brokers"] == ["ssh"]
 
 
@@ -199,6 +200,8 @@ def test_validate_filters_by_phase_and_test_case_group(
             str(tmp_path / "testbed.yaml"),
             "--plan",
             str(tmp_path / "test_plan.yaml"),
+            "--scenario",
+            "scenario-1",
             "--phase",
             "pre-change",
             "--test-case-group",
@@ -209,7 +212,8 @@ def test_validate_filters_by_phase_and_test_case_group(
 
     assert result.exit_code == 0
     report = _load_validate_report(tmp_path)
-    assert report["phase_order"] == ["pre-change"]
+    assert report["scenario_order"] == ["scenario-1"]
+    assert report["phase_order"] == ["scenario-1.pre-change"]
     assert {case["test_id"] for case in report["test_cases"]} == {"1.0.0", "1.0.1"}
 
 
@@ -242,6 +246,33 @@ def test_validate_filters_by_test_id_and_exclude_tags(
     report = _load_validate_report(tmp_path)
     assert report["phase_order"] == []
     assert report["test_cases"] == []
+
+
+def test_validate_rejects_phase_filter_without_scenario(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Phase filtering requires an explicit scenario selection."""
+    _stage_runner_fixture(tmp_path, "cli_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "validate",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--phase",
+            "pre-change",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 2
+    assert "--phase requires --scenario" in result.output
 
 
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:

@@ -95,10 +95,18 @@ class Phase:
 
 
 @dataclass
+class Scenario:
+    """A scenario that groups ordered phases toward one testing outcome."""
+
+    name: str
+    phases: dict[str, Phase]
+
+
+@dataclass
 class TestPlan:
     """In-memory representation of a test plan file."""
 
-    phases: dict[str, Phase]
+    scenarios: dict[str, Scenario]
     test_case_groups: dict[str, TestCaseGroup]
     test_cases: dict[str, TestCaseDefinition]
 
@@ -135,6 +143,9 @@ class CommandExecution:
 class ExecutedTestCase:
     """Execution output for a single test case."""
 
+    scenario: str
+    phase: str
+    group: str
     test_id: str
     title: str
     status: str
@@ -165,6 +176,15 @@ class ExecutedPhase:
 
 
 @dataclass
+class ExecutedScenario:
+    """Execution output for a scenario."""
+
+    name: str
+    status: str
+    phases: list[ExecutedPhase] = field(default_factory=list)
+
+
+@dataclass
 class RunSummary:
     """Aggregate counters and status for a run."""
 
@@ -183,4 +203,4 @@ class RunResult:
     """Top-level run result payload written to disk."""
 
     summary: RunSummary
-    phases: list[ExecutedPhase]
+    scenarios: list[ExecutedScenario]

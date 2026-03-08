@@ -73,6 +73,13 @@ def run(
             help="Exclude test cases with matching tags.",
         ),
     ] = None,
+    scenario: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--scenario",
+            help="Run only specified scenarios.",
+        ),
+    ] = None,
     phase: Annotated[
         list[str] | None,
         typer.Option(
@@ -169,6 +176,7 @@ def run(
         inventory_plugin=inventory_plugin,
         tags=tags,
         exclude_tags=exclude_tags,
+        scenario=scenario,
         phase=phase,
         test_case_group=test_case_group,
         test_id=test_id,
@@ -181,6 +189,7 @@ def run(
         filters = _build_plan_filters(
             tags=tags,
             exclude_tags=exclude_tags,
+            scenarios=scenario,
             phases=phase,
             test_case_groups=test_case_group,
             test_ids=test_id,
@@ -260,6 +269,13 @@ def validate(
         typer.Option(
             "--exclude-tags",
             help="Exclude validation set by tags.",
+        ),
+    ] = None,
+    scenario: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--scenario",
+            help="Validate only specified scenarios.",
         ),
     ] = None,
     phase: Annotated[
@@ -347,6 +363,7 @@ def validate(
         inventory_plugin=inventory_plugin,
         tags=tags,
         exclude_tags=exclude_tags,
+        scenario=scenario,
         phase=phase,
         test_case_group=test_case_group,
         test_id=test_id,
@@ -362,6 +379,7 @@ def validate(
             filters=_build_plan_filters(
                 tags=tags,
                 exclude_tags=exclude_tags,
+                scenarios=scenario,
                 phases=phase,
                 test_case_groups=test_case_group,
                 test_ids=test_id,
@@ -426,15 +444,22 @@ def _build_plan_filters(
     *,
     tags: list[str] | None,
     exclude_tags: list[str] | None,
+    scenarios: list[str] | None,
     phases: list[str] | None,
     test_case_groups: list[str] | None,
     test_ids: list[str] | None,
 ) -> PlanFilterOptions:
     """Normalize CLI filter values into a single plan-filter object."""
+    normalized_scenarios = _split_csv_option_values(scenarios)
+    normalized_phases = _split_csv_option_values(phases)
+    if normalized_phases and not normalized_scenarios:
+        raise typer.BadParameter("--phase requires --scenario to be specified.")
+
     return PlanFilterOptions(
         tags=_split_csv_option_values(tags),
         exclude_tags=_split_csv_option_values(exclude_tags),
-        phases=_split_csv_option_values(phases),
+        scenarios=normalized_scenarios,
+        phases=normalized_phases,
         test_case_groups=_split_csv_option_values(test_case_groups),
         test_ids=_split_csv_option_values(test_ids),
     )

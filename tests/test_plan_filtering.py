@@ -8,10 +8,22 @@ from huginn.plan_filtering import (
 )
 
 
+def _scenario_with_phases(**phases: models.Phase) -> dict[str, models.Scenario]:
+    """Build a single-scenario test plan mapping."""
+    return {
+        "scenario-1": models.Scenario(
+            name="scenario-1",
+            phases=phases,
+        )
+    }
+
+
 def test_filter_by_tags_matches_group_tags_when_test_case_has_no_tags() -> None:
     """Group tags are included in effective tag matching for a test case."""
     test_plan = models.TestPlan(
-        phases={"phase-1": models.Phase(name="phase-1", test_case_groups=["routing"])},
+        scenarios=_scenario_with_phases(
+            **{"phase-1": models.Phase(name="phase-1", test_case_groups=["routing"])}
+        ),
         test_case_groups={
             "routing": models.TestCaseGroup(
                 name="routing",
@@ -39,12 +51,14 @@ def test_filter_by_tags_matches_group_tags_when_test_case_has_no_tags() -> None:
 def test_filter_by_tags_uses_union_of_test_and_group_tags() -> None:
     """Test and group tags are treated as an additive union for filtering."""
     test_plan = models.TestPlan(
-        phases={
-            "phase-1": models.Phase(
-                name="phase-1",
-                test_case_groups=["core", "edge"],
-            ),
-        },
+        scenarios=_scenario_with_phases(
+            **{
+                "phase-1": models.Phase(
+                    name="phase-1",
+                    test_case_groups=["core", "edge"],
+                )
+            }
+        ),
         test_case_groups={
             "core": models.TestCaseGroup(
                 name="core",
@@ -71,13 +85,17 @@ def test_filter_by_tags_uses_union_of_test_and_group_tags() -> None:
 
     assert list(filtered.test_case_groups.keys()) == ["edge"]
     assert filtered.test_case_groups["edge"].tests == ["1.0.0"]
-    assert filtered.phases["phase-1"].test_case_groups == ["edge"]
+    assert filtered.scenarios["scenario-1"].phases["phase-1"].test_case_groups == [
+        "edge"
+    ]
 
 
 def test_filter_by_tags_still_matches_plain_test_case_tags() -> None:
     """Existing test-case-only tag behavior is preserved."""
     test_plan = models.TestPlan(
-        phases={"phase-1": models.Phase(name="phase-1", test_case_groups=["routing"])},
+        scenarios=_scenario_with_phases(
+            **{"phase-1": models.Phase(name="phase-1", test_case_groups=["routing"])}
+        ),
         test_case_groups={
             "routing": models.TestCaseGroup(name="routing", tests=["1.0.0"])
         },
@@ -100,7 +118,9 @@ def test_filter_by_tags_still_matches_plain_test_case_tags() -> None:
 def test_filter_by_exclude_tags_removes_matching_tests() -> None:
     """Exclude tags remove tests with matching effective tags."""
     test_plan = models.TestPlan(
-        phases={"phase-1": models.Phase(name="phase-1", test_case_groups=["routing"])},
+        scenarios=_scenario_with_phases(
+            **{"phase-1": models.Phase(name="phase-1", test_case_groups=["routing"])}
+        ),
         test_case_groups={
             "routing": models.TestCaseGroup(name="routing", tests=["1.0.0", "1.0.1"])
         },
@@ -131,10 +151,12 @@ def test_filter_by_exclude_tags_removes_matching_tests() -> None:
 def test_filter_by_phase_group_and_test_id_combines_with_and_logic() -> None:
     """Phase/group/test-id filters combine to constrain execution nodes."""
     test_plan = models.TestPlan(
-        phases={
-            "pre": models.Phase(name="pre", test_case_groups=["core", "edge"]),
-            "post": models.Phase(name="post", test_case_groups=["edge"]),
-        },
+        scenarios=_scenario_with_phases(
+            **{
+                "pre": models.Phase(name="pre", test_case_groups=["core", "edge"]),
+                "post": models.Phase(name="post", test_case_groups=["edge"]),
+            }
+        ),
         test_case_groups={
             "core": models.TestCaseGroup(name="core", tests=["1.0.0", "1.0.1"]),
             "edge": models.TestCaseGroup(name="edge", tests=["2.0.0"]),
@@ -161,14 +183,16 @@ def test_filter_by_phase_group_and_test_id_combines_with_and_logic() -> None:
     filtered = filter_test_plan(
         test_plan,
         PlanFilterOptions(
+            scenarios=["scenario-1"],
             phases=["pre"],
             test_case_groups=["core"],
             test_ids=["1.0.1"],
         ),
     )
 
-    assert list(filtered.phases.keys()) == ["pre"]
-    assert filtered.phases["pre"].test_case_groups == ["core"]
+    assert list(filtered.scenarios.keys()) == ["scenario-1"]
+    assert list(filtered.scenarios["scenario-1"].phases.keys()) == ["pre"]
+    assert filtered.scenarios["scenario-1"].phases["pre"].test_case_groups == ["core"]
     assert filtered.test_case_groups["core"].tests == ["1.0.1"]
     assert list(filtered.test_cases.keys()) == ["1.0.1"]
 
@@ -176,7 +200,9 @@ def test_filter_by_phase_group_and_test_id_combines_with_and_logic() -> None:
 def test_filter_by_tags_requires_all_requested_tags() -> None:
     """Include tags require full subset match against effective tags."""
     test_plan = models.TestPlan(
-        phases={"phase-1": models.Phase(name="phase-1", test_case_groups=["routing"])},
+        scenarios=_scenario_with_phases(
+            **{"phase-1": models.Phase(name="phase-1", test_case_groups=["routing"])}
+        ),
         test_case_groups={
             "routing": models.TestCaseGroup(name="routing", tests=["1.0.0", "1.0.1"])
         },

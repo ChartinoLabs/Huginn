@@ -191,7 +191,7 @@ def test_cleanup_runs_when_test_errors(
     report_data = _load_report(tmp_path)
     assert report_data["summary"]["status"] == "errored"
     assert report_data["summary"]["errored"] == 1
-    errored_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    errored_case = _first_test_case(report_data)
     assert errored_case["error_traceback"] is not None
     assert "Traceback (most recent call last)" in errored_case["error_traceback"]
 
@@ -221,7 +221,7 @@ def test_run_honors_test_case_device_targets(
 
     assert result.exit_code == 0
     report_data = _load_report(tmp_path)
-    checks = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]["checks"]
+    checks = _first_test_case(report_data)["checks"]
     assert len(checks) == 1
     assert checks[0]["message"] == "ok:leaf-01"
 
@@ -251,7 +251,7 @@ def test_run_records_command_executions_in_report(
 
     assert result.exit_code == 0
     report_data = _load_report(tmp_path)
-    test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    test_case = _first_test_case(report_data)
     command_execution = test_case["command_executions"][0]
     assert command_execution["device"] == "leaf-01"
     assert command_execution["command"] == "show version"
@@ -284,7 +284,7 @@ def test_run_errors_when_test_target_device_is_missing(
 
     assert result.exit_code == 1
     report_data = _load_report(tmp_path)
-    test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    test_case = _first_test_case(report_data)
     assert test_case["status"] == "errored"
     assert test_case["error_code"] == "validation_error"
     assert "Unknown target device 'leaf-42'" in test_case["error"]
@@ -316,7 +316,7 @@ def test_runner_plans_brokers_from_job_declarations(
     assert result.exit_code == 0
     assert _FakeRuntimeBroker.last_required_brokers == {BrokerType.NETCONF}
     report_data = _load_report(tmp_path)
-    checks = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]["checks"]
+    checks = _first_test_case(report_data)["checks"]
     assert checks[0]["message"] == "get:leaf-01:/interfaces"
 
 
@@ -350,8 +350,8 @@ def test_phase_with_failed_dependency_is_marked_blocked(
     assert report_data["summary"]["failed"] == 1
     assert report_data["summary"]["blocked"] == 1
 
-    phase_1 = report_data["phases"][0]
-    phase_2 = report_data["phases"][1]
+    phase_1 = report_data["scenarios"][0]["phases"][0]
+    phase_2 = report_data["scenarios"][0]["phases"][1]
     assert phase_1["status"] == "failed"
     assert phase_2["status"] == "blocked"
 
@@ -412,7 +412,7 @@ def test_run_applies_group_and_os_target_selectors(
 
     assert result.exit_code == 0
     report_data = _load_report(tmp_path)
-    checks = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]["checks"]
+    checks = _first_test_case(report_data)["checks"]
     assert len(checks) == 1
     assert checks[0]["message"] == "selected:leaf-02"
 
@@ -443,7 +443,7 @@ def test_run_skips_test_case_when_no_targets_match(
     assert result.exit_code == 1
     assert not (tmp_path / "unexpected.execution").exists()
     report_data = _load_report(tmp_path)
-    test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    test_case = _first_test_case(report_data)
     assert test_case["status"] == "skipped"
     assert test_case["error_code"] is None
     assert "No devices matched target selectors" in test_case["error"]
@@ -474,7 +474,7 @@ def test_run_applies_phase_group_test_target_intersection(
 
     assert result.exit_code == 0
     report_data = _load_report(tmp_path)
-    checks = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]["checks"]
+    checks = _first_test_case(report_data)["checks"]
     assert len(checks) == 1
     assert checks[0]["message"] == "selected:leaf-02"
 
@@ -505,7 +505,7 @@ def test_run_skips_when_hierarchical_target_intersection_is_empty(
     assert result.exit_code == 1
     assert not (tmp_path / "hierarchy.unexpected").exists()
     report_data = _load_report(tmp_path)
-    test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    test_case = _first_test_case(report_data)
     assert test_case["status"] == "skipped"
 
 
@@ -538,7 +538,7 @@ def test_run_filters_test_cases_by_tags(
     assert not (tmp_path / "unexpected.tag.execution").exists()
     report_data = _load_report(tmp_path)
     assert report_data["summary"]["total"] == 1
-    checks = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]["checks"]
+    checks = _first_test_case(report_data)["checks"]
     assert checks[0]["message"] == "ran:ospf"
 
 
@@ -570,7 +570,7 @@ def test_run_with_unmatched_tags_produces_empty_execution(
     assert result.exit_code == 0
     report_data = _load_report(tmp_path)
     assert report_data["summary"]["total"] == 0
-    assert report_data["phases"] == []
+    assert report_data["scenarios"] == []
 
 
 def test_run_supports_file_inventory_plugin(
@@ -648,6 +648,8 @@ def test_run_filters_by_phase_option(
             str(tmp_path / "testbed.yaml"),
             "--plan",
             str(tmp_path / "test_plan.yaml"),
+            "--scenario",
+            "scenario-1",
             "--phase",
             "post-change",
         ],
@@ -656,8 +658,42 @@ def test_run_filters_by_phase_option(
 
     assert result.exit_code == 0
     report = _load_report(tmp_path)
-    assert [phase["name"] for phase in report["phases"]] == ["post-change"]
+    assert [phase["name"] for phase in report["scenarios"][0]["phases"]] == [
+        "post-change"
+    ]
     assert report["summary"]["total"] == 1
+
+
+def test_run_output_announces_scenario_and_phase_start(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CLI output announces scenario and qualified phase start messages."""
+    _stage_runner_fixture(tmp_path, "passed")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert "Executing scenarios and phases" in result.stdout
+    assert "Execution order:" in result.stdout
+    assert "Scenario: scenario-1" in result.stdout
+    assert "Phase: phase-1" in result.stdout
+    assert "Starting scenario: scenario-1" in result.stdout
+    assert "  Starting phase: phase-1" in result.stdout
 
 
 def test_run_filters_by_test_case_group_option(
@@ -689,7 +725,7 @@ def test_run_filters_by_test_case_group_option(
     report = _load_report(tmp_path)
     executed_groups = [
         group["name"]
-        for phase in report["phases"]
+        for phase in report["scenarios"][0]["phases"]
         for group in phase["test_case_groups"]
     ]
     assert executed_groups == ["pre-checks"]
@@ -725,7 +761,7 @@ def test_run_filters_by_test_id_option(
     report = _load_report(tmp_path)
     executed_ids = [
         case["test_id"]
-        for phase in report["phases"]
+        for phase in report["scenarios"][0]["phases"]
         for group in phase["test_case_groups"]
         for case in group["test_cases"]
     ]
@@ -761,7 +797,7 @@ def test_run_filters_by_exclude_tags_option(
     report = _load_report(tmp_path)
     executed_ids = [
         case["test_id"]
-        for phase in report["phases"]
+        for phase in report["scenarios"][0]["phases"]
         for group in phase["test_case_groups"]
         for case in group["test_cases"]
     ]
@@ -797,7 +833,7 @@ def test_run_filters_by_comma_separated_tags_with_all_match_semantics(
     report = _load_report(tmp_path)
     executed_ids = [
         case["test_id"]
-        for phase in report["phases"]
+        for phase in report["scenarios"][0]["phases"]
         for group in phase["test_case_groups"]
         for case in group["test_cases"]
     ]
@@ -833,7 +869,7 @@ def test_run_executes_test_cases_in_group_in_parallel(
     report = _load_report(tmp_path)
     executed_ids = [
         case["test_id"]
-        for phase in report["phases"]
+        for phase in report["scenarios"][0]["phases"]
         for group in phase["test_case_groups"]
         for case in group["test_cases"]
     ]
@@ -983,7 +1019,7 @@ def test_run_learning_mode_skips_non_learning_testcases(
 
     assert result.exit_code == 1
     report_data = _load_report(tmp_path)
-    test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    test_case = _first_test_case(report_data)
     assert test_case["status"] == "skipped"
     assert "inherit LearningTestCase" in test_case["error"]
     assert report_data["summary"]["skipped"] == 1
@@ -1021,7 +1057,7 @@ def test_run_testing_mode_loads_learned_parameters(
 
     assert result.exit_code == 0
     report_data = _load_report(tmp_path)
-    checks = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]["checks"]
+    checks = _first_test_case(report_data)["checks"]
     assert checks[0]["message"] == "parameters matched"
 
 
@@ -1050,7 +1086,7 @@ def test_run_testing_mode_errors_when_parameters_are_missing(
 
     assert result.exit_code == 1
     report_data = _load_report(tmp_path)
-    test_case = report_data["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    test_case = _first_test_case(report_data)
     assert test_case["status"] == "errored"
     assert "No learned parameters found" in test_case["error"]
 
@@ -1106,16 +1142,24 @@ def _load_report(tmp_path: Path) -> dict[str, Any]:
     report_path = run_reports[-1]
     payload = json.loads(report_path.read_text(encoding="utf-8"))
 
-    for phase in payload["phases"]:
-        for group in phase["test_case_groups"]:
-            hydrated_cases: list[dict[str, Any]] = []
-            for test_case in group["test_cases"]:
-                hydrated_case = dict(test_case)
-                result_path = hydrated_case.pop("result_path")
-                test_case_payload = json.loads(
-                    (report_path.parent / result_path).read_text(encoding="utf-8")
-                )
-                hydrated_cases.append({**hydrated_case, **test_case_payload})
-            group["test_cases"] = hydrated_cases
+    for scenario in payload["scenarios"]:
+        for phase in scenario["phases"]:
+            for group in phase["test_case_groups"]:
+                hydrated_cases: list[dict[str, Any]] = []
+                for test_case in group["test_cases"]:
+                    hydrated_case = dict(test_case)
+                    result_path = hydrated_case.pop("result_path")
+                    test_case_payload = json.loads(
+                        (report_path.parent / result_path).read_text(encoding="utf-8")
+                    )
+                    hydrated_cases.append({**hydrated_case, **test_case_payload})
+                group["test_cases"] = hydrated_cases
 
     return payload
+
+
+def _first_test_case(report_data: dict[str, Any]) -> dict[str, Any]:
+    """Return the first hydrated test case from a loaded run report."""
+    return report_data["scenarios"][0]["phases"][0]["test_case_groups"][0][
+        "test_cases"
+    ][0]

@@ -13,6 +13,7 @@ from huginn.models import (
     Device,
     ExecutionStrategy,
     Phase,
+    Scenario,
     TargetDefinition,
     Testbed,
     TestCaseDefinition,
@@ -349,12 +350,16 @@ def load_test_plan(path: Path) -> TestPlan:
 
     test_cases = _load_test_cases(data)
     groups = _load_test_case_groups(data)
-    phases = _load_phases(data)
+    scenarios = _load_scenarios(data)
 
     _validate_test_case_group_references(groups, test_cases)
-    _validate_phase_references(phases, groups)
+    _validate_scenario_references(scenarios, groups)
 
-    return TestPlan(test_cases=test_cases, test_case_groups=groups, phases=phases)
+    return TestPlan(
+        test_cases=test_cases,
+        test_case_groups=groups,
+        scenarios=scenarios,
+    )
 
 
 def _load_test_cases(data: dict[str, object]) -> dict[str, TestCaseDefinition]:
@@ -578,41 +583,74 @@ def _flatten_nested_test_case_groups(
     return resolved
 
 
-def _load_phases(data: dict[str, object]) -> dict[str, Phase]:
+def _load_scenarios(data: dict[str, object]) -> dict[str, Scenario]:
+    raw_scenarios = _require_mapping(
+        data.get("scenarios"),
+        "Test plan must include a non-empty 'scenarios' mapping",
+    )
+    if not raw_scenarios:
+        raise ConfigurationError(
+            "Test plan must include a non-empty 'scenarios' mapping"
+        )
+
+    scenarios: dict[str, Scenario] = {}
+    for scenario_name, raw_scenario in raw_scenarios.items():
+        scenarios[scenario_name] = _parse_scenario(scenario_name, raw_scenario)
+    return scenarios
+
+
+def _parse_scenario(scenario_name: object, raw_scenario: object) -> Scenario:
+    """Parse and validate one scenario mapping entry."""
+    if not isinstance(scenario_name, str):
+        raise ConfigurationError("Scenario names must be strings")
+
+    scenario_mapping = _require_mapping(
+        raw_scenario,
+        f"Scenario '{scenario_name}' must be a mapping",
+    )
     raw_phases = _require_mapping(
-        data.get("phases"),
-        "Test plan must include a non-empty 'phases' mapping",
+        scenario_mapping.get("phases"),
+        f"Scenario '{scenario_name}' must include a non-empty 'phases' mapping",
     )
     if not raw_phases:
-        raise ConfigurationError("Test plan must include a non-empty 'phases' mapping")
+        raise ConfigurationError(
+            f"Scenario '{scenario_name}' must include a non-empty 'phases' mapping"
+        )
 
     phases: dict[str, Phase] = {}
     for phase_name, raw_phase in raw_phases.items():
-        phases[phase_name] = _parse_phase(phase_name, raw_phase)
-    return phases
+        phases[phase_name] = _parse_phase(scenario_name, phase_name, raw_phase)
+    return Scenario(name=scenario_name, phases=phases)
 
 
-def _parse_phase(phase_name: object, raw_phase: object) -> Phase:
+def _parse_phase(
+    scenario_name: str,
+    phase_name: object,
+    raw_phase: object,
+) -> Phase:
     """Parse and validate one phase mapping entry."""
     if not isinstance(phase_name, str):
         raise ConfigurationError("Phase names must be strings")
 
     phase_mapping = _require_mapping(
         raw_phase,
-        f"Phase '{phase_name}' must be a mapping",
+        f"Phase '{phase_name}' in scenario '{scenario_name}' must be a mapping",
     )
     test_case_groups = _require_non_empty_string_list(
         phase_mapping.get("test_case_groups"),
-        f"Phase '{phase_name}' must include non-empty 'test_case_groups'",
+        (
+            f"Phase '{phase_name}' in scenario '{scenario_name}' must include "
+            "non-empty 'test_case_groups'"
+        ),
     )
     depends_on = _load_optional_string_list_allow_empty(phase_mapping.get("depends_on"))
     strategy = _load_execution_strategy(
         phase_mapping.get("strategy"),
-        context_name=f"Phase '{phase_name}'",
+        context_name=f"Phase '{phase_name}' in scenario '{scenario_name}'",
     )
     target = _load_target_definition(
         phase_mapping.get("target"),
-        f"Phase '{phase_name}'",
+        f"Phase '{phase_name}' in scenario '{scenario_name}'",
     )
     return Phase(
         name=phase_name,
@@ -723,26 +761,31 @@ def _validate_test_case_group_references(
             )
 
 
-def _validate_phase_references(
-    phases: dict[str, Phase],
+def _validate_scenario_references(
+    scenarios: dict[str, Scenario],
     groups: dict[str, TestCaseGroup],
 ) -> None:
-    for phase in phases.values():
-        missing = [
-            group_name
-            for group_name in phase.test_case_groups
-            if group_name not in groups
-        ]
-        if missing:
-            raise ConfigurationError(
-                f"Phase '{phase.name}' references undefined test case groups: {missing}"
-            )
+    for scenario in scenarios.values():
+        for phase in scenario.phases.values():
+            missing = [
+                group_name
+                for group_name in phase.test_case_groups
+                if group_name not in groups
+            ]
+            if missing:
+                raise ConfigurationError(
+                    f"Phase '{phase.name}' in scenario '{scenario.name}' references "
+                    f"undefined test case groups: {missing}"
+                )
 
-        missing_phase_dependencies = [
-            phase_name for phase_name in phase.depends_on if phase_name not in phases
-        ]
-        if missing_phase_dependencies:
-            raise ConfigurationError(
-                f"Phase '{phase.name}' references undefined depends_on phases: "
-                f"{missing_phase_dependencies}"
-            )
+            missing_phase_dependencies = [
+                phase_name
+                for phase_name in phase.depends_on
+                if phase_name not in scenario.phases
+            ]
+            if missing_phase_dependencies:
+                raise ConfigurationError(
+                    f"Phase '{phase.name}' in scenario '{scenario.name}' references "
+                    "undefined depends_on phases: "
+                    f"{missing_phase_dependencies}"
+                )
