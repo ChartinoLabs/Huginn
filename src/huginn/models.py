@@ -72,34 +72,73 @@ class TestCaseDefinition:
 class TestCaseGroup:
     """A group of test case identifiers from a test plan."""
 
-    name: str
     tests: list[str]
+    identifier: str = ""
+    name: str | None = None
     tags: list[str] = field(default_factory=list)
     target: TargetDefinition | None = None
     strategy: ExecutionStrategy = field(
         default_factory=lambda: ExecutionStrategy(mode="parallel")
     )
 
+    def __post_init__(self) -> None:
+        """Normalize identifier/name fallbacks for in-memory construction."""
+        if not self.identifier:
+            self.identifier = self.name or ""
+        if not self.identifier:
+            raise ValueError("TestCaseGroup requires an identifier or name")
+
+    @property
+    def display_name(self) -> str:
+        """Return the configured display name or fall back to the identifier."""
+        return self.name or self.identifier
+
 
 @dataclass
 class Phase:
     """A phase that references test case groups for execution."""
 
-    name: str
     test_case_groups: list[str]
+    identifier: str = ""
+    name: str | None = None
     depends_on: list[str] = field(default_factory=list)
     target: TargetDefinition | None = None
     strategy: ExecutionStrategy = field(
         default_factory=lambda: ExecutionStrategy(mode="parallel")
     )
 
+    def __post_init__(self) -> None:
+        """Normalize identifier/name fallbacks for in-memory construction."""
+        if not self.identifier:
+            self.identifier = self.name or ""
+        if not self.identifier:
+            raise ValueError("Phase requires an identifier or name")
+
+    @property
+    def display_name(self) -> str:
+        """Return the configured display name or fall back to the identifier."""
+        return self.name or self.identifier
+
 
 @dataclass
 class Scenario:
     """A scenario that groups ordered phases toward one testing outcome."""
 
-    name: str
     phases: dict[str, Phase]
+    identifier: str = ""
+    name: str | None = None
+
+    def __post_init__(self) -> None:
+        """Normalize identifier/name fallbacks for in-memory construction."""
+        if not self.identifier:
+            self.identifier = self.name or ""
+        if not self.identifier:
+            raise ValueError("Scenario requires an identifier or name")
+
+    @property
+    def display_name(self) -> str:
+        """Return the configured display name or fall back to the identifier."""
+        return self.name or self.identifier
 
 
 @dataclass
@@ -161,27 +200,66 @@ class ExecutedTestCase:
 class ExecutedTestCaseGroup:
     """Execution output for a test case group."""
 
-    name: str
     status: str
+    identifier: str = ""
+    name: str | None = None
     test_cases: list[ExecutedTestCase] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        """Normalize identifier/name fallbacks for execution output."""
+        if not self.identifier:
+            self.identifier = self.name or ""
+        if not self.identifier:
+            raise ValueError("ExecutedTestCaseGroup requires an identifier or name")
+
+    @property
+    def display_name(self) -> str:
+        """Return the configured display name or fall back to the identifier."""
+        return self.name or self.identifier
 
 
 @dataclass
 class ExecutedPhase:
     """Execution output for a phase."""
 
-    name: str
     status: str
+    identifier: str = ""
+    name: str | None = None
     test_case_groups: list[ExecutedTestCaseGroup] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        """Normalize identifier/name fallbacks for execution output."""
+        if not self.identifier:
+            self.identifier = self.name or ""
+        if not self.identifier:
+            raise ValueError("ExecutedPhase requires an identifier or name")
+
+    @property
+    def display_name(self) -> str:
+        """Return the configured display name or fall back to the identifier."""
+        return self.name or self.identifier
 
 
 @dataclass
 class ExecutedScenario:
     """Execution output for a scenario."""
 
-    name: str
     status: str
+    identifier: str = ""
+    name: str | None = None
     phases: list[ExecutedPhase] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        """Normalize identifier/name fallbacks for execution output."""
+        if not self.identifier:
+            self.identifier = self.name or ""
+        if not self.identifier:
+            raise ValueError("ExecutedScenario requires an identifier or name")
+
+    @property
+    def display_name(self) -> str:
+        """Return the configured display name or fall back to the identifier."""
+        return self.name or self.identifier
 
 
 @dataclass

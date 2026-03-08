@@ -62,6 +62,16 @@ def test_write_run_result_writes_summary_and_test_case_json(tmp_path: Path) -> N
     payload = json.loads(result_path.read_text(encoding="utf-8"))
     assert payload["mode"] == "testing"
     assert payload["summary"]["status"] == "passed"
+    assert payload["scenarios"][0]["id"] == "scenario-1"
+    assert payload["scenarios"][0]["name"] == "Scenario 1"
+    assert payload["scenarios"][0]["phases"][0]["id"] == "phase-1"
+    assert payload["scenarios"][0]["phases"][0]["name"] == "Phase 1"
+    assert payload["scenarios"][0]["phases"][0]["test_case_groups"][0]["id"] == (
+        "group-1"
+    )
+    assert payload["scenarios"][0]["phases"][0]["test_case_groups"][0]["name"] == (
+        "Group 1"
+    )
     test_case = payload["scenarios"][0]["phases"][0]["test_case_groups"][0][
         "test_cases"
     ][0]
@@ -98,14 +108,17 @@ def test_write_run_result_uses_scenario_and_phase_in_duplicate_test_paths(
         ),
         scenarios=[
             ExecutedScenario(
+                identifier="scenario-1",
                 name="scenario-1",
                 status="passed",
                 phases=[
                     ExecutedPhase(
+                        identifier="steady-state",
                         name="steady-state",
                         status="passed",
                         test_case_groups=[
                             ExecutedTestCaseGroup(
+                                identifier="group-1",
                                 name="group-1",
                                 status="passed",
                                 test_cases=[
@@ -130,14 +143,17 @@ def test_write_run_result_uses_scenario_and_phase_in_duplicate_test_paths(
                 ],
             ),
             ExecutedScenario(
+                identifier="scenario-2",
                 name="scenario-2",
                 status="passed",
                 phases=[
                     ExecutedPhase(
+                        identifier="steady-state",
                         name="steady-state",
                         status="passed",
                         test_case_groups=[
                             ExecutedTestCaseGroup(
+                                identifier="group-1",
                                 name="group-1",
                                 status="passed",
                                 test_cases=[
@@ -213,15 +229,18 @@ def _build_run_result_with_test_case() -> "RunResult":
         ),
         scenarios=[
             ExecutedScenario(
-                name="scenario-1",
+                identifier="scenario-1",
+                name="Scenario 1",
                 status="passed",
                 phases=[
                     ExecutedPhase(
-                        name="phase-1",
+                        identifier="phase-1",
+                        name="Phase 1",
                         status="passed",
                         test_case_groups=[
                             ExecutedTestCaseGroup(
-                                name="group-1",
+                                identifier="group-1",
+                                name="Group 1",
                                 status="passed",
                                 test_cases=[
                                     ExecutedTestCase(

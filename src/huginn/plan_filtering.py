@@ -114,10 +114,12 @@ def _filter_groups(
         if not kept_tests:
             continue
         filtered_groups[group_name] = TestCaseGroup(
-            name=group.name,
+            identifier=group.identifier,
             tests=kept_tests,
+            name=group.name,
             tags=group.tags,
             target=group.target,
+            strategy=group.strategy,
         )
     return filtered_groups
 
@@ -170,8 +172,9 @@ def _filter_scenarios(
             if not kept_groups:
                 continue
             kept_phases[phase_name] = Phase(
-                name=phase.name,
+                identifier=phase.identifier,
                 test_case_groups=kept_groups,
+                name=phase.name,
                 depends_on=phase.depends_on,
                 target=phase.target,
                 strategy=phase.strategy,
@@ -179,8 +182,9 @@ def _filter_scenarios(
 
         if kept_phases:
             filtered_scenarios[scenario_name] = Scenario(
-                name=scenario.name,
+                identifier=scenario.identifier,
                 phases=kept_phases,
+                name=scenario.name,
             )
 
     return filtered_scenarios

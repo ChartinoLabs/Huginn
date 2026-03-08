@@ -125,6 +125,27 @@ def test_load_test_plan_parses_test_case_group_tags() -> None:
     assert test_plan.test_case_groups["routing"].tags == ["network", "critical"]
 
 
+def test_load_test_plan_parses_optional_display_names() -> None:
+    """Scenario, phase, and group names are optional display labels."""
+    path = FIXTURES / "plan_with_names.yaml"
+
+    test_plan = load_test_plan(path)
+
+    scenario = test_plan.scenarios["scenario-1"]
+    phase = scenario.phases["steady-state"]
+    group = test_plan.test_case_groups["state-baseline"]
+
+    assert scenario.identifier == "scenario-1"
+    assert scenario.name == "Pre-Change Validation"
+    assert scenario.display_name == "Pre-Change Validation"
+    assert phase.identifier == "steady-state"
+    assert phase.name == "Steady State Verification"
+    assert phase.display_name == "Steady State Verification"
+    assert group.identifier == "state-baseline"
+    assert group.name == "State Baseline Checks"
+    assert group.display_name == "State Baseline Checks"
+
+
 def test_load_test_plan_parses_execution_strategies() -> None:
     """Parse phase and group execution strategy mappings."""
     path = FIXTURES / "plan_with_execution_strategies.yaml"
