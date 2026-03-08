@@ -1,337 +1,17 @@
 """Built-in standard HTML reporting for Huginn run results."""
 
-# ruff: noqa: E501
-
 import json
 from dataclasses import dataclass
+from importlib.resources import files
 from pathlib import Path
 
-from jinja2 import Environment
+from jinja2 import Environment, Template
+from markdown import markdown
 
-from huginn.models import ExecutedTestCase, RunResult
+from huginn.models import ExecutedTestCase, ExecutedTestCaseGroup, RunResult
 
 _TEMPLATE_ENV = Environment(autoescape=True, trim_blocks=True, lstrip_blocks=True)
-
-_STYLESHEET = """
-:root {
-  --ink: #1c1b1a;
-  --muted: #6f665d;
-  --line: #d9d0c7;
-  --surface: #fffaf4;
-  --surface-strong: #f2e7db;
-  --accent: #1e6b52;
-  --accent-soft: #d9efe5;
-  --pass: #1f7a4d;
-  --fail: #b2412d;
-  --error: #8b2d2d;
-  --skip: #8a6a1f;
-  --na: #5d5a96;
-  --blocked: #5f4c86;
-  --shadow: 0 12px 32px rgba(50, 38, 25, 0.12);
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
-  color: var(--ink);
-  background:
-    radial-gradient(circle at top right, rgba(223, 190, 143, 0.35), transparent 32%),
-    linear-gradient(180deg, #f8efe6 0%, #f5f0ea 40%, #f8f5f1 100%);
-}
-a { color: var(--accent); }
-.shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 48px; }
-.hero {
-  padding: 28px;
-  border-radius: 24px;
-  background: linear-gradient(135deg, rgba(255,250,244,0.92), rgba(242,231,219,0.9));
-  border: 1px solid rgba(146, 116, 84, 0.2);
-  box-shadow: var(--shadow);
-}
-.eyebrow { margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; }
-h1, h2, h3 { margin: 0; font-weight: 600; }
-h1 { font-size: clamp(32px, 5vw, 52px); line-height: 1; }
-.subtitle { margin: 10px 0 0; color: var(--muted); font-size: 17px; }
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
-.stat-card {
-  padding: 16px 18px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.68);
-  border: 1px solid rgba(146, 116, 84, 0.16);
-}
-.stat-label { display: block; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
-.stat-value { display: block; margin-top: 8px; font-size: 30px; }
-.phase-list { margin-top: 24px; display: grid; gap: 16px; }
-.phase {
-  border: 1px solid rgba(146, 116, 84, 0.18);
-  border-radius: 20px;
-  background: rgba(255, 252, 248, 0.9);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-.phase > summary {
-  list-style: none;
-  cursor: pointer;
-  padding: 18px 22px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-.phase > summary::-webkit-details-marker { display: none; }
-.phase-summary-title { display: flex; align-items: center; gap: 12px; }
-.phase-body { padding: 0 18px 18px; }
-.chip-row, .test-meta { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip, .badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  border: 1px solid transparent;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-.chip { background: var(--surface-strong); color: var(--muted); }
-.badge-pass { background: rgba(31,122,77,0.12); color: var(--pass); border-color: rgba(31,122,77,0.2); }
-.badge-failed { background: rgba(178,65,45,0.12); color: var(--fail); border-color: rgba(178,65,45,0.2); }
-.badge-errored { background: rgba(139,45,45,0.12); color: var(--error); border-color: rgba(139,45,45,0.2); }
-.badge-skipped { background: rgba(138,106,31,0.14); color: var(--skip); border-color: rgba(138,106,31,0.22); }
-.badge-not_applicable { background: rgba(93,90,150,0.12); color: var(--na); border-color: rgba(93,90,150,0.2); }
-.badge-blocked { background: rgba(95,76,134,0.12); color: var(--blocked); border-color: rgba(95,76,134,0.2); }
-.test-card {
-  margin-top: 14px;
-  padding: 18px;
-  border-radius: 18px;
-  background: white;
-  border: 1px solid rgba(146, 116, 84, 0.16);
-}
-.test-card-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: flex-start;
-}
-.test-title { font-size: 22px; }
-.test-id { margin-top: 5px; color: var(--muted); font-size: 14px; }
-.command-list { margin: 14px 0 0; padding-left: 18px; }
-.command-list li { margin-top: 5px; }
-.section-grid { display: grid; gap: 16px; margin-top: 24px; }
-.panel {
-  padding: 18px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(146, 116, 84, 0.16);
-}
-.results-list { display: grid; gap: 12px; }
-.result-item, .command-card {
-  padding: 14px 16px;
-  border: 1px solid rgba(146, 116, 84, 0.16);
-  border-radius: 16px;
-  background: white;
-}
-.result-item p, .metadata-block p { margin: 10px 0 0; white-space: pre-wrap; }
-.metadata-list, .command-stack { display: grid; gap: 12px; }
-.metadata-block { padding: 14px 16px; border-radius: 16px; background: white; border: 1px solid rgba(146, 116, 84, 0.16); }
-pre {
-  margin: 12px 0 0;
-  padding: 14px;
-  overflow-x: auto;
-  background: #201d1b;
-  color: #f8f5f1;
-  border-radius: 14px;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 13px;
-  line-height: 1.5;
-}
-.back-link { display: inline-block; margin-top: 18px; }
-@media (max-width: 700px) {
-  .shell { width: min(100% - 20px, 1180px); }
-  .hero { padding: 20px; border-radius: 20px; }
-  .phase > summary, .test-card-header { display: block; }
-  .test-card-header .badge { margin-top: 12px; }
-}
-"""
-
-_DASHBOARD_TEMPLATE = _TEMPLATE_ENV.from_string(
-    """
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Huginn Test Report</title>
-    <link rel="stylesheet" href="styles.css">
-  </head>
-  <body>
-    <main class="shell">
-      <section class="hero">
-        <p class="eyebrow">Huginn Standard HTML Report</p>
-        <h1>Run Dashboard</h1>
-        <p class="subtitle">A user-facing summary of the canonical JSON results for this run.</p>
-        <div class="stats">
-          {% for stat in stats %}
-          <article class="stat-card">
-            <span class="stat-label">{{ stat.label }}</span>
-            <span class="stat-value">{{ stat.value }}</span>
-          </article>
-          {% endfor %}
-        </div>
-      </section>
-
-      <section class="phase-list">
-        {% for phase in phases %}
-        <details class="phase" {% if loop.first %}open{% endif %}>
-          <summary>
-            <div class="phase-summary-title">
-              <h2>{{ phase.name }}</h2>
-              <span class="badge badge-{{ phase.status_class }}">{{ phase.status }}</span>
-            </div>
-            <div class="chip-row">
-              {% for chip in phase.chips %}
-              <span class="chip">{{ chip }}</span>
-              {% endfor %}
-            </div>
-          </summary>
-          <div class="phase-body">
-            {% for test_case in phase.test_cases %}
-            <article class="test-card">
-              <div class="test-card-header">
-                <div>
-                  <h3 class="test-title">{{ test_case.title }}</h3>
-                  <div class="test-id">{{ test_case.test_id }}{% if test_case.group_name %} - {{ test_case.group_name }}{% endif %}</div>
-                </div>
-                <span class="badge badge-{{ test_case.status_class }}">{{ test_case.status }}</span>
-              </div>
-              <div class="test-meta">
-                <span class="chip">{{ test_case.command_count }} command{% if test_case.command_count != 1 %}s{% endif %}</span>
-                <span class="chip">{{ test_case.check_count }} result{% if test_case.check_count != 1 %}s{% endif %}</span>
-              </div>
-              {% if test_case.commands %}
-              <ul class="command-list">
-                {% for command in test_case.commands %}
-                <li><strong>{{ command.device }}</strong>: <code>{{ command.command }}</code></li>
-                {% endfor %}
-              </ul>
-              {% else %}
-              <p class="subtitle">No command executions were recorded for this test case.</p>
-              {% endif %}
-              <p><a href="{{ test_case.details_href }}">View Details</a></p>
-            </article>
-            {% endfor %}
-          </div>
-        </details>
-        {% endfor %}
-      </section>
-    </main>
-  </body>
-</html>
-"""
-)
-
-_DETAIL_TEMPLATE = _TEMPLATE_ENV.from_string(
-    """
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ test_case.title }} - Huginn Test Report</title>
-    <link rel="stylesheet" href="../styles.css">
-  </head>
-  <body>
-    <main class="shell">
-      <section class="hero">
-        <p class="eyebrow">Huginn Test Case Report</p>
-        <h1>{{ test_case.title }}</h1>
-        <p class="subtitle">{{ test_case.test_id }} - {{ phase_name }}{% if group_name %} - {{ group_name }}{% endif %}</p>
-        <div class="chip-row" style="margin-top: 18px;">
-          <span class="badge badge-{{ test_case.status_class }}">{{ test_case.status }}</span>
-          <span class="chip">{{ test_case.command_count }} command{% if test_case.command_count != 1 %}s{% endif %}</span>
-          <span class="chip">{{ test_case.check_count }} result{% if test_case.check_count != 1 %}s{% endif %}</span>
-          <span class="chip">{{ test_case.metadata_count }} metadata section{% if test_case.metadata_count != 1 %}s{% endif %}</span>
-        </div>
-        <a class="back-link" href="../index.html">Back to dashboard</a>
-      </section>
-
-      <section class="section-grid">
-        <article class="panel">
-          <h2>Metadata</h2>
-          {% if metadata_sections %}
-          <div class="metadata-list">
-            {% for section in metadata_sections %}
-            <section class="metadata-block">
-              <h3>{{ section.heading }}</h3>
-              <p>{{ section.content }}</p>
-            </section>
-            {% endfor %}
-          </div>
-          {% else %}
-          <p class="subtitle">This test case did not emit structured metadata.</p>
-          {% endif %}
-        </article>
-
-        <article class="panel">
-          <h2>Results</h2>
-          {% if checks %}
-          <div class="results-list">
-            {% for check in checks %}
-            <section class="result-item">
-              <span class="badge badge-{{ check.status_class }}">{{ check.status }}</span>
-              <p>{{ check.message }}</p>
-            </section>
-            {% endfor %}
-          </div>
-          {% else %}
-          <p class="subtitle">No check results were recorded.</p>
-          {% endif %}
-        </article>
-
-        <article class="panel">
-          <h2>Command Executions</h2>
-          {% if commands %}
-          <div class="command-stack">
-            {% for command in commands %}
-            <section class="command-card">
-              <div class="test-meta">
-                <span class="chip">Device: {{ command.device }}</span>
-                <span class="chip">Command: {{ command.command }}</span>
-                {% if command.elapsed_ms is not none %}<span class="chip">{{ command.elapsed_ms }} ms</span>{% endif %}
-                {% if command.cached is not none %}<span class="chip">Cached: {{ command.cached }}</span>{% endif %}
-              </div>
-              <h3 style="margin-top: 14px;">Raw Output</h3>
-              <pre>{{ command.output }}</pre>
-              <h3 style="margin-top: 14px;">Parsed Output</h3>
-              {% if command.parsed_pretty %}
-              <pre>{{ command.parsed_pretty }}</pre>
-              {% else %}
-              <p class="subtitle">No structured parsed output was recorded.</p>
-              {% endif %}
-            </section>
-            {% endfor %}
-          </div>
-          {% else %}
-          <p class="subtitle">No command executions were recorded for this test case.</p>
-          {% endif %}
-        </article>
-
-        {% if test_case.error %}
-        <article class="panel">
-          <h2>Error Details</h2>
-          <section class="result-item">
-            <span class="badge badge-{{ test_case.status_class }}">{{ test_case.status }}</span>
-            <p>{{ test_case.error }}</p>
-            {% if test_case.error_code %}<p><strong>Error Code:</strong> {{ test_case.error_code }}</p>{% endif %}
-            {% if test_case.error_traceback %}<pre>{{ test_case.error_traceback }}</pre>{% endif %}
-          </section>
-        </article>
-        {% endif %}
-      </section>
-    </main>
-  </body>
-</html>
-"""
-)
+_RESOURCE_ROOT = files("huginn.reporting")
 
 
 class ReportRenderError(ValueError):
@@ -357,7 +37,7 @@ def write_standard_html_report(
     details_dir = report_dir / "test-cases"
     try:
         details_dir.mkdir(parents=True, exist_ok=True)
-        (report_dir / "styles.css").write_text(_STYLESHEET.strip(), encoding="utf-8")
+        _write_stylesheet(report_dir)
 
         detail_paths = _build_detail_paths(test_case_result_paths)
         locations = _collect_test_case_locations(result)
@@ -366,11 +46,11 @@ def write_standard_html_report(
             detail_path = report_dir / detail_paths[location.test_case.test_id]
             detail_path.parent.mkdir(parents=True, exist_ok=True)
             detail_path.write_text(
-                _DETAIL_TEMPLATE.render(
+                _detail_template().render(
                     test_case=_build_test_case_view(location.test_case),
                     phase_name=location.phase_name,
                     group_name=location.group_name,
-                    metadata_sections=location.test_case.metadata_sections,
+                    metadata_sections=_build_metadata_views(location.test_case),
                     checks=_build_check_views(location.test_case),
                     commands=_build_command_views(location.test_case),
                 ),
@@ -379,18 +59,60 @@ def write_standard_html_report(
 
         dashboard_path = report_dir / "index.html"
         dashboard_path.write_text(
-            _DASHBOARD_TEMPLATE.render(
+            _dashboard_template().render(
                 stats=_build_dashboard_stats(result),
                 phases=_build_phase_views(result, detail_paths),
             ),
             encoding="utf-8",
         )
+        _update_latest_symlink(reports_dir=reports_dir, report_dir=report_dir)
     except Exception as error:  # noqa: BLE001
         raise ReportRenderError(
             f"Failed to write standard HTML report: {error}"
         ) from error
 
     return dashboard_path
+
+
+def _dashboard_template() -> Template:
+    """Return the compiled dashboard HTML template."""
+    return _TEMPLATE_ENV.from_string(_read_resource_text("templates/dashboard.html.j2"))
+
+
+def _detail_template() -> Template:
+    """Return the compiled test-case detail HTML template."""
+    return _TEMPLATE_ENV.from_string(
+        _read_resource_text("templates/test_case_detail.html.j2")
+    )
+
+
+def _write_stylesheet(report_dir: Path) -> None:
+    """Write the shared stylesheet into the report output directory."""
+    (report_dir / "styles.css").write_text(
+        _read_resource_text("static/styles.css").strip() + "\n",
+        encoding="utf-8",
+    )
+
+
+def _update_latest_symlink(*, reports_dir: Path, report_dir: Path) -> None:
+    """Point reports/latest at the newest generated HTML report directory."""
+    latest_path = reports_dir / "latest"
+    if latest_path.is_symlink() or latest_path.is_file():
+        latest_path.unlink()
+    elif latest_path.exists():
+        raise ReportRenderError(
+            f"Cannot update latest report symlink because {latest_path} already exists"
+        )
+
+    latest_path.symlink_to(
+        report_dir.relative_to(reports_dir),
+        target_is_directory=True,
+    )
+
+
+def _read_resource_text(relative_path: str) -> str:
+    """Read one packaged reporting resource as UTF-8 text."""
+    return _RESOURCE_ROOT.joinpath(relative_path).read_text(encoding="utf-8")
 
 
 def _build_dashboard_stats(result: RunResult) -> list[dict[str, int | str]]:
@@ -419,15 +141,6 @@ def _build_phase_views(
             for group in phase.test_case_groups
             for test_case in group.test_cases
         ]
-        test_cases = [
-            {
-                **_build_test_case_view(test_case),
-                "group_name": group.name,
-                "details_href": detail_paths[test_case.test_id],
-            }
-            for group in phase.test_case_groups
-            for test_case in group.test_cases
-        ]
         counts = _count_statuses(phase_statuses)
         phase_views.append(
             {
@@ -435,15 +148,45 @@ def _build_phase_views(
                 "status": phase.status,
                 "status_class": _status_class(phase.status),
                 "chips": [
-                    f"total {len(test_cases)}",
+                    f"total {len(phase_statuses)}",
                     f"pass {counts['passed']}",
                     f"fail {counts['failed']}",
                     f"skip {counts['skipped']}",
                 ],
-                "test_cases": test_cases,
+                "groups": [
+                    _build_group_view(group, detail_paths)
+                    for group in phase.test_case_groups
+                ],
             }
         )
     return phase_views
+
+
+def _build_group_view(
+    group: ExecutedTestCaseGroup,
+    detail_paths: dict[str, str],
+) -> dict[str, object]:
+    """Build one test-case-group view for the dashboard."""
+    statuses = [test_case.status for test_case in group.test_cases]
+    counts = _count_statuses(statuses)
+    return {
+        "name": group.name,
+        "status": group.status,
+        "status_class": _status_class(group.status),
+        "chips": [
+            f"total {len(group.test_cases)}",
+            f"pass {counts['passed']}",
+            f"fail {counts['failed']}",
+            f"skip {counts['skipped']}",
+        ],
+        "test_cases": [
+            {
+                **_build_test_case_view(test_case),
+                "details_href": detail_paths[test_case.test_id],
+            }
+            for test_case in group.test_cases
+        ],
+    }
 
 
 def _collect_test_case_locations(result: RunResult) -> list[_TestCaseLocation]:
@@ -492,6 +235,17 @@ def _build_check_views(test_case: ExecutedTestCase) -> list[dict[str, str]]:
     ]
 
 
+def _build_metadata_views(test_case: ExecutedTestCase) -> list[dict[str, str]]:
+    """Build rendered metadata views for one test case."""
+    return [
+        {
+            "heading": section.heading,
+            "content_html": _render_markdown(section.content),
+        }
+        for section in test_case.metadata_sections
+    ]
+
+
 def _build_command_views(test_case: ExecutedTestCase) -> list[dict[str, object]]:
     """Build rendered command views for one test case."""
     return [
@@ -500,7 +254,7 @@ def _build_command_views(test_case: ExecutedTestCase) -> list[dict[str, object]]
             "command": command.command,
             "output": command.output,
             "parsed_pretty": _format_parsed_payload(command.parsed),
-            "elapsed_ms": command.elapsed_ms,
+            "elapsed_ms": _format_elapsed_ms(command.elapsed_ms),
             "cached": command.cached,
         }
         for command in test_case.command_executions
@@ -538,6 +292,21 @@ def _format_parsed_payload(payload: dict[str, object] | None) -> str | None:
     if payload is None:
         return None
     return json.dumps(payload, indent=2, sort_keys=True)
+
+
+def _format_elapsed_ms(elapsed_ms: float | None) -> str | None:
+    """Format command execution timing for display."""
+    if elapsed_ms is None:
+        return None
+    return f"{elapsed_ms:.2f}"
+
+
+def _render_markdown(text: str) -> str:
+    """Render report markdown into safe HTML fragments."""
+    return markdown(
+        text,
+        extensions=["extra", "fenced_code", "tables", "nl2br"],
+    )
 
 
 def _status_class(status: str) -> str:

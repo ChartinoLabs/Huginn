@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Huginn Test Report</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="shell masthead-inner">
+        <h1>Test Results Summary</h1>
+      </div>
+    </header>
+
+    <main class="shell shell-main">
+      <section class="card summary-card">
+        <div class="section-header">
+          <div>
+            <h2>Executive Summary</h2>
+          </div>
+        </div>
+        <div class="stats-grid">
+          {% for stat in stats %}
+          {% set slug = stat.label|lower|replace(' ', '-') %}
+          <article class="metric-card metric-{{ slug }}">
+            <span class="metric-label">{{ stat.label }}</span>
+            <span class="metric-value">{{ stat.value }}</span>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="phase-list">
+        {% for phase in phases %}
+        <details class="phase-card" {% if loop.first %}open{% endif %}>
+          <summary class="phase-summary">
+            <div class="phase-summary-main">
+              <p class="section-kicker">Phase {{ loop.index }}</p>
+              <div class="phase-heading-row">
+                <h2>{{ phase.name }}</h2>
+                <span class="status-pill status-pill-{{ phase.status_class }}">
+                  {{ phase.status }}
+                </span>
+              </div>
+            </div>
+            <div class="phase-chip-row">
+              {% for chip in phase.chips %}
+              <span class="phase-chip">{{ chip }}</span>
+              {% endfor %}
+            </div>
+            <span class="phase-toggle" aria-hidden="true"></span>
+          </summary>
+
+          <div class="phase-body">
+            {% for group in phase.groups %}
+            <details class="group-card" {% if loop.first %}open{% endif %}>
+              <summary class="group-summary">
+                <div class="group-summary-main">
+                  <h3>{{ group.name }}</h3>
+                  <span class="status-pill status-pill-{{ group.status_class }}">
+                    {{ group.status }}
+                  </span>
+                </div>
+                <div class="phase-chip-row">
+                  {% for chip in group.chips %}
+                  <span class="phase-chip">{{ chip }}</span>
+                  {% endfor %}
+                </div>
+                <span class="phase-toggle" aria-hidden="true"></span>
+              </summary>
+
+              <div class="group-body">
+                {% for test_case in group.test_cases %}
+                <article class="test-card">
+                  <div class="test-card-header">
+                    <div>
+                      <h4 class="test-title">
+                        <span class="test-id-inline">{{ test_case.test_id }}</span>
+                        <span>{{ test_case.title }}</span>
+                      </h4>
+                    </div>
+                    <span class="status-pill status-pill-{{ test_case.status_class }}">
+                      {{ test_case.status }}
+                    </span>
+                  </div>
+
+                  {% if test_case.commands %}
+                  <div class="test-card-footer">
+                    <div class="command-preview-block">
+                      <p class="preview-label">Commands</p>
+                      <ul class="command-preview-list">
+                        {% for command in test_case.commands %}
+                        <li>
+                          <code>{{ command.command }}</code>
+                        </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+
+                    <div class="test-card-actions">
+                      <a class="action-link" href="{{ test_case.details_href }}">
+                        View Details
+                      </a>
+                    </div>
+                  </div>
+                  {% else %}
+                  <p class="empty-copy">
+                    No command executions were recorded for this test case.
+                  </p>
+                  <div class="test-card-actions">
+                    <a class="action-link" href="{{ test_case.details_href }}">
+                      View Details
+                    </a>
+                  </div>
+                  {% endif %}
+                </article>
+                {% endfor %}
+              </div>
+            </details>
+            {% endfor %}
+          </div>
+        </details>
+        {% endfor %}
+      </section>
+    </main>
+  </body>
+</html>
