@@ -1,0 +1,19 @@
+test_cases:
+  1.0.0:
+    title: Learn shared parameters once
+    job: jobs/test_verify_learning_deduplication.py
+test_case_groups:
+  validation:
+    tests:
+    - 1.0.0
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - validation
+  scenario-2:
+    phases:
+      phase-1:
+        test_case_groups:
+        - validation
