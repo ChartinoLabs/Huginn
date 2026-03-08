@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 from huginn.enums import ExecutionMode
 from huginn.models import (
     ExecutedPhase,
+    ExecutedScenario,
     ExecutedTestCase,
     ExecutedTestCaseGroup,
     RunResult,
@@ -110,23 +111,36 @@ def _write_test_case_results(*, result: RunResult, run_dir: Path) -> dict[str, s
     written_paths: dict[str, str] = {}
     used_names: set[str] = set()
 
-    for phase in result.phases:
-        for group in phase.test_case_groups:
-            for test_case in group.test_cases:
-                directory_name = _unique_test_case_directory_name(
-                    test_case.test_id,
-                    used_names,
-                )
-                relative_path = Path("test-cases") / directory_name / "result.json"
-                _write_json(run_dir / relative_path, asdict(test_case))
-                written_paths[test_case.test_id] = relative_path.as_posix()
+    for scenario in result.scenarios:
+        for phase in scenario.phases:
+            for group in phase.test_case_groups:
+                for test_case in group.test_cases:
+                    directory_name = _unique_test_case_directory_name(
+                        test_case,
+                        used_names,
+                    )
+                    relative_path = Path("test-cases") / directory_name / "result.json"
+                    _write_json(run_dir / relative_path, asdict(test_case))
+                    written_paths[_test_case_execution_key(test_case)] = (
+                        relative_path.as_posix()
+                    )
 
     return written_paths
 
 
-def _unique_test_case_directory_name(test_id: str, used_names: set[str]) -> str:
-    """Normalize a test case identifier into a unique directory name."""
-    normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", test_id).strip(".-")
+def _unique_test_case_directory_name(
+    test_case: ExecutedTestCase,
+    used_names: set[str],
+) -> str:
+    """Normalize one test case execution into a unique directory name."""
+    base_name = "-".join(
+        [
+            test_case.scenario,
+            test_case.phase,
+            test_case.test_id,
+        ]
+    )
+    normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", base_name).strip(".-")
     candidate = normalized or "test-case"
     suffix = 1
 
@@ -138,6 +152,18 @@ def _unique_test_case_directory_name(test_id: str, used_names: set[str]) -> str:
     return candidate
 
 
+def _test_case_execution_key(test_case: ExecutedTestCase) -> str:
+    """Build a stable key for one executed test case occurrence."""
+    return "::".join(
+        [
+            test_case.scenario,
+            test_case.phase,
+            test_case.group,
+            test_case.test_id,
+        ]
+    )
+
+
 def _build_run_summary_payload(
     *,
     result: RunResult,
@@ -147,13 +173,28 @@ def _build_run_summary_payload(
     """Build the compact top-level run payload."""
     payload: dict[str, Any] = {
         "summary": asdict(result.summary),
-        "phases": [
-            _build_phase_payload(phase, test_case_paths) for phase in result.phases
+        "scenarios": [
+            _build_scenario_payload(scenario, test_case_paths)
+            for scenario in result.scenarios
         ],
     }
     if mode is not None:
         payload["mode"] = mode.value
     return payload
+
+
+def _build_scenario_payload(
+    scenario: ExecutedScenario,
+    test_case_paths: dict[str, str],
+) -> dict[str, Any]:
+    """Serialize one executed scenario without inlining test details."""
+    return {
+        "name": scenario.name,
+        "status": scenario.status,
+        "phases": [
+            _build_phase_payload(phase, test_case_paths) for phase in scenario.phases
+        ],
+    }
 
 
 def _build_phase_payload(
@@ -195,7 +236,7 @@ def _build_test_case_summary_payload(
         "test_id": test_case.test_id,
         "title": test_case.title,
         "status": test_case.status,
-        "result_path": test_case_paths[test_case.test_id],
+        "result_path": test_case_paths[_test_case_execution_key(test_case)],
     }
     if test_case.error is not None:
         payload["error"] = test_case.error

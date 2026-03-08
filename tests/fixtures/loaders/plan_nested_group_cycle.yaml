@@ -1,20 +1,20 @@
 test_cases:
-  "1.0.0":
+  1.0.0:
     title: Verify BGP
     job: jobs/verify_bgp.py
-
 test_case_groups:
   group-a:
     groups:
-      - group-b
+    - group-b
   group-b:
     groups:
-      - group-a
+    - group-a
   leaf-group:
     tests:
-      - "1.0.0"
-
-phases:
-  phase-1:
-    test_case_groups:
-      - leaf-group
+    - 1.0.0
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - leaf-group

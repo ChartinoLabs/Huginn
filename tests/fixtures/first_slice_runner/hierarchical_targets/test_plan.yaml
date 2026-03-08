@@ -1,24 +1,24 @@
 test_cases:
-  "1.0.0":
+  1.0.0:
     title: Hierarchical target merge
     job: jobs/test_verify_hierarchical.py
     target:
       devices:
-        - leaf-01
-        - leaf-02
-
+      - leaf-01
+      - leaf-02
 test_case_groups:
   group-1:
     target:
       os:
-        - nxos
+      - nxos
     tests:
-      - "1.0.0"
-
-phases:
-  phase-1:
-    target:
-      groups:
-        - leaf
-    test_case_groups:
-      - group-1
+    - 1.0.0
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        target:
+          groups:
+          - leaf
+        test_case_groups:
+        - group-1

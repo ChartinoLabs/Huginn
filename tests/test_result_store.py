@@ -8,6 +8,7 @@ from huginn.enums import ExecutionMode
 from huginn.models import (
     CheckResult,
     ExecutedPhase,
+    ExecutedScenario,
     ExecutedTestCase,
     ExecutedTestCaseGroup,
     MetadataSection,
@@ -24,6 +25,7 @@ def test_write_validation_result_writes_timestamped_json(tmp_path: Path) -> None
     """Validation writes canonical JSON under a timestamped results directory."""
     result = ValidationResult(
         valid=True,
+        scenario_order=["scenario-1"],
         phase_order=["phase-1"],
         required_brokers=["ssh"],
         test_cases=[],
@@ -60,9 +62,13 @@ def test_write_run_result_writes_summary_and_test_case_json(tmp_path: Path) -> N
     payload = json.loads(result_path.read_text(encoding="utf-8"))
     assert payload["mode"] == "testing"
     assert payload["summary"]["status"] == "passed"
-    test_case = payload["phases"][0]["test_case_groups"][0]["test_cases"][0]
+    test_case = payload["scenarios"][0]["phases"][0]["test_case_groups"][0][
+        "test_cases"
+    ][0]
     assert test_case["test_id"] == "test-1"
-    assert test_case["result_path"] == "test-cases/test-1/result.json"
+    assert test_case["result_path"] == (
+        "test-cases/scenario-1-phase-1-test-1/result.json"
+    )
     assert "checks" not in test_case
 
     test_case_payload = json.loads(
@@ -70,6 +76,124 @@ def test_write_run_result_writes_summary_and_test_case_json(tmp_path: Path) -> N
     )
     assert test_case_payload["checks"][0]["message"] == "all good"
     assert test_case_payload["metadata_sections"][0]["heading"] == "Description"
+
+
+def test_write_run_result_uses_scenario_and_phase_in_duplicate_test_paths(
+    tmp_path: Path,
+) -> None:
+    """Repeated test ids across scenarios write distinct result files."""
+    from huginn.models import RunResult
+
+    shared_test_id = "test-1"
+    result = RunResult(
+        summary=RunSummary(
+            status="passed",
+            total=2,
+            passed=2,
+            failed=0,
+            errored=0,
+            not_applicable=0,
+            skipped=0,
+            blocked=0,
+        ),
+        scenarios=[
+            ExecutedScenario(
+                name="scenario-1",
+                status="passed",
+                phases=[
+                    ExecutedPhase(
+                        name="steady-state",
+                        status="passed",
+                        test_case_groups=[
+                            ExecutedTestCaseGroup(
+                                name="group-1",
+                                status="passed",
+                                test_cases=[
+                                    ExecutedTestCase(
+                                        scenario="scenario-1",
+                                        phase="steady-state",
+                                        group="group-1",
+                                        test_id=shared_test_id,
+                                        title="Scenario 1 test",
+                                        status="passed",
+                                        checks=[
+                                            CheckResult(
+                                                status="passed",
+                                                message="scenario-1 result",
+                                            )
+                                        ],
+                                    )
+                                ],
+                            )
+                        ],
+                    )
+                ],
+            ),
+            ExecutedScenario(
+                name="scenario-2",
+                status="passed",
+                phases=[
+                    ExecutedPhase(
+                        name="steady-state",
+                        status="passed",
+                        test_case_groups=[
+                            ExecutedTestCaseGroup(
+                                name="group-1",
+                                status="passed",
+                                test_cases=[
+                                    ExecutedTestCase(
+                                        scenario="scenario-2",
+                                        phase="steady-state",
+                                        group="group-1",
+                                        test_id=shared_test_id,
+                                        title="Scenario 2 test",
+                                        status="passed",
+                                        checks=[
+                                            CheckResult(
+                                                status="passed",
+                                                message="scenario-2 result",
+                                            )
+                                        ],
+                                    )
+                                ],
+                            )
+                        ],
+                    )
+                ],
+            ),
+        ],
+    )
+
+    run_files = write_run_result(
+        result=result,
+        results_dir=tmp_path / "results",
+        mode=ExecutionMode.TESTING,
+    )
+    payload = json.loads(run_files.run_json_path.read_text(encoding="utf-8"))
+
+    first_test = payload["scenarios"][0]["phases"][0]["test_case_groups"][0][
+        "test_cases"
+    ][0]
+    second_test = payload["scenarios"][1]["phases"][0]["test_case_groups"][0][
+        "test_cases"
+    ][0]
+
+    assert first_test["result_path"] == (
+        "test-cases/scenario-1-steady-state-test-1/result.json"
+    )
+    assert second_test["result_path"] == (
+        "test-cases/scenario-2-steady-state-test-1/result.json"
+    )
+
+    first_payload = json.loads(
+        (run_files.run_dir / first_test["result_path"]).read_text(encoding="utf-8")
+    )
+    second_payload = json.loads(
+        (run_files.run_dir / second_test["result_path"]).read_text(encoding="utf-8")
+    )
+
+    assert first_payload["checks"][0]["message"] == "scenario-1 result"
+    assert second_payload["checks"][0]["message"] == "scenario-2 result"
 
 
 def _build_run_result_with_test_case() -> "RunResult":
@@ -87,29 +211,38 @@ def _build_run_result_with_test_case() -> "RunResult":
             skipped=0,
             blocked=0,
         ),
-        phases=[
-            ExecutedPhase(
-                name="phase-1",
+        scenarios=[
+            ExecutedScenario(
+                name="scenario-1",
                 status="passed",
-                test_case_groups=[
-                    ExecutedTestCaseGroup(
-                        name="group-1",
+                phases=[
+                    ExecutedPhase(
+                        name="phase-1",
                         status="passed",
-                        test_cases=[
-                            ExecutedTestCase(
-                                test_id="test-1",
-                                title="Test 1",
+                        test_case_groups=[
+                            ExecutedTestCaseGroup(
+                                name="group-1",
                                 status="passed",
-                                metadata_sections=[
-                                    MetadataSection(
-                                        heading="Description",
-                                        content="Test the happy path.",
-                                    )
-                                ],
-                                checks=[
-                                    CheckResult(
+                                test_cases=[
+                                    ExecutedTestCase(
+                                        scenario="scenario-1",
+                                        phase="phase-1",
+                                        group="group-1",
+                                        test_id="test-1",
+                                        title="Test 1",
                                         status="passed",
-                                        message="all good",
+                                        metadata_sections=[
+                                            MetadataSection(
+                                                heading="Description",
+                                                content="Test the happy path.",
+                                            )
+                                        ],
+                                        checks=[
+                                            CheckResult(
+                                                status="passed",
+                                                message="all good",
+                                            )
+                                        ],
                                     )
                                 ],
                             )

@@ -78,7 +78,9 @@ def test_load_test_plan_success() -> None:
     assert list(test_plan.test_cases.keys()) == ["1.0.0"]
     assert test_plan.test_cases["1.0.0"].job == "jobs/verify_bgp.py"
     assert test_plan.test_case_groups["routing"].tests == ["1.0.0"]
-    assert test_plan.phases["phase-1"].test_case_groups == ["routing"]
+    assert test_plan.scenarios["scenario-1"].phases["phase-1"].test_case_groups == [
+        "routing"
+    ]
 
 
 def test_load_test_plan_parses_test_case_device_targets() -> None:
@@ -129,8 +131,10 @@ def test_load_test_plan_parses_execution_strategies() -> None:
 
     test_plan = load_test_plan(path)
 
-    assert test_plan.phases["phase-1"].strategy.mode == "parallel"
-    assert test_plan.phases["phase-1"].strategy.maximum == 2
+    assert (
+        test_plan.scenarios["scenario-1"].phases["phase-1"].strategy.mode == "parallel"
+    )
+    assert test_plan.scenarios["scenario-1"].phases["phase-1"].strategy.maximum == 2
     assert test_plan.test_case_groups["serial-group"].strategy.mode == "serial"
     assert test_plan.test_case_groups["serial-group"].strategy.maximum is None
     assert test_plan.test_case_groups["parallel-group"].strategy.mode == "parallel"
@@ -169,7 +173,7 @@ def test_load_test_plan_parses_hierarchical_targets() -> None:
 
     case_target = test_plan.test_cases["1.0.0"].target
     group_target = test_plan.test_case_groups["group-1"].target
-    phase_target = test_plan.phases["phase-1"].target
+    phase_target = test_plan.scenarios["scenario-1"].phases["phase-1"].target
     assert case_target is not None
     assert group_target is not None
     assert phase_target is not None
@@ -200,8 +204,8 @@ def test_load_test_plan_parses_phase_dependencies() -> None:
 
     test_plan = load_test_plan(path)
 
-    assert test_plan.phases["phase-1"].depends_on == []
-    assert test_plan.phases["phase-2"].depends_on == ["phase-1"]
+    assert test_plan.scenarios["scenario-1"].phases["phase-1"].depends_on == []
+    assert test_plan.scenarios["scenario-1"].phases["phase-2"].depends_on == ["phase-1"]
 
 
 def test_load_test_plan_rejects_missing_required_sections() -> None:

@@ -8,7 +8,13 @@ from pathlib import Path
 from jinja2 import Environment, Template
 from markdown import markdown
 
-from huginn.models import ExecutedTestCase, ExecutedTestCaseGroup, RunResult
+from huginn.models import (
+    ExecutedPhase,
+    ExecutedTestCase,
+    ExecutedTestCaseGroup,
+    RunResult,
+)
+from huginn.result_store import _test_case_execution_key
 
 _TEMPLATE_ENV = Environment(autoescape=True, trim_blocks=True, lstrip_blocks=True)
 _RESOURCE_ROOT = files("huginn.reporting")
@@ -20,6 +26,7 @@ class ReportRenderError(ValueError):
 
 @dataclass(frozen=True)
 class _TestCaseLocation:
+    scenario_name: str
     phase_name: str
     group_name: str
     test_case: ExecutedTestCase
@@ -43,11 +50,14 @@ def write_standard_html_report(
         locations = _collect_test_case_locations(result)
 
         for location in locations:
-            detail_path = report_dir / detail_paths[location.test_case.test_id]
+            detail_path = (
+                report_dir / detail_paths[_test_case_execution_key(location.test_case)]
+            )
             detail_path.parent.mkdir(parents=True, exist_ok=True)
             detail_path.write_text(
                 _detail_template().render(
                     test_case=_build_test_case_view(location.test_case),
+                    scenario_name=location.scenario_name,
                     phase_name=location.phase_name,
                     group_name=location.group_name,
                     metadata_sections=_build_metadata_views(location.test_case),
@@ -61,7 +71,7 @@ def write_standard_html_report(
         dashboard_path.write_text(
             _dashboard_template().render(
                 stats=_build_dashboard_stats(result),
-                phases=_build_phase_views(result, detail_paths),
+                scenarios=_build_scenario_views(result, detail_paths),
             ),
             encoding="utf-8",
         )
@@ -118,7 +128,11 @@ def _read_resource_text(relative_path: str) -> str:
 def _build_dashboard_stats(result: RunResult) -> list[dict[str, int | str]]:
     """Build high-level run statistics for the dashboard top hat."""
     return [
-        {"label": "Phases", "value": len(result.phases)},
+        {"label": "Scenarios", "value": len(result.scenarios)},
+        {
+            "label": "Phases",
+            "value": sum(len(scenario.phases) for scenario in result.scenarios),
+        },
         {"label": "Test Cases", "value": result.summary.total},
         {"label": "Passing", "value": result.summary.passed},
         {"label": "Failing", "value": result.summary.failed},
@@ -129,37 +143,65 @@ def _build_dashboard_stats(result: RunResult) -> list[dict[str, int | str]]:
     ]
 
 
-def _build_phase_views(
+def _build_scenario_views(
     result: RunResult,
     detail_paths: dict[str, str],
 ) -> list[dict[str, object]]:
-    """Build phase-focused view models for the dashboard."""
-    phase_views: list[dict[str, object]] = []
-    for phase in result.phases:
-        phase_statuses = [
+    """Build scenario-focused view models for the dashboard."""
+    scenario_views: list[dict[str, object]] = []
+    for scenario in result.scenarios:
+        scenario_statuses = [
             test_case.status
+            for phase in scenario.phases
             for group in phase.test_case_groups
             for test_case in group.test_cases
         ]
-        counts = _count_statuses(phase_statuses)
-        phase_views.append(
+        counts = _count_statuses(scenario_statuses)
+        scenario_views.append(
             {
-                "name": phase.name,
-                "status": phase.status,
-                "status_class": _status_class(phase.status),
+                "name": scenario.name,
+                "status": scenario.status,
+                "status_class": _status_class(scenario.status),
                 "chips": [
-                    f"total {len(phase_statuses)}",
+                    f"phases {len(scenario.phases)}",
+                    f"total {len(scenario_statuses)}",
                     f"pass {counts['passed']}",
                     f"fail {counts['failed']}",
                     f"skip {counts['skipped']}",
                 ],
-                "groups": [
-                    _build_group_view(group, detail_paths)
-                    for group in phase.test_case_groups
+                "phases": [
+                    _build_phase_view(phase, detail_paths) for phase in scenario.phases
                 ],
             }
         )
-    return phase_views
+    return scenario_views
+
+
+def _build_phase_view(
+    phase: ExecutedPhase,
+    detail_paths: dict[str, str],
+) -> dict[str, object]:
+    """Build one phase view for the dashboard."""
+    phase_statuses = [
+        test_case.status
+        for group in phase.test_case_groups
+        for test_case in group.test_cases
+    ]
+    counts = _count_statuses(phase_statuses)
+    return {
+        "name": phase.name,
+        "status": phase.status,
+        "status_class": _status_class(phase.status),
+        "chips": [
+            f"total {len(phase_statuses)}",
+            f"pass {counts['passed']}",
+            f"fail {counts['failed']}",
+            f"skip {counts['skipped']}",
+        ],
+        "groups": [
+            _build_group_view(group, detail_paths) for group in phase.test_case_groups
+        ],
+    }
 
 
 def _build_group_view(
@@ -182,7 +224,7 @@ def _build_group_view(
         "test_cases": [
             {
                 **_build_test_case_view(test_case),
-                "details_href": detail_paths[test_case.test_id],
+                "details_href": detail_paths[_test_case_execution_key(test_case)],
             }
             for test_case in group.test_cases
         ],
@@ -193,11 +235,13 @@ def _collect_test_case_locations(result: RunResult) -> list[_TestCaseLocation]:
     """Collect phase and group location data for each test case."""
     return [
         _TestCaseLocation(
+            scenario_name=scenario.name,
             phase_name=phase.name,
             group_name=group.name,
             test_case=test_case,
         )
-        for phase in result.phases
+        for scenario in result.scenarios
+        for phase in scenario.phases
         for group in phase.test_case_groups
         for test_case in group.test_cases
     ]
@@ -264,13 +308,13 @@ def _build_command_views(test_case: ExecutedTestCase) -> list[dict[str, object]]
 def _build_detail_paths(test_case_result_paths: dict[str, str]) -> dict[str, str]:
     """Translate canonical JSON result paths into HTML detail page paths."""
     paths: dict[str, str] = {}
-    for test_id, result_path in test_case_result_paths.items():
+    for execution_key, result_path in test_case_result_paths.items():
         path_parts = Path(result_path).parts
         if len(path_parts) < 3:
             raise ReportRenderError(
                 f"Unexpected test case result path layout: {result_path}"
             )
-        paths[test_id] = f"test-cases/{path_parts[1]}.html"
+        paths[execution_key] = f"test-cases/{path_parts[1]}.html"
     return paths
 
 

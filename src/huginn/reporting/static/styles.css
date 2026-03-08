@@ -234,6 +234,14 @@ h3 {
   overflow: hidden;
 }
 
+.phase-nested-card {
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fbfd;
+  overflow: hidden;
+}
+
 .phase-summary {
   list-style: none;
   cursor: pointer;
@@ -256,11 +264,26 @@ h3 {
   background: linear-gradient(180deg, #f8fbfd 0%, #f2f6fa 100%);
 }
 
+.phase-nested-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(180deg, #fbfdff 0%, #f4f8fb 100%);
+}
+
 .phase-summary::-webkit-details-marker {
   display: none;
 }
 
 .group-summary::-webkit-details-marker {
+  display: none;
+}
+
+.phase-nested-summary::-webkit-details-marker {
   display: none;
 }
 
@@ -364,6 +387,10 @@ h3 {
 }
 
 .group-card[open] .phase-toggle::before {
+  transform: rotate(225deg);
+}
+
+.phase-nested-card[open] .phase-toggle::before {
   transform: rotate(225deg);
 }
 
@@ -726,6 +753,7 @@ h3 {
 @media (max-width: 900px) {
   .section-header,
   .phase-summary,
+  .phase-nested-summary,
   .group-summary,
   .test-card-header,
   .command-card-header {

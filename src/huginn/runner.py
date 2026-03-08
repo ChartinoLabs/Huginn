@@ -21,11 +21,13 @@ from huginn.models import (
     CheckResult,
     Device,
     ExecutedPhase,
+    ExecutedScenario,
     ExecutedTestCase,
     ExecutedTestCaseGroup,
     Phase,
     RunResult,
     RunSummary,
+    Scenario,
     TargetDefinition,
     Testbed,
     TestCaseDefinition,
@@ -109,7 +111,10 @@ async def run_test_plan(
             output,
             "Configuration loaded",
             devices=len(testbed.devices),
-            phases=len(test_plan.phases),
+            scenarios=len(test_plan.scenarios),
+            phases=sum(
+                len(scenario.phases) for scenario in test_plan.scenarios.values()
+            ),
             groups=len(test_plan.test_case_groups),
             test_cases=len(test_plan.test_cases),
         )
@@ -151,7 +156,7 @@ async def run_test_plan(
             f"(tests={len(planned_executions)} errors={planning_errors})"
         ),
     )
-    _emit_phase_order(output, list(test_plan.phases))
+    _emit_execution_order(output, test_plan)
     runtime_broker = _create_broker(
         broker_factory=broker_factory,
         required_brokers=planned_brokers,
@@ -172,9 +177,9 @@ async def run_test_plan(
             f"Primed runtime connections in {_format_elapsed(priming_started)}",
         )
 
-        _emit_status(output, "Executing phases")
+        _emit_status(output, "Executing scenarios and phases")
         execution_started = perf_counter()
-        executed_phases = await _execute_phases_with_dependencies(
+        executed_scenarios = await _execute_scenarios(
             mode=mode,
             testbed=testbed,
             test_plan=test_plan,
@@ -199,8 +204,8 @@ async def run_test_plan(
                 traceback_text=disconnect_traceback,
             )
 
-    summary = _build_summary(executed_phases)
-    result = RunResult(summary=summary, phases=executed_phases)
+    summary = _build_summary(executed_scenarios)
+    result = RunResult(summary=summary, scenarios=executed_scenarios)
     try:
         run_files = write_run_result(result=result, results_dir=results_dir, mode=mode)
         dashboard_path = write_standard_html_report(
@@ -233,7 +238,7 @@ async def run_test_plan(
     return result
 
 
-async def _execute_phases_with_dependencies(
+async def _execute_scenarios(
     *,
     mode: ExecutionMode,
     testbed: Testbed,
@@ -242,22 +247,57 @@ async def _execute_phases_with_dependencies(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output: Output | None,
-) -> list[ExecutedPhase]:
-    """Execute phases while honoring phase dependency constraints."""
+) -> list[ExecutedScenario]:
+    """Execute scenarios and their phases in declared order."""
     log_debug(
         output,
-        "Executing phases with dependency ordering",
-        phase_count=len(test_plan.phases),
+        "Executing scenarios",
+        scenario_count=len(test_plan.scenarios),
+    )
+    executed_scenarios: list[ExecutedScenario] = []
+    for scenario in test_plan.scenarios.values():
+        _emit_status(output, f"Starting scenario: {scenario.name}")
+        executed_scenario = await _execute_scenario(
+            scenario=scenario,
+            mode=mode,
+            testbed=testbed,
+            test_plan=test_plan,
+            planned_executions=planned_executions,
+            broker=broker,
+            parameters_dir=parameters_dir,
+            output=output,
+        )
+        executed_scenarios.append(executed_scenario)
+    return executed_scenarios
+
+
+async def _execute_scenario(
+    *,
+    scenario: Scenario,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    broker: RuntimeBroker,
+    parameters_dir: Path,
+    output: Output | None,
+) -> ExecutedScenario:
+    """Execute one scenario and halt on the first non-passing phase."""
+    log_debug(
+        output,
+        "Executing scenario phases",
+        scenario=scenario.name,
+        phase_count=len(scenario.phases),
     )
     phase_results: dict[str, ExecutedPhase] = {}
-    pending = set(test_plan.phases.keys())
+    pending = set(scenario.phases.keys())
 
     while pending:
         progressed = False
-        for phase_name in test_plan.phases:
+        for phase_name in scenario.phases:
             if phase_name not in pending:
                 continue
-            phase = test_plan.phases[phase_name]
+            phase = scenario.phases[phase_name]
             if not all(dep in phase_results for dep in phase.depends_on):
                 continue
 
@@ -269,13 +309,20 @@ async def _execute_phases_with_dependencies(
                 log_info(
                     output,
                     "Phase blocked by dependencies",
+                    scenario=scenario.name,
                     phase=phase.name,
                     depends_on=phase.depends_on,
                 )
-                executed_phase = _build_blocked_phase(phase, test_plan)
+                executed_phase = _build_blocked_phase(
+                    scenario_name=scenario.name,
+                    phase=phase,
+                    test_plan=test_plan,
+                    reason="Blocked by failed phase dependency",
+                )
             else:
-                _emit_status(output, f"Starting phase: {phase.name}")
+                _emit_status(output, f"  Starting phase: {phase.name}")
                 executed_phase = await _execute_phase(
+                    scenario_name=scenario.name,
                     phase=phase,
                     mode=mode,
                     testbed=testbed,
@@ -289,23 +336,48 @@ async def _execute_phases_with_dependencies(
             log_info(
                 output,
                 "Phase finished",
+                scenario=scenario.name,
                 phase=phase.name,
                 status=executed_phase.status,
             )
-            _emit_phase_rollup(output, executed_phase)
+            _emit_phase_rollup(output, scenario.name, executed_phase)
 
             phase_results[phase_name] = executed_phase
             pending.remove(phase_name)
             progressed = True
 
-        if not progressed:
-            unresolved = sorted(pending)
-            raise RunExecutionError(
-                f"Unable to resolve phase dependencies for: {unresolved}",
-                code=ErrorCode.VALIDATION_ERROR,
-            )
+            if _should_halt_scenario_after_phase(executed_phase):
+                for remaining_phase_name in scenario.phases:
+                    if remaining_phase_name not in pending:
+                        continue
+                    remaining_phase = scenario.phases[remaining_phase_name]
+                    phase_results[remaining_phase_name] = _build_blocked_phase(
+                        scenario_name=scenario.name,
+                        phase=remaining_phase,
+                        test_plan=test_plan,
+                        reason=f"Blocked because phase '{phase.name}' failed",
+                    )
+                pending.clear()
+                break
 
-    return [phase_results[name] for name in test_plan.phases]
+        if progressed:
+            continue
+
+        unresolved = sorted(pending)
+        raise RunExecutionError(
+            (
+                "Unable to resolve phase dependencies in scenario "
+                f"'{scenario.name}' for: {unresolved}"
+            ),
+            code=ErrorCode.VALIDATION_ERROR,
+        )
+
+    executed_phases = [phase_results[name] for name in scenario.phases]
+    return ExecutedScenario(
+        name=scenario.name,
+        status=_derive_scenario_status(executed_phases).value,
+        phases=executed_phases,
+    )
 
 
 def _is_blocked_by_dependencies(
@@ -326,6 +398,7 @@ def _is_blocked_by_dependencies(
 
 async def _execute_phase(
     *,
+    scenario_name: str,
     phase: Phase,
     mode: ExecutionMode,
     testbed: Testbed,
@@ -347,6 +420,7 @@ async def _execute_phase(
     )
     if phase.strategy.mode == "serial":
         executed_groups = await _execute_phase_groups_serial(
+            scenario_name=scenario_name,
             phase=phase,
             mode=mode,
             testbed=testbed,
@@ -358,6 +432,7 @@ async def _execute_phase(
         )
     else:
         executed_groups = await _execute_phase_groups_parallel(
+            scenario_name=scenario_name,
             phase=phase,
             mode=mode,
             testbed=testbed,
@@ -378,6 +453,7 @@ async def _execute_phase(
 
 async def _execute_phase_groups_serial(
     *,
+    scenario_name: str,
     phase: Phase,
     mode: ExecutionMode,
     testbed: Testbed,
@@ -392,6 +468,7 @@ async def _execute_phase_groups_serial(
     for group_name in phase.test_case_groups:
         executed_groups.append(
             await _execute_group(
+                scenario_name=scenario_name,
                 phase=phase,
                 group_name=group_name,
                 mode=mode,
@@ -408,6 +485,7 @@ async def _execute_phase_groups_serial(
 
 async def _execute_phase_groups_parallel(
     *,
+    scenario_name: str,
     phase: Phase,
     mode: ExecutionMode,
     testbed: Testbed,
@@ -427,6 +505,7 @@ async def _execute_phase_groups_parallel(
                 _execute_group_with_optional_semaphore(
                     index=index,
                     semaphore=semaphore,
+                    scenario_name=scenario_name,
                     phase=phase,
                     group_name=group_name,
                     mode=mode,
@@ -449,6 +528,7 @@ async def _execute_group_with_optional_semaphore(
     *,
     index: int,
     semaphore: asyncio.Semaphore | None,
+    scenario_name: str,
     phase: Phase,
     group_name: str,
     mode: ExecutionMode,
@@ -464,6 +544,7 @@ async def _execute_group_with_optional_semaphore(
         return (
             index,
             await _execute_group(
+                scenario_name=scenario_name,
                 phase=phase,
                 group_name=group_name,
                 mode=mode,
@@ -480,6 +561,7 @@ async def _execute_group_with_optional_semaphore(
         return (
             index,
             await _execute_group(
+                scenario_name=scenario_name,
                 phase=phase,
                 group_name=group_name,
                 mode=mode,
@@ -495,6 +577,7 @@ async def _execute_group_with_optional_semaphore(
 
 async def _execute_group(
     *,
+    scenario_name: str,
     phase: Phase,
     group_name: str,
     mode: ExecutionMode,
@@ -519,6 +602,7 @@ async def _execute_group(
 
     if group.strategy.mode == "serial":
         executed_tests = await _execute_group_tests_serial(
+            scenario_name=scenario_name,
             phase=phase,
             group=group,
             mode=mode,
@@ -531,6 +615,7 @@ async def _execute_group(
         )
     else:
         executed_tests = await _execute_group_tests_parallel(
+            scenario_name=scenario_name,
             phase=phase,
             group=group,
             mode=mode,
@@ -559,6 +644,7 @@ async def _execute_group(
 
 async def _execute_group_tests_serial(
     *,
+    scenario_name: str,
     phase: Phase,
     group: TestCaseGroup,
     mode: ExecutionMode,
@@ -575,6 +661,7 @@ async def _execute_group_tests_serial(
         test_case_definition = test_plan.test_cases[test_id]
         executed_tests.append(
             await _execute_test_case(
+                scenario_name=scenario_name,
                 phase=phase,
                 group=group,
                 definition=test_case_definition,
@@ -591,6 +678,7 @@ async def _execute_group_tests_serial(
 
 async def _execute_group_tests_parallel(
     *,
+    scenario_name: str,
     phase: Phase,
     group: TestCaseGroup,
     mode: ExecutionMode,
@@ -612,6 +700,7 @@ async def _execute_group_tests_parallel(
                 _execute_test_case_with_optional_semaphore(
                     index=index,
                     semaphore=semaphore,
+                    scenario_name=scenario_name,
                     phase=phase,
                     group=group,
                     definition=test_case_definition,
@@ -634,6 +723,7 @@ async def _execute_test_case_with_optional_semaphore(
     *,
     index: int,
     semaphore: asyncio.Semaphore | None,
+    scenario_name: str,
     phase: Phase,
     group: TestCaseGroup,
     definition: TestCaseDefinition,
@@ -649,6 +739,7 @@ async def _execute_test_case_with_optional_semaphore(
         return (
             index,
             await _execute_test_case(
+                scenario_name=scenario_name,
                 phase=phase,
                 group=group,
                 definition=definition,
@@ -665,6 +756,7 @@ async def _execute_test_case_with_optional_semaphore(
         return (
             index,
             await _execute_test_case(
+                scenario_name=scenario_name,
                 phase=phase,
                 group=group,
                 definition=definition,
@@ -685,17 +777,26 @@ def _build_parallel_semaphore(maximum: int | None) -> asyncio.Semaphore | None:
     return asyncio.Semaphore(maximum)
 
 
-def _build_blocked_phase(phase: Phase, test_plan: TestPlan) -> ExecutedPhase:
-    """Build blocked phase output when dependencies failed."""
+def _build_blocked_phase(
+    *,
+    scenario_name: str,
+    phase: Phase,
+    test_plan: TestPlan,
+    reason: str,
+) -> ExecutedPhase:
+    """Build blocked phase output when a scenario cannot progress."""
     blocked_groups: list[ExecutedTestCaseGroup] = []
     for group_name in phase.test_case_groups:
         group = test_plan.test_case_groups[group_name]
         blocked_tests = [
             ExecutedTestCase(
+                scenario=scenario_name,
+                phase=phase.name,
+                group=group.name,
                 test_id=test_id,
                 title=test_plan.test_cases[test_id].title,
                 status=ResultStatus.BLOCKED.value,
-                error="Blocked by failed phase dependency",
+                error=reason,
             )
             for test_id in group.tests
         ]
@@ -792,6 +893,7 @@ def _collect_planned_brokers(planned: dict[str, PlannedExecution]) -> set[Broker
 
 async def _execute_test_case(
     *,
+    scenario_name: str,
     phase: Phase,
     group: TestCaseGroup,
     definition: TestCaseDefinition,
@@ -806,6 +908,7 @@ async def _execute_test_case(
     log_debug(
         output,
         "Test execution starting",
+        scenario=scenario_name,
         phase=phase.name,
         group=group.name,
         test_id=definition.test_id,
@@ -821,6 +924,7 @@ async def _execute_test_case(
         log_warning(
             output,
             "Test target resolution failed",
+            scenario=scenario_name,
             phase=phase.name,
             group=group.name,
             test_id=definition.test_id,
@@ -833,7 +937,10 @@ async def _execute_test_case(
             detail=target_error,
         )
         return _errored_test_case(
-            definition,
+            scenario_name=scenario_name,
+            phase_name=phase.name,
+            group_name=group.name,
+            definition=definition,
             error=target_error,
             error_code=ErrorCode.VALIDATION_ERROR,
         )
@@ -841,6 +948,7 @@ async def _execute_test_case(
         log_info(
             output,
             "Test skipped due to empty target set",
+            scenario=scenario_name,
             phase=phase.name,
             group=group.name,
             test_id=definition.test_id,
@@ -852,7 +960,10 @@ async def _execute_test_case(
             detail="No devices matched target selectors",
         )
         return _skipped_test_case(
-            definition,
+            scenario_name=scenario_name,
+            phase_name=phase.name,
+            group_name=group.name,
+            definition=definition,
             reason="No devices matched target selectors",
         )
 
@@ -886,7 +997,10 @@ async def _execute_test_case(
             detail=planned.planning_error,
         )
         return _errored_test_case(
-            definition,
+            scenario_name=scenario_name,
+            phase_name=phase.name,
+            group_name=group.name,
+            definition=definition,
             error=planned.planning_error,
             error_code=ErrorCode.PLANNING_ERROR,
             error_traceback=planned.planning_error_traceback,
@@ -899,7 +1013,13 @@ async def _execute_test_case(
             status=ResultStatus.SKIPPED.value,
             detail=planned.skip_reason,
         )
-        return _skipped_test_case(definition, reason=planned.skip_reason)
+        return _skipped_test_case(
+            scenario_name=scenario_name,
+            phase_name=phase.name,
+            group_name=group.name,
+            definition=definition,
+            reason=planned.skip_reason,
+        )
     if planned.test_case_class is None:
         log_warning(
             output,
@@ -913,7 +1033,10 @@ async def _execute_test_case(
             detail="Missing planned test case class",
         )
         return _errored_test_case(
-            definition,
+            scenario_name=scenario_name,
+            phase_name=phase.name,
+            group_name=group.name,
+            definition=definition,
             error="Missing planned test case class",
             error_code=ErrorCode.PLANNING_ERROR,
         )
@@ -956,7 +1079,10 @@ async def _execute_test_case(
             detail=test_error,
         )
         return _errored_test_case(
-            definition,
+            scenario_name=scenario_name,
+            phase_name=phase.name,
+            group_name=group.name,
+            definition=definition,
             checks=result_collector.checks,
             error=test_error,
             error_code=ErrorCode.EXECUTION_ERROR,
@@ -974,6 +1100,9 @@ async def _execute_test_case(
     )
     _emit_test_result(output, definition, status=status)
     return ExecutedTestCase(
+        scenario=scenario_name,
+        phase=phase.name,
+        group=group.name,
         test_id=definition.test_id,
         title=definition.title,
         status=status,
@@ -984,6 +1113,9 @@ async def _execute_test_case(
 
 
 def _errored_test_case(
+    scenario_name: str,
+    phase_name: str,
+    group_name: str,
     definition: TestCaseDefinition,
     *,
     error: str,
@@ -994,6 +1126,9 @@ def _errored_test_case(
     """Build a standardized errored test case output."""
     normalized_checks: list[CheckResult] = checks if checks is not None else []
     return ExecutedTestCase(
+        scenario=scenario_name,
+        phase=phase_name,
+        group=group_name,
         test_id=definition.test_id,
         title=definition.title,
         status=ResultStatus.ERRORED.value,
@@ -1007,12 +1142,18 @@ def _errored_test_case(
 
 
 def _skipped_test_case(
+    scenario_name: str,
+    phase_name: str,
+    group_name: str,
     definition: TestCaseDefinition,
     *,
     reason: str,
 ) -> ExecutedTestCase:
     """Build a standardized skipped test case output."""
     return ExecutedTestCase(
+        scenario=scenario_name,
+        phase=phase_name,
+        group=group_name,
         test_id=definition.test_id,
         title=definition.title,
         status=ResultStatus.SKIPPED.value,
@@ -1123,29 +1264,30 @@ def _collect_prime_targets(
     """Collect per-broker target sets that require run-start connections."""
     targets_by_brokers: dict[frozenset[BrokerType], dict[str, Device]] = {}
 
-    for phase in test_plan.phases.values():
-        for group_name in phase.test_case_groups:
-            group = test_plan.test_case_groups[group_name]
-            for test_id in group.tests:
-                planned = planned_executions[test_id]
-                if _skip_planned_execution(planned):
-                    continue
+    for scenario in test_plan.scenarios.values():
+        for phase in scenario.phases.values():
+            for group_name in phase.test_case_groups:
+                group = test_plan.test_case_groups[group_name]
+                for test_id in group.tests:
+                    planned = planned_executions[test_id]
+                    if _skip_planned_execution(planned):
+                        continue
 
-                definition = test_plan.test_cases[test_id]
-                targets = _resolve_prime_targets(
-                    testbed=testbed,
-                    phase=phase,
-                    group=group,
-                    definition=definition,
-                )
-                if not targets:
-                    continue
+                    definition = test_plan.test_cases[test_id]
+                    targets = _resolve_prime_targets(
+                        testbed=testbed,
+                        phase=phase,
+                        group=group,
+                        definition=definition,
+                    )
+                    if not targets:
+                        continue
 
-                _add_targets_for_brokers(
-                    targets_by_brokers=targets_by_brokers,
-                    broker_key=frozenset(planned.required_brokers),
-                    targets=targets,
-                )
+                    _add_targets_for_brokers(
+                        targets_by_brokers=targets_by_brokers,
+                        broker_key=frozenset(planned.required_brokers),
+                        targets=targets,
+                    )
 
     return targets_by_brokers
 
@@ -1241,21 +1383,34 @@ def _emit_status(output: Output | None, message: str) -> None:
     output.status(message)
 
 
-def _emit_phase_order(output: Output | None, phase_names: list[str]) -> None:
-    """Emit configured phase execution order to stdout."""
-    if not phase_names:
-        _emit_status(output, "Phase order: (none)")
+def _emit_execution_order(output: Output | None, test_plan: TestPlan) -> None:
+    """Emit scenario/phase execution order to stdout."""
+    if not test_plan.scenarios:
+        _emit_status(output, "Execution order: (none)")
         return
-    _emit_status(output, f"Phase order: {' -> '.join(phase_names)}")
+
+    _emit_status(output, "Execution order:")
+    for scenario in test_plan.scenarios.values():
+        _emit_status(output, f"  Scenario: {scenario.name}")
+        if not scenario.phases:
+            _emit_status(output, "    Phases: (none)")
+            continue
+        for phase_name in scenario.phases:
+            _emit_status(output, f"    Phase: {phase_name}")
 
 
-def _emit_phase_rollup(output: Output | None, phase: ExecutedPhase) -> None:
+def _emit_phase_rollup(
+    output: Output | None,
+    scenario_name: str,
+    phase: ExecutedPhase,
+) -> None:
     """Emit per-phase status counts after completion."""
     statuses = _collect_phase_statuses(phase)
     counts = Counter(statuses)
     _emit_status(
         output,
         "Phase complete: "
+        f"{scenario_name}."
         f"{phase.name} "
         f"status={phase.status} "
         f"total={len(statuses)} "
@@ -1419,8 +1574,8 @@ def _all_statuses_match(statuses: list[str], status: ResultStatus) -> bool:
     return bool(statuses) and all(value == status.value for value in statuses)
 
 
-def _build_summary(phases: list[ExecutedPhase]) -> RunSummary:
-    statuses = _collect_test_case_statuses(phases)
+def _build_summary(scenarios: list[ExecutedScenario]) -> RunSummary:
+    statuses = _collect_test_case_statuses(scenarios)
     counts = Counter(statuses)
     overall_status = _derive_status_from_values(statuses).value
     return RunSummary(
@@ -1435,11 +1590,22 @@ def _build_summary(phases: list[ExecutedPhase]) -> RunSummary:
     )
 
 
-def _collect_test_case_statuses(phases: list[ExecutedPhase]) -> list[str]:
-    """Collect all test case statuses from executed phase output."""
+def _collect_test_case_statuses(scenarios: list[ExecutedScenario]) -> list[str]:
+    """Collect all test case statuses from executed scenario output."""
     statuses: list[str] = []
-    for phase in phases:
-        for group in phase.test_case_groups:
-            for test_case in group.test_cases:
-                statuses.append(test_case.status)
+    for scenario in scenarios:
+        for phase in scenario.phases:
+            for group in phase.test_case_groups:
+                for test_case in group.test_cases:
+                    statuses.append(test_case.status)
     return statuses
+
+
+def _derive_scenario_status(phases: list[ExecutedPhase]) -> ResultStatus:
+    """Derive one scenario status from its executed phases."""
+    return _derive_status_from_values([phase.status for phase in phases])
+
+
+def _should_halt_scenario_after_phase(phase: ExecutedPhase) -> bool:
+    """Return True when a scenario should stop after this phase."""
+    return phase.status != ResultStatus.PASSED.value

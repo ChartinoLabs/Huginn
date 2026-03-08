@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from huginn.models import Phase, TestCaseDefinition, TestCaseGroup, TestPlan
+from huginn.models import Phase, Scenario, TestCaseDefinition, TestCaseGroup, TestPlan
 
 
 @dataclass(frozen=True)
@@ -11,6 +11,7 @@ class PlanFilterOptions:
 
     tags: list[str] | None = None
     exclude_tags: list[str] | None = None
+    scenarios: list[str] | None = None
     phases: list[str] | None = None
     test_case_groups: list[str] | None = None
     test_ids: list[str] | None = None
@@ -22,12 +23,13 @@ def filter_test_plan_by_tags(test_plan: TestPlan, tags: list[str] | None) -> Tes
 
 
 def filter_test_plan(test_plan: TestPlan, filters: PlanFilterOptions) -> TestPlan:
-    """Apply plan filters and prune empty phases/groups/tests."""
+    """Apply plan filters and prune empty scenarios/phases/groups/tests."""
     if _is_noop(filters):
         return test_plan
 
     include_tags = set(filters.tags or [])
     exclude_tags = set(filters.exclude_tags or [])
+    scenario_filter = set(filters.scenarios or [])
     phase_filter = set(filters.phases or [])
     group_filter = set(filters.test_case_groups or [])
     test_filter = set(filters.test_ids or [])
@@ -40,15 +42,16 @@ def filter_test_plan(test_plan: TestPlan, filters: PlanFilterOptions) -> TestPla
         test_filter=test_filter,
     )
     filtered_test_cases = _filter_test_cases(test_plan, filtered_groups)
-    filtered_phases = _filter_phases(
+    filtered_scenarios = _filter_scenarios(
         test_plan,
         filtered_groups,
+        scenario_filter=scenario_filter,
         phase_filter=phase_filter,
     )
 
-    _normalize_phase_dependencies(filtered_phases)
+    _normalize_phase_dependencies(filtered_scenarios)
     return TestPlan(
-        phases=filtered_phases,
+        scenarios=filtered_scenarios,
         test_case_groups=filtered_groups,
         test_cases=filtered_test_cases,
     )
@@ -60,6 +63,7 @@ def _is_noop(filters: PlanFilterOptions) -> bool:
         (
             filters.tags,
             filters.exclude_tags,
+            filters.scenarios,
             filters.phases,
             filters.test_case_groups,
             filters.test_ids,
@@ -140,38 +144,53 @@ def _test_matches_filters(
     return True
 
 
-def _filter_phases(
+def _filter_scenarios(
     test_plan: TestPlan,
     filtered_groups: dict[str, TestCaseGroup],
     *,
+    scenario_filter: set[str],
     phase_filter: set[str],
-) -> dict[str, Phase]:
-    """Filter phases to only include groups that remain after tag filtering."""
-    filtered_phases: dict[str, Phase] = {}
-    for phase_name, phase in test_plan.phases.items():
-        if phase_filter and phase_name not in phase_filter:
+) -> dict[str, Scenario]:
+    """Filter scenarios/phases to only include groups that remain after filtering."""
+    filtered_scenarios: dict[str, Scenario] = {}
+    for scenario_name, scenario in test_plan.scenarios.items():
+        if scenario_filter and scenario_name not in scenario_filter:
             continue
 
-        kept_groups = [
-            group_name
-            for group_name in phase.test_case_groups
-            if group_name in filtered_groups
-        ]
-        if not kept_groups:
-            continue
-        filtered_phases[phase_name] = Phase(
-            name=phase.name,
-            test_case_groups=kept_groups,
-            depends_on=phase.depends_on,
-            target=phase.target,
-        )
-    return filtered_phases
+        kept_phases: dict[str, Phase] = {}
+        for phase_name, phase in scenario.phases.items():
+            if phase_filter and phase_name not in phase_filter:
+                continue
+
+            kept_groups = [
+                group_name
+                for group_name in phase.test_case_groups
+                if group_name in filtered_groups
+            ]
+            if not kept_groups:
+                continue
+            kept_phases[phase_name] = Phase(
+                name=phase.name,
+                test_case_groups=kept_groups,
+                depends_on=phase.depends_on,
+                target=phase.target,
+                strategy=phase.strategy,
+            )
+
+        if kept_phases:
+            filtered_scenarios[scenario_name] = Scenario(
+                name=scenario.name,
+                phases=kept_phases,
+            )
+
+    return filtered_scenarios
 
 
-def _normalize_phase_dependencies(phases: dict[str, Phase]) -> None:
+def _normalize_phase_dependencies(scenarios: dict[str, Scenario]) -> None:
     """Remove phase dependencies that no longer exist after filtering."""
-    existing = set(phases.keys())
-    for phase in phases.values():
-        phase.depends_on = [
-            dependency for dependency in phase.depends_on if dependency in existing
-        ]
+    for scenario in scenarios.values():
+        existing = set(scenario.phases.keys())
+        for phase in scenario.phases.values():
+            phase.depends_on = [
+                dependency for dependency in phase.depends_on if dependency in existing
+            ]
