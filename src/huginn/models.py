@@ -282,3 +282,7 @@ class RunResult:
 
     summary: RunSummary
     scenarios: list[ExecutedScenario]
+    mode: str | None = None
+    started_at: str | None = None
+    completed_at: str | None = None
+    elapsed_seconds: float | None = None

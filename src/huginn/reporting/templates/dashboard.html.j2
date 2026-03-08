@@ -20,6 +20,16 @@
             <h2>Executive Summary</h2>
           </div>
         </div>
+        {% if run_metadata %}
+        <dl class="summary-meta-row">
+          {% for item in run_metadata %}
+          <div class="summary-meta-item">
+            <dt><span class="summary-chip">{{ item.label }}</span></dt>
+            <dd>{{ item.value }}</dd>
+          </div>
+          {% endfor %}
+        </dl>
+        {% endif %}
         <div class="stats-grid">
           {% for stat in stats %}
           {% set slug = stat.label|lower|replace(' ', '-') %}

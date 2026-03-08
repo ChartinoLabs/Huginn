@@ -49,6 +49,16 @@ def test_write_standard_html_report_writes_dashboard_and_detail_pages(
     assert "Group A" in dashboard
     assert "show version" in dashboard
     assert "View Details" in dashboard
+    assert '<dl class="summary-meta-row">' in dashboard
+    assert '<div class="summary-meta-item">' in dashboard
+    assert "Started" in dashboard
+    assert "Mar 7th, 2026 12:00 PM UTC" in dashboard
+    assert "Completed" in dashboard
+    assert "Mar 7th, 2026 12:00 PM UTC" in dashboard
+    assert "Execution Time" in dashboard
+    assert "5.250s" in dashboard
+    assert "Mode" in dashboard
+    assert "Testing" in dashboard
 
     detail_page = (
         tmp_path
@@ -323,4 +333,8 @@ def _build_run_result() -> "RunResult":
                 ],
             )
         ],
+        mode="testing",
+        started_at="2026-03-07T12:00:00+00:00",
+        completed_at="2026-03-07T12:00:05+00:00",
+        elapsed_seconds=5.25,
     )

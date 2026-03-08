@@ -2,6 +2,7 @@
 
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from importlib.resources import files
 from pathlib import Path
 
@@ -70,6 +71,7 @@ def write_standard_html_report(
         dashboard_path = report_dir / "index.html"
         dashboard_path.write_text(
             _dashboard_template().render(
+                run_metadata=_build_run_metadata(result),
                 stats=_build_dashboard_stats(result),
                 scenarios=_build_scenario_views(result, detail_paths),
             ),
@@ -128,11 +130,6 @@ def _read_resource_text(relative_path: str) -> str:
 def _build_dashboard_stats(result: RunResult) -> list[dict[str, int | str]]:
     """Build high-level run statistics for the dashboard top hat."""
     return [
-        {"label": "Scenarios", "value": len(result.scenarios)},
-        {
-            "label": "Phases",
-            "value": sum(len(scenario.phases) for scenario in result.scenarios),
-        },
         {"label": "Test Cases", "value": result.summary.total},
         {"label": "Passing", "value": result.summary.passed},
         {"label": "Failing", "value": result.summary.failed},
@@ -141,6 +138,29 @@ def _build_dashboard_stats(result: RunResult) -> list[dict[str, int | str]]:
         {"label": "Not Applicable", "value": result.summary.not_applicable},
         {"label": "Blocked", "value": result.summary.blocked},
     ]
+
+
+def _build_run_metadata(result: RunResult) -> list[dict[str, str]]:
+    """Build run metadata rows shown above the summary metrics."""
+    metadata: list[dict[str, str]] = []
+    if result.started_at is not None:
+        metadata.append(
+            {"label": "Started", "value": _format_run_timestamp(result.started_at)}
+        )
+    if result.completed_at is not None:
+        metadata.append(
+            {"label": "Completed", "value": _format_run_timestamp(result.completed_at)}
+        )
+    if result.elapsed_seconds is not None:
+        metadata.append(
+            {
+                "label": "Execution Time",
+                "value": _format_elapsed_seconds(result.elapsed_seconds),
+            }
+        )
+    if result.mode is not None:
+        metadata.append({"label": "Mode", "value": result.mode.title()})
+    return metadata
 
 
 def _build_scenario_views(
@@ -354,6 +374,39 @@ def _render_markdown(text: str) -> str:
         text,
         extensions=["extra", "fenced_code", "tables", "nl2br"],
     )
+
+
+def _format_run_timestamp(timestamp: str) -> str:
+    """Format one ISO timestamp for human-friendly report display."""
+    parsed = datetime.fromisoformat(timestamp)
+    month_name = parsed.strftime("%b")
+    day = _ordinal(parsed.day)
+    time_part = parsed.strftime("%I:%M %p").lstrip("0")
+    timezone_name = parsed.strftime("%Z") or parsed.strftime("%z")
+    return f"{month_name} {day}, {parsed.year} {time_part} {timezone_name}"
+
+
+def _ordinal(day: int) -> str:
+    """Return an ordinal day string like 1st or 23rd."""
+    if 10 <= day % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+    return f"{day}{suffix}"
+
+
+def _format_elapsed_seconds(elapsed_seconds: float) -> str:
+    """Format overall run duration for summary display."""
+    if elapsed_seconds < 60:
+        return f"{elapsed_seconds:.3f}s"
+
+    minutes, seconds = divmod(elapsed_seconds, 60)
+    if minutes < 60:
+        return f"{int(minutes)}m {seconds:06.3f}s"
+
+    hours, minutes = divmod(int(minutes), 60)
+    remaining_seconds = elapsed_seconds - ((hours * 60 * 60) + (minutes * 60))
+    return f"{hours}h {minutes}m {remaining_seconds:06.3f}s"
 
 
 def _status_class(status: str) -> str:
