@@ -1,6 +1,7 @@
 """Integration tests for the CLI validate command."""
 
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Any
@@ -272,7 +273,8 @@ def test_validate_rejects_phase_filter_without_scenario(
     )
 
     assert result.exit_code == 2
-    assert "--phase requires --scenario" in result.output
+    normalized_output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+    assert "--phase requires --scenario" in normalized_output
 
 
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:

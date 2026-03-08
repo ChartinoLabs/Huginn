@@ -293,84 +293,46 @@ async def _execute_scenario(
     pending = set(scenario.phases.keys())
 
     while pending:
-        progressed = False
-        for phase_name in scenario.phases:
-            if phase_name not in pending:
-                continue
-            phase = scenario.phases[phase_name]
-            if not all(dep in phase_results for dep in phase.depends_on):
-                continue
+        phase_name = _select_next_phase_name(scenario, pending, phase_results)
+        if phase_name is None:
+            _raise_unresolved_scenario_dependencies(scenario.identifier, pending)
+            return ExecutedScenario(
+                identifier=scenario.identifier,
+                status=ResultStatus.ERRORED.value,
+                name=scenario.name,
+            )
 
-            if _is_blocked_by_dependencies(phase, phase_results):
-                _emit_status(
-                    output,
-                    (f"Skipping phase: {phase.identifier} (blocked by dependencies)"),
-                )
-                log_info(
-                    output,
-                    "Phase blocked by dependencies",
-                    scenario=scenario.identifier,
-                    phase=phase.identifier,
-                    depends_on=phase.depends_on,
-                )
-                executed_phase = _build_blocked_phase(
-                    scenario_name=scenario.identifier,
-                    phase=phase,
-                    test_plan=test_plan,
-                    reason="Blocked by failed phase dependency",
-                )
-            else:
-                _emit_status(output, f"  Starting phase: {phase.identifier}")
-                executed_phase = await _execute_phase(
-                    scenario_name=scenario.identifier,
-                    phase=phase,
-                    mode=mode,
-                    testbed=testbed,
-                    test_plan=test_plan,
-                    planned_executions=planned_executions,
-                    broker=broker,
-                    parameters_dir=parameters_dir,
-                    output=output,
-                )
-
-                log_info(
-                    output,
-                    "Phase finished",
-                    scenario=scenario.identifier,
-                    phase=phase.identifier,
-                    status=executed_phase.status,
-                )
-            _emit_phase_rollup(output, scenario.identifier, executed_phase)
-
-            phase_results[phase_name] = executed_phase
-            pending.remove(phase_name)
-            progressed = True
-
-            if _should_halt_scenario_after_phase(executed_phase):
-                for remaining_phase_name in scenario.phases:
-                    if remaining_phase_name not in pending:
-                        continue
-                    remaining_phase = scenario.phases[remaining_phase_name]
-                    phase_results[remaining_phase_name] = _build_blocked_phase(
-                        scenario_name=scenario.identifier,
-                        phase=remaining_phase,
-                        test_plan=test_plan,
-                        reason=(f"Blocked because phase '{phase.identifier}' failed"),
-                    )
-                pending.clear()
-                break
-
-        if progressed:
-            continue
-
-        unresolved = sorted(pending)
-        raise RunExecutionError(
-            (
-                "Unable to resolve phase dependencies in scenario "
-                f"'{scenario.identifier}' for: {unresolved}"
-            ),
-            code=ErrorCode.VALIDATION_ERROR,
+        phase = scenario.phases[phase_name]
+        executed_phase = await _execute_ready_phase(
+            scenario_name=scenario.identifier,
+            phase=phase,
+            mode=mode,
+            testbed=testbed,
+            test_plan=test_plan,
+            planned_executions=planned_executions,
+            broker=broker,
+            parameters_dir=parameters_dir,
+            output=output,
+            phase_results=phase_results,
         )
+        _record_phase_result(
+            scenario_name=scenario.identifier,
+            phase_name=phase_name,
+            executed_phase=executed_phase,
+            phase_results=phase_results,
+            pending=pending,
+            output=output,
+        )
+
+        if _should_halt_scenario_after_phase(executed_phase):
+            _block_remaining_phases(
+                scenario=scenario,
+                failed_phase=phase,
+                pending=pending,
+                phase_results=phase_results,
+                test_plan=test_plan,
+            )
+            break
 
     executed_phases = [phase_results[name] for name in scenario.phases]
     return ExecutedScenario(
@@ -378,6 +340,143 @@ async def _execute_scenario(
         status=_derive_scenario_status(executed_phases).value,
         name=scenario.name,
         phases=executed_phases,
+    )
+
+
+def _select_next_phase_name(
+    scenario: Scenario,
+    pending: set[str],
+    phase_results: dict[str, ExecutedPhase],
+) -> str | None:
+    """Return the next phase whose dependencies are satisfied."""
+    for phase_name, phase in scenario.phases.items():
+        if phase_name not in pending:
+            continue
+        if all(dep in phase_results for dep in phase.depends_on):
+            return phase_name
+    return None
+
+
+async def _execute_ready_phase(
+    *,
+    scenario_name: str,
+    phase: Phase,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    broker: RuntimeBroker,
+    parameters_dir: Path,
+    output: Output | None,
+    phase_results: dict[str, ExecutedPhase],
+) -> ExecutedPhase:
+    """Execute or block one dependency-ready phase."""
+    if _is_blocked_by_dependencies(phase, phase_results):
+        return _build_dependency_blocked_phase(
+            scenario_name=scenario_name,
+            phase=phase,
+            test_plan=test_plan,
+            output=output,
+        )
+
+    _emit_status(output, f"  Starting phase: {phase.identifier}")
+    executed_phase = await _execute_phase(
+        scenario_name=scenario_name,
+        phase=phase,
+        mode=mode,
+        testbed=testbed,
+        test_plan=test_plan,
+        planned_executions=planned_executions,
+        broker=broker,
+        parameters_dir=parameters_dir,
+        output=output,
+    )
+    log_info(
+        output,
+        "Phase finished",
+        scenario=scenario_name,
+        phase=phase.identifier,
+        status=executed_phase.status,
+    )
+    return executed_phase
+
+
+def _build_dependency_blocked_phase(
+    *,
+    scenario_name: str,
+    phase: Phase,
+    test_plan: TestPlan,
+    output: Output | None,
+) -> ExecutedPhase:
+    """Build a blocked phase after a failed dependency."""
+    _emit_status(
+        output,
+        f"Skipping phase: {phase.identifier} (blocked by dependencies)",
+    )
+    log_info(
+        output,
+        "Phase blocked by dependencies",
+        scenario=scenario_name,
+        phase=phase.identifier,
+        depends_on=phase.depends_on,
+    )
+    return _build_blocked_phase(
+        scenario_name=scenario_name,
+        phase=phase,
+        test_plan=test_plan,
+        reason="Blocked by failed phase dependency",
+    )
+
+
+def _record_phase_result(
+    *,
+    scenario_name: str,
+    phase_name: str,
+    executed_phase: ExecutedPhase,
+    phase_results: dict[str, ExecutedPhase],
+    pending: set[str],
+    output: Output | None,
+) -> None:
+    """Store a phase result and emit its rollup."""
+    _emit_phase_rollup(output, scenario_name, executed_phase)
+    phase_results[phase_name] = executed_phase
+    pending.remove(phase_name)
+
+
+def _block_remaining_phases(
+    *,
+    scenario: Scenario,
+    failed_phase: Phase,
+    pending: set[str],
+    phase_results: dict[str, ExecutedPhase],
+    test_plan: TestPlan,
+) -> None:
+    """Mark all remaining phases as blocked after a failure halt."""
+    for remaining_phase_name in scenario.phases:
+        if remaining_phase_name not in pending:
+            continue
+        remaining_phase = scenario.phases[remaining_phase_name]
+        phase_results[remaining_phase_name] = _build_blocked_phase(
+            scenario_name=scenario.identifier,
+            phase=remaining_phase,
+            test_plan=test_plan,
+            reason=f"Blocked because phase '{failed_phase.identifier}' failed",
+        )
+    pending.clear()
+
+
+def _raise_unresolved_scenario_dependencies(
+    scenario_name: str,
+    pending: set[str],
+) -> None:
+    """Raise when a scenario's phase graph can no longer progress."""
+    unresolved = sorted(pending)
+    raise RunExecutionError(
+        (
+            "Unable to resolve phase dependencies in scenario "
+            f"'{scenario_name}' for: {unresolved}"
+        ),
+        code=ErrorCode.VALIDATION_ERROR,
     )
 
 
