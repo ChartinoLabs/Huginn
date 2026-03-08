@@ -19,6 +19,11 @@ from huginn.result_store import _test_case_execution_key
 
 _TEMPLATE_ENV = Environment(autoescape=True, trim_blocks=True, lstrip_blocks=True)
 _RESOURCE_ROOT = files("huginn.reporting")
+_STATUS_FILTER_GROUPS = (
+    ("passed", "pass", ("passed",)),
+    ("failed", "fail", ("failed", "errored", "blocked")),
+    ("skipped", "skip", ("skipped", "not_applicable")),
+)
 
 
 class ReportRenderError(ValueError):
@@ -183,13 +188,10 @@ def _build_scenario_views(
                 "name": scenario.display_name,
                 "status": scenario.status,
                 "status_class": _status_class(scenario.status),
-                "chips": [
-                    f"phases {len(scenario.phases)}",
-                    f"total {len(scenario_statuses)}",
-                    f"pass {counts['passed']}",
-                    f"fail {counts['failed']}",
-                    f"skip {counts['skipped']}",
-                ],
+                "chips": _build_filter_chips(
+                    total=len(scenario_statuses),
+                    counts=counts,
+                ),
                 "phases": [
                     _build_phase_view(phase, detail_paths) for phase in scenario.phases
                 ],
@@ -214,12 +216,7 @@ def _build_phase_view(
         "name": phase.display_name,
         "status": phase.status,
         "status_class": _status_class(phase.status),
-        "chips": [
-            f"total {len(phase_statuses)}",
-            f"pass {counts['passed']}",
-            f"fail {counts['failed']}",
-            f"skip {counts['skipped']}",
-        ],
+        "chips": _build_filter_chips(total=len(phase_statuses), counts=counts),
         "groups": [
             _build_group_view(group, detail_paths) for group in phase.test_case_groups
         ],
@@ -238,12 +235,7 @@ def _build_group_view(
         "name": group.display_name,
         "status": group.status,
         "status_class": _status_class(group.status),
-        "chips": [
-            f"total {len(group.test_cases)}",
-            f"pass {counts['passed']}",
-            f"fail {counts['failed']}",
-            f"skip {counts['skipped']}",
-        ],
+        "chips": _build_filter_chips(total=len(group.test_cases), counts=counts),
         "test_cases": [
             {
                 **_build_test_case_view(test_case),
@@ -280,14 +272,23 @@ def _build_test_case_view(test_case: ExecutedTestCase) -> dict[str, object]:
         "command_count": len(test_case.command_executions),
         "check_count": len(test_case.checks),
         "metadata_count": len(test_case.metadata_sections),
-        "commands": [
-            {"device": command.device, "command": command.command}
-            for command in test_case.command_executions
-        ],
+        "commands": _build_command_previews(test_case),
         "error": test_case.error,
         "error_code": test_case.error_code,
         "error_traceback": test_case.error_traceback,
     }
+
+
+def _build_command_previews(test_case: ExecutedTestCase) -> list[dict[str, str]]:
+    """Build a de-duplicated command list for dashboard previews."""
+    seen_commands: set[str] = set()
+    commands: list[dict[str, str]] = []
+    for command in test_case.command_executions:
+        if command.command in seen_commands:
+            continue
+        seen_commands.add(command.command)
+        commands.append({"device": command.device, "command": command.command})
+    return commands
 
 
 def _build_check_views(test_case: ExecutedTestCase) -> list[dict[str, str]]:
@@ -352,6 +353,30 @@ def _count_statuses(statuses: list[str]) -> dict[str, int]:
         elif status in {"skipped", "not_applicable"}:
             counts["skipped"] += 1
     return counts
+
+
+def _build_filter_chips(
+    *,
+    total: int,
+    counts: dict[str, int],
+) -> list[dict[str, object]]:
+    """Build dashboard chips, including status filter metadata."""
+    chips: list[dict[str, object]] = [
+        {
+            "label": f"total {total}",
+            "action": "clear",
+            "statuses": [],
+        }
+    ]
+    for key, label, statuses in _STATUS_FILTER_GROUPS:
+        chips.append(
+            {
+                "label": f"{label} {counts[key]}",
+                "action": "toggle",
+                "statuses": list(statuses),
+            }
+        )
+    return chips
 
 
 def _format_parsed_payload(payload: dict[str, object] | None) -> str | None:

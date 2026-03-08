@@ -59,6 +59,23 @@ def test_write_standard_html_report_writes_dashboard_and_detail_pages(
     assert "5.250s" in dashboard
     assert "Mode" in dashboard
     assert "Testing" in dashboard
+    assert "phases 1" not in dashboard
+    assert 'data-filter-scope="scenario"' in dashboard
+    assert 'data-filter-scope="phase"' in dashboard
+    assert 'data-filter-scope="group"' in dashboard
+    assert 'data-filter-action="toggle"' in dashboard
+    assert 'data-filter-action="clear"' in dashboard
+    assert 'data-filter-statuses="passed"' in dashboard
+    assert 'data-filter-statuses="failed,errored,blocked"' in dashboard
+    assert 'data-filter-statuses="skipped,not_applicable"' in dashboard
+    assert 'data-test-status="passed"' in dashboard
+    assert 'data-test-status="failed"' in dashboard
+    assert "phase-chip-reset phase-chip-active" in dashboard
+    assert 'aria-pressed="true"' in dashboard
+    assert dashboard.count("<code>show version</code>") == 1
+    assert 'class="object-kind-badge object-kind-badge-scenario">Scenario<' in dashboard
+    assert 'class="object-kind-badge object-kind-badge-phase">Phase<' in dashboard
+    assert 'class="object-kind-badge object-kind-badge-group">Group<' in dashboard
 
     detail_page = (
         tmp_path
@@ -301,7 +318,15 @@ def _build_run_result() -> "RunResult":
                                                 parsed={"version": "17.9"},
                                                 elapsed_ms=12.5,
                                                 cached=False,
-                                            )
+                                            ),
+                                            CommandExecution(
+                                                device="leaf-1",
+                                                command="show version",
+                                                output="Version 17.9",
+                                                parsed={"version": "17.9"},
+                                                elapsed_ms=12.5,
+                                                cached=True,
+                                            ),
                                         ],
                                     ),
                                     ExecutedTestCase(
