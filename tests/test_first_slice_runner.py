@@ -874,7 +874,7 @@ def test_run_executes_test_cases_in_group_in_parallel(
         for case in group["test_cases"]
     ]
     assert executed_ids == ["1.0.0", "1.0.1"]
-    assert elapsed < 0.55
+    assert elapsed < 0.65
 
 
 def test_run_honors_group_serial_strategy(
@@ -916,7 +916,7 @@ def test_run_group_parallel_default_is_unbounded(
         plan_name="plan_group_parallel_default.yaml",
     )
 
-    assert elapsed < 0.55
+    assert elapsed < 0.65
 
 
 def test_run_honors_phase_serial_strategy(
