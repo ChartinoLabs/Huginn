@@ -156,38 +156,81 @@ def _filter_scenarios(
     """Filter scenarios/phases to only include groups that remain after filtering."""
     filtered_scenarios: dict[str, Scenario] = {}
     for scenario_name, scenario in test_plan.scenarios.items():
-        if scenario_filter and scenario_name not in scenario_filter:
-            continue
-
-        kept_phases: dict[str, Phase] = {}
-        for phase_name, phase in scenario.phases.items():
-            if phase_filter and phase_name not in phase_filter:
-                continue
-
-            kept_groups = [
-                group_name
-                for group_name in phase.test_case_groups
-                if group_name in filtered_groups
-            ]
-            if not kept_groups:
-                continue
-            kept_phases[phase_name] = Phase(
-                identifier=phase.identifier,
-                test_case_groups=kept_groups,
-                name=phase.name,
-                depends_on=phase.depends_on,
-                target=phase.target,
-                strategy=phase.strategy,
-            )
-
-        if kept_phases:
-            filtered_scenarios[scenario_name] = Scenario(
-                identifier=scenario.identifier,
-                phases=kept_phases,
-                name=scenario.name,
-            )
+        filtered_scenario = _filter_scenario(
+            scenario_name=scenario_name,
+            scenario=scenario,
+            filtered_groups=filtered_groups,
+            scenario_filter=scenario_filter,
+            phase_filter=phase_filter,
+        )
+        if filtered_scenario is not None:
+            filtered_scenarios[scenario_name] = filtered_scenario
 
     return filtered_scenarios
+
+
+def _filter_scenario(
+    *,
+    scenario_name: str,
+    scenario: Scenario,
+    filtered_groups: dict[str, TestCaseGroup],
+    scenario_filter: set[str],
+    phase_filter: set[str],
+) -> Scenario | None:
+    """Filter one scenario and return it when any phases remain."""
+    if scenario_filter and scenario_name not in scenario_filter:
+        return None
+
+    kept_phases = {
+        phase_name: filtered_phase
+        for phase_name, phase in scenario.phases.items()
+        if (
+            filtered_phase := _filter_phase(
+                phase_name=phase_name,
+                phase=phase,
+                filtered_groups=filtered_groups,
+                phase_filter=phase_filter,
+            )
+        )
+        is not None
+    }
+    if not kept_phases:
+        return None
+
+    return Scenario(
+        identifier=scenario.identifier,
+        phases=kept_phases,
+        name=scenario.name,
+    )
+
+
+def _filter_phase(
+    *,
+    phase_name: str,
+    phase: Phase,
+    filtered_groups: dict[str, TestCaseGroup],
+    phase_filter: set[str],
+) -> Phase | None:
+    """Filter one phase and return it when any groups remain."""
+    if phase_filter and phase_name not in phase_filter:
+        return None
+
+    kept_groups = [
+        group_name
+        for group_name in phase.test_case_groups
+        if group_name in filtered_groups
+    ]
+    if not kept_groups:
+        return None
+
+    return Phase(
+        identifier=phase.identifier,
+        test_case_groups=kept_groups,
+        name=phase.name,
+        depends_on=phase.depends_on,
+        target=phase.target,
+        strategy=phase.strategy,
+    )
 
 
 def _normalize_phase_dependencies(scenarios: dict[str, Scenario]) -> None:
