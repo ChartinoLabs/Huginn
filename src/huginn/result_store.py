@@ -178,8 +178,15 @@ def _build_run_summary_payload(
             for scenario in result.scenarios
         ],
     }
-    if mode is not None:
-        payload["mode"] = mode.value
+    payload["mode"] = result.mode or (mode.value if mode is not None else None)
+    if result.started_at is not None:
+        payload["started_at"] = result.started_at
+    if result.completed_at is not None:
+        payload["completed_at"] = result.completed_at
+    if result.elapsed_seconds is not None:
+        payload["elapsed_seconds"] = result.elapsed_seconds
+    if payload["mode"] is None:
+        payload.pop("mode")
     return payload
 
 

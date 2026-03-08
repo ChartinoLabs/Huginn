@@ -61,6 +61,9 @@ def test_write_run_result_writes_summary_and_test_case_json(tmp_path: Path) -> N
     assert result_path.parent.name.endswith("-testing")
     payload = json.loads(result_path.read_text(encoding="utf-8"))
     assert payload["mode"] == "testing"
+    assert payload["started_at"] == "2026-03-07T12:00:00+00:00"
+    assert payload["completed_at"] == "2026-03-07T12:00:05+00:00"
+    assert payload["elapsed_seconds"] == 5.25
     assert payload["summary"]["status"] == "passed"
     assert payload["scenarios"][0]["id"] == "scenario-1"
     assert payload["scenarios"][0]["name"] == "Scenario 1"
@@ -270,4 +273,8 @@ def _build_run_result_with_test_case() -> "RunResult":
                 ],
             )
         ],
+        mode="testing",
+        started_at="2026-03-07T12:00:00+00:00",
+        completed_at="2026-03-07T12:00:05+00:00",
+        elapsed_seconds=5.25,
     )

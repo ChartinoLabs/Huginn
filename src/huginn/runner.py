@@ -6,6 +6,7 @@ import traceback
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from time import perf_counter
 
@@ -91,6 +92,7 @@ async def run_test_plan(
 ) -> RunResult:
     """Execute a minimal test plan and persist run artifacts."""
     run_started = perf_counter()
+    started_at = datetime.now().astimezone()
     log_info(
         output,
         "Run starting",
@@ -206,7 +208,15 @@ async def run_test_plan(
             )
 
     summary = _build_summary(executed_scenarios)
-    result = RunResult(summary=summary, scenarios=executed_scenarios)
+    completed_at = datetime.now().astimezone()
+    result = RunResult(
+        summary=summary,
+        scenarios=executed_scenarios,
+        mode=mode.value,
+        started_at=started_at.isoformat(timespec="seconds"),
+        completed_at=completed_at.isoformat(timespec="seconds"),
+        elapsed_seconds=completed_at.timestamp() - started_at.timestamp(),
+    )
     try:
         run_files = write_run_result(result=result, results_dir=results_dir, mode=mode)
         dashboard_path = write_standard_html_report(
