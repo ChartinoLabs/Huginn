@@ -2,7 +2,7 @@
 
 import json
 import re
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -23,12 +23,21 @@ class ResultWriteError(ValueError):
     """Raised when Huginn cannot persist canonical JSON results."""
 
 
+@dataclass(frozen=True)
+class RunResultFiles:
+    """Paths written for one canonical run result."""
+
+    run_dir: Path
+    run_json_path: Path
+    test_case_paths: dict[str, str]
+
+
 def write_run_result(
     *,
     result: RunResult,
     results_dir: Path,
     mode: ExecutionMode | None = None,
-) -> Path:
+) -> RunResultFiles:
     """Write run JSON results under a timestamped results directory."""
     try:
         run_dir = _create_timestamped_run_dir(results_dir, mode=mode)
@@ -38,7 +47,12 @@ def write_run_result(
             test_case_paths=test_case_paths,
             mode=mode,
         )
-        return _write_json(run_dir / "run.json", payload)
+        run_json_path = _write_json(run_dir / "run.json", payload)
+        return RunResultFiles(
+            run_dir=run_dir,
+            run_json_path=run_json_path,
+            test_case_paths=test_case_paths,
+        )
     except Exception as error:  # noqa: BLE001
         raise ResultWriteError(f"Failed to write run results: {error}") from error
 
