@@ -1,7 +1,9 @@
 """Base test case definition for Huginn jobs."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+from typing import Generic, TypeVar, cast
 
 from jinja2 import Environment
 
@@ -14,6 +16,8 @@ _METADATA_TEMPLATE_ENV = Environment(
     trim_blocks=True,
     lstrip_blocks=True,
 )
+
+ParametersT = TypeVar("ParametersT", bound=Mapping[str, object])
 
 
 @dataclass
@@ -42,7 +46,7 @@ class TestCase(ABC):
         """Clean up test-specific state after execution."""
 
 
-class LearningTestCase(TestCase, ABC):
+class LearningTestCase(TestCase, Generic[ParametersT], ABC):
     """Reusable base class for learning/testing state comparison patterns."""
 
     DESCRIPTION: str | None = None
@@ -90,7 +94,7 @@ class LearningTestCase(TestCase, ABC):
             )
             return
 
-        expected_state = await context.parameters.load()
+        expected_state = cast(ParametersT, await context.parameters.load())
         self._add_rendered_metadata_result(context=context, parameters=expected_state)
         await self.compare_state(
             expected=expected_state,
@@ -110,7 +114,7 @@ class LearningTestCase(TestCase, ABC):
         self,
         *,
         context: Context,
-        parameters: dict[str, object],
+        parameters: ParametersT,
     ) -> None:
         """Render optional metadata templates and append one INFO result."""
         metadata_sections = self._metadata_sections()
@@ -144,15 +148,15 @@ class LearningTestCase(TestCase, ABC):
         ]
 
     @abstractmethod
-    async def gather_state(self, context: Context) -> dict[str, object]:
+    async def gather_state(self, context: Context) -> ParametersT:
         """Gather current state from targets for learning/testing flows."""
 
     @abstractmethod
     async def compare_state(
         self,
         *,
-        expected: dict[str, object],
-        current: dict[str, object],
+        expected: ParametersT,
+        current: ParametersT,
         context: Context,
     ) -> None:
         """Compare expected and current state, recording test results."""
