@@ -1,0 +1,11 @@
+test_cases:
+  2.0.0:
+    title: Verify OSPF Neighbors
+    job: jobs/verify_ospf.py
+    tags:
+      - ospf
+
+test_case_groups:
+  ospf-checks:
+    tests:
+      - "2.0.0"

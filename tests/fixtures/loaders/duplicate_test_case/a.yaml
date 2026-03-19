@@ -1,0 +1,4 @@
+test_cases:
+  1.0.0:
+    title: Test A
+    job: jobs/a.py

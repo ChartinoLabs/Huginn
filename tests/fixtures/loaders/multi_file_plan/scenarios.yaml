@@ -1,0 +1,7 @@
+scenarios:
+  validation:
+    phases:
+      check-all:
+        test_case_groups:
+          - connectivity-checks
+          - ospf-checks
