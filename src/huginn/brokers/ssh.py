@@ -320,7 +320,7 @@ class SSHBroker:
 
         start_time = time.monotonic()
         try:
-            response = await driver.send_commands(commands, **kwargs)
+            response = await driver.send_configs(commands, **kwargs)
         except ScrapliTimeout as e:
             raise TimeoutError(
                 f"Configuration timed out on {handle.device_name}: {e}"
