@@ -148,6 +148,10 @@ class TestPlan:
     scenarios: dict[str, Scenario]
     test_case_groups: dict[str, TestCaseGroup]
     test_cases: dict[str, TestCaseDefinition]
+    name: str | None = None
+    description: str | None = None
+    defaults: dict[str, object] | None = None
+    data_model: dict[str, object] | None = None
 
 
 @dataclass
