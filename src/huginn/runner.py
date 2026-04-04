@@ -321,6 +321,8 @@ async def _execute_scenario(
             )
 
         phase = scenario.phases[phase_name]
+        if not phase.preserve_cache:
+            broker.clear_cache()
         executed_phase = await _execute_ready_phase(
             scenario_name=scenario.identifier,
             phase=phase,

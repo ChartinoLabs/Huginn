@@ -107,6 +107,7 @@ class Phase:
     strategy: ExecutionStrategy = field(
         default_factory=lambda: ExecutionStrategy(mode="parallel")
     )
+    preserve_cache: bool = False
 
     def __post_init__(self) -> None:
         """Normalize identifier/name fallbacks for in-memory construction."""

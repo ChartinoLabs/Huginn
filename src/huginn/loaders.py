@@ -898,6 +898,12 @@ def _parse_phase(
         phase_mapping.get("name"),
         f"Phase '{phase_name}' in scenario '{scenario_name}' name must be a string",
     )
+    preserve_cache_raw = phase_mapping.get("preserve_cache", False)
+    if not isinstance(preserve_cache_raw, bool):
+        raise ConfigurationError(
+            f"Phase '{phase_name}' in scenario '{scenario_name}' "
+            "'preserve_cache' must be a boolean"
+        )
     return Phase(
         identifier=phase_name,
         test_case_groups=test_case_groups,
@@ -905,6 +911,7 @@ def _parse_phase(
         depends_on=depends_on,
         target=target,
         strategy=strategy,
+        preserve_cache=preserve_cache_raw,
     )
 
 

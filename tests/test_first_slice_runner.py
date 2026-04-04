@@ -66,6 +66,9 @@ class _FakeRuntimeBroker:
         assert config
         return _FakeCommandResult(output=f"edit:{target.name}")
 
+    def clear_cache(self) -> None:
+        pass
+
     def for_protocol(self, protocol: str) -> "_FakeRuntimeBrokerClient":
         return _FakeRuntimeBrokerClient(runtime=self, protocol=protocol)
 
