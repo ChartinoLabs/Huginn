@@ -3,6 +3,7 @@
 import json
 import shutil
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import cast
 
@@ -60,6 +61,17 @@ class ReconcilePlan:
 _FAILURE_STATUSES = frozenset({"failed", "errored"})
 
 
+def _parse_results_dir_timestamp(name: str) -> datetime:
+    """Parse the timestamp from a results directory name."""
+    # Strip the -testing (or -testing-NN) suffix to get the timestamp portion
+    stem = name.removesuffix("-testing")
+    # Handle collision suffixes like -testing-01
+    if stem == name:
+        parts = name.rsplit("-testing-", 1)
+        stem = parts[0]
+    return datetime.strptime(stem, "%Y-%b-%d-%H-%M-%S")
+
+
 def find_latest_testing_results(results_dir: Path) -> Path:
     """Find the most recent testing run directory and return its run.json path."""
     if not results_dir.is_dir():
@@ -71,7 +83,7 @@ def find_latest_testing_results(results_dir: Path) -> Path:
             for entry in results_dir.iterdir()
             if entry.is_dir() and entry.name.endswith("-testing")
         ),
-        key=lambda p: p.name,
+        key=lambda p: _parse_results_dir_timestamp(p.name),
     )
     if not candidates:
         raise ReconcileError(

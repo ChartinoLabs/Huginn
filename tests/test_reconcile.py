@@ -224,6 +224,19 @@ class TestFindLatestTestingResults:
         result = find_latest_testing_results(tmp_path)
         assert result == newer / "run.json"
 
+    def test_sorts_by_timestamp_not_alphabetically(self, tmp_path: Path) -> None:
+        """Months like Apr and Mar must sort chronologically, not alphabetically."""
+        march = tmp_path / "2026-Mar-20-19-00-21-testing"
+        march.mkdir()
+        _write_json(march / "run.json", {"scenarios": []})
+
+        april = tmp_path / "2026-Apr-04-13-56-56-testing"
+        april.mkdir()
+        _write_json(april / "run.json", {"scenarios": []})
+
+        result = find_latest_testing_results(tmp_path)
+        assert result == april / "run.json"
+
     def test_ignores_non_testing_directories(self, tmp_path: Path) -> None:
         """Skip directories that do not end with -testing."""
         learning = tmp_path / "2026-Mar-19-12-00-00-learning"
