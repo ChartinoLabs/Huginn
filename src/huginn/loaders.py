@@ -403,7 +403,7 @@ _METADATA_MAPPING_KEYS = frozenset({"defaults", "data_model"})
 _RECOGNIZED_KEYS = _SECTION_KEYS | _METADATA_SCALAR_KEYS | _METADATA_MAPPING_KEYS
 
 
-def _discover_yaml_files(directory: Path) -> list[Path]:
+def discover_yaml_files(directory: Path) -> list[Path]:
     """Recursively discover YAML files, excluding _/. prefixed names."""
     files: list[Path] = []
     for pattern in ("**/*.yaml", "**/*.yml"):
@@ -487,7 +487,7 @@ def _merge_metadata_mapping(
 
 def _load_test_plan_directory(directory: Path) -> TestPlan:
     """Load and merge a directory of YAML files into a single TestPlan."""
-    yaml_files = _discover_yaml_files(directory)
+    yaml_files = discover_yaml_files(directory)
     if not yaml_files:
         raise ConfigurationError(
             f"Test plan directory {directory} contains no YAML files"

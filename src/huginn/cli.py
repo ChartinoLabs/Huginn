@@ -12,8 +12,18 @@ from typing import Annotated
 import typer
 
 from huginn.enums import ErrorCode, ExecutionMode
+from huginn.loaders import ConfigurationError, load_test_plan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
+from huginn.reconcile import (
+    ReconcileError,
+    apply_reconcile_plan,
+    compute_reconcile_plan,
+    copy_parameter_files,
+    find_latest_testing_results,
+    parse_failures_from_run,
+    validate_after_reconcile,
+)
 from huginn.runner import RunExecutionError, run_test_plan
 from huginn.validation import validate_inputs
 
@@ -515,6 +525,173 @@ def _build_output(
         log_level=resolved_log_level,
         log_file=log_file,
     )
+
+
+@app.command()
+def reconcile(
+    plan: Annotated[
+        Path,
+        typer.Option(
+            "--plan",
+            "-p",
+            help="Path to test plan YAML file or directory of YAML files.",
+            exists=True,
+            file_okay=True,
+            dir_okay=True,
+            resolve_path=True,
+        ),
+    ],
+    phase: Annotated[
+        str,
+        typer.Option(
+            "--phase",
+            help="Phase whose failures to reconcile. Also used as suffix for "
+            "new test case IDs and group names.",
+        ),
+    ],
+    scenario: Annotated[
+        str | None,
+        typer.Option(
+            "--scenario",
+            help="Reconcile only the specified scenario. "
+            "If omitted, all scenarios with the target phase are processed.",
+        ),
+    ] = None,
+    results_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--results-dir",
+            help="Path to results directory (default: ./results/).",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+        ),
+    ] = None,
+    parameters_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--parameters-dir",
+            help="Path to parameters directory (default: ./parameters/).",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+        ),
+    ] = None,
+    debug: Annotated[
+        bool,
+        typer.Option("--debug", help="Enable DEBUG-level logging."),
+    ] = False,
+    log_level: Annotated[
+        str,
+        typer.Option(
+            "--log-level",
+            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+        ),
+    ] = "INFO",
+    show_logs: Annotated[
+        bool,
+        typer.Option(
+            "--show-logs",
+            help="Stream logs to console in addition to file.",
+        ),
+    ] = False,
+    log_file: Annotated[
+        Path | None,
+        typer.Option("--log-file", help="Path to log file (default: ./huginn.log)."),
+    ] = None,
+) -> None:
+    """Reconcile failing test cases into new test case groups.
+
+    After running a post-change phase in testing mode, some tests may fail
+    because the golden parameters reflect pre-change state. This command
+    creates new test case definitions and groups for the failing tests so
+    they can be re-learned with post-change parameters.
+
+    Examples:
+        huginn reconcile -p test_plan.yaml --phase post-change
+        huginn reconcile -p plans/ --phase post-change --scenario migration
+    """
+    resolved_results_dir = results_dir or Path.cwd() / "results"
+    resolved_parameters_dir = parameters_dir or Path.cwd() / "parameters"
+
+    output = _build_output(
+        debug=debug,
+        log_level=log_level,
+        show_logs=show_logs,
+        log_file=log_file,
+    )
+    output.status(f"Reconciling failures for phase '{phase}'")
+    output.log_debug_fields(
+        "CLI reconcile options",
+        plan=plan,
+        phase=phase,
+        scenario=scenario,
+        results_dir=resolved_results_dir,
+        parameters_dir=resolved_parameters_dir,
+        log_level="DEBUG" if debug else log_level,
+    )
+
+    try:
+        run_json_path = find_latest_testing_results(resolved_results_dir)
+        output.status(f"Using results from {run_json_path.parent.name}")
+
+        reconcile_input = parse_failures_from_run(
+            run_json_path, phase, scenario_filter=scenario
+        )
+
+        if not reconcile_input.failing_tests:
+            output.success(
+                f"No failures found in phase '{phase}' -- nothing to reconcile"
+            )
+            return
+
+        output.status(
+            f"Found {len(reconcile_input.failing_tests)} failing test case(s) "
+            f"across {len(reconcile_input.affected_group_ids)} group(s)"
+        )
+
+        test_plan = load_test_plan(plan)
+        plan_result = compute_reconcile_plan(reconcile_input, test_plan, phase)
+
+        if not plan_result.new_test_cases and not plan_result.new_groups:
+            output.success("Reconciliation already applied -- no changes needed")
+            if plan_result.skipped_existing:
+                output.warning(
+                    f"Skipped {len(plan_result.skipped_existing)} existing "
+                    "ID(s) (already reconciled)"
+                )
+            return
+
+        apply_reconcile_plan(
+            plan_path=plan,
+            reconcile_plan=plan_result,
+            phase_name=phase,
+            output=output,
+        )
+
+        copied = copy_parameter_files(
+            parameters_dir=resolved_parameters_dir,
+            copies=plan_result.parameter_copies,
+            output=output,
+        )
+
+        validate_after_reconcile(plan)
+
+        output.success(
+            f"Reconciliation complete: "
+            f"{len(plan_result.new_test_cases)} new test case(s), "
+            f"{len(plan_result.new_groups)} new group(s), "
+            f"{copied} parameter file(s) copied"
+        )
+        if plan_result.skipped_existing:
+            output.warning(
+                f"Skipped {len(plan_result.skipped_existing)} existing "
+                "ID(s) (already reconciled)"
+            )
+
+    except (ReconcileError, ConfigurationError) as error:
+        output.error(f"ERROR: {error}")
+        raise typer.Exit(code=1) from error
 
 
 @app.command()
