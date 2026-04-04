@@ -80,6 +80,7 @@ class TestCaseGroup:
     strategy: ExecutionStrategy = field(
         default_factory=lambda: ExecutionStrategy(mode="parallel")
     )
+    exclude_tests: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         """Normalize identifier/name fallbacks for in-memory construction."""

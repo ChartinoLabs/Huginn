@@ -651,10 +651,19 @@ def _parse_test_case_group(
         group_mapping.get("groups"),
         group_name=group_name,
     )
+    exclude_tests = _load_optional_group_exclude_tests(
+        group_mapping.get("exclude_tests"),
+        group_name=group_name,
+    )
     if not tests and not includes:
         raise ConfigurationError(
             f"Test case group '{group_name}' must include at least one of "
             "'tests' or 'groups'"
+        )
+    if exclude_tests and not includes:
+        raise ConfigurationError(
+            f"Test case group '{group_name}' defines 'exclude_tests' without "
+            "'groups' -- exclude_tests only applies to inherited group tests"
         )
     tags = _load_optional_string_list_allow_empty_strings(group_mapping.get("tags"))
     strategy = _load_execution_strategy(
@@ -677,6 +686,7 @@ def _parse_test_case_group(
             tags=tags,
             target=target,
             strategy=strategy,
+            exclude_tests=exclude_tests,
         ),
         includes,
     )
@@ -708,6 +718,21 @@ def _load_optional_group_includes(value: object, *, group_name: str) -> list[str
     if not all(isinstance(item, str) and item for item in value):
         raise ConfigurationError(
             f"Test case group '{group_name}' groups must be a list of strings"
+        )
+    return cast(list[str], value)
+
+
+def _load_optional_group_exclude_tests(value: object, *, group_name: str) -> list[str]:
+    """Load optional exclude_tests list for a test case group."""
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ConfigurationError(
+            f"Test case group '{group_name}' exclude_tests must be a list of strings"
+        )
+    if not all(isinstance(item, str) and item for item in value):
+        raise ConfigurationError(
+            f"Test case group '{group_name}' exclude_tests must be a list of strings"
         )
     return cast(list[str], value)
 
@@ -764,11 +789,14 @@ def _flatten_nested_test_case_groups(
         if group_name in cache:
             return cache[group_name]
 
-        flattened = list(groups[group_name].tests)
+        group = groups[group_name]
+        excluded = set(group.exclude_tests)
+
+        flattened = list(group.tests)
         seen = set(flattened)
         for include in group_includes[group_name]:
             for test_id in flatten(include):
-                if test_id in seen:
+                if test_id in seen or test_id in excluded:
                     continue
                 seen.add(test_id)
                 flattened.append(test_id)
@@ -785,6 +813,7 @@ def _flatten_nested_test_case_groups(
             tags=group.tags,
             target=group.target,
             strategy=group.strategy,
+            exclude_tests=group.exclude_tests,
         )
     return resolved
 

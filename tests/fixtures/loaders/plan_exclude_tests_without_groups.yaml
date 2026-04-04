@@ -1,0 +1,16 @@
+test_cases:
+  1.0.0:
+    title: Base health check
+    job: jobs/base_health.py
+test_case_groups:
+  bad-group:
+    tests:
+    - 1.0.0
+    exclude_tests:
+    - 1.0.0
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - bad-group

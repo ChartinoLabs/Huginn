@@ -312,6 +312,28 @@ def test_load_test_plan_requires_tests_or_groups_for_group() -> None:
         load_test_plan(path)
 
 
+def test_load_test_plan_applies_exclude_tests() -> None:
+    """Exclude specific test IDs inherited from nested groups."""
+    path = FIXTURES / "plan_with_exclude_tests.yaml"
+
+    test_plan = load_test_plan(path)
+
+    post_group = test_plan.test_case_groups["post-change-validation"]
+    assert "3.0.0" not in post_group.tests
+    assert "3.0.0-post-change" in post_group.tests
+    assert "1.0.0" in post_group.tests
+    assert "3.1.0" in post_group.tests
+    assert "4.0.0" in post_group.tests
+
+
+def test_load_test_plan_rejects_exclude_tests_without_groups() -> None:
+    """Raise when exclude_tests is used without groups."""
+    path = FIXTURES / "plan_exclude_tests_without_groups.yaml"
+
+    with pytest.raises(ConfigurationError, match="exclude_tests.*without.*groups"):
+        load_test_plan(path)
+
+
 # --- Multi-file (directory) test plan loading ---
 
 
