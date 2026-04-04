@@ -494,26 +494,31 @@ def _update_phase_references(
     raw_scenarios = data.get("scenarios")
     if not isinstance(raw_scenarios, dict):
         return
+    raw_scenarios_map = cast(dict[str, object], raw_scenarios)
 
     for scenario_id, replacements in reconcile_plan.phase_group_replacements.items():
-        raw_scenario = raw_scenarios.get(scenario_id)
+        raw_scenario = raw_scenarios_map.get(scenario_id)
         if not isinstance(raw_scenario, dict):
             continue
+        scenario_dict = cast(dict[str, object], raw_scenario)
 
-        raw_phases = raw_scenario.get("phases")
+        raw_phases = scenario_dict.get("phases")
         if not isinstance(raw_phases, dict):
             continue
+        phases_dict = cast(dict[str, object], raw_phases)
 
-        raw_phase = raw_phases.get(phase_name)
+        raw_phase = phases_dict.get(phase_name)
         if not isinstance(raw_phase, dict):
             continue
+        phase_dict = cast(dict[str, object], raw_phase)
 
-        current_groups = raw_phase.get("test_case_groups")
+        current_groups = phase_dict.get("test_case_groups")
         if not isinstance(current_groups, list):
             continue
+        group_ids = cast(list[str], current_groups)
 
-        raw_phase["test_case_groups"] = [
-            replacements.get(group_id, group_id) for group_id in current_groups
+        phase_dict["test_case_groups"] = [
+            replacements.get(gid, gid) for gid in group_ids
         ]
 
 

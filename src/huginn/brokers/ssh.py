@@ -9,7 +9,7 @@ import uuid
 from typing import Any
 
 from scrapli import AsyncScrapli
-from scrapli.driver.generic import AsyncGenericDriver
+from scrapli.driver.network import AsyncNetworkDriver
 from scrapli.exceptions import (
     ScrapliAuthenticationFailed,
     ScrapliConnectionError,
@@ -77,7 +77,7 @@ class SSHBroker:
                       If not provided, a UUID will be generated.
         """
         self._broker_id = broker_id or str(uuid.uuid4())
-        self._connections: dict[str, AsyncGenericDriver] = {}
+        self._connections: dict[str, AsyncNetworkDriver] = {}
         self._configs: dict[str, ConnectionConfig] = {}
 
     @property
