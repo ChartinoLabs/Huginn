@@ -36,18 +36,6 @@ app = typer.Typer(
 
 @app.command()
 def run(
-    plan: Annotated[
-        Path,
-        typer.Option(
-            "--plan",
-            "-p",
-            help="Path to test plan YAML file or directory of YAML files.",
-            exists=True,
-            file_okay=True,
-            dir_okay=True,
-            resolve_path=True,
-        ),
-    ],
     mode: Annotated[
         ExecutionMode,
         typer.Option(
@@ -55,18 +43,35 @@ def run(
             "-m",
             help="Execution mode: 'learning' captures current state as baseline, "
             "'testing' compares against learned parameters.",
+            envvar="HUGINN_MODE",
         ),
     ],
+    plan: Annotated[
+        Path | None,
+        typer.Option(
+            "--plan",
+            "-p",
+            help="Path to test plan YAML file or directory of YAML files "
+            "(default: ./test_plan).",
+            exists=True,
+            file_okay=True,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_PLAN",
+        ),
+    ] = None,
     testbed: Annotated[
         Path | None,
         typer.Option(
             "--testbed",
             "-t",
-            help="Path to testbed YAML file defining device inventory.",
+            help="Path to testbed YAML file defining device inventory "
+            "(default: ./testbed.yaml).",
             exists=True,
             file_okay=True,
             dir_okay=False,
             resolve_path=True,
+            envvar="HUGINN_TESTBED",
         ),
     ] = None,
     tags: Annotated[
@@ -74,6 +79,7 @@ def run(
         typer.Option(
             "--tags",
             help="Filter test cases by tags. Only matching test cases will run.",
+            envvar="HUGINN_TAGS",
         ),
     ] = None,
     exclude_tags: Annotated[
@@ -81,6 +87,7 @@ def run(
         typer.Option(
             "--exclude-tags",
             help="Exclude test cases with matching tags.",
+            envvar="HUGINN_EXCLUDE_TAGS",
         ),
     ] = None,
     scenario: Annotated[
@@ -88,6 +95,7 @@ def run(
         typer.Option(
             "--scenario",
             help="Run only specified scenarios.",
+            envvar="HUGINN_SCENARIO",
         ),
     ] = None,
     phase: Annotated[
@@ -95,6 +103,7 @@ def run(
         typer.Option(
             "--phase",
             help="Run only specified phases.",
+            envvar="HUGINN_PHASE",
         ),
     ] = None,
     test_case_group: Annotated[
@@ -102,6 +111,7 @@ def run(
         typer.Option(
             "--test-case-group",
             help="Run only specified test case groups.",
+            envvar="HUGINN_TEST_CASE_GROUP",
         ),
     ] = None,
     test_id: Annotated[
@@ -109,6 +119,7 @@ def run(
         typer.Option(
             "--test-id",
             help="Run only specified test case IDs.",
+            envvar="HUGINN_TEST_ID",
         ),
     ] = None,
     test_id_pattern: Annotated[
@@ -116,6 +127,7 @@ def run(
         typer.Option(
             "--test-id-pattern",
             help="Regex pattern to filter test case IDs (e.g. '-post-shutdown$').",
+            envvar="HUGINN_TEST_ID_PATTERN",
         ),
     ] = None,
     data_model: Annotated[
@@ -129,6 +141,7 @@ def run(
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
+            envvar="HUGINN_DATA_MODEL",
         ),
     ] = None,
     inventory_plugin: Annotated[
@@ -137,17 +150,23 @@ def run(
             "--inventory-plugin",
             "-i",
             help="Use an inventory plugin instead of a static testbed YAML file.",
+            envvar="HUGINN_INVENTORY_PLUGIN",
         ),
     ] = None,
     debug: Annotated[
         bool,
-        typer.Option("--debug", help="Enable DEBUG-level logging."),
+        typer.Option(
+            "--debug",
+            help="Enable DEBUG-level logging.",
+            envvar="HUGINN_DEBUG",
+        ),
     ] = False,
     log_level: Annotated[
         str,
         typer.Option(
             "--log-level",
             help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+            envvar="HUGINN_LOG_LEVEL",
         ),
     ] = "INFO",
     show_logs: Annotated[
@@ -155,11 +174,16 @@ def run(
         typer.Option(
             "--show-logs",
             help="Stream logs to console in addition to file.",
+            envvar="HUGINN_SHOW_LOGS",
         ),
     ] = False,
     log_file: Annotated[
         Path | None,
-        typer.Option("--log-file", help="Path to log file (default: ./huginn.log)."),
+        typer.Option(
+            "--log-file",
+            help="Path to log file (default: ./huginn.log).",
+            envvar="HUGINN_LOG_FILE",
+        ),
     ] = None,
 ) -> None:
     """Execute a test plan against infrastructure.
@@ -173,6 +197,8 @@ def run(
         huginn run -m learning -t testbed.yaml -p test_plan.yaml --tags ospf
         huginn run -m testing -p test_plan.yaml -i huginn-netbox
     """
+    plan = _resolve_plan_option(plan)
+
     testbed_path = _resolve_testbed_option(
         testbed=testbed,
         inventory_plugin=inventory_plugin,
@@ -262,6 +288,7 @@ def validate(
             file_okay=True,
             dir_okay=True,
             resolve_path=True,
+            envvar="HUGINN_PLAN",
         ),
     ],
     testbed: Annotated[
@@ -274,6 +301,7 @@ def validate(
             file_okay=True,
             dir_okay=False,
             resolve_path=True,
+            envvar="HUGINN_TESTBED",
         ),
     ] = None,
     tags: Annotated[
@@ -281,6 +309,7 @@ def validate(
         typer.Option(
             "--tags",
             help="Filter validation set by tags.",
+            envvar="HUGINN_TAGS",
         ),
     ] = None,
     exclude_tags: Annotated[
@@ -288,6 +317,7 @@ def validate(
         typer.Option(
             "--exclude-tags",
             help="Exclude validation set by tags.",
+            envvar="HUGINN_EXCLUDE_TAGS",
         ),
     ] = None,
     scenario: Annotated[
@@ -295,6 +325,7 @@ def validate(
         typer.Option(
             "--scenario",
             help="Validate only specified scenarios.",
+            envvar="HUGINN_SCENARIO",
         ),
     ] = None,
     phase: Annotated[
@@ -302,6 +333,7 @@ def validate(
         typer.Option(
             "--phase",
             help="Validate only specified phases.",
+            envvar="HUGINN_PHASE",
         ),
     ] = None,
     test_case_group: Annotated[
@@ -309,6 +341,7 @@ def validate(
         typer.Option(
             "--test-case-group",
             help="Validate only specified test case groups.",
+            envvar="HUGINN_TEST_CASE_GROUP",
         ),
     ] = None,
     test_id: Annotated[
@@ -316,6 +349,7 @@ def validate(
         typer.Option(
             "--test-id",
             help="Validate only specified test case IDs.",
+            envvar="HUGINN_TEST_ID",
         ),
     ] = None,
     test_id_pattern: Annotated[
@@ -323,6 +357,7 @@ def validate(
         typer.Option(
             "--test-id-pattern",
             help="Regex pattern to filter test case IDs (e.g. '-post-shutdown$').",
+            envvar="HUGINN_TEST_ID_PATTERN",
         ),
     ] = None,
     data_model: Annotated[
@@ -335,6 +370,7 @@ def validate(
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
+            envvar="HUGINN_DATA_MODEL",
         ),
     ] = None,
     inventory_plugin: Annotated[
@@ -343,17 +379,23 @@ def validate(
             "--inventory-plugin",
             "-i",
             help="Use an inventory plugin instead of a static testbed YAML file.",
+            envvar="HUGINN_INVENTORY_PLUGIN",
         ),
     ] = None,
     debug: Annotated[
         bool,
-        typer.Option("--debug", help="Enable DEBUG-level logging."),
+        typer.Option(
+            "--debug",
+            help="Enable DEBUG-level logging.",
+            envvar="HUGINN_DEBUG",
+        ),
     ] = False,
     log_level: Annotated[
         str,
         typer.Option(
             "--log-level",
             help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+            envvar="HUGINN_LOG_LEVEL",
         ),
     ] = "INFO",
     show_logs: Annotated[
@@ -361,11 +403,16 @@ def validate(
         typer.Option(
             "--show-logs",
             help="Stream logs to console in addition to file.",
+            envvar="HUGINN_SHOW_LOGS",
         ),
     ] = False,
     log_file: Annotated[
         Path | None,
-        typer.Option("--log-file", help="Path to log file (default: ./huginn.log)."),
+        typer.Option(
+            "--log-file",
+            help="Path to log file (default: ./huginn.log).",
+            envvar="HUGINN_LOG_FILE",
+        ),
     ] = None,
 ) -> None:
     """Validate testbed/plan inputs without executing tests."""
@@ -445,6 +492,16 @@ def _exit_code_for_run_error(code: ErrorCode) -> int:
     return 1
 
 
+def _resolve_plan_option(plan: Path | None) -> Path:
+    """Apply default plan path when the user omits --plan."""
+    if plan is not None:
+        return plan
+    default = Path.cwd() / "test_plan"
+    if default.exists():
+        return default.resolve()
+    raise typer.BadParameter("No --plan specified and default ./test_plan not found.")
+
+
 def _resolve_testbed_option(
     *,
     testbed: Path | None,
@@ -458,9 +515,14 @@ def _resolve_testbed_option(
         )
 
     if testbed is None and inventory_plugin is None:
-        raise typer.BadParameter(
-            "Either --testbed or --inventory-plugin must be specified."
-        )
+        default = Path.cwd() / "testbed.yaml"
+        if default.exists():
+            testbed = default.resolve()
+        else:
+            raise typer.BadParameter(
+                "Either --testbed or --inventory-plugin must be specified "
+                "(no default ./testbed.yaml found)."
+            )
 
     if data_model is not None:
         raise typer.BadParameter("--data-model is not implemented yet.")
@@ -539,6 +601,7 @@ def reconcile(
             file_okay=True,
             dir_okay=True,
             resolve_path=True,
+            envvar="HUGINN_PLAN",
         ),
     ],
     phase: Annotated[
@@ -547,6 +610,7 @@ def reconcile(
             "--phase",
             help="Phase whose failures to reconcile. Also used as suffix for "
             "new test case IDs and group names.",
+            envvar="HUGINN_PHASE",
         ),
     ],
     scenario: Annotated[
@@ -555,6 +619,7 @@ def reconcile(
             "--scenario",
             help="Reconcile only the specified scenario. "
             "If omitted, all scenarios with the target phase are processed.",
+            envvar="HUGINN_SCENARIO",
         ),
     ] = None,
     results_dir: Annotated[
@@ -565,6 +630,7 @@ def reconcile(
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
+            envvar="HUGINN_RESULTS_DIR",
         ),
     ] = None,
     parameters_dir: Annotated[
@@ -575,17 +641,23 @@ def reconcile(
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
+            envvar="HUGINN_PARAMETERS_DIR",
         ),
     ] = None,
     debug: Annotated[
         bool,
-        typer.Option("--debug", help="Enable DEBUG-level logging."),
+        typer.Option(
+            "--debug",
+            help="Enable DEBUG-level logging.",
+            envvar="HUGINN_DEBUG",
+        ),
     ] = False,
     log_level: Annotated[
         str,
         typer.Option(
             "--log-level",
             help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+            envvar="HUGINN_LOG_LEVEL",
         ),
     ] = "INFO",
     show_logs: Annotated[
@@ -593,11 +665,16 @@ def reconcile(
         typer.Option(
             "--show-logs",
             help="Stream logs to console in addition to file.",
+            envvar="HUGINN_SHOW_LOGS",
         ),
     ] = False,
     log_file: Annotated[
         Path | None,
-        typer.Option("--log-file", help="Path to log file (default: ./huginn.log)."),
+        typer.Option(
+            "--log-file",
+            help="Path to log file (default: ./huginn.log).",
+            envvar="HUGINN_LOG_FILE",
+        ),
     ] = None,
 ) -> None:
     """Reconcile failing test cases into new test case groups.
