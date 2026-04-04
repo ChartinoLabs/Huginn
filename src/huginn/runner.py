@@ -121,7 +121,9 @@ async def run_test_plan(
             groups=len(test_plan.test_case_groups),
             test_cases=len(test_plan.test_cases),
         )
-    except (ConfigurationError, InventoryPluginError) as error:
+    except ConfigurationError:
+        raise
+    except InventoryPluginError as error:
         raise RunExecutionError(
             str(error),
             code=ErrorCode.CONFIGURATION_ERROR,

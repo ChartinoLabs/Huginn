@@ -424,6 +424,16 @@ def test_load_test_plan_directory_rejects_empty_directory(tmp_path: Path) -> Non
         load_test_plan(tmp_path)
 
 
+def test_load_test_plan_rejects_invalid_yaml_syntax(tmp_path: Path) -> None:
+    """Raise ConfigurationError with file path when YAML syntax is invalid."""
+    bad_file = tmp_path / "bad.yaml"
+    bad_file.write_text("test_cases:\n  - id: foo\n bad_indent: bar\n")
+    with pytest.raises(
+        ConfigurationError, match=r"Failed to parse YAML file.*bad\.yaml"
+    ):
+        load_test_plan(bad_file)
+
+
 def test_load_test_plan_single_file_populates_metadata() -> None:
     """Single-file plans populate metadata fields when present."""
     path = FIXTURES / "plan_valid.yaml"

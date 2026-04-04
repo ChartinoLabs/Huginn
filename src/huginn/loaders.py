@@ -28,7 +28,10 @@ class ConfigurationError(ValueError):
 
 def _load_yaml(path: Path) -> dict[str, object]:
     """Load and validate a YAML file into a mapping."""
-    loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    try:
+        loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise ConfigurationError(f"Failed to parse YAML file {path}: {exc}") from exc
     if not isinstance(loaded, dict):
         raise ConfigurationError(f"Expected mapping at root of {path}")
     return cast(dict[str, object], loaded)

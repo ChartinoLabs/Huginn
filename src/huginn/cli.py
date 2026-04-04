@@ -251,6 +251,9 @@ def run(
                 output=output,
             )
         )
+    except ConfigurationError as error:
+        output.error(f"ERROR: {error}")
+        raise typer.Exit(code=1) from error
     except RunExecutionError as error:
         output.error(f"ERROR [{error.code.value}]: {error}")
         if error.traceback_text:
@@ -444,25 +447,29 @@ def validate(
         show_logs=show_logs,
         log_file=log_file,
     )
-    result = asyncio.run(
-        validate_inputs(
-            testbed_path=testbed_path,
-            inventory_plugin=inventory_plugin,
-            plan_path=plan,
-            filters=_build_plan_filters(
-                tags=tags,
-                exclude_tags=exclude_tags,
-                scenarios=scenario,
-                phases=phase,
-                test_case_groups=test_case_group,
-                test_ids=test_id,
-                test_id_pattern=test_id_pattern,
-            ),
-            project_root=Path.cwd(),
-            results_dir=Path.cwd() / "results",
-            output=output,
+    try:
+        result = asyncio.run(
+            validate_inputs(
+                testbed_path=testbed_path,
+                inventory_plugin=inventory_plugin,
+                plan_path=plan,
+                filters=_build_plan_filters(
+                    tags=tags,
+                    exclude_tags=exclude_tags,
+                    scenarios=scenario,
+                    phases=phase,
+                    test_case_groups=test_case_group,
+                    test_ids=test_id,
+                    test_id_pattern=test_id_pattern,
+                ),
+                project_root=Path.cwd(),
+                results_dir=Path.cwd() / "results",
+                output=output,
+            )
         )
-    )
+    except ConfigurationError as error:
+        output.error(f"ERROR: {error}")
+        raise typer.Exit(code=1) from error
     output.status(f"Validation status: {'passed' if result.valid else 'failed'}")
     output.status(
         "Summary: "
