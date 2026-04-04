@@ -228,3 +228,100 @@ def test_filter_by_tags_requires_all_requested_tags() -> None:
     )
 
     assert filtered.test_case_groups["routing"].tests == ["1.0.0"]
+
+
+# --- test_id_pattern filtering ---
+
+
+def _plan_with_reconciled_ids() -> models.TestPlan:
+    """Build a test plan with both original and reconciled test case IDs."""
+    return models.TestPlan(
+        scenarios=_scenario_with_phases(
+            **{
+                "phase-1": models.Phase(
+                    name="phase-1",
+                    test_case_groups=["validation"],
+                ),
+            }
+        ),
+        test_case_groups={
+            "validation": models.TestCaseGroup(
+                name="validation",
+                tests=["1.0.0", "2.0.0", "1.0.0-post-shutdown", "2.0.0-post-shutdown"],
+            ),
+        },
+        test_cases={
+            "1.0.0": models.TestCaseDefinition(
+                test_id="1.0.0",
+                title="Verify reachability",
+                job="jobs/verify_reachability.py",
+            ),
+            "2.0.0": models.TestCaseDefinition(
+                test_id="2.0.0",
+                title="Verify OSPF",
+                job="jobs/verify_ospf.py",
+            ),
+            "1.0.0-post-shutdown": models.TestCaseDefinition(
+                test_id="1.0.0-post-shutdown",
+                title="Verify reachability (post-shutdown)",
+                job="jobs/verify_reachability.py",
+            ),
+            "2.0.0-post-shutdown": models.TestCaseDefinition(
+                test_id="2.0.0-post-shutdown",
+                title="Verify OSPF (post-shutdown)",
+                job="jobs/verify_ospf.py",
+            ),
+        },
+    )
+
+
+def test_filter_by_test_id_pattern_matches_suffix() -> None:
+    """Filter test cases to only those matching the regex pattern."""
+    filtered = filter_test_plan(
+        _plan_with_reconciled_ids(),
+        PlanFilterOptions(test_id_pattern=r"-post-shutdown$"),
+    )
+
+    assert set(filtered.test_cases.keys()) == {
+        "1.0.0-post-shutdown",
+        "2.0.0-post-shutdown",
+    }
+    assert filtered.test_case_groups["validation"].tests == [
+        "1.0.0-post-shutdown",
+        "2.0.0-post-shutdown",
+    ]
+
+
+def test_filter_by_test_id_pattern_excludes_non_matching() -> None:
+    """Non-matching test case IDs are removed from groups."""
+    filtered = filter_test_plan(
+        _plan_with_reconciled_ids(),
+        PlanFilterOptions(test_id_pattern=r"^1\."),
+    )
+
+    assert set(filtered.test_cases.keys()) == {"1.0.0", "1.0.0-post-shutdown"}
+
+
+def test_filter_by_test_id_pattern_combined_with_test_ids() -> None:
+    """Pattern and explicit test_ids filters are applied together (AND logic)."""
+    filtered = filter_test_plan(
+        _plan_with_reconciled_ids(),
+        PlanFilterOptions(
+            test_ids=["1.0.0-post-shutdown", "2.0.0-post-shutdown"],
+            test_id_pattern=r"^1\.",
+        ),
+    )
+
+    assert set(filtered.test_cases.keys()) == {"1.0.0-post-shutdown"}
+
+
+def test_filter_by_test_id_pattern_no_match_prunes_group() -> None:
+    """Groups with no remaining tests are pruned from the plan."""
+    filtered = filter_test_plan(
+        _plan_with_reconciled_ids(),
+        PlanFilterOptions(test_id_pattern=r"nonexistent"),
+    )
+
+    assert filtered.test_case_groups == {}
+    assert filtered.test_cases == {}
+    assert filtered.scenarios == {}

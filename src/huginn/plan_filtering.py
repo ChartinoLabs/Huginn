@@ -1,5 +1,6 @@
 """Utilities for filtering test plans before validation/execution."""
 
+import re
 from dataclasses import dataclass
 
 from huginn.models import Phase, Scenario, TestCaseDefinition, TestCaseGroup, TestPlan
@@ -15,6 +16,7 @@ class PlanFilterOptions:
     phases: list[str] | None = None
     test_case_groups: list[str] | None = None
     test_ids: list[str] | None = None
+    test_id_pattern: str | None = None
 
 
 def filter_test_plan_by_tags(test_plan: TestPlan, tags: list[str] | None) -> TestPlan:
@@ -33,6 +35,7 @@ def filter_test_plan(test_plan: TestPlan, filters: PlanFilterOptions) -> TestPla
     phase_filter = set(filters.phases or [])
     group_filter = set(filters.test_case_groups or [])
     test_filter = set(filters.test_ids or [])
+    test_id_regex = _compile_test_id_pattern(filters.test_id_pattern)
 
     filtered_groups = _filter_groups(
         test_plan,
@@ -40,6 +43,7 @@ def filter_test_plan(test_plan: TestPlan, filters: PlanFilterOptions) -> TestPla
         exclude_tags=exclude_tags,
         group_filter=group_filter,
         test_filter=test_filter,
+        test_id_regex=test_id_regex,
     )
     filtered_test_cases = _filter_test_cases(test_plan, filtered_groups)
     filtered_scenarios = _filter_scenarios(
@@ -67,6 +71,7 @@ def _is_noop(filters: PlanFilterOptions) -> bool:
             filters.phases,
             filters.test_case_groups,
             filters.test_ids,
+            filters.test_id_pattern,
         )
     )
 
@@ -86,6 +91,18 @@ def _filter_test_cases(
     }
 
 
+def _compile_test_id_pattern(pattern: str | None) -> re.Pattern[str] | None:
+    """Compile an optional test ID regex pattern."""
+    if pattern is None:
+        return None
+    try:
+        return re.compile(pattern)
+    except re.error as error:
+        raise ValueError(
+            f"Invalid --test-id-pattern regex '{pattern}': {error}"
+        ) from error
+
+
 def _filter_groups(
     test_plan: TestPlan,
     *,
@@ -93,6 +110,7 @@ def _filter_groups(
     exclude_tags: set[str],
     group_filter: set[str],
     test_filter: set[str],
+    test_id_regex: re.Pattern[str] | None = None,
 ) -> dict[str, TestCaseGroup]:
     """Filter groups to only include tests matching active filters."""
     filtered_groups: dict[str, TestCaseGroup] = {}
@@ -109,6 +127,7 @@ def _filter_groups(
                 include_tags=include_tags,
                 exclude_tags=exclude_tags,
                 test_filter=test_filter,
+                test_id_regex=test_id_regex,
             )
         ]
         if not kept_tests:
@@ -131,9 +150,13 @@ def _test_matches_filters(
     include_tags: set[str],
     exclude_tags: set[str],
     test_filter: set[str],
+    test_id_regex: re.Pattern[str] | None = None,
 ) -> bool:
     """Return True when a test case passes id/tag include and exclude filters."""
     if test_filter and test_case.test_id not in test_filter:
+        return False
+
+    if test_id_regex is not None and not test_id_regex.search(test_case.test_id):
         return False
 
     effective_tags = set(test_case.tags)

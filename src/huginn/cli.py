@@ -101,6 +101,13 @@ def run(
             help="Run only specified test case IDs.",
         ),
     ] = None,
+    test_id_pattern: Annotated[
+        str | None,
+        typer.Option(
+            "--test-id-pattern",
+            help="Regex pattern to filter test case IDs (e.g. '-post-shutdown$').",
+        ),
+    ] = None,
     data_model: Annotated[
         Path | None,
         typer.Option(
@@ -193,6 +200,7 @@ def run(
             phases=phase,
             test_case_groups=test_case_group,
             test_ids=test_id,
+            test_id_pattern=test_id_pattern,
         )
         result = asyncio.run(
             run_test_plan(
@@ -300,6 +308,13 @@ def validate(
             help="Validate only specified test case IDs.",
         ),
     ] = None,
+    test_id_pattern: Annotated[
+        str | None,
+        typer.Option(
+            "--test-id-pattern",
+            help="Regex pattern to filter test case IDs (e.g. '-post-shutdown$').",
+        ),
+    ] = None,
     data_model: Annotated[
         Path | None,
         typer.Option(
@@ -384,6 +399,7 @@ def validate(
                 phases=phase,
                 test_case_groups=test_case_group,
                 test_ids=test_id,
+                test_id_pattern=test_id_pattern,
             ),
             project_root=Path.cwd(),
             results_dir=Path.cwd() / "results",
@@ -449,6 +465,7 @@ def _build_plan_filters(
     phases: list[str] | None,
     test_case_groups: list[str] | None,
     test_ids: list[str] | None,
+    test_id_pattern: str | None = None,
 ) -> PlanFilterOptions:
     """Normalize CLI filter values into a single plan-filter object."""
     normalized_scenarios = _split_csv_option_values(scenarios)
@@ -463,6 +480,7 @@ def _build_plan_filters(
         phases=normalized_phases,
         test_case_groups=_split_csv_option_values(test_case_groups),
         test_ids=_split_csv_option_values(test_ids),
+        test_id_pattern=test_id_pattern,
     )
 
 
