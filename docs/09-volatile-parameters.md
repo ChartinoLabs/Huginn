@@ -79,11 +79,17 @@ This was ruled out due to the combinatorial complexity of mapping events to effe
 
 ### Core concept: learn the relationship, not the value
 
-For volatile parameters, the learned parameter is not an absolute value captured at a point in time. Instead, it is a **comparison operator** that describes the expected relationship between consecutive observations of the same value during a test run.
+For volatile parameters, the learned parameter is not an absolute value captured at a point in time. Instead, it is a **comparison operator** or other job-defined comparison semantics that describe the expected relationship between consecutive observations of the same value during a test run.
 
-During learning mode, the framework determines the appropriate comparison operator for each volatile attribute. For most volatile parameters, this is `gte` (greater than or equal to) — under normal operation, uptimes increase, counters increment, and table versions grow. The specific value is never stored in the parameter file.
+The choice of comparison operator is defined by the volatile job itself, because the job author knows what kind of relationship is meaningful for that specific attribute. For many volatile parameters, this will default to `gte` (greater than or equal to) — under normal operation, uptimes increase, counters increment, and table versions grow. But that choice is local to the job rather than globally determined by the framework. During learning mode, the framework persists the job's selected comparison semantics for later use in testing mode; the specific observed value is never stored in the parameter file.
 
 During testing mode, the framework captures the current value each time the test executes and writes it to the run results as a **runtime artifact**. When the test executes a second time within the same run, it reads its own most recent prior observation, applies the comparison operator, and records the result.
+
+Each runtime observation also carries run-scoped ordering metadata so the framework can determine which observation is the immediate predecessor for a given comparison. Conceptually, this can be treated as a time-step key associated with the observation: later observations in the same run sort after earlier ones, and the most recent prior observation becomes the comparison reference point. This design assumes that the selected ordering metadata remains monotonic for the duration of a run. Pathological cases where wall-clock time jumps backward mid-run are acknowledged but are out of scope for this design and are not handled specially.
+
+Crucially, observations are chained by a stable **observation series identity** defined by the volatile job itself, not by the Huginn test case identifier. This identity must remain constant across every execution that is intended to participate in the same comparison stream, including reconciled test case variants created for specific phases. A reconciled post-change test case may change the comparison operator for a boundary, but it must still append its runtime artifact to the same logical observation series as the corresponding baseline test. For jobs that track multiple logical objects, the series identity may need to be composed from both a job-level metric identity and an object identity within the gathered state (for example, device plus BGP neighbor).
+
+Because volatile comparisons depend on the latest live device state, volatile jobs should gather observations by explicitly bypassing broker cache. Reusing cached command output would risk comparing a fresh observation against stale data from an earlier execution boundary in the same run, which would defeat the purpose of treating the parameter as volatile.
 
 ### Runtime observation chain
 
@@ -140,6 +146,8 @@ In the `volatile-baseline` group, BGP uptime uses operator `gte`. In `volatile-p
 
 When a scenario runs in isolation, the volatile parameter test executes once in pre-change (observation 1, no comparison) and once in post-change (observation 2, compared against observation 1). The comparison reflects only the effect of that scenario's change, with no dependency on prior scenarios.
 
+If a volatile phase is executed without any earlier observation in the same run — for example, by running only a post-change phase or by filtering execution down to an individual volatile test case group — then the volatile comparison has no predecessor to evaluate against. In that situation, the observation is still recorded as a runtime artifact, but the comparison should be reported as skipped for that execution because there is no valid reference point.
+
 ### Full plan repeatability
 
 When the full plan runs sequentially, observations chain across scenarios. Each comparison is against the most recent prior observation in the same run, not against a static learned value. Counter resets from prior scenarios do not cause cascading failures because subsequent observations compare against the post-reset values, not the original baseline.
@@ -174,13 +182,13 @@ The comparison operator is scoped to a single phase boundary: the relationship b
 
 ### Categories of volatile parameters
 
-Not all volatile parameters use the same comparison operator or assertion strategy. The following categories have been identified:
+Not all volatile parameters use the same comparison operator or assertion strategy. The following categories are illustrative rather than prescriptive: they show common patterns, but each volatile job remains responsible for choosing the comparison semantics that make sense for the attribute it validates.
 
 | Category           | Examples                                     | Default operator | Notes                                                                     |
 | ------------------ | -------------------------------------------- | ---------------- | ------------------------------------------------------------------------- |
-| Uptime / duration  | BGP neighbor uptime, state duration          | `gte`            | Flips to `lt` when a disruption resets the session.                       |
-| Monotonic counters | Messages sent/received, keepalives           | `gte`            | Flips to `lt` when a disruption resets the counters.                      |
-| Version counters   | BGP table version, AF table/neighbor version | `gte`            | Always increments, never resets. Unlikely to need per-scenario overrides. |
+| Uptime / duration  | BGP neighbor uptime, state duration          | `gte`            | Often flips to `lt` when a disruption resets the session.                 |
+| Monotonic counters | Messages sent/received, keepalives           | `gte`            | Often flips to `lt` when a disruption resets the counters.                |
+| Version counters   | BGP table version, AF table/neighbor version | `gte`            | Often behaves monotonically within a run and may not require overrides.   |
 
 Some values that currently fail alongside volatile parameters do not fit the comparison operator model and should remain as static parameters with per-scenario reconciliation:
 
@@ -189,6 +197,12 @@ Some values that currently fail alongside volatile parameters do not fit the com
 | Ephemeral identifiers | TCP local/foreign ports | No directional relationship between old and new values. Ports are effectively random after session re-establishment.                                                                                     |
 | State markers         | Last reset reason       | String values with no ordinal relationship. Expected value after a disruption is a specific string, not a direction.                                                                                     |
 | Compound objects      | AF prefix activity      | Contains a mix of monotonic sub-fields (total prefixes, withdraws) and stable gauge fields (current prefixes, bestpath count). Requires decomposition into separate tests or field-level categorization. |
+
+More broadly, the volatile comparison model assumes that the logical object being observed survives from one execution boundary to the next. If an object is intentionally removed, newly created, or replaced in a way that changes its identity, the problem is no longer just "did the value move in the expected direction?" In those cases, separate existence, membership, or static-value tests are usually more appropriate than a volatile comparison for the affected object.
+
+For example, consider a scenario that removes BGP from R1 entirely. A volatile job that tracks BGP session uptime for R1's neighbors is no longer observing the same logical objects after the change, because the sessions themselves are expected to disappear. In that case, the post-change validation should not try to compare uptime directionally across the boundary. Instead, the plan should replace that volatile uptime check with tests that validate the intended new state, such as confirming that BGP is absent from R1's configuration or that the expected BGP neighbors no longer exist.
+
+More generally, it is the responsibility of the test plan author to ensure that a scenario's post-change validation does not continue to run tests that assume a feature or object should still exist when the scenario is explicitly designed to remove it. This is not unique to volatile parameter handling. The same authoring discipline already applies to static parameter tests: if a scenario intentionally removes a feature, the corresponding post-change validation must be updated to assert the new intended state rather than continuing to validate the old one.
 
 ## Related Documents
 
