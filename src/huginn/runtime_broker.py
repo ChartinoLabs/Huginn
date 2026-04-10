@@ -215,6 +215,40 @@ class RuntimeBroker:
             operation=lambda: self._brokers[broker_key].execute(handle, command),
         )
 
+    async def send_interactive(
+        self,
+        target: Device,
+        interact_events: list[tuple[str, str] | tuple[str, str, bool]],
+        *,
+        broker: BrokerType | None = None,
+    ) -> CommandResult:
+        """Execute an interactive command sequence on a target device.
+
+        This bypasses the cache since interactive commands are inherently
+        stateful and should never be cached.
+
+        Args:
+            target: The device to interact with.
+            interact_events: List of (input, expected_prompt) or
+                (input, expected_prompt, hidden) tuples.
+            broker: Optional broker type override.
+
+        Returns:
+            The command result.
+        """
+        broker_key = self._resolve_broker_key(target=target, broker=broker)
+        handle = self._require_handle(target=target, broker_key=broker_key)
+        broker_instance = self._brokers[broker_key]
+        if not hasattr(broker_instance, "send_interactive"):
+            raise RuntimeBrokerError(
+                f"Broker '{broker_key}' does not support interactive commands"
+            )
+        lock = self._operation_locks.setdefault(
+            (target.name, broker_key), asyncio.Lock()
+        )
+        async with lock:
+            return await broker_instance.send_interactive(handle, interact_events)
+
     async def get(
         self,
         target: Device,
