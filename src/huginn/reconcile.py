@@ -293,7 +293,7 @@ def _build_new_groups(
             if tid not in original_group.tests:
                 continue
             candidate = f"{tid}-{phase_name}"
-            if candidate in new_test_cases:
+            if candidate in new_test_cases or candidate in test_plan.test_cases:
                 excluded.append(tid)
                 reconciled_tests.append(candidate)
 
@@ -427,19 +427,27 @@ def _apply_directory(
     Returns the path to the new definitions file.
     """
     new_file = plan_dir / f"reconciled-{phase_name}.yaml"
-    new_data: dict[str, object] = {}
+    existing_data: dict[str, object] = (
+        _load_raw_yaml(new_file) if new_file.is_file() else {}
+    )
 
     if reconcile_plan.new_test_cases:
-        new_data["test_cases"] = dict(reconcile_plan.new_test_cases)
+        test_cases = cast(dict[str, object], existing_data.get("test_cases", {}))
+        test_cases.update(reconcile_plan.new_test_cases)
+        existing_data["test_cases"] = test_cases
 
     if reconcile_plan.new_groups:
-        new_data["test_case_groups"] = {
-            group_id: _serialize_group_spec(spec)
-            for group_id, spec in reconcile_plan.new_groups.items()
-        }
+        groups = cast(dict[str, object], existing_data.get("test_case_groups", {}))
+        groups.update(
+            {
+                group_id: _serialize_group_spec(spec)
+                for group_id, spec in reconcile_plan.new_groups.items()
+            }
+        )
+        existing_data["test_case_groups"] = groups
 
-    if new_data:
-        _write_yaml(new_file, new_data)
+    if existing_data:
+        _write_yaml(new_file, existing_data)
 
     scenario_files = _find_scenario_files(plan_dir)
     for scenario_id in reconcile_plan.phase_group_replacements:
