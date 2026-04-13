@@ -14,7 +14,11 @@ from huginn.models import (
     MetadataSection,
     RunSummary,
 )
-from huginn.result_store import write_run_result, write_validation_result
+from huginn.result_store import (
+    create_run_dir,
+    write_run_result,
+    write_validation_result,
+)
 from huginn.validation import ValidationResult
 
 if TYPE_CHECKING:
@@ -49,9 +53,10 @@ def test_write_run_result_writes_summary_and_test_case_json(tmp_path: Path) -> N
     """Run writes a summary file plus one JSON result per test case."""
     result = _build_run_result_with_test_case()
 
+    run_dir = create_run_dir(tmp_path / "results", mode=ExecutionMode.TESTING)
     run_files = write_run_result(
         result=result,
-        results_dir=tmp_path / "results",
+        run_dir=run_dir,
         mode=ExecutionMode.TESTING,
     )
 
@@ -183,9 +188,10 @@ def test_write_run_result_uses_scenario_and_phase_in_duplicate_test_paths(
         ],
     )
 
+    run_dir = create_run_dir(tmp_path / "results", mode=ExecutionMode.TESTING)
     run_files = write_run_result(
         result=result,
-        results_dir=tmp_path / "results",
+        run_dir=run_dir,
         mode=ExecutionMode.TESTING,
     )
     payload = json.loads(run_files.run_json_path.read_text(encoding="utf-8"))
@@ -278,3 +284,37 @@ def _build_run_result_with_test_case() -> "RunResult":
         completed_at="2026-03-07T12:00:05+00:00",
         elapsed_seconds=5.25,
     )
+
+
+def test_create_run_dir_creates_timestamped_directory(tmp_path: Path) -> None:
+    """create_run_dir creates a timestamped directory under results."""
+    run_dir = create_run_dir(tmp_path / "results", mode=ExecutionMode.TESTING)
+
+    assert run_dir.exists()
+    assert run_dir.is_dir()
+    assert run_dir.parent == tmp_path / "results"
+    assert run_dir.name.endswith("-testing")
+
+
+def test_create_run_dir_handles_collision(tmp_path: Path) -> None:
+    """Consecutive calls produce distinct directories."""
+    first = create_run_dir(tmp_path / "results", mode=ExecutionMode.TESTING)
+    second = create_run_dir(tmp_path / "results", mode=ExecutionMode.TESTING)
+
+    assert first != second
+    assert first.exists()
+    assert second.exists()
+
+
+def test_write_run_result_uses_existing_run_dir(tmp_path: Path) -> None:
+    """write_run_result writes into a pre-created run directory."""
+    result = _build_run_result_with_test_case()
+    run_dir = create_run_dir(tmp_path / "results", mode=ExecutionMode.TESTING)
+
+    run_files = write_run_result(
+        result=result, run_dir=run_dir, mode=ExecutionMode.TESTING
+    )
+
+    assert run_files.run_dir == run_dir
+    assert run_files.run_json_path == run_dir / "run.json"
+    assert run_files.run_json_path.exists()

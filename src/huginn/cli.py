@@ -185,6 +185,29 @@ def run(
             envvar="HUGINN_LOG_FILE",
         ),
     ] = None,
+    results_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--results-dir",
+            help="Path to results directory (default: ./results/).",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_RESULTS_DIR",
+        ),
+    ] = None,
+    output_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--output-dir",
+            help="Path to output directory for run artifacts "
+            "(default: <run-dir>/artifacts/).",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_OUTPUT_DIR",
+        ),
+    ] = None,
 ) -> None:
     """Execute a test plan against infrastructure.
 
@@ -198,6 +221,7 @@ def run(
         huginn run -m testing -p test_plan.yaml -i huginn-netbox
     """
     plan = _resolve_plan_option(plan)
+    resolved_results_dir = results_dir or Path.cwd() / "results"
 
     testbed_path = _resolve_testbed_option(
         testbed=testbed,
@@ -226,6 +250,8 @@ def run(
         log_level="DEBUG" if debug else log_level,
         show_logs=show_logs,
         log_file=log_file,
+        results_dir=resolved_results_dir,
+        output_dir=output_dir,
     )
 
     try:
@@ -247,7 +273,8 @@ def run(
                 filters=filters,
                 project_root=Path.cwd(),
                 parameters_dir=Path.cwd() / "parameters",
-                results_dir=Path.cwd() / "results",
+                results_dir=resolved_results_dir,
+                output_dir=output_dir,
                 output=output,
             )
         )
