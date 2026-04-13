@@ -80,7 +80,6 @@ A collection of test cases, test case groups, phases, and associated metadata de
 - **Test cases**: First-class definitions of what to test
 - **Test case groups**: Logical groupings of test case references
 - **Phases**: High-level stages with dependencies defining execution order
-- **Defaults**: Fallback values for targets and tags
 
 Defined in YAML format.
 
