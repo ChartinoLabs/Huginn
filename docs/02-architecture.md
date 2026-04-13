@@ -82,8 +82,11 @@ huginn run --mode learning --testbed testbed.yaml --plan test_plan.yaml --tags o
 
 #### Test Plan Loader
 
-Parses the test plan YAML and constructs an execution graph:
+Parses the test plan YAML (single file or directory) and constructs an execution graph:
 
+- Detects single-file vs directory mode based on path
+- In directory mode: recursively scans for YAML files, merges into unified structure
+- Validates no key collisions across files (test case IDs, group names, scenario names)
 - Loads test case definitions as first-class entities
 - Resolves phase dependencies into execution order
 - Associates test case groups with phases
