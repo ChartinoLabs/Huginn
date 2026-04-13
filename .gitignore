@@ -2,3 +2,9 @@ BRKXAR-2032-test-automation
 
 # Compiled Python files
 *.pyc
+
+# Generated version file (hatch-vcs)
+src/huginn/_version.py
+
+# Local coverage artifacts
+.coverage

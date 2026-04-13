@@ -1,0 +1,20 @@
+test_cases:
+  1.0.0:
+    title: Hierarchical no match
+    job: jobs/test_verify_no_match.py
+test_case_groups:
+  group-1:
+    target:
+      os:
+      - eos
+    tests:
+    - 1.0.0
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        target:
+          groups:
+          - leaf
+        test_case_groups:
+        - group-1

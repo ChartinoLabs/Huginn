@@ -1,0 +1,14 @@
+test_cases:
+  1.0.0:
+    title: Verify BGP
+    job: jobs/verify_bgp.py
+test_case_groups:
+  composite:
+    groups:
+    - missing-group
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - composite

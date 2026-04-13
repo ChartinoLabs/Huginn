@@ -1,0 +1,42 @@
+test_cases:
+  1.0.0:
+    title: Pre OSPF
+    job: jobs/test_pre_ospf.py
+    tags:
+    - ospf
+    - fast
+  1.0.1:
+    title: Pre Slow Audit
+    job: jobs/test_pre_slow.py
+    tags:
+    - audit
+    - slow
+  2.0.0:
+    title: Post OSPF
+    job: jobs/test_post_ospf.py
+    tags:
+    - ospf
+    - post
+test_case_groups:
+  pre-checks:
+    tags:
+    - pre
+    tests:
+    - 1.0.0
+    - 1.0.1
+  post-checks:
+    tags:
+    - post
+    tests:
+    - 2.0.0
+scenarios:
+  scenario-1:
+    phases:
+      pre-change:
+        test_case_groups:
+        - pre-checks
+      post-change:
+        depends_on:
+        - pre-change
+        test_case_groups:
+        - post-checks

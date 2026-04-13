@@ -1,0 +1,25 @@
+test_cases:
+  1.0.0:
+    title: Failing prereq
+    job: jobs/test_verify_failing.py
+  2.0.0:
+    title: Should be blocked
+    job: jobs/test_verify_should_block.py
+test_case_groups:
+  phase-1-group:
+    tests:
+    - 1.0.0
+  phase-2-group:
+    tests:
+    - 2.0.0
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - phase-1-group
+      phase-2:
+        depends_on:
+        - phase-1
+        test_case_groups:
+        - phase-2-group

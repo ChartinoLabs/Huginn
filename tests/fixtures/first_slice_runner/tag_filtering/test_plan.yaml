@@ -1,0 +1,23 @@
+test_cases:
+  1.0.0:
+    title: Tagged OSPF
+    job: jobs/test_verify_tagged.py
+    tags:
+    - ospf
+    - routing
+  1.0.1:
+    title: Tagged BGP
+    job: jobs/test_verify_other.py
+    tags:
+    - bgp
+test_case_groups:
+  group-1:
+    tests:
+    - 1.0.0
+    - 1.0.1
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - group-1

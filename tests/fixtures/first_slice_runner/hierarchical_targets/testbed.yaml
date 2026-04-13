@@ -1,0 +1,42 @@
+devices:
+  leaf-01:
+    os: eos
+    groups:
+      - leaf
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      ssh:
+        protocol: ssh
+        host: 10.0.0.1
+        port: 22
+
+  leaf-02:
+    os: nxos
+    groups:
+      - leaf
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      ssh:
+        protocol: ssh
+        host: 10.0.0.2
+        port: 22
+
+  spine-01:
+    os: nxos
+    groups:
+      - spine
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      ssh:
+        protocol: ssh
+        host: 10.0.0.3
+        port: 22

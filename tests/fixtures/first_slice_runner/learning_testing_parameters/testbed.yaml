@@ -1,0 +1,14 @@
+devices:
+  leaf-01:
+    os: nxos
+    groups: [leaf]
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      ssh:
+        protocol: ssh
+        host: 10.0.0.2
+        port: 22
+        credential: default

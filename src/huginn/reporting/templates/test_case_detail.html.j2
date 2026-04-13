@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ test_case.title }} - Huginn Test Report</title>
+    <link rel="stylesheet" href="../styles.css">
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="shell masthead-inner">
+        <p class="detail-back-link">
+          <a href="../index.html">Back to dashboard</a>
+        </p>
+        <h1>{{ test_case.title }}</h1>
+        <p class="masthead-copy">
+          {{ test_case.test_id }} - {{ scenario_name }} - {{ phase_name }}
+          {% if group_name %}
+          - {{ group_name }}
+          {% endif %}
+        </p>
+        <div class="hero-status-row">
+          <span class="status-pill status-pill-{{ test_case.status_class }}">
+            {{ test_case.status }}
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell shell-main">
+      <section class="card detail-card detail-card-wide">
+        <details class="collapsible-section" open>
+          <summary class="collapsible-summary">
+            <div>
+              <h2>Test Documentation</h2>
+            </div>
+            <span class="phase-toggle" aria-hidden="true"></span>
+          </summary>
+          <div class="collapsible-body">
+            {% if metadata_sections %}
+            <div class="metadata-list">
+              {% for section in metadata_sections %}
+              <details class="metadata-detail" open>
+                <summary class="collapsible-summary collapsible-summary-subsection">
+                  <h3>{{ section.heading }}</h3>
+                  <span class="phase-toggle" aria-hidden="true"></span>
+                </summary>
+                <div class="collapsible-body collapsible-body-subsection">
+                  <section class="metadata-block">
+                    <div class="metadata-content">{{ section.content_html|safe }}</div>
+                  </section>
+                </div>
+              </details>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-copy">
+              This test case did not emit structured metadata.
+            </p>
+            {% endif %}
+          </div>
+        </details>
+      </section>
+
+      <section class="detail-grid">
+        <article class="card detail-card detail-card-wide">
+          <details class="collapsible-section" open>
+            <summary class="collapsible-summary">
+              <div>
+                <h2>Results</h2>
+              </div>
+              <span class="phase-toggle" aria-hidden="true"></span>
+            </summary>
+            <div class="collapsible-body">
+              {% if checks %}
+              <div class="results-list">
+                {% for check in checks %}
+                <section class="result-item result-item-{{ check.status_class }}">
+                  <div class="result-item-header">
+                    <span class="status-pill status-pill-{{ check.status_class }}">
+                      {{ check.status }}
+                    </span>
+                  </div>
+                  <p>{{ check.message }}</p>
+                </section>
+                {% endfor %}
+              </div>
+              {% else %}
+              <p class="empty-copy">No check results were recorded.</p>
+              {% endif %}
+            </div>
+          </details>
+        </article>
+
+        <article class="card detail-card detail-card-wide">
+          <details class="collapsible-section" open>
+            <summary class="collapsible-summary">
+              <div>
+                <h2>Command Executions</h2>
+              </div>
+              <span class="phase-toggle" aria-hidden="true"></span>
+            </summary>
+            <div class="collapsible-body">
+              {% if commands %}
+              <div class="command-stack">
+                {% for command in commands %}
+                <details class="command-detail" open>
+                  <summary class="collapsible-summary collapsible-summary-command">
+                    <div class="command-card-header">
+                      <div>
+                        <p class="section-kicker">Device</p>
+                        <h3>{{ command.device }}</h3>
+                      </div>
+                      <div class="command-card-controls">
+                        <div class="test-summary-row">
+                          <span class="summary-chip">{{ command.command }}</span>
+                          {% if command.elapsed_ms is not none %}
+                          <span class="summary-chip">{{ command.elapsed_ms }} ms</span>
+                          {% endif %}
+                          {% if command.cached is not none %}
+                          <span class="summary-chip">Cached: {{ command.cached }}</span>
+                          {% endif %}
+                        </div>
+                        {% if command.parsed_pretty %}
+                        <button
+                          class="view-toggle"
+                          type="button"
+                          data-raw-label="Show Parsed Output"
+                          data-parsed-label="Show Raw Output"
+                          onclick="toggleCommandView(this); event.stopPropagation();"
+                        >
+                          Show Parsed Output
+                        </button>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <span class="phase-toggle" aria-hidden="true"></span>
+                  </summary>
+
+                  <div class="collapsible-body collapsible-body-command">
+                    <div class="terminal-block command-panel" data-command-panel="raw">
+                      <div class="terminal-header">Raw Output</div>
+                      <pre class="terminal-output"><span class="terminal-prompt">{{ command.device }}#</span> <span class="terminal-command">{{ command.command }}</span>
+
+{{ command.output }}</pre>
+                    </div>
+
+                    <div
+                      class="parsed-block command-panel command-panel-hidden"
+                      data-command-panel="parsed"
+                    >
+                      <div class="parsed-header">Parsed Output</div>
+                      <pre class="parsed-output">{{ command.parsed_pretty }}</pre>
+                    </div>
+                  </div>
+                </details>
+                {% endfor %}
+              </div>
+              {% else %}
+              <p class="empty-copy">
+                No command executions were recorded for this test case.
+              </p>
+              {% endif %}
+            </div>
+          </details>
+        </article>
+
+        {% if test_case.error %}
+        <article class="card detail-card detail-card-wide">
+          <div class="section-header">
+            <div>
+              <p class="section-kicker">Failure Context</p>
+              <h2>Error Details</h2>
+            </div>
+          </div>
+          <section class="result-item result-item-{{ test_case.status_class }}">
+            <div class="result-item-header">
+              <span class="status-pill status-pill-{{ test_case.status_class }}">
+                {{ test_case.status }}
+              </span>
+            </div>
+            <p>{{ test_case.error }}</p>
+            {% if test_case.error_code %}
+            <p><strong>Error Code:</strong> {{ test_case.error_code }}</p>
+            {% endif %}
+            {% if test_case.error_traceback %}
+            <pre class="parsed-output">{{ test_case.error_traceback }}</pre>
+            {% endif %}
+          </section>
+        </article>
+        {% endif %}
+      </section>
+    </main>
+
+    <script>
+      function toggleCommandView(button) {
+        const card = button.closest('.command-card')
+        if (!card) {
+          return
+        }
+
+        const rawPanel = card.querySelector('[data-command-panel="raw"]')
+        const parsedPanel = card.querySelector('[data-command-panel="parsed"]')
+        if (!rawPanel || !parsedPanel) {
+          return
+        }
+
+        const showingParsed = !parsedPanel.classList.contains('command-panel-hidden')
+        if (showingParsed) {
+          parsedPanel.classList.add('command-panel-hidden')
+          rawPanel.classList.remove('command-panel-hidden')
+          button.textContent = button.dataset.rawLabel
+        } else {
+          rawPanel.classList.add('command-panel-hidden')
+          parsedPanel.classList.remove('command-panel-hidden')
+          button.textContent = button.dataset.parsedLabel
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+test_cases:
+  1.0.0:
+    title: Verify tags
+    job: jobs/verify.py
+    tags:
+    - ospf
+    - routing
+test_case_groups:
+  group-1:
+    tests:
+    - 1.0.0
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - group-1

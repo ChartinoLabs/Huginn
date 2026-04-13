@@ -1,0 +1,18 @@
+test_cases:
+  1.0.0:
+    title: First check
+    job: jobs/test_verify_shared.py
+  1.0.1:
+    title: Second check
+    job: jobs/test_verify_shared.py
+test_case_groups:
+  group-1:
+    tests:
+    - 1.0.0
+    - 1.0.1
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - group-1
