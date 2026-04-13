@@ -221,6 +221,66 @@ dependencies = [
 
 If a job package requires a newer framework version than the project uses, `uv`/`pip` will report the conflict at install time — not at test execution time.
 
+## Working with Unreleased Fixes
+
+A common scenario when using shared job packages: you discover bugs in multiple jobs, submit fixes via separate pull requests, and need to use those fixes in your project before they're merged and released upstream.
+
+Python's dependency system does not support installing multiple versions of the same package simultaneously. The recommended workflow is to combine your fixes into a single branch and install from that branch temporarily.
+
+### Workflow
+
+**1. You have two open PRs against `huginn-jobs-network`:**
+
+- `fix/bgp-peering-bug` — fixes a comparison error in `bgp/verify_peering.py`
+- `fix/ospf-route-detection` — fixes a parsing issue in `ospf/verify_routes.py`
+
+**2. Create a combined branch on your fork:**
+
+```bash
+cd huginn-jobs-network
+git checkout main
+git checkout -b combined-fixes
+git merge fix/bgp-peering-bug
+git merge fix/ospf-route-detection
+git push origin combined-fixes
+```
+
+Since bug fixes to individual jobs are typically self-contained within a single file, these merges are almost always conflict-free.
+
+**3. Point your project at the combined branch:**
+
+```toml
+# Project's pyproject.toml
+dependencies = [
+    # Temporary: your fork with both fixes
+    "huginn-jobs-network @ git+https://github.com/yourfork/huginn-jobs-network@combined-fixes",
+]
+```
+
+```bash
+uv sync  # Installs from your fork's combined-fixes branch
+```
+
+**4. When fixes are released upstream, switch back:**
+
+```toml
+dependencies = [
+    # Back to normal: released version with fixes included
+    "huginn-jobs-network>=2.2.0,<3.0.0",
+]
+```
+
+### Why This Works
+
+- **Bug fixes are localized.** A fix to `bgp/verify_peering.py` and a fix to `ospf/verify_routes.py` don't touch the same files, so merging the branches is trivial.
+- **Standard Python tooling.** The `@ git+https://...@branch` syntax is a standard pip/uv dependency specifier. No framework-level git cloning or special machinery needed.
+- **Lock file tracks the exact commit.** `uv.lock` records the resolved commit SHA, ensuring reproducibility even when depending on a branch.
+- **Clean transition.** When the upstream release lands, the only change is swapping the dependency line back to a version specifier.
+
+### When This Gets Harder
+
+If your fixes span many files across the same modules and create merge conflicts, the combined branch requires manual conflict resolution. In practice this is rare for job-level bug fixes but more likely for structural refactors. In that case, consider submitting a single PR with both fixes rather than maintaining separate branches.
+
 ## Open Questions
 
 The following questions will be resolved as we build the first job package:
