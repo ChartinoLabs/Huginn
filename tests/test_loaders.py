@@ -310,3 +310,138 @@ def test_load_test_plan_requires_tests_or_groups_for_group() -> None:
 
     with pytest.raises(ConfigurationError, match="at least one of 'tests' or 'groups'"):
         load_test_plan(path)
+
+
+def test_load_test_plan_applies_exclude_tests() -> None:
+    """Exclude specific test IDs inherited from nested groups."""
+    path = FIXTURES / "plan_with_exclude_tests.yaml"
+
+    test_plan = load_test_plan(path)
+
+    post_group = test_plan.test_case_groups["post-change-validation"]
+    assert "3.0.0" not in post_group.tests
+    assert "3.0.0-post-change" in post_group.tests
+    assert "1.0.0" in post_group.tests
+    assert "3.1.0" in post_group.tests
+    assert "4.0.0" in post_group.tests
+
+
+def test_load_test_plan_rejects_exclude_tests_without_groups() -> None:
+    """Raise when exclude_tests is used without groups."""
+    path = FIXTURES / "plan_exclude_tests_without_groups.yaml"
+
+    with pytest.raises(ConfigurationError, match="exclude_tests.*without.*groups"):
+        load_test_plan(path)
+
+
+# --- Multi-file (directory) test plan loading ---
+
+
+def test_load_test_plan_directory_merges_files() -> None:
+    """Load a directory of YAML files into a single merged TestPlan."""
+    path = FIXTURES / "multi_file_plan"
+
+    plan = load_test_plan(path)
+
+    assert set(plan.test_cases.keys()) == {"1.0.0", "1.1.0", "2.0.0"}
+    assert set(plan.test_case_groups.keys()) == {"connectivity-checks", "ospf-checks"}
+    assert "validation" in plan.scenarios
+    assert plan.test_cases["2.0.0"].tags == ["ospf"]
+
+
+def test_load_test_plan_directory_populates_metadata() -> None:
+    """Metadata fields are extracted from directory YAML files."""
+    path = FIXTURES / "multi_file_plan"
+
+    plan = load_test_plan(path)
+
+    assert plan.name == "Multi-File Test Plan"
+    assert plan.description == "A test plan split across multiple files."
+
+
+def test_load_test_plan_directory_cross_file_references() -> None:
+    """Groups in one file can reference test cases defined in another file."""
+    path = FIXTURES / "multi_file_plan"
+
+    plan = load_test_plan(path)
+
+    # ospf-checks group (routing/ospf.yaml) references test 2.0.0 (same file)
+    # connectivity-checks group references 1.0.0 and 1.1.0 (connectivity.yaml)
+    # scenario references both groups across files
+    scenario = plan.scenarios["validation"]
+    phase = scenario.phases["check-all"]
+    assert "connectivity-checks" in phase.test_case_groups
+    assert "ospf-checks" in phase.test_case_groups
+
+
+def test_load_test_plan_directory_excludes_underscore_prefixed() -> None:
+    """Files in directories starting with _ are excluded from discovery."""
+    path = FIXTURES / "multi_file_plan"
+
+    plan = load_test_plan(path)
+
+    # _drafts/wip.yaml defines test case 99.0.0 — should not appear
+    assert "99.0.0" not in plan.test_cases
+
+
+def test_load_test_plan_directory_rejects_duplicate_test_case() -> None:
+    """Raise when the same test case ID appears in multiple files."""
+    path = FIXTURES / "duplicate_test_case"
+
+    with pytest.raises(ConfigurationError, match="Duplicate test_cases key '1.0.0'"):
+        load_test_plan(path)
+
+
+def test_load_test_plan_directory_rejects_duplicate_group() -> None:
+    """Raise when the same group name appears in multiple files."""
+    path = FIXTURES / "duplicate_group"
+
+    with pytest.raises(
+        ConfigurationError, match="Duplicate test_case_groups key 'grp'"
+    ):
+        load_test_plan(path)
+
+
+def test_load_test_plan_directory_rejects_duplicate_scenario() -> None:
+    """Raise when the same scenario name appears in multiple files."""
+    path = FIXTURES / "duplicate_scenario"
+
+    with pytest.raises(ConfigurationError, match="Duplicate scenarios key 's'"):
+        load_test_plan(path)
+
+
+def test_load_test_plan_directory_rejects_duplicate_metadata() -> None:
+    """Raise when the same metadata key appears in multiple files."""
+    path = FIXTURES / "duplicate_metadata"
+
+    with pytest.raises(ConfigurationError, match="Duplicate metadata 'name'"):
+        load_test_plan(path)
+
+
+def test_load_test_plan_directory_rejects_empty_directory(tmp_path: Path) -> None:
+    """Raise when directory contains no YAML files."""
+    with pytest.raises(ConfigurationError, match="contains no YAML files"):
+        load_test_plan(tmp_path)
+
+
+def test_load_test_plan_rejects_invalid_yaml_syntax(tmp_path: Path) -> None:
+    """Raise ConfigurationError with file path when YAML syntax is invalid."""
+    bad_file = tmp_path / "bad.yaml"
+    bad_file.write_text("test_cases:\n  - id: foo\n bad_indent: bar\n")
+    with pytest.raises(
+        ConfigurationError, match=r"Failed to parse YAML file.*bad\.yaml"
+    ):
+        load_test_plan(bad_file)
+
+
+def test_load_test_plan_single_file_populates_metadata() -> None:
+    """Single-file plans populate metadata fields when present."""
+    path = FIXTURES / "plan_valid.yaml"
+
+    plan = load_test_plan(path)
+
+    # plan_valid.yaml doesn't define metadata, so fields should be None
+    assert plan.name is None
+    assert plan.description is None
+    assert plan.defaults is None
+    assert plan.data_model is None

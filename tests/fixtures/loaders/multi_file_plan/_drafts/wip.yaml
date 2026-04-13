@@ -1,0 +1,5 @@
+# This file should be excluded from discovery (underscore-prefixed directory name)
+test_cases:
+  99.0.0:
+    title: Draft Test
+    job: jobs/draft.py

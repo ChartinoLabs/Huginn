@@ -417,7 +417,7 @@ class TestConfigure:
             mock_response1.result = "interface configured"
             mock_response2 = MagicMock()
             mock_response2.result = "ip address set"
-            mock_driver.send_commands.return_value = [mock_response1, mock_response2]
+            mock_driver.send_configs.return_value = [mock_response1, mock_response2]
             mock_driver_class.return_value = mock_driver
 
             await broker.connect(connection_config)
@@ -448,7 +448,7 @@ class TestConfigure:
         """Test configure timeout."""
         with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
-            mock_driver.send_commands.side_effect = ScrapliTimeout("Config timed out")
+            mock_driver.send_configs.side_effect = ScrapliTimeout("Config timed out")
             mock_driver_class.return_value = mock_driver
 
             await broker.connect(connection_config)
@@ -466,7 +466,7 @@ class TestConfigure:
         """Test configure with error."""
         with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
             mock_driver = AsyncMock()
-            mock_driver.send_commands.side_effect = Exception("Config failed")
+            mock_driver.send_configs.side_effect = Exception("Config failed")
             mock_driver_class.return_value = mock_driver
 
             await broker.connect(connection_config)
@@ -526,7 +526,7 @@ class TestEdit:
             mock_response1.result = "interface configured"
             mock_response2 = MagicMock()
             mock_response2.result = "ip set"
-            mock_driver.send_commands.return_value = [mock_response1, mock_response2]
+            mock_driver.send_configs.return_value = [mock_response1, mock_response2]
             mock_driver_class.return_value = mock_driver
 
             await broker.connect(connection_config)
@@ -535,9 +535,9 @@ class TestEdit:
                 "interface eth0\nip address 10.0.0.1 255.255.255.0",
             )
 
-            # Verify send_commands was called with parsed commands
-            mock_driver.send_commands.assert_called_once()
-            call_args = mock_driver.send_commands.call_args[0][0]
+            # Verify send_configs was called with parsed commands
+            mock_driver.send_configs.assert_called_once()
+            call_args = mock_driver.send_configs.call_args[0][0]
             assert call_args == ["interface eth0", "ip address 10.0.0.1 255.255.255.0"]
 
             assert "interface configured" in result.output
@@ -555,7 +555,7 @@ class TestEdit:
             mock_driver = AsyncMock()
             mock_response = MagicMock()
             mock_response.result = "done"
-            mock_driver.send_commands.return_value = [mock_response]
+            mock_driver.send_configs.return_value = [mock_response]
             mock_driver_class.return_value = mock_driver
 
             await broker.connect(connection_config)
@@ -564,7 +564,7 @@ class TestEdit:
                 "\n  \ninterface eth0\n\n  \n",
             )
 
-            call_args = mock_driver.send_commands.call_args[0][0]
+            call_args = mock_driver.send_configs.call_args[0][0]
             assert call_args == ["interface eth0"]
 
     @pytest.mark.asyncio

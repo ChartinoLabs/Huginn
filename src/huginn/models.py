@@ -80,6 +80,7 @@ class TestCaseGroup:
     strategy: ExecutionStrategy = field(
         default_factory=lambda: ExecutionStrategy(mode="parallel")
     )
+    exclude_tests: list[str] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         """Normalize identifier/name fallbacks for in-memory construction."""
@@ -106,6 +107,7 @@ class Phase:
     strategy: ExecutionStrategy = field(
         default_factory=lambda: ExecutionStrategy(mode="parallel")
     )
+    preserve_cache: bool = False
 
     def __post_init__(self) -> None:
         """Normalize identifier/name fallbacks for in-memory construction."""
@@ -148,6 +150,10 @@ class TestPlan:
     scenarios: dict[str, Scenario]
     test_case_groups: dict[str, TestCaseGroup]
     test_cases: dict[str, TestCaseDefinition]
+    name: str | None = None
+    description: str | None = None
+    defaults: dict[str, object] | None = None
+    data_model: dict[str, object] | None = None
 
 
 @dataclass

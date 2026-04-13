@@ -28,7 +28,10 @@ class ConfigurationError(ValueError):
 
 def _load_yaml(path: Path) -> dict[str, object]:
     """Load and validate a YAML file into a mapping."""
-    loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    try:
+        loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise ConfigurationError(f"Failed to parse YAML file {path}: {exc}") from exc
     if not isinstance(loaded, dict):
         raise ConfigurationError(f"Expected mapping at root of {path}")
     return cast(dict[str, object], loaded)
@@ -345,7 +348,14 @@ def _merge_credentials(
 
 
 def load_test_plan(path: Path) -> TestPlan:
-    """Load a test plan file with minimal first-slice validation."""
+    """Load a test plan from a YAML file or a directory of YAML files."""
+    if path.is_dir():
+        return _load_test_plan_directory(path)
+    return _load_test_plan_file(path)
+
+
+def _load_test_plan_file(path: Path) -> TestPlan:
+    """Load a single-file test plan with validation."""
     data = _load_yaml(path)
 
     test_cases = _load_test_cases(data)
@@ -359,6 +369,199 @@ def load_test_plan(path: Path) -> TestPlan:
         test_cases=test_cases,
         test_case_groups=groups,
         scenarios=scenarios,
+        name=_load_optional_metadata_string(data.get("name"), "name"),
+        description=_load_optional_metadata_string(
+            data.get("description"), "description"
+        ),
+        defaults=_load_optional_metadata_mapping(data.get("defaults"), "defaults"),
+        data_model=_load_optional_metadata_mapping(
+            data.get("data_model"), "data_model"
+        ),
+    )
+
+
+def _load_optional_metadata_string(value: object, field: str) -> str | None:
+    """Load an optional string metadata field from a test plan."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ConfigurationError(f"Test plan '{field}' must be a string")
+    return value
+
+
+def _load_optional_metadata_mapping(
+    value: object, field: str
+) -> dict[str, object] | None:
+    """Load an optional mapping metadata field from a test plan."""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ConfigurationError(f"Test plan '{field}' must be a mapping")
+    return cast(dict[str, object], value)
+
+
+_SECTION_KEYS = frozenset({"test_cases", "test_case_groups", "scenarios"})
+_METADATA_SCALAR_KEYS = frozenset({"name", "description"})
+_METADATA_MAPPING_KEYS = frozenset({"defaults", "data_model"})
+_RECOGNIZED_KEYS = _SECTION_KEYS | _METADATA_SCALAR_KEYS | _METADATA_MAPPING_KEYS
+
+
+def discover_yaml_files(directory: Path) -> list[Path]:
+    """Recursively discover YAML files, excluding _/. prefixed names."""
+    files: list[Path] = []
+    for pattern in ("**/*.yaml", "**/*.yml"):
+        for path in sorted(directory.glob(pattern)):
+            relative = path.relative_to(directory)
+            if any(part.startswith(("_", ".")) for part in relative.parts):
+                continue
+            files.append(path)
+    # Deduplicate (a file matching both patterns) and sort for determinism
+    return sorted(set(files))
+
+
+def _merge_section_maps(
+    target: dict[str, object],
+    source: dict[str, object],
+    *,
+    section_name: str,
+    source_path: Path,
+    registry: dict[str, Path],
+) -> None:
+    """Merge source mapping into target, raising on duplicate keys."""
+    for key, value in source.items():
+        if key in registry:
+            raise ConfigurationError(
+                f"Duplicate {section_name} key '{key}' defined in "
+                f"{registry[key]} and {source_path}"
+            )
+        registry[key] = source_path
+        target[key] = value
+
+
+def _merge_metadata_scalar(
+    data: dict[str, object],
+    *,
+    source_path: Path,
+    scalars: dict[str, str],
+    sources: dict[str, Path],
+) -> None:
+    """Extract and merge scalar metadata keys from one YAML file."""
+    for key in _METADATA_SCALAR_KEYS:
+        raw = data.get(key)
+        if raw is None:
+            continue
+        if key in sources:
+            raise ConfigurationError(
+                f"Duplicate metadata '{key}' defined in "
+                f"{sources[key]} and {source_path}"
+            )
+        if not isinstance(raw, str):
+            raise ConfigurationError(
+                f"Test plan '{key}' in {source_path} must be a string"
+            )
+        scalars[key] = raw
+        sources[key] = source_path
+
+
+def _merge_metadata_mapping(
+    data: dict[str, object],
+    *,
+    source_path: Path,
+    mappings: dict[str, dict[str, object]],
+    sources: dict[str, Path],
+) -> None:
+    """Extract and merge mapping metadata keys from one YAML file."""
+    for key in _METADATA_MAPPING_KEYS:
+        raw = data.get(key)
+        if raw is None:
+            continue
+        if key in sources:
+            raise ConfigurationError(
+                f"Duplicate metadata '{key}' defined in "
+                f"{sources[key]} and {source_path}"
+            )
+        if not isinstance(raw, dict):
+            raise ConfigurationError(
+                f"Test plan '{key}' in {source_path} must be a mapping"
+            )
+        mappings[key] = cast(dict[str, object], raw)
+        sources[key] = source_path
+
+
+def _load_test_plan_directory(directory: Path) -> TestPlan:
+    """Load and merge a directory of YAML files into a single TestPlan."""
+    yaml_files = discover_yaml_files(directory)
+    if not yaml_files:
+        raise ConfigurationError(
+            f"Test plan directory {directory} contains no YAML files"
+        )
+
+    merged_sections: dict[str, dict[str, object]] = {
+        "test_cases": {},
+        "test_case_groups": {},
+        "scenarios": {},
+    }
+    section_registries: dict[str, dict[str, Path]] = {
+        "test_cases": {},
+        "test_case_groups": {},
+        "scenarios": {},
+    }
+    metadata_scalars: dict[str, str] = {}
+    metadata_scalar_sources: dict[str, Path] = {}
+    metadata_mappings: dict[str, dict[str, object]] = {}
+    metadata_mapping_sources: dict[str, Path] = {}
+
+    for yaml_path in yaml_files:
+        data = _load_yaml(yaml_path)
+
+        for section_key in _SECTION_KEYS:
+            raw = data.get(section_key)
+            if raw is None:
+                continue
+            section_data = _require_mapping(
+                raw,
+                f"'{section_key}' in {yaml_path} must be a mapping",
+            )
+            _merge_section_maps(
+                merged_sections[section_key],
+                section_data,
+                section_name=section_key,
+                source_path=yaml_path,
+                registry=section_registries[section_key],
+            )
+
+        _merge_metadata_scalar(
+            data,
+            source_path=yaml_path,
+            scalars=metadata_scalars,
+            sources=metadata_scalar_sources,
+        )
+        _merge_metadata_mapping(
+            data,
+            source_path=yaml_path,
+            mappings=metadata_mappings,
+            sources=metadata_mapping_sources,
+        )
+
+    combined_data: dict[str, object] = {
+        key: section for key, section in merged_sections.items() if section
+    }
+
+    test_cases = _load_test_cases(combined_data)
+    groups = _load_test_case_groups(combined_data)
+    scenarios = _load_scenarios(combined_data)
+
+    _validate_test_case_group_references(groups, test_cases)
+    _validate_scenario_references(scenarios, groups)
+
+    return TestPlan(
+        test_cases=test_cases,
+        test_case_groups=groups,
+        scenarios=scenarios,
+        name=metadata_scalars.get("name"),
+        description=metadata_scalars.get("description"),
+        defaults=metadata_mappings.get("defaults"),
+        data_model=metadata_mappings.get("data_model"),
     )
 
 
@@ -451,10 +654,19 @@ def _parse_test_case_group(
         group_mapping.get("groups"),
         group_name=group_name,
     )
+    exclude_tests = _load_optional_group_exclude_tests(
+        group_mapping.get("exclude_tests"),
+        group_name=group_name,
+    )
     if not tests and not includes:
         raise ConfigurationError(
             f"Test case group '{group_name}' must include at least one of "
             "'tests' or 'groups'"
+        )
+    if exclude_tests and not includes:
+        raise ConfigurationError(
+            f"Test case group '{group_name}' defines 'exclude_tests' without "
+            "'groups' -- exclude_tests only applies to inherited group tests"
         )
     tags = _load_optional_string_list_allow_empty_strings(group_mapping.get("tags"))
     strategy = _load_execution_strategy(
@@ -477,6 +689,7 @@ def _parse_test_case_group(
             tags=tags,
             target=target,
             strategy=strategy,
+            exclude_tests=exclude_tests,
         ),
         includes,
     )
@@ -508,6 +721,21 @@ def _load_optional_group_includes(value: object, *, group_name: str) -> list[str
     if not all(isinstance(item, str) and item for item in value):
         raise ConfigurationError(
             f"Test case group '{group_name}' groups must be a list of strings"
+        )
+    return cast(list[str], value)
+
+
+def _load_optional_group_exclude_tests(value: object, *, group_name: str) -> list[str]:
+    """Load optional exclude_tests list for a test case group."""
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ConfigurationError(
+            f"Test case group '{group_name}' exclude_tests must be a list of strings"
+        )
+    if not all(isinstance(item, str) and item for item in value):
+        raise ConfigurationError(
+            f"Test case group '{group_name}' exclude_tests must be a list of strings"
         )
     return cast(list[str], value)
 
@@ -564,11 +792,14 @@ def _flatten_nested_test_case_groups(
         if group_name in cache:
             return cache[group_name]
 
-        flattened = list(groups[group_name].tests)
+        group = groups[group_name]
+        excluded = set(group.exclude_tests)
+
+        flattened = list(group.tests)
         seen = set(flattened)
         for include in group_includes[group_name]:
             for test_id in flatten(include):
-                if test_id in seen:
+                if test_id in seen or test_id in excluded:
                     continue
                 seen.add(test_id)
                 flattened.append(test_id)
@@ -585,6 +816,7 @@ def _flatten_nested_test_case_groups(
             tags=group.tags,
             target=group.target,
             strategy=group.strategy,
+            exclude_tests=group.exclude_tests,
         )
     return resolved
 
@@ -666,6 +898,12 @@ def _parse_phase(
         phase_mapping.get("name"),
         f"Phase '{phase_name}' in scenario '{scenario_name}' name must be a string",
     )
+    preserve_cache_raw = phase_mapping.get("preserve_cache", False)
+    if not isinstance(preserve_cache_raw, bool):
+        raise ConfigurationError(
+            f"Phase '{phase_name}' in scenario '{scenario_name}' "
+            "'preserve_cache' must be a boolean"
+        )
     return Phase(
         identifier=phase_name,
         test_case_groups=test_case_groups,
@@ -673,6 +911,7 @@ def _parse_phase(
         depends_on=depends_on,
         target=target,
         strategy=strategy,
+        preserve_cache=preserve_cache_raw,
     )
 
 

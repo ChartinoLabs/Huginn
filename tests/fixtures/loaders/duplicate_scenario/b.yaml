@@ -1,0 +1,5 @@
+scenarios:
+  s:
+    phases:
+      p:
+        test_case_groups: [grp]

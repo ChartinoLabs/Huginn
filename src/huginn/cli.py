@@ -12,8 +12,18 @@ from typing import Annotated
 import typer
 
 from huginn.enums import ErrorCode, ExecutionMode
+from huginn.loaders import ConfigurationError, load_test_plan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
+from huginn.reconcile import (
+    ReconcileError,
+    apply_reconcile_plan,
+    compute_reconcile_plan,
+    copy_parameter_files,
+    find_latest_testing_results,
+    parse_failures_from_run,
+    validate_after_reconcile,
+)
 from huginn.runner import RunExecutionError, run_test_plan
 from huginn.validation import validate_inputs
 
@@ -26,18 +36,6 @@ app = typer.Typer(
 
 @app.command()
 def run(
-    plan: Annotated[
-        Path,
-        typer.Option(
-            "--plan",
-            "-p",
-            help="Path to test plan YAML file defining test organization.",
-            exists=True,
-            file_okay=True,
-            dir_okay=False,
-            resolve_path=True,
-        ),
-    ],
     mode: Annotated[
         ExecutionMode,
         typer.Option(
@@ -45,18 +43,35 @@ def run(
             "-m",
             help="Execution mode: 'learning' captures current state as baseline, "
             "'testing' compares against learned parameters.",
+            envvar="HUGINN_MODE",
         ),
     ],
+    plan: Annotated[
+        Path | None,
+        typer.Option(
+            "--plan",
+            "-p",
+            help="Path to test plan YAML file or directory of YAML files "
+            "(default: ./test_plan).",
+            exists=True,
+            file_okay=True,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_PLAN",
+        ),
+    ] = None,
     testbed: Annotated[
         Path | None,
         typer.Option(
             "--testbed",
             "-t",
-            help="Path to testbed YAML file defining device inventory.",
+            help="Path to testbed YAML file defining device inventory "
+            "(default: ./testbed.yaml).",
             exists=True,
             file_okay=True,
             dir_okay=False,
             resolve_path=True,
+            envvar="HUGINN_TESTBED",
         ),
     ] = None,
     tags: Annotated[
@@ -64,6 +79,7 @@ def run(
         typer.Option(
             "--tags",
             help="Filter test cases by tags. Only matching test cases will run.",
+            envvar="HUGINN_TAGS",
         ),
     ] = None,
     exclude_tags: Annotated[
@@ -71,6 +87,7 @@ def run(
         typer.Option(
             "--exclude-tags",
             help="Exclude test cases with matching tags.",
+            envvar="HUGINN_EXCLUDE_TAGS",
         ),
     ] = None,
     scenario: Annotated[
@@ -78,6 +95,7 @@ def run(
         typer.Option(
             "--scenario",
             help="Run only specified scenarios.",
+            envvar="HUGINN_SCENARIO",
         ),
     ] = None,
     phase: Annotated[
@@ -85,6 +103,7 @@ def run(
         typer.Option(
             "--phase",
             help="Run only specified phases.",
+            envvar="HUGINN_PHASE",
         ),
     ] = None,
     test_case_group: Annotated[
@@ -92,6 +111,7 @@ def run(
         typer.Option(
             "--test-case-group",
             help="Run only specified test case groups.",
+            envvar="HUGINN_TEST_CASE_GROUP",
         ),
     ] = None,
     test_id: Annotated[
@@ -99,6 +119,15 @@ def run(
         typer.Option(
             "--test-id",
             help="Run only specified test case IDs.",
+            envvar="HUGINN_TEST_ID",
+        ),
+    ] = None,
+    test_id_pattern: Annotated[
+        str | None,
+        typer.Option(
+            "--test-id-pattern",
+            help="Regex pattern to filter test case IDs (e.g. '-post-shutdown$').",
+            envvar="HUGINN_TEST_ID_PATTERN",
         ),
     ] = None,
     data_model: Annotated[
@@ -112,6 +141,7 @@ def run(
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
+            envvar="HUGINN_DATA_MODEL",
         ),
     ] = None,
     inventory_plugin: Annotated[
@@ -120,17 +150,23 @@ def run(
             "--inventory-plugin",
             "-i",
             help="Use an inventory plugin instead of a static testbed YAML file.",
+            envvar="HUGINN_INVENTORY_PLUGIN",
         ),
     ] = None,
     debug: Annotated[
         bool,
-        typer.Option("--debug", help="Enable DEBUG-level logging."),
+        typer.Option(
+            "--debug",
+            help="Enable DEBUG-level logging.",
+            envvar="HUGINN_DEBUG",
+        ),
     ] = False,
     log_level: Annotated[
         str,
         typer.Option(
             "--log-level",
             help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+            envvar="HUGINN_LOG_LEVEL",
         ),
     ] = "INFO",
     show_logs: Annotated[
@@ -138,11 +174,16 @@ def run(
         typer.Option(
             "--show-logs",
             help="Stream logs to console in addition to file.",
+            envvar="HUGINN_SHOW_LOGS",
         ),
     ] = False,
     log_file: Annotated[
         Path | None,
-        typer.Option("--log-file", help="Path to log file (default: ./huginn.log)."),
+        typer.Option(
+            "--log-file",
+            help="Path to log file (default: ./huginn.log).",
+            envvar="HUGINN_LOG_FILE",
+        ),
     ] = None,
 ) -> None:
     """Execute a test plan against infrastructure.
@@ -156,6 +197,8 @@ def run(
         huginn run -m learning -t testbed.yaml -p test_plan.yaml --tags ospf
         huginn run -m testing -p test_plan.yaml -i huginn-netbox
     """
+    plan = _resolve_plan_option(plan)
+
     testbed_path = _resolve_testbed_option(
         testbed=testbed,
         inventory_plugin=inventory_plugin,
@@ -193,6 +236,7 @@ def run(
             phases=phase,
             test_case_groups=test_case_group,
             test_ids=test_id,
+            test_id_pattern=test_id_pattern,
         )
         result = asyncio.run(
             run_test_plan(
@@ -207,6 +251,9 @@ def run(
                 output=output,
             )
         )
+    except ConfigurationError as error:
+        output.error(f"ERROR: {error}")
+        raise typer.Exit(code=1) from error
     except RunExecutionError as error:
         output.error(f"ERROR [{error.code.value}]: {error}")
         if error.traceback_text:
@@ -239,11 +286,12 @@ def validate(
         typer.Option(
             "--plan",
             "-p",
-            help="Path to test plan YAML file to validate.",
+            help="Path to test plan YAML file or directory of YAML files to validate.",
             exists=True,
             file_okay=True,
-            dir_okay=False,
+            dir_okay=True,
             resolve_path=True,
+            envvar="HUGINN_PLAN",
         ),
     ],
     testbed: Annotated[
@@ -256,6 +304,7 @@ def validate(
             file_okay=True,
             dir_okay=False,
             resolve_path=True,
+            envvar="HUGINN_TESTBED",
         ),
     ] = None,
     tags: Annotated[
@@ -263,6 +312,7 @@ def validate(
         typer.Option(
             "--tags",
             help="Filter validation set by tags.",
+            envvar="HUGINN_TAGS",
         ),
     ] = None,
     exclude_tags: Annotated[
@@ -270,6 +320,7 @@ def validate(
         typer.Option(
             "--exclude-tags",
             help="Exclude validation set by tags.",
+            envvar="HUGINN_EXCLUDE_TAGS",
         ),
     ] = None,
     scenario: Annotated[
@@ -277,6 +328,7 @@ def validate(
         typer.Option(
             "--scenario",
             help="Validate only specified scenarios.",
+            envvar="HUGINN_SCENARIO",
         ),
     ] = None,
     phase: Annotated[
@@ -284,6 +336,7 @@ def validate(
         typer.Option(
             "--phase",
             help="Validate only specified phases.",
+            envvar="HUGINN_PHASE",
         ),
     ] = None,
     test_case_group: Annotated[
@@ -291,6 +344,7 @@ def validate(
         typer.Option(
             "--test-case-group",
             help="Validate only specified test case groups.",
+            envvar="HUGINN_TEST_CASE_GROUP",
         ),
     ] = None,
     test_id: Annotated[
@@ -298,6 +352,15 @@ def validate(
         typer.Option(
             "--test-id",
             help="Validate only specified test case IDs.",
+            envvar="HUGINN_TEST_ID",
+        ),
+    ] = None,
+    test_id_pattern: Annotated[
+        str | None,
+        typer.Option(
+            "--test-id-pattern",
+            help="Regex pattern to filter test case IDs (e.g. '-post-shutdown$').",
+            envvar="HUGINN_TEST_ID_PATTERN",
         ),
     ] = None,
     data_model: Annotated[
@@ -310,6 +373,7 @@ def validate(
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
+            envvar="HUGINN_DATA_MODEL",
         ),
     ] = None,
     inventory_plugin: Annotated[
@@ -318,17 +382,23 @@ def validate(
             "--inventory-plugin",
             "-i",
             help="Use an inventory plugin instead of a static testbed YAML file.",
+            envvar="HUGINN_INVENTORY_PLUGIN",
         ),
     ] = None,
     debug: Annotated[
         bool,
-        typer.Option("--debug", help="Enable DEBUG-level logging."),
+        typer.Option(
+            "--debug",
+            help="Enable DEBUG-level logging.",
+            envvar="HUGINN_DEBUG",
+        ),
     ] = False,
     log_level: Annotated[
         str,
         typer.Option(
             "--log-level",
             help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+            envvar="HUGINN_LOG_LEVEL",
         ),
     ] = "INFO",
     show_logs: Annotated[
@@ -336,11 +406,16 @@ def validate(
         typer.Option(
             "--show-logs",
             help="Stream logs to console in addition to file.",
+            envvar="HUGINN_SHOW_LOGS",
         ),
     ] = False,
     log_file: Annotated[
         Path | None,
-        typer.Option("--log-file", help="Path to log file (default: ./huginn.log)."),
+        typer.Option(
+            "--log-file",
+            help="Path to log file (default: ./huginn.log).",
+            envvar="HUGINN_LOG_FILE",
+        ),
     ] = None,
 ) -> None:
     """Validate testbed/plan inputs without executing tests."""
@@ -372,24 +447,29 @@ def validate(
         show_logs=show_logs,
         log_file=log_file,
     )
-    result = asyncio.run(
-        validate_inputs(
-            testbed_path=testbed_path,
-            inventory_plugin=inventory_plugin,
-            plan_path=plan,
-            filters=_build_plan_filters(
-                tags=tags,
-                exclude_tags=exclude_tags,
-                scenarios=scenario,
-                phases=phase,
-                test_case_groups=test_case_group,
-                test_ids=test_id,
-            ),
-            project_root=Path.cwd(),
-            results_dir=Path.cwd() / "results",
-            output=output,
+    try:
+        result = asyncio.run(
+            validate_inputs(
+                testbed_path=testbed_path,
+                inventory_plugin=inventory_plugin,
+                plan_path=plan,
+                filters=_build_plan_filters(
+                    tags=tags,
+                    exclude_tags=exclude_tags,
+                    scenarios=scenario,
+                    phases=phase,
+                    test_case_groups=test_case_group,
+                    test_ids=test_id,
+                    test_id_pattern=test_id_pattern,
+                ),
+                project_root=Path.cwd(),
+                results_dir=Path.cwd() / "results",
+                output=output,
+            )
         )
-    )
+    except ConfigurationError as error:
+        output.error(f"ERROR: {error}")
+        raise typer.Exit(code=1) from error
     output.status(f"Validation status: {'passed' if result.valid else 'failed'}")
     output.status(
         "Summary: "
@@ -419,6 +499,16 @@ def _exit_code_for_run_error(code: ErrorCode) -> int:
     return 1
 
 
+def _resolve_plan_option(plan: Path | None) -> Path:
+    """Apply default plan path when the user omits --plan."""
+    if plan is not None:
+        return plan
+    default = Path.cwd() / "test_plan"
+    if default.exists():
+        return default.resolve()
+    raise typer.BadParameter("No --plan specified and default ./test_plan not found.")
+
+
 def _resolve_testbed_option(
     *,
     testbed: Path | None,
@@ -432,9 +522,14 @@ def _resolve_testbed_option(
         )
 
     if testbed is None and inventory_plugin is None:
-        raise typer.BadParameter(
-            "Either --testbed or --inventory-plugin must be specified."
-        )
+        default = Path.cwd() / "testbed.yaml"
+        if default.exists():
+            testbed = default.resolve()
+        else:
+            raise typer.BadParameter(
+                "Either --testbed or --inventory-plugin must be specified "
+                "(no default ./testbed.yaml found)."
+            )
 
     if data_model is not None:
         raise typer.BadParameter("--data-model is not implemented yet.")
@@ -449,6 +544,7 @@ def _build_plan_filters(
     phases: list[str] | None,
     test_case_groups: list[str] | None,
     test_ids: list[str] | None,
+    test_id_pattern: str | None = None,
 ) -> PlanFilterOptions:
     """Normalize CLI filter values into a single plan-filter object."""
     normalized_scenarios = _split_csv_option_values(scenarios)
@@ -463,6 +559,7 @@ def _build_plan_filters(
         phases=normalized_phases,
         test_case_groups=_split_csv_option_values(test_case_groups),
         test_ids=_split_csv_option_values(test_ids),
+        test_id_pattern=test_id_pattern,
     )
 
 
@@ -497,6 +594,188 @@ def _build_output(
         log_level=resolved_log_level,
         log_file=log_file,
     )
+
+
+@app.command()
+def reconcile(
+    plan: Annotated[
+        Path,
+        typer.Option(
+            "--plan",
+            "-p",
+            help="Path to test plan YAML file or directory of YAML files.",
+            exists=True,
+            file_okay=True,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_PLAN",
+        ),
+    ],
+    phase: Annotated[
+        str,
+        typer.Option(
+            "--phase",
+            help="Phase whose failures to reconcile. Also used as suffix for "
+            "new test case IDs and group names.",
+            envvar="HUGINN_PHASE",
+        ),
+    ],
+    scenario: Annotated[
+        str | None,
+        typer.Option(
+            "--scenario",
+            help="Reconcile only the specified scenario. "
+            "If omitted, all scenarios with the target phase are processed.",
+            envvar="HUGINN_SCENARIO",
+        ),
+    ] = None,
+    results_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--results-dir",
+            help="Path to results directory (default: ./results/).",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_RESULTS_DIR",
+        ),
+    ] = None,
+    parameters_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--parameters-dir",
+            help="Path to parameters directory (default: ./parameters/).",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_PARAMETERS_DIR",
+        ),
+    ] = None,
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            help="Enable DEBUG-level logging.",
+            envvar="HUGINN_DEBUG",
+        ),
+    ] = False,
+    log_level: Annotated[
+        str,
+        typer.Option(
+            "--log-level",
+            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+            envvar="HUGINN_LOG_LEVEL",
+        ),
+    ] = "INFO",
+    show_logs: Annotated[
+        bool,
+        typer.Option(
+            "--show-logs",
+            help="Stream logs to console in addition to file.",
+            envvar="HUGINN_SHOW_LOGS",
+        ),
+    ] = False,
+    log_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--log-file",
+            help="Path to log file (default: ./huginn.log).",
+            envvar="HUGINN_LOG_FILE",
+        ),
+    ] = None,
+) -> None:
+    """Reconcile failing test cases into new test case groups.
+
+    After running a post-change phase in testing mode, some tests may fail
+    because the golden parameters reflect pre-change state. This command
+    creates new test case definitions and groups for the failing tests so
+    they can be re-learned with post-change parameters.
+
+    Examples:
+        huginn reconcile -p test_plan.yaml --phase post-change
+        huginn reconcile -p plans/ --phase post-change --scenario migration
+    """
+    resolved_results_dir = results_dir or Path.cwd() / "results"
+    resolved_parameters_dir = parameters_dir or Path.cwd() / "parameters"
+
+    output = _build_output(
+        debug=debug,
+        log_level=log_level,
+        show_logs=show_logs,
+        log_file=log_file,
+    )
+    output.status(f"Reconciling failures for phase '{phase}'")
+    output.log_debug_fields(
+        "CLI reconcile options",
+        plan=plan,
+        phase=phase,
+        scenario=scenario,
+        results_dir=resolved_results_dir,
+        parameters_dir=resolved_parameters_dir,
+        log_level="DEBUG" if debug else log_level,
+    )
+
+    try:
+        run_json_path = find_latest_testing_results(resolved_results_dir)
+        output.status(f"Using results from {run_json_path.parent.name}")
+
+        reconcile_input = parse_failures_from_run(
+            run_json_path, phase, scenario_filter=scenario
+        )
+
+        if not reconcile_input.failing_tests:
+            output.success(
+                f"No failures found in phase '{phase}' -- nothing to reconcile"
+            )
+            return
+
+        output.status(
+            f"Found {len(reconcile_input.failing_tests)} failing test case(s) "
+            f"across {len(reconcile_input.affected_group_ids)} group(s)"
+        )
+
+        test_plan = load_test_plan(plan)
+        plan_result = compute_reconcile_plan(reconcile_input, test_plan, phase)
+
+        if not plan_result.new_test_cases and not plan_result.new_groups:
+            output.success("Reconciliation already applied -- no changes needed")
+            if plan_result.skipped_existing:
+                output.warning(
+                    f"Skipped {len(plan_result.skipped_existing)} existing "
+                    "ID(s) (already reconciled)"
+                )
+            return
+
+        apply_reconcile_plan(
+            plan_path=plan,
+            reconcile_plan=plan_result,
+            phase_name=phase,
+            output=output,
+        )
+
+        copied = copy_parameter_files(
+            parameters_dir=resolved_parameters_dir,
+            copies=plan_result.parameter_copies,
+            output=output,
+        )
+
+        validate_after_reconcile(plan)
+
+        output.success(
+            f"Reconciliation complete: "
+            f"{len(plan_result.new_test_cases)} new test case(s), "
+            f"{len(plan_result.new_groups)} new group(s), "
+            f"{copied} parameter file(s) copied"
+        )
+        if plan_result.skipped_existing:
+            output.warning(
+                f"Skipped {len(plan_result.skipped_existing)} existing "
+                "ID(s) (already reconciled)"
+            )
+
+    except (ReconcileError, ConfigurationError) as error:
+        output.error(f"ERROR: {error}")
+        raise typer.Exit(code=1) from error
 
 
 @app.command()

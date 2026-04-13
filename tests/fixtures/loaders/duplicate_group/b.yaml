@@ -1,0 +1,8 @@
+test_case_groups:
+  grp:
+    tests: ["1.0.0"]
+scenarios:
+  s:
+    phases:
+      p:
+        test_case_groups: [grp]

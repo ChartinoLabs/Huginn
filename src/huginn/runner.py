@@ -121,7 +121,9 @@ async def run_test_plan(
             groups=len(test_plan.test_case_groups),
             test_cases=len(test_plan.test_cases),
         )
-    except (ConfigurationError, InventoryPluginError) as error:
+    except ConfigurationError:
+        raise
+    except InventoryPluginError as error:
         raise RunExecutionError(
             str(error),
             code=ErrorCode.CONFIGURATION_ERROR,
@@ -193,7 +195,7 @@ async def run_test_plan(
         )
         _emit_status(
             output,
-            f"Finished phase execution in {_format_elapsed(execution_started)}",
+            f"Finished all scenario execution in {_format_elapsed(execution_started)}",
         )
     finally:
         log_debug(output, "Run teardown starting")
@@ -319,6 +321,9 @@ async def _execute_scenario(
             )
 
         phase = scenario.phases[phase_name]
+        if not phase.preserve_cache:
+            broker.clear_cache()
+        phase_started = perf_counter()
         executed_phase = await _execute_ready_phase(
             scenario_name=scenario.identifier,
             phase=phase,
@@ -332,6 +337,7 @@ async def _execute_scenario(
             output=output,
             phase_results=phase_results,
         )
+        phase_elapsed = perf_counter() - phase_started
         _record_phase_result(
             scenario_name=scenario.identifier,
             phase_name=phase_name,
@@ -339,6 +345,7 @@ async def _execute_scenario(
             phase_results=phase_results,
             pending=pending,
             output=output,
+            elapsed=phase_elapsed,
         )
 
         if _should_halt_scenario_after_phase(executed_phase):
@@ -455,9 +462,10 @@ def _record_phase_result(
     phase_results: dict[str, ExecutedPhase],
     pending: set[str],
     output: Output | None,
+    elapsed: float,
 ) -> None:
     """Store a phase result and emit its rollup."""
-    _emit_phase_rollup(output, scenario_name, executed_phase)
+    _emit_phase_rollup(output, scenario_name, executed_phase, elapsed)
     phase_results[phase_name] = executed_phase
     pending.remove(phase_name)
 
@@ -1633,6 +1641,7 @@ def _emit_phase_rollup(
     output: Output | None,
     scenario_name: str,
     phase: ExecutedPhase,
+    elapsed: float,
 ) -> None:
     """Emit per-phase status counts after completion."""
     statuses = _collect_phase_statuses(phase)
@@ -1650,6 +1659,10 @@ def _emit_phase_rollup(
         f"not_applicable={counts[ResultStatus.NOT_APPLICABLE.value]} "
         f"skipped={counts[ResultStatus.SKIPPED.value]} "
         f"blocked={counts[ResultStatus.BLOCKED.value]}",
+    )
+    _emit_status(
+        output,
+        f"Finished phase execution in {elapsed:.3f}s",
     )
 
 

@@ -9,7 +9,7 @@ import uuid
 from typing import Any
 
 from scrapli import AsyncScrapli
-from scrapli.driver.generic import AsyncGenericDriver
+from scrapli.driver.network import AsyncNetworkDriver
 from scrapli.exceptions import (
     ScrapliAuthenticationFailed,
     ScrapliConnectionError,
@@ -77,7 +77,7 @@ class SSHBroker:
                       If not provided, a UUID will be generated.
         """
         self._broker_id = broker_id or str(uuid.uuid4())
-        self._connections: dict[str, AsyncGenericDriver] = {}
+        self._connections: dict[str, AsyncNetworkDriver] = {}
         self._configs: dict[str, ConnectionConfig] = {}
 
     @property
@@ -293,6 +293,52 @@ class SSHBroker:
             cached=False,
         )
 
+    async def send_interactive(
+        self,
+        handle: ConnectionHandle,
+        interact_events: list[tuple[str, str]] | list[tuple[str, str, bool]],
+        **kwargs: Any,  # noqa: ANN401
+    ) -> CommandResult:
+        """Execute an interactive command sequence on the device.
+
+        Uses Scrapli's ``send_interactive`` to handle commands that prompt
+        for confirmation or other input.
+
+        Args:
+            handle: The connection handle.
+            interact_events: List of (input, expected_prompt) or
+                (input, expected_prompt, hidden) tuples.
+            **kwargs: Additional options passed to Scrapli's send_interactive.
+
+        Returns:
+            The command result with combined output and timing.
+        """
+        if handle.device_name not in self._connections:
+            raise NotConnectedError(f"Not connected to {handle.device_name}")
+
+        driver = self._connections[handle.device_name]
+
+        start_time = time.monotonic()
+        try:
+            response = await driver.send_interactive(
+                interact_events=interact_events, **kwargs
+            )
+        except ScrapliTimeout as e:
+            raise TimeoutError(
+                f"Interactive command timed out on {handle.device_name}: {e}"
+            ) from e
+        except Exception as e:
+            raise CommandError(
+                f"Interactive command failed on {handle.device_name}: {e}"
+            ) from e
+        elapsed_ms = (time.monotonic() - start_time) * 1000
+
+        return CommandResult(
+            output=response.result,
+            elapsed_ms=elapsed_ms,
+            cached=False,
+        )
+
     async def configure(
         self,
         handle: ConnectionHandle,
@@ -320,7 +366,7 @@ class SSHBroker:
 
         start_time = time.monotonic()
         try:
-            response = await driver.send_commands(commands, **kwargs)
+            response = await driver.send_configs(commands, **kwargs)
         except ScrapliTimeout as e:
             raise TimeoutError(
                 f"Configuration timed out on {handle.device_name}: {e}"
