@@ -152,12 +152,14 @@ def _collect_phase_results(
     affected_groups: set[str],
 ) -> None:
     """Extract failures and passing tests from a single phase."""
-    for group in phase.get("test_case_groups", []):  # type: ignore[union-attr]
-        group_id = group["id"]
+    raw_groups = cast(list[dict[str, object]], phase.get("test_case_groups", []))
+    for group in raw_groups:
+        group_id = cast(str, group["id"])
         group_passing: list[str] = []
 
-        for test_case in group.get("test_cases", []):
-            test_id = test_case["test_id"]
+        test_cases = cast(list[dict[str, object]], group.get("test_cases", []))
+        for test_case in test_cases:
+            test_id = cast(str, test_case["test_id"])
             if test_case["status"] in _FAILURE_STATUSES:
                 failing_tests.append(
                     FailingTestCase(

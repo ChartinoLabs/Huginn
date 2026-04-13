@@ -296,7 +296,7 @@ class SSHBroker:
     async def send_interactive(
         self,
         handle: ConnectionHandle,
-        interact_events: list[tuple[str, str] | tuple[str, str, bool]],
+        interact_events: list[tuple[str, str]] | list[tuple[str, str, bool]],
         **kwargs: Any,  # noqa: ANN401
     ) -> CommandResult:
         """Execute an interactive command sequence on the device.

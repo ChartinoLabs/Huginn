@@ -3,7 +3,7 @@
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, cast
 
 from huginn.brokers import (
     ConnectionBrokerProtocolV1,
@@ -218,7 +218,7 @@ class RuntimeBroker:
     async def send_interactive(
         self,
         target: Device,
-        interact_events: list[tuple[str, str] | tuple[str, str, bool]],
+        interact_events: list[tuple[str, str]] | list[tuple[str, str, bool]],
         *,
         broker: BrokerType | None = None,
     ) -> CommandResult:
@@ -243,11 +243,14 @@ class RuntimeBroker:
             raise RuntimeBrokerError(
                 f"Broker '{broker_key}' does not support interactive commands"
             )
+        send_interactive = cast(
+            Callable[..., Awaitable[CommandResult]], broker_instance.send_interactive
+        )
         lock = self._operation_locks.setdefault(
             (target.name, broker_key), asyncio.Lock()
         )
         async with lock:
-            return await broker_instance.send_interactive(handle, interact_events)
+            return await send_interactive(handle, interact_events)
 
     async def get(
         self,
