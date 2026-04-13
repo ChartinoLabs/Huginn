@@ -12,6 +12,169 @@ The test plan is the orchestration layer. It defines:
 - **Targets**: Which devices, operating systems, or device groups each test applies to
 - **Tags**: Labels for filtering test execution
 
+## File Organization
+
+Test plans can be defined as a single YAML file or distributed across multiple files in a directory. The multi-file approach is recommended for large test plans with hundreds or thousands of test cases.
+
+### Single-File Mode
+
+The simplest approach: one `test_plan.yaml` file containing all definitions.
+
+```txt
+project/
+├── pyproject.toml
+├── testbed.yaml
+├── test_plan.yaml          # Everything in one file
+└── tests/
+```
+
+This mode is ideal for small to medium test plans and maintains backward compatibility.
+
+### Directory Mode
+
+For large test plans, definitions can be split across multiple YAML files within a directory. The framework recursively scans the directory and merges all YAML files into a unified test plan.
+
+```txt
+project/
+├── pyproject.toml
+├── testbed.yaml
+├── test_plan/                    # Directory instead of single file
+│   ├── project.yaml              # Top-level metadata (name, description, defaults)
+│   ├── scenarios.yaml            # Scenario definitions (contain phases)
+│   ├── connectivity/
+│   │   └── connectivity.yaml     # Connectivity test cases and groups
+│   ├── routing/
+│   │   ├── ospf.yaml             # OSPF test cases and groups
+│   │   └── bgp.yaml              # BGP test cases and groups
+│   └── interfaces/
+│       └── interfaces.yaml       # Interface test cases and groups
+└── tests/
+```
+
+**Enabling Directory Mode:**
+
+Specify a directory path instead of a file path:
+
+```toml
+# pyproject.toml
+[tool.huginn]
+test_plan = "test_plan/"    # Trailing slash optional
+```
+
+Or via CLI:
+
+```bash
+huginn run --plan test_plan/
+```
+
+### Top-Level Metadata
+
+Top-level metadata (`name`, `description`, `data_model`, `defaults`) can be defined in any file within the test plan directory. There is no required file name or location.
+
+```yaml
+# test_plan/project.yaml (or any name you prefer)
+---
+name: Production Network Validation
+description: >
+  Comprehensive validation suite for production network infrastructure.
+  Tests are organized by feature domain.
+
+data_model:
+  path: ./nac/data/
+
+defaults:
+  tags: [production]
+```
+
+Each top-level metadata key must be defined in exactly one file. If the same key appears in multiple files, the framework reports an error identifying both files.
+
+If no file defines a particular metadata key, that key is unset (empty).
+
+### Merge Semantics
+
+When multiple files define the same section, the framework merges them according to these rules:
+
+| Section            | Merge Strategy                                    |
+| ------------------ | ------------------------------------------------- |
+| `name`             | Single definition only; error on duplicate        |
+| `description`      | Single definition only; error on duplicate        |
+| `data_model`       | Single definition only; error on duplicate        |
+| `defaults`         | Single definition only; error on duplicate        |
+| `test_cases`       | Map merge; error on duplicate keys                |
+| `test_case_groups` | Map merge; error on duplicate keys                |
+| `scenarios`        | Map merge; error on duplicate keys                |
+
+**Example: Merging test_cases from multiple files**
+
+```yaml
+# test_plan/routing/ospf.yaml
+test_cases:
+  "3.0.0":
+    title: Verify OSPF Neighbors
+    job: jobs/routing/verify_ospf_neighbors.py
+
+  "3.1.0":
+    title: Verify OSPF Interfaces
+    job: jobs/routing/verify_ospf_interfaces.py
+```
+
+```yaml
+# test_plan/routing/bgp.yaml
+test_cases:
+  "4.0.0":
+    title: Verify BGP Neighbors
+    job: jobs/routing/verify_bgp_neighbors.py
+```
+
+**Merged result:**
+
+```yaml
+test_cases:
+  "3.0.0":
+    title: Verify OSPF Neighbors
+    # ...
+  "3.1.0":
+    title: Verify OSPF Interfaces
+    # ...
+  "4.0.0":
+    title: Verify BGP Neighbors
+    # ...
+```
+
+### Collision Detection
+
+The framework validates that keys are unique across all files:
+
+- Test case IDs must be globally unique
+- Test case group names must be globally unique
+- Scenario names must be globally unique
+
+If a collision is detected, the framework reports an error identifying both files:
+
+```txt
+Duplicate test_cases key '3.0.0' defined in test_plan/routing/ospf.yaml and test_plan/routing/bgp.yaml
+```
+
+### File Load Order
+
+Files are loaded in **alphabetical order** by path for determinism. Because all keys must be unique and merging is additive, load order does not affect the final result.
+
+### Excluded Directories
+
+The framework skips files in directories whose names start with `_` or `.`. This allows storing drafts, scratch files, or work-in-progress content alongside the active test plan without affecting loading.
+
+```txt
+test_plan/
+├── project.yaml                  # Loaded
+├── scenarios.yaml                # Loaded
+├── routing/
+│   └── ospf.yaml                 # Loaded
+├── _drafts/
+│   └── wip.yaml                  # Excluded (underscore-prefixed directory)
+└── .scratch/
+    └── notes.yaml                # Excluded (dot-prefixed directory)
+```
+
 ## Schema
 
 ### Top-Level Structure

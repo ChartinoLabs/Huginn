@@ -18,7 +18,7 @@ Configuration is hierarchical:
 [tool.huginn]
 # Test execution settings
 testbed = "testbed.yaml"           # Default testbed file
-test_plan = "test_plan.yaml"       # Default test plan file
+test_plan = "test_plan.yaml"       # Default test plan file or directory
 mode = "testing"                   # Default mode: "learning" or "testing"
 
 # Inventory plugin (alternative to static testbed YAML)
@@ -92,7 +92,7 @@ mode = "testing"
 | Setting     | Type   | Default            | Description                                     |
 | ----------- | ------ | ------------------ | ----------------------------------------------- |
 | `testbed`   | string | `"testbed.yaml"`   | Path to testbed file (relative to project root) |
-| `test_plan` | string | `"test_plan.yaml"` | Path to test plan file                          |
+| `test_plan` | string | `"test_plan.yaml"` | Path to test plan file or directory             |
 | `mode`      | string | `"testing"`        | Default execution mode: `learning` or `testing` |
 
 ### Inventory Plugins
