@@ -97,6 +97,24 @@ The execution mode for a test run. Huginn supports two modes:
 
 A single execution of a test plan against a testbed. A run establishes connections to all devices, executes phases in dependency order, executes test case groups within each phase, collects results, and generates reports. Test cases filtered out by tags or other criteria do not appear in run results.
 
+### Applicability
+
+The determination of whether a test case is relevant to a specific target device. Applicability can be:
+
+- **Static**: Declared in the test plan via target specifications (devices, device groups, operating systems). Resolved before test execution.
+- **Dynamic**: Determined at runtime by the test case itself via the `check_applicability()` method. Enables tests to introspect their assigned targets and filter based on device capabilities, running features, or other runtime conditions.
+
+A device that is statically targeted but dynamically determined to be not applicable is recorded with a NOT_APPLICABLE or LOST_APPLICABILITY result (depending on whether learned parameters exist) and the reason for non-applicability.
+
+### ApplicabilityResult
+
+The return type of a test case's `check_applicability()` method. Contains:
+
+- **applicable**: List of devices the test should run against.
+- **not_applicable**: Dictionary mapping device names to reasons why the test doesn't apply to them.
+
+The framework uses this result to update `context.targets` before calling `setup()` and `test()`.
+
 ### Context
 
 The object passed to jobs during execution. Contains access to the connection broker, target devices, results collector, parameters (file-based or data model), and execution metadata. The context is the primary interface between a job and the framework.
@@ -108,19 +126,27 @@ The outcome of a test case execution. Possible values:
 - **Passed**: All assertions succeeded.
 - **Failed**: One or more assertions did not match expected state.
 - **Errored**: An exception occurred during execution.
-- **Skipped**: The test case was in scope but determined at runtime to be not applicable (e.g., feature not configured in data model, no matching targets).
+- **Not Applicable**: The test case was in scope but determined at runtime to be not applicable, and no learned parameters exist for the device. This is the expected outcome when a test is assigned to a broad target group but only applies to a subset of devices.
+- **Lost Applicability**: The test case was applicable when parameters were learned but is no longer applicable during testing. This indicates that something changed between learning and testing that caused a previously testable device to become untestable. This status contributes to test failure by default, as it typically indicates an unexpected change that warrants investigation.
 - **Blocked**: The test case could not run because a dependency (phase or group) failed.
 
-Test cases filtered out before execution (e.g., by tags) do not appear in results at all.
+The distinction between NOT_APPLICABLE and LOST_APPLICABILITY is important:
+
+| Scenario                         | Learned Parameters Exist? | Result             |
+| -------------------------------- | ------------------------- | ------------------ |
+| Device never applicable          | No                        | NOT_APPLICABLE     |
+| Device was applicable, now isn't | Yes                       | LOST_APPLICABILITY |
+
+Test cases filtered out before execution (e.g., by tags) do not appear in results at all. This is distinct from NOT_APPLICABLE and LOST_APPLICABILITY, which appear in results with reasons.
 
 ### Aggregate Result
 
 The computed outcome for a test case group or phase, derived from the results of contained test cases. Possible values:
 
-- **Passed**: 100% of test cases passed.
-- **Partial**: Some test cases passed, some did not (mixed results).
+- **Passed**: 100% of test cases passed (no failures, errors, or lost applicability results).
+- **Partial**: Some test cases passed, some did not (mixed results including failures, errors, or lost applicability).
 - **Failed**: 0% of test cases passed (catastrophic failure).
 - **Blocked**: Could not execute because a dependency failed.
-- **Skipped**: All contained test cases were skipped.
+- **Not Applicable**: All contained test cases were not applicable (none were applicable and none had prior learned parameters).
 
-Aggregate results include counts (e.g., "1995/2000 passed") to provide visibility into the scope and nature of any failures.
+Aggregate results include counts (e.g., "1995/2000 passed") to provide visibility into the scope and nature of any failures. LOST_APPLICABILITY results are counted separately from NOT_APPLICABLE in aggregate reporting to highlight unexpected applicability changes.
