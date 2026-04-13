@@ -161,6 +161,7 @@ See [Parser Project Brief](07-parser-project.md) for details.
 | [Test Authoring](05-test-authoring.md)               | ABC class, base classes, async patterns                            |
 | [Configuration](06-configuration.md)                 | pyproject.toml schema, defaults                                    |
 | [Parser Project Brief](07-parser-project.md)         | Muninn motivation and goals                                        |
+| [Unit Testing Automation](08-unit-testing-automation.md) | Patterns for unit testing test automation jobs                  |
 | [Future Considerations](99-future-considerations.md) | Roadmap items and use cases for future exploration                 |
 
 ## Quick Example
