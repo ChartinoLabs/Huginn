@@ -463,6 +463,8 @@ For jobs with unique structures (convergence gates, change actions), write custo
 
 Use simple dataclass-based fakes instead of mocking frameworks. They're easier to understand, type-safe, and sufficient for testing job logic.
 
+Currently, each project defines its own fakes in `tests/jobs/conftest.py`. We are considering whether the core framework should ship a `huginn.testing` module with canonical fake implementations (e.g., `FakeDevice`, `FakeContext`, `FakeResults`), so that projects and plugins don't independently re-implement the same test doubles. This is an open design question — see the related discussion for details.
+
 ### Fake Definitions
 
 ```python
