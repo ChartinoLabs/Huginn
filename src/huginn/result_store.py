@@ -33,15 +33,27 @@ class RunResultFiles:
     test_case_paths: dict[str, str]
 
 
+def create_run_dir(
+    results_dir: Path,
+    *,
+    mode: ExecutionMode | None = None,
+) -> Path:
+    """Create a unique timestamped directory for one run.
+
+    This should be called at the start of a run so the directory is
+    available for artifacts before results are written at the end.
+    """
+    return _create_timestamped_run_dir(results_dir, mode=mode)
+
+
 def write_run_result(
     *,
     result: RunResult,
-    results_dir: Path,
+    run_dir: Path,
     mode: ExecutionMode | None = None,
 ) -> RunResultFiles:
-    """Write run JSON results under a timestamped results directory."""
+    """Write run JSON results under the given run directory."""
     try:
-        run_dir = _create_timestamped_run_dir(results_dir, mode=mode)
         test_case_paths = _write_test_case_results(result=result, run_dir=run_dir)
         payload = _build_run_summary_payload(
             result=result,

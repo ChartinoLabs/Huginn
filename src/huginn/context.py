@@ -1,6 +1,7 @@
 """Execution context passed to test jobs."""
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from huginn.enums import ExecutionMode
@@ -24,6 +25,10 @@ class Context:
     broker: Any  # noqa: ANN401
     parameters: ParameterManager
     results: ResultCollector
+    output_dir: Path
+    scenario: str
+    phase: str
+    test_case_group: str
     output: "Output | None" = None
     # TODO: Implement data model loading/injection when this capability is scoped in.
     data_model: dict[str, object] | None = None

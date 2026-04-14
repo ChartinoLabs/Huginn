@@ -12,7 +12,12 @@ class VerifySomething(TestCase):
 
     async def test(self, context: Context) -> None:
         """Record a passing result for fixture run."""
-        context.results.add_result(ResultStatus.PASSED, "all good")
+        context.results.add_result(
+            ResultStatus.PASSED,
+            "all good "
+            f"[scenario={context.scenario}|phase={context.phase}"
+            f"|group={context.test_case_group}|test_id={context.test_id}]",
+        )
 
     async def cleanup(self, context: Context) -> None:
         """No-op cleanup for fixture."""
