@@ -168,8 +168,21 @@ class VolatileLearningTestCase(LearningTestCase[VolatileParameters]):
     DEFAULT_OPERATOR: ClassVar[str] = "gte"
 
     def __init_subclass__(cls, **kwargs: object) -> None:
-        """Validate required class attributes on concrete subclasses."""
+        """Validate required class attributes on concrete subclasses.
+
+        Intermediate abstract subclasses (those that still declare at least
+        one abstract method directly, or inherit unimplemented abstract
+        methods) are exempt from the check — ``__abstractmethods__`` is
+        populated by ``ABCMeta.__new__`` after ``__init_subclass__`` runs,
+        so we scan for abstract methods explicitly here.
+        """
         super().__init_subclass__(**kwargs)
+        declares_abstract = any(
+            getattr(value, "__isabstractmethod__", False)
+            for value in cls.__dict__.values()
+        )
+        if declares_abstract:
+            return
         if getattr(cls, "__abstractmethods__", frozenset()):
             return
         if not cls.SERIES_PREFIX:
