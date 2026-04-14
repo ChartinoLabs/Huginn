@@ -6,6 +6,11 @@ from huginn.enums import ExecutionMode, ResultStatus
 from huginn.output import Output
 from huginn.testcase import ApplicabilityResult, LearningTestCase, TestCase
 from huginn.utils.commands import is_command_unsupported
+from huginn.volatile import (
+    Observation,
+    VolatileLearningTestCase,
+    VolatileParameters,
+)
 
 __all__ = [
     "main",
@@ -17,4 +22,7 @@ __all__ = [
     "TestCase",
     "LearningTestCase",
     "ApplicabilityResult",
+    "Observation",
+    "VolatileLearningTestCase",
+    "VolatileParameters",
 ]
