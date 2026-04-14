@@ -2,26 +2,36 @@
 
 Volatile parameter jobs validate device state values that change continuously
 during normal operation (uptimes, counters, version numbers). Rather than
-storing absolute captured values, these jobs persist a comparison operator
-and chain observations across phases via JSONL log files in the run's
-``context.output_dir``.
+storing absolute captured values, these jobs chain observations across
+phases via JSONL log files in the run's ``context.output_dir`` and defer
+the comparison decision to job-defined logic.
 
 See ``docs/09-volatile-parameters.md`` for the full design rationale.
 
 ## Usage
 
-Subclasses implement ``gather_observations()`` to yield one
-:class:`Observation` per logical object on each execution, and declare:
+Subclasses implement three methods:
+
+- :meth:`gather_observations` — yield one :class:`Observation` per logical
+  object on each execution.
+- :meth:`gather_state` — return the parameters to persist in learning
+  mode (inherited from :class:`LearningTestCase`). Schema is entirely up
+  to the subclass.
+- :meth:`passes_comparison` — return whether a current observation is
+  acceptable given its most recent prior observation. The subclass
+  interprets its own parameter schema here.
+
+And declare:
 
 - ``SERIES_PREFIX`` — stable identifier that determines the JSONL filename
   and survives across reconciled test case variants.
-- ``DEFAULT_OPERATOR`` — the comparison operator persisted in learning mode
-  (default: ``"gte"``).
 
-The framework-level base class is parser-agnostic. It is the subclass's
-responsibility to execute device commands, parse their output, and produce
-observations. Projects can build their own thin wrapper classes that add
-parser-specific helpers.
+The framework-level base class is parser-agnostic and schema-agnostic.
+It is the subclass's responsibility to execute device commands, parse
+their output, produce observations, and decide how each observation
+compares against its prior. Projects can build intermediate subclasses
+that fix a particular schema (e.g. a single operator key) while leaving
+parsing concerns to their own concrete jobs.
 
 ## Observation schema
 
@@ -40,27 +50,18 @@ from __future__ import annotations
 
 import json
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, ClassVar, TypedDict
+from typing import Any, ClassVar, Generic, TypeVar
 
 from huginn.context import Context
 from huginn.testcase import LearningTestCase
 
+VolatileParametersT = TypeVar("VolatileParametersT", bound=Mapping[str, object])
+
 _SUPPORTED_OPERATORS = frozenset({"gte", "lt", "gt", "lte"})
-
-
-class VolatileParameters(TypedDict):
-    """Parameter payload persisted by volatile jobs.
-
-    Volatile jobs persist a comparison operator rather than a captured value,
-    because the value being observed changes continuously during normal
-    operation. See ``docs/09-volatile-parameters.md`` for the full design.
-    """
-
-    operator: str
 
 
 @dataclass
@@ -86,6 +87,13 @@ def apply_operator(operator: str, current: int, prior: int) -> bool:
     """Return whether ``current`` satisfies ``operator`` relative to ``prior``.
 
     Supported operators: ``"gte"``, ``"gt"``, ``"lt"``, ``"lte"``.
+
+    This is a convenience helper for jobs that want to use a simple
+    operator-based comparison scheme. The framework itself does not
+    prescribe any particular scheme — subclasses of
+    :class:`VolatileLearningTestCase` implement their own
+    :meth:`~VolatileLearningTestCase.passes_comparison` and can use this
+    helper or not, as they see fit.
     """
     if operator not in _SUPPORTED_OPERATORS:
         msg = f"Unsupported comparison operator: {operator}"
@@ -151,21 +159,31 @@ def _build_observation_metadata(context: Context) -> dict[str, Any]:
     }
 
 
-class VolatileLearningTestCase(LearningTestCase[VolatileParameters]):
+class VolatileLearningTestCase(
+    LearningTestCase[VolatileParametersT],
+    Generic[VolatileParametersT],
+):
     """Base class for volatile parameter jobs using observation chains.
 
     This class implements the observation chain lifecycle and delegates
-    the parts that vary per job to :meth:`gather_observations`. In learning
-    mode the persisted payload is just the comparison operator. In testing
-    mode each execution reads the most recent prior observation per series
-    from the JSONL log, applies the operator, and appends new observations.
+    three concerns to subclasses:
 
-    The framework class is parser-agnostic: the subclass is responsible for
-    executing device commands, parsing output, and yielding observations.
+    1. What parameters to persist (:meth:`gather_state`)
+    2. How to produce observations (:meth:`gather_observations`)
+    3. How to compare a current observation against its prior
+       (:meth:`passes_comparison`)
+
+    The parameter schema is entirely subclass-defined. The framework does
+    not prescribe a particular shape — subclasses can persist a single
+    operator, a per-series operator map, tolerance thresholds, or
+    anything else they need to make a comparison decision.
+
+    The framework is also parser-agnostic: the subclass is responsible
+    for executing device commands, parsing output, and yielding
+    observations via :meth:`gather_observations`.
     """
 
     SERIES_PREFIX: ClassVar[str] = ""
-    DEFAULT_OPERATOR: ClassVar[str] = "gte"
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         """Validate required class attributes on concrete subclasses.
@@ -189,14 +207,6 @@ class VolatileLearningTestCase(LearningTestCase[VolatileParameters]):
             msg = f"{cls.__name__} must define SERIES_PREFIX"
             raise TypeError(msg)
 
-    async def gather_state(self, context: Context) -> VolatileParameters:
-        """Return the comparison operator for persistence in learning mode.
-
-        Overridable if a job computes the operator dynamically rather than
-        using the class-level default.
-        """
-        return {"operator": self.DEFAULT_OPERATOR}
-
     @abstractmethod
     async def gather_observations(
         self,
@@ -209,6 +219,28 @@ class VolatileLearningTestCase(LearningTestCase[VolatileParameters]):
         framework takes care of the observation chain from there.
         """
 
+    @abstractmethod
+    def passes_comparison(
+        self,
+        *,
+        parameters: VolatileParametersT,
+        observation: Observation,
+        prior: dict[str, Any],
+        context: Context,
+    ) -> bool:
+        """Return whether ``observation`` is acceptable given ``prior``.
+
+        The subclass interprets ``parameters`` (the payload loaded from the
+        parameter file) however it likes — a single operator key, a
+        per-series operator map, tolerance thresholds, etc. ``prior`` is
+        the most recent prior observation record for the same series,
+        with the full record shape (``series``, ``value``, ``raw``,
+        ``device``, metadata fields, etc.).
+
+        Return ``True`` to record a pass for this boundary, ``False`` to
+        record a fail.
+        """
+
     def build_first_observation_message(self, device_name: str) -> str:
         """Result message for the first execution in a run (no prior)."""
         return (
@@ -216,11 +248,11 @@ class VolatileLearningTestCase(LearningTestCase[VolatileParameters]):
             "(first in this run, no prior to compare against)"
         )
 
-    def build_success_message(self, device_name: str, operator: str) -> str:
-        """Result message when current observations satisfy the operator."""
+    def build_success_message(self, device_name: str) -> str:
+        """Result message when all current observations pass comparison."""
         return (
-            f"{device_name}: observations for {self.SERIES_PREFIX} satisfy "
-            f"operator '{operator}' relative to the prior observation"
+            f"{device_name}: observations for {self.SERIES_PREFIX} pass "
+            "comparison against the prior observation"
         )
 
     def build_failure_message(
@@ -228,28 +260,30 @@ class VolatileLearningTestCase(LearningTestCase[VolatileParameters]):
         *,
         device_name: str,
         series_key: str,
-        operator: str,
         prior: dict[str, Any],
-        current_raw: str,
+        current: Observation,
     ) -> str:
-        """Result message when an observation violates the operator."""
+        """Result message when an observation fails comparison.
+
+        Overridable if a subclass wants to surface operator-specific or
+        threshold-specific detail in the message.
+        """
         return (
             f"{device_name}'s {self.SERIES_PREFIX} for '{series_key}' "
-            f"violated operator '{operator}': prior={prior['raw']!r}, "
-            f"current={current_raw!r}"
+            f"failed comparison: prior={prior['raw']!r}, "
+            f"current={current.raw!r}"
         )
 
     async def compare_state(
         self,
         *,
-        expected: VolatileParameters,
-        current: VolatileParameters,
+        expected: VolatileParametersT,
+        current: VolatileParametersT,
         context: Context,
     ) -> None:
         """Run the observation chain comparison for this phase boundary."""
         from huginn.enums import ResultStatus  # local import to avoid cycles
 
-        operator = expected["operator"]
         prior_observations = read_prior_observations(context, self.SERIES_PREFIX)
         metadata = _build_observation_metadata(context)
 
@@ -280,15 +314,19 @@ class VolatileLearningTestCase(LearningTestCase[VolatileParameters]):
                 continue
 
             state["has_prior"] = True
-            if not apply_operator(operator, obs.value, prior["value"]):
+            if not self.passes_comparison(
+                parameters=expected,
+                observation=obs,
+                prior=prior,
+                context=context,
+            ):
                 context.results.add_result(
                     ResultStatus.FAILED,
                     self.build_failure_message(
                         device_name=obs.device,
                         series_key=obs.series_key,
-                        operator=operator,
                         prior=prior,
-                        current_raw=obs.raw,
+                        current=obs,
                     ),
                 )
                 state["has_failures"] = True
@@ -305,7 +343,7 @@ class VolatileLearningTestCase(LearningTestCase[VolatileParameters]):
             elif not state["has_failures"]:
                 context.results.add_result(
                     ResultStatus.PASSED,
-                    self.build_success_message(device.name, operator),
+                    self.build_success_message(device.name),
                 )
 
         write_observations(context, self.SERIES_PREFIX, new_records)

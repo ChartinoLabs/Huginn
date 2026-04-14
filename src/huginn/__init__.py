@@ -9,7 +9,6 @@ from huginn.utils.commands import is_command_unsupported
 from huginn.volatile import (
     Observation,
     VolatileLearningTestCase,
-    VolatileParameters,
 )
 
 __all__ = [
@@ -24,5 +23,4 @@ __all__ = [
     "ApplicabilityResult",
     "Observation",
     "VolatileLearningTestCase",
-    "VolatileParameters",
 ]
