@@ -26,6 +26,9 @@ class Context:
     parameters: ParameterManager
     results: ResultCollector
     output_dir: Path
+    scenario: str
+    phase: str
+    test_case_group: str
     output: "Output | None" = None
     # TODO: Implement data model loading/injection when this capability is scoped in.
     data_model: dict[str, object] | None = None

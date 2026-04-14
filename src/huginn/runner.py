@@ -1242,6 +1242,9 @@ async def _execute_test_case_once(
         ),
         results=result_collector,
         output_dir=output_dir,
+        scenario=scenario_name,
+        phase=phase.identifier,
+        test_case_group=group.identifier,
     )
 
     if planned.planning_error is not None:
