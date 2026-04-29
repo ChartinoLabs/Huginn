@@ -249,10 +249,40 @@ test_cases:
 | Field         | Type         | Required | Description                                        |
 | ------------- | ------------ | -------- | -------------------------------------------------- |
 | `title`       | string       | Yes      | Human-readable test name                           |
-| `job`         | string       | Yes      | Path to Python job file (relative to project root) |
+| `job`         | string       | Yes      | Job reference - see [Job References](#job-references) |
 | `description` | string       | No       | Detailed test description                          |
 | `tags`        | list[string] | No       | Labels for filtering                               |
 | `target`      | dict         | No       | Targeting specification                            |
+
+#### Job References
+
+The `job` field accepts two forms:
+
+- **File path** (relative to project root): `jobs/verify_ospf.py`
+- **Module path** (dot-delimited, resolved via Python's import system): `huginn_jobs_network.ospf.verify_neighbors`
+
+File paths contain `/` or end with `.py`. Module paths have neither and
+point to an installed Python package. Both forms accept an optional
+`:ClassName` suffix to select a specific `TestCase` subclass when the
+module defines more than one:
+
+```yaml
+test_cases:
+  "1.0.0":
+    title: Verify OSPF Neighbors (local job)
+    job: jobs/verify_ospf.py
+
+  "1.1.0":
+    title: Verify BGP Peering (packaged job)
+    job: huginn_jobs_network.bgp.verify_peering
+
+  "1.2.0":
+    title: Verify Interface Status (explicit class)
+    job: huginn_jobs_network.interfaces.verify_status:VerifyInterfaceStatus
+```
+
+See [Package-Based Job References](08-package-job-references.md) for the
+full discussion of packaged jobs.
 
 #### Parameters Convention
 

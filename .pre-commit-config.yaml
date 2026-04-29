@@ -27,6 +27,7 @@ repos:
       - id: forbid-submodules
       - id: name-tests-test
         args: [--pytest-test-first]
+        exclude: ^tests/fixtures/
       - id: pretty-format-json
         args: [--no-sort-keys, --indent=4]
       - id: requirements-txt-fixer
