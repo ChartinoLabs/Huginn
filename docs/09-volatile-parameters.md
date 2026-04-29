@@ -208,18 +208,18 @@ More generally, it is the responsibility of the test plan author to ensure that 
 
 Two volatile base classes are exported from `huginn`:
 
-- **`VolatileLearningTestCase`** — schema-agnostic base owning the
+- **`VolatileLearningTestCase`** - schema-agnostic base owning the
   observation chain mechanics. Subclasses define their own parameter
   schema, `gather_observations`, and `passes_comparison`. Use this when
   a job needs a custom comparison scheme (tolerance bands, per-series
   operators, or anything beyond a single operator key).
-- **`OperatorVolatileLearningTestCase`** — intermediate base for the
+- **`OperatorVolatileLearningTestCase`** - intermediate base for the
   common single-operator pattern. Fixes the parameter schema to
   `{"operator": str}`, provides command-based applicability checking,
   operator comparison via `apply_operator`, and an `"any"` operator
   that records observations in the chain but always passes. Subclasses
   declare `SERIES_PREFIX` and `command`, then implement
-  `gather_observations` (the parser boundary — the framework does not
+  `gather_observations` (the parser boundary - the framework does not
   prescribe a parser library).
 
 The helper `parse_duration_seconds` is also exported for jobs that
@@ -227,7 +227,7 @@ parse Cisco-style uptime strings (`"5 weeks, 2 days, 13 hours"`,
 `"1w2d"`, `"HH:MM:SS"`) into a monotonic integer value.
 
 The `"any"` operator is useful at phase boundaries where the impact on
-individual series is heterogeneous — for example, an OSPF restart
+individual series is heterogeneous - for example, an OSPF restart
 resets BGP sessions involving the restarted device but leaves other
 sessions untouched, so a single directional operator cannot satisfy
 every series at once. Reconciling the operator to `"any"` for that
