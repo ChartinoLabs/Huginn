@@ -249,7 +249,7 @@ test_cases:
 | Field         | Type         | Required | Description                                        |
 | ------------- | ------------ | -------- | -------------------------------------------------- |
 | `title`       | string       | Yes      | Human-readable test name                           |
-| `job`         | string       | Yes      | Job reference — see [Job References](#job-references) |
+| `job`         | string       | Yes      | Job reference - see [Job References](#job-references) |
 | `description` | string       | No       | Detailed test description                          |
 | `tags`        | list[string] | No       | Labels for filtering                               |
 | `target`      | dict         | No       | Targeting specification                            |
