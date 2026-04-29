@@ -6,10 +6,10 @@ If you have not yet read [Concepts › Job Archetypes](../concepts/archetypes.md
 
 ## Pages in this section
 
-- **[Static Parameter Validation](static-validation.md)** — verify that current state still matches a previously-learned baseline of deterministic values.
-- **[Volatile Parameter Validation](volatile-validation.md)** — track values that change continuously and assert the relationship between consecutive observations.
-- **[Change Jobs](change.md)** — invoke an action against the testbed (fault injection, normalization, configuration change, reload, …).
-- **[Gate Jobs](gate.md)** — halt test plan execution until expected post-change conditions are met.
+- **[Static Parameter Validation](static-validation.md)** - verify that current state still matches a previously-learned baseline of deterministic values.
+- **[Volatile Parameter Validation](volatile-validation.md)** - track values that change continuously and assert the relationship between consecutive observations.
+- **[Change Jobs](change.md)** - invoke an action against the testbed (fault injection, normalization, configuration change, reload, …).
+- **[Gate Jobs](gate.md)** - halt test plan execution until expected post-change conditions are met.
 
 ## Conventions shared across all archetypes
 
@@ -40,16 +40,16 @@ Every job module follows the same top-to-bottom layout:
 8. `TypedDict` definitions for the parameters payload.
 9. The job class.
 
-Volatile jobs are an exception — they do not need message constants or `TypedDict`s because the framework owns the schema. See [Volatile Parameter Validation](volatile-validation.md).
+Volatile jobs are an exception - they do not need message constants or `TypedDict`s because the framework owns the schema. See [Volatile Parameter Validation](volatile-validation.md).
 
 ### Class metadata
 
 Every job class declares four narrative class attributes, in this order:
 
-- `DESCRIPTION` — one or two sentences explaining what the job validates or does.
-- `SETUP` — bulleted list of preconditions assumed by the job.
-- `PROCEDURE` — bulleted list of steps the job performs. May include inlined Jinja templating to interpolate the parameters payload.
-- `PASS_FAIL_CRITERIA` — bulleted list of pass and fail conditions.
+- `DESCRIPTION` - one or two sentences explaining what the job validates or does.
+- `SETUP` - bulleted list of preconditions assumed by the job.
+- `PROCEDURE` - bulleted list of steps the job performs. May include inlined Jinja templating to interpolate the parameters payload.
+- `PASS_FAIL_CRITERIA` - bulleted list of pass and fail conditions.
 
 These attributes are consumed by the reporting system to generate per-test documentation.
 
@@ -82,4 +82,4 @@ This is universal enough that it could be extracted into a base class in the fut
 
 ## See also
 
-- [Test Authoring (legacy)](../05-test-authoring.md) — the original authoring document. Material from this page is being migrated into the per-archetype guides.
+- [Test Authoring (legacy)](../05-test-authoring.md) - the original authoring document. Material from this page is being migrated into the per-archetype guides.

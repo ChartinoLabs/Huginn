@@ -2,7 +2,7 @@
 
 A volatile parameter validation job tracks an attribute that changes continuously as a normal consequence of network operation, and asserts the *relationship* between consecutive observations rather than equality against a fixed baseline.
 
-For the design rationale behind this archetype — including why "expected failures" and "re-learning" were rejected as alternatives — read [Volatile Parameters](../09-volatile-parameters.md). This page is the practical guide to writing one.
+For the design rationale behind this archetype - including why "expected failures" and "re-learning" were rejected as alternatives - read [Volatile Parameters](../09-volatile-parameters.md). This page is the practical guide to writing one.
 
 ## When to use this archetype
 
@@ -11,7 +11,7 @@ Use volatile parameter validation when the attribute being validated:
 - Changes continuously without any explicit configuration or hardware change. Examples: BGP session uptimes, message counters, keepalive counts, table versions.
 - Has a meaningful directional relationship between consecutive observations. Examples: monotonically increasing (counters), recently-reset-after-disruption (uptime drops to a small value after a session reset).
 
-If the attribute is deterministic — meaning you can predict its expected value at any point in the test plan — use [Static Parameter Validation](static-validation.md) instead.
+If the attribute is deterministic - meaning you can predict its expected value at any point in the test plan - use [Static Parameter Validation](static-validation.md) instead.
 
 If the attribute is volatile but does not have a clean directional relationship (e.g., TCP ephemeral ports, "last reset reason" strings), the volatile archetype is not the right fit. Consider whether a static parameter with per-scenario reconciliation, an existence check, or a state-marker check is more appropriate.
 
@@ -96,7 +96,7 @@ from typing import Any
 from catalog._volatile import Observation, VolatileLearningTestCase
 ```
 
-`VolatileLearningTestCase` (the catalog-local subclass) wraps the framework's `huginn.OperatorVolatileLearningTestCase` and adds the `muninn`-aware command execution and parsing pipeline that the rest of the catalog uses. Inherit from this — not from the framework class directly.
+`VolatileLearningTestCase` (the catalog-local subclass) wraps the framework's `huginn.OperatorVolatileLearningTestCase` and adds the `muninn`-aware command execution and parsing pipeline that the rest of the catalog uses. Inherit from this - not from the framework class directly.
 
 ### Class metadata
 
@@ -104,7 +104,7 @@ Same four narrative class attributes as every other archetype: `DESCRIPTION`, `S
 
 ### `SERIES_PREFIX`
 
-A string identifying this observation stream. The framework composes the full series identity by combining `SERIES_PREFIX` with the per-observation `series_key` (and the device). This identity must remain stable across every execution that should participate in the same comparison stream — including reconciled post-change variants of the same job.
+A string identifying this observation stream. The framework composes the full series identity by combining `SERIES_PREFIX` with the per-observation `series_key` (and the device). This identity must remain stable across every execution that should participate in the same comparison stream - including reconciled post-change variants of the same job.
 
 The convention is `<category>-<subject>-<aspect>`, lowercase and hyphenated:
 
@@ -125,35 +125,35 @@ A regular (non-async) method. The base class calls it once per device, after exe
 
 `Observation` fields:
 
-- `device` — the device name. Use the `device_name` argument as-is.
-- `series_key` — the per-object identity within this device's contribution to the series. For BGP, this is typically the neighbor address. For OSPF, the LSA ID. For per-device scalars, use the device name or an empty string.
-- `value` — the comparable scalar. **Must be an `int`** for operator-based comparisons (`gte`, `lt`, etc.). For duration strings, parse to seconds with `huginn.parse_duration_seconds(...)`.
-- `raw` — the human-readable form of the value, recorded in the observation log alongside the comparable scalar. Useful for debugging.
-- `extra` — optional dict of additional context attached to the observation in the log.
+- `device` - the device name. Use the `device_name` argument as-is.
+- `series_key` - the per-object identity within this device's contribution to the series. For BGP, this is typically the neighbor address. For OSPF, the LSA ID. For per-device scalars, use the device name or an empty string.
+- `value` - the comparable scalar. **Must be an `int`** for operator-based comparisons (`gte`, `lt`, etc.). For duration strings, parse to seconds with `huginn.parse_duration_seconds(...)`.
+- `raw` - the human-readable form of the value, recorded in the observation log alongside the comparable scalar. Useful for debugging.
+- `extra` - optional dict of additional context attached to the observation in the log.
 
-Skip yielding an observation if the underlying parsed value is missing — `extract_observations` returns an `Iterable`, so a `continue` cleanly omits the item.
+Skip yielding an observation if the underlying parsed value is missing - `extract_observations` returns an `Iterable`, so a `continue` cleanly omits the item.
 
 ## Choosing a comparison operator
 
 The operator is part of the *learned* parameter set, not a class attribute. In learning mode, the framework persists the operator alongside the series identity. In testing mode, it loads the operator and applies it to each comparison.
 
-The default operator for most volatile attributes is `gte` (greater than or equal to) — counters increment, uptimes grow, table versions advance.
+The default operator for most volatile attributes is `gte` (greater than or equal to) - counters increment, uptimes grow, table versions advance.
 
 The operator can be overridden per-scenario via parameter reconciliation. For example, a scenario that resets BGP sessions can reconcile the post-change comparison to use `lt` (the post-change uptime is *less than* the pre-change uptime). See [Parameter Reconciliation](../08-parameter-reconciliation.md).
 
-The `"any"` operator is special — observations are still recorded in the chain, but comparisons always pass. Use `"any"` at phase boundaries where the impact on individual series is heterogeneous (e.g., a disruption that resets some sessions but not others).
+The `"any"` operator is special - observations are still recorded in the chain, but comparisons always pass. Use `"any"` at phase boundaries where the impact on individual series is heterogeneous (e.g., a disruption that resets some sessions but not others).
 
 ## Series identity discipline
 
 Volatile observations are chained by series identity. If you change `SERIES_PREFIX` or the `series_key` shape between executions, the framework will not recognize a continuation and will treat the new identity as the start of a fresh chain. This means:
 
 - **Don't change `SERIES_PREFIX` lightly.** Renaming it breaks parameter files for every test plan that uses the job.
-- **Compose `series_key` from stable identifiers.** Use neighbor addresses, LSA IDs, interface names — not transient identifiers like TCP ports or session IDs.
+- **Compose `series_key` from stable identifiers.** Use neighbor addresses, LSA IDs, interface names - not transient identifiers like TCP ports or session IDs.
 - **For per-device scalars, use a stable string.** A common convention is the empty string, since the device dimension is already provided.
 
 ## Why the framework bypasses the broker cache
 
-Volatile jobs always read fresh state. The base class issues commands without using the broker's cache — reusing cached output from an earlier phase would compare a stale value against a newer one and defeat the purpose of the volatile comparison.
+Volatile jobs always read fresh state. The base class issues commands without using the broker's cache - reusing cached output from an earlier phase would compare a stale value against a newer one and defeat the purpose of the volatile comparison.
 
 You do not need to opt into this behavior. The base class handles it. Do not add `use_cache=False` calls of your own; let the base class own the cache discipline.
 
@@ -166,6 +166,6 @@ You do not need to opt into this behavior. The base class handles it. Do not add
 
 ## See also
 
-- [Volatile Parameters](../09-volatile-parameters.md) — design rationale, alternatives considered, and the operator-transition worked example.
-- [Static Parameter Validation](static-validation.md) — for attributes whose expected value is deterministic.
-- [Parameter Reconciliation](../08-parameter-reconciliation.md) — how scenarios override parameters (including operators) for specific phases.
+- [Volatile Parameters](../09-volatile-parameters.md) - design rationale, alternatives considered, and the operator-transition worked example.
+- [Static Parameter Validation](static-validation.md) - for attributes whose expected value is deterministic.
+- [Parameter Reconciliation](../08-parameter-reconciliation.md) - how scenarios override parameters (including operators) for specific phases.

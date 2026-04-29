@@ -176,11 +176,11 @@ Every comparison outcome you might emit gets its own named constant with `{place
 
 The standard families are:
 
-- `NOT_SUPPORTED_REASON` — applicability skip reason when the show command is unsupported.
-- `MISSING_LEARNED_BASELINE` — testing mode failure when the learned parameter file is missing data for a device.
-- `MISSING_CURRENT_STATE` — testing mode failure when the current observation is missing data for a device.
-- One or more drift messages (`VALUE_MISMATCH`, `MISSING_NEIGHBOR`, …) — per-item failure reasons.
-- One pass message (`VALUES_MATCH`) — per-device success.
+- `NOT_SUPPORTED_REASON` - applicability skip reason when the show command is unsupported.
+- `MISSING_LEARNED_BASELINE` - testing mode failure when the learned parameter file is missing data for a device.
+- `MISSING_CURRENT_STATE` - testing mode failure when the current observation is missing data for a device.
+- One or more drift messages (`VALUE_MISMATCH`, `MISSING_NEIGHBOR`, …) - per-item failure reasons.
+- One pass message (`VALUES_MATCH`) - per-device success.
 
 ### TypedDicts
 
@@ -197,7 +197,7 @@ Always type the parameters in the class generic: `LearningTestCase[<Subject>Para
 
 ### `check_applicability`
 
-Standard idiom — see [Authoring overview](index.md#applicability). Verify that the show command is supported on each target. Skip targets that respond with an unsupported-command marker.
+Standard idiom - see [Authoring overview](index.md#applicability). Verify that the show command is supported on each target. Skip targets that respond with an unsupported-command marker.
 
 ### `gather_state`
 
@@ -222,7 +222,7 @@ For each target, in this order:
 3. Walk the inner items. For each item, classify as missing, mismatched, or matched. Emit per-item `FAILED` results for the first two; track a `has_failures` flag.
 4. If `has_failures` is false at the end of the device loop body, emit one `PASSED` result for the device.
 
-For scalar (single-value-per-device) jobs, skip the `has_failures` accumulator — emit `FAILED` or `PASSED` directly.
+For scalar (single-value-per-device) jobs, skip the `has_failures` accumulator - emit `FAILED` or `PASSED` directly.
 
 ## Variations by parameter cardinality
 
@@ -275,6 +275,6 @@ class RouteExistenceParameters(TypedDict):
 
 ## See also
 
-- [Volatile Parameter Validation](volatile-validation.md) — for attributes that change continuously.
-- [Test Plan Specification](../04-test-plan-spec.md) — how to reference a job from a test case.
-- [Glossary](../00-glossary.md) — formal definitions of `Job`, `Parameters`, `Test Case`, and related terms.
+- [Volatile Parameter Validation](volatile-validation.md) - for attributes that change continuously.
+- [Test Plan Specification](../04-test-plan-spec.md) - how to reference a job from a test case.
+- [Glossary](../00-glossary.md) - formal definitions of `Job`, `Parameters`, `Test Case`, and related terms.

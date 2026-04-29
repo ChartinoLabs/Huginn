@@ -1,13 +1,13 @@
 # Change Jobs
 
-A change job invokes an action against the testbed — applying a configuration change, clearing a session, reloading a device, bringing a link up or down, and so on — and verifies that the action took effect.
+A change job invokes an action against the testbed - applying a configuration change, clearing a session, reloading a device, bringing a link up or down, and so on - and verifies that the action took effect.
 
 ## When to use this archetype
 
 Use a change job whenever the test plan needs to *do* something to the testbed, as opposed to *observe* something. This includes both directions of intentional action:
 
-- **Failure injection** — bringing down a link, shutting an interface, clearing a routing process, reloading a device, mismatching MTUs.
-- **Normalization** — restoring a link, bringing an interface back up, restoring a configuration, returning MTUs to matching values.
+- **Failure injection** - bringing down a link, shutting an interface, clearing a routing process, reloading a device, mismatching MTUs.
+- **Normalization** - restoring a link, bringing an interface back up, restoring a configuration, returning MTUs to matching values.
 
 Whether a particular action is "fault" or "normalization" depends on the testbed and test plan. The same `change_link_down.py` job that injects a fault in one plan may be the normalization step in another (e.g., for a plan that begins with the link administratively up and validates that bringing it down gracefully drains traffic).
 
@@ -44,10 +44,10 @@ MISSING_LEARNED_PARAMETERS = (
 MISSING_CURRENT_STATE = "{device} is missing current BGP peer state"
 PRECONDITION_FAILED = (
     "{device}'s BGP neighbor {neighbor} is not in Established state "
-    "(current state: '{state}') — cannot clear"
+    "(current state: '{state}') - cannot clear"
 )
 CLEAR_CONFIRMED = (
-    "{device}'s BGP neighbor {neighbor} session was reset successfully — "
+    "{device}'s BGP neighbor {neighbor} session was reset successfully - "
     "state duration decreased (before='{before}', after='{after}')"
 )
 CLEAR_FAILED = (
@@ -58,7 +58,7 @@ MISSING_NEIGHBOR = (
     "{device}'s BGP neighbor {neighbor} is missing from current state"
 )
 NEIGHBOR_DOWN_AFTER_CLEAR = (
-    "{device}'s BGP neighbor {neighbor} is in '{state}' state after clear — "
+    "{device}'s BGP neighbor {neighbor} is in '{state}' state after clear - "
     "session has not yet re-established"
 )
 
@@ -106,7 +106,7 @@ class ChangeClearBgpPeer(LearningTestCase[ClearBgpPeerParameters]):
     command = "show ip bgp neighbors"
 
     async def check_applicability(self, context: Context) -> ApplicabilityResult:
-        # Standard idiom — see authoring overview.
+        # Standard idiom - see authoring overview.
         ...
 
     async def gather_state(self, context: Context) -> ClearBgpPeerParameters:
@@ -259,12 +259,12 @@ class ChangeClearBgpPeer(LearningTestCase[ClearBgpPeerParameters]):
 
 ## Why a change job inherits from `LearningTestCase`
 
-Change jobs do not "validate" in the sense that static and volatile jobs do — but they still need a parameter file. The parameter file records *which targets the job will act on*: which BGP peers were Established and therefore eligible to be cleared, which interfaces were up and therefore eligible to be shut down, which CML link IDs were started, and so on. This identification step is exactly what `LearningTestCase` was built for.
+Change jobs do not "validate" in the sense that static and volatile jobs do - but they still need a parameter file. The parameter file records *which targets the job will act on*: which BGP peers were Established and therefore eligible to be cleared, which interfaces were up and therefore eligible to be shut down, which CML link IDs were started, and so on. This identification step is exactly what `LearningTestCase` was built for.
 
 The verbs `gather_state` and `compare_state` describe the interface contract, not the semantic intent:
 
-- `gather_state` — identify the targets and capture metadata about them (current state, descriptions, identifiers).
-- `compare_state` — execute the action and verify it took effect.
+- `gather_state` - identify the targets and capture metadata about them (current state, descriptions, identifiers).
+- `compare_state` - execute the action and verify it took effect.
 
 This overload is intentional. Treat the verb names as fixed by the framework's interface, not as descriptions of what your job does. Use the docstring and message constants to communicate intent.
 
@@ -272,10 +272,10 @@ This overload is intentional. Treat the verb names as fixed by the framework's i
 
 Every change job's `compare_state` follows the same four-step skeleton:
 
-1. **Resolve targets** — pull the per-device payload out of `expected` (the candidates captured during learning) and `current` (the freshly observed state). Emit `MISSING_LEARNED_PARAMETERS` or `MISSING_CURRENT_STATE` and `continue` on missing data.
-2. **Validate preconditions** — for each candidate, confirm it is currently in the state required for the action to be meaningful. Emit `PRECONDITION_FAILED` (or a more specific message) and `continue` to the next device on any precondition failure.
-3. **Apply the action** — execute the change. Use `context.broker.execute(device, "<exec command>", use_cache=False)` for exec-mode commands like `clear ip bgp` or `reload`. Use `context.broker.edit(device, "<config block>")` for configuration changes. For non-CLI changes (REST APIs, controller calls), see [Non-CLI change jobs](#non-cli-change-jobs).
-4. **Wait, then verify** — sleep for a fixed `_POST_*_DELAY_SECONDS` (or poll for `_MAX_POLL_ATTEMPTS × _POLL_INTERVAL_SECONDS`), then re-execute the show command and confirm the action took effect. Emit `*_CONFIRMED` or `*_FAILED` per target.
+1. **Resolve targets** - pull the per-device payload out of `expected` (the candidates captured during learning) and `current` (the freshly observed state). Emit `MISSING_LEARNED_PARAMETERS` or `MISSING_CURRENT_STATE` and `continue` on missing data.
+2. **Validate preconditions** - for each candidate, confirm it is currently in the state required for the action to be meaningful. Emit `PRECONDITION_FAILED` (or a more specific message) and `continue` to the next device on any precondition failure.
+3. **Apply the action** - execute the change. Use `context.broker.execute(device, "<exec command>", use_cache=False)` for exec-mode commands like `clear ip bgp` or `reload`. Use `context.broker.edit(device, "<config block>")` for configuration changes. For non-CLI changes (REST APIs, controller calls), see [Non-CLI change jobs](#non-cli-change-jobs).
+4. **Wait, then verify** - sleep for a fixed `_POST_*_DELAY_SECONDS` (or poll for `_MAX_POLL_ATTEMPTS × _POLL_INTERVAL_SECONDS`), then re-execute the show command and confirm the action took effect. Emit `*_CONFIRMED` or `*_FAILED` per target.
 
 This skeleton is consistent across the catalog. Deviating from it makes the job harder to read.
 
@@ -290,7 +290,7 @@ Change jobs add a few constants beyond the standard set:
 | Action outcome | `CLEAR_CONFIRMED` / `SHUTDOWN_CONFIRMED` / `RELOAD_CONFIRMED`, `CLEAR_FAILED` / `SHUTDOWN_FAILED` / `RELOAD_FAILED_*` | Emitted in step 4. |
 | Tuning constants | `_POST_CLEAR_DELAY_SECONDS`, `_POLL_INTERVAL_SECONDS`, `_MAX_POLL_ATTEMPTS` | Private (`_` prefix). Used by step 3 / 4. |
 
-Keep tuning constants as private module-level names. Do not hoist them to class attributes unless the test plan needs to override them per-instance — at which point they belong as top-level fields in the parameters TypedDict (see the `change_interface_flap.py` pattern in the catalog).
+Keep tuning constants as private module-level names. Do not hoist them to class attributes unless the test plan needs to override them per-instance - at which point they belong as top-level fields in the parameters TypedDict (see the `change_interface_flap.py` pattern in the catalog).
 
 ## TypedDict shape
 
@@ -304,9 +304,9 @@ If the change job exposes a tuning knob to the test plan author (e.g., `flap_cou
 
 ## Restore variants
 
-Many change jobs ship with a paired `change_*_restore.py` variant. The restore variant inverts the action of the original — `change_local_preference.py` applies a route-map change, and `change_local_preference_restore.py` removes it. The restore variant follows the same skeleton with simplifications:
+Many change jobs ship with a paired `change_*_restore.py` variant. The restore variant inverts the action of the original - `change_local_preference.py` applies a route-map change, and `change_local_preference_restore.py` removes it. The restore variant follows the same skeleton with simplifications:
 
-- Skip the precondition step. The restore is unconditional — you do not need to validate prior state before tearing it down.
+- Skip the precondition step. The restore is unconditional - you do not need to validate prior state before tearing it down.
 - Drop fields from the candidate record that only mattered for the apply (e.g., the new value being applied).
 - Emit `RESTORE_CONFIRMED` instead of `*_CONFIRMED`.
 
@@ -326,14 +326,14 @@ Otherwise, the structure (TypedDicts, message constants, four-step skeleton in `
 
 ## Common pitfalls
 
-- **Don't put `command` at module scope.** It belongs as a class attribute. The legacy catalog has a few change jobs that use module-level `command = "..."` — do not reproduce this pattern.
+- **Don't put `command` at module scope.** It belongs as a class attribute. The legacy catalog has a few change jobs that use module-level `command = "..."` - do not reproduce this pattern.
 - **Don't skip the precondition step.** If the action assumes a starting state, validate that state explicitly. Skipping the check makes failures look like the action failed when it actually never had a chance to run.
 - **Don't use a single fixed sleep when the convergence time varies.** If the action's effect is observable within a known window but the exact time varies, use the poll loop pattern (`_POLL_INTERVAL_SECONDS × _MAX_POLL_ATTEMPTS`) and break early on success.
-- **Don't poke at framework internals** to work around connection or session lifecycle issues. The legacy `change_reload.py` reaches into `broker._handles` to evict connections after a reload — this is fragile and should be replaced with framework-level support, not copied into new jobs.
+- **Don't poke at framework internals** to work around connection or session lifecycle issues. The legacy `change_reload.py` reaches into `broker._handles` to evict connections after a reload - this is fragile and should be replaced with framework-level support, not copied into new jobs.
 - **Don't conflate change and gate semantics.** A change job applies an action and verifies that the immediate effect occurred. If the test plan needs to wait for downstream convergence (e.g., wait for BGP sessions to re-establish after the action) before post-change validation runs, that is the [Gate](gate.md) archetype's responsibility, not the change job's.
 
 ## See also
 
-- [Gate Jobs](gate.md) — for halting the test plan until convergence completes after a change.
-- [Volatile Parameter Validation](volatile-validation.md) — for tracking attributes that the change job's effect will modify.
-- [Test Plan Specification](../04-test-plan-spec.md) — phases, scenarios, and how change jobs slot into the change phase.
+- [Gate Jobs](gate.md) - for halting the test plan until convergence completes after a change.
+- [Volatile Parameter Validation](volatile-validation.md) - for tracking attributes that the change job's effect will modify.
+- [Test Plan Specification](../04-test-plan-spec.md) - phases, scenarios, and how change jobs slot into the change phase.

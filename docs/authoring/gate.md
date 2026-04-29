@@ -1,6 +1,6 @@
 # Gate Jobs
 
-A gate job halts test plan execution until the testbed reaches a stable expected state. Gates exist because validation runs faster than infrastructure converges — without one, post-change validation can race convergence and produce false failures.
+A gate job halts test plan execution until the testbed reaches a stable expected state. Gates exist because validation runs faster than infrastructure converges - without one, post-change validation can race convergence and produce false failures.
 
 ## When to use this archetype
 
@@ -92,7 +92,7 @@ class GateBgpPeeringStatus(LearningTestCase[BgpPeeringGateParameters]):
     command = "show ip bgp summary"
 
     async def check_applicability(self, context: Context) -> ApplicabilityResult:
-        # Standard idiom — see authoring overview.
+        # Standard idiom - see authoring overview.
         ...
 
     async def gather_state(self, context: Context) -> BgpPeeringGateParameters:
@@ -258,14 +258,14 @@ Gates often come in pairs: `gate_*_present` and `gate_*_absent`. The mechanism i
 - `gate_*_present` waits for an object to appear (e.g., a route is in the table).
 - `gate_*_absent` waits for an object to disappear (e.g., a route is no longer in the table).
 
-When writing a new pair, share as much of the message-constant palette and TypedDict shape as possible — only the convergence loop body should differ.
+When writing a new pair, share as much of the message-constant palette and TypedDict shape as possible - only the convergence loop body should differ.
 
 ## Choosing `timeout` and `interval`
 
 The parameter TypedDict carries `timeout` and `interval` as top-level fields so test plan authors can tune them per-instance via the parameters file. Pick defaults that reflect typical convergence behavior on the kinds of testbeds the gate will run against:
 
-- **`interval`** — how often the gate polls. Lower values catch convergence sooner but generate more device load. 2–10 seconds is typical.
-- **`timeout`** — how long the gate is willing to wait. Set this to a comfortable margin above the worst-case convergence time you expect. Too low produces false-failure noise; too high turns the gate into an opaque hang.
+- **`interval`** - how often the gate polls. Lower values catch convergence sooner but generate more device load. 2–10 seconds is typical.
+- **`timeout`** - how long the gate is willing to wait. Set this to a comfortable margin above the worst-case convergence time you expect. Too low produces false-failure noise; too high turns the gate into an opaque hang.
 
 If a particular test plan needs different values than your defaults, the author can override them in the per-test-case parameters file.
 
@@ -273,13 +273,13 @@ If a particular test plan needs different values than your defaults, the author 
 
 - **Don't call the broker without `use_cache=False`.** Each poll must reflect fresh state. Using cached output would compare the same observation against itself across iterations and either pass on the first poll (incorrect) or hang indefinitely.
 - **Don't busy-poll.** Always `await asyncio.sleep(...)` between iterations. The `min(interval, remaining)` clamp prevents the last sleep from overshooting the deadline.
-- **Don't write per-target convergence loops.** One gate, one polling loop, all targets in parallel. This is what makes a gate scalable to many devices — each iteration reads all targets in one pass.
+- **Don't write per-target convergence loops.** One gate, one polling loop, all targets in parallel. This is what makes a gate scalable to many devices - each iteration reads all targets in one pass.
 - **Don't return early from `_check_convergence`.** The helper must compute the full issue set, even if it knows the result will be non-empty. The reported issues are how operators understand *why* a gate timed out.
 - **Don't conflate gate semantics with validation semantics.** A gate proves the testbed reached an expected state; it does not prove the *correctness* of that state. Pair the gate with static or volatile validation jobs in the post-change phase to assert correctness.
 - **Don't extend the gate's responsibilities.** Gates are deliberately small. If you find yourself adding action steps inside a gate, you are writing a [change](change.md) job. If you find yourself recording per-attribute values for later comparison, you are writing a [validation](static-validation.md) job. Keep the archetypes distinct.
 
 ## See also
 
-- [Change Jobs](change.md) — typically run immediately before a gate.
-- [Static Parameter Validation](static-validation.md) — typically run immediately after a gate.
-- [Test Plan Specification](../04-test-plan-spec.md) — how gates slot into the change-to-validation transition.
+- [Change Jobs](change.md) - typically run immediately before a gate.
+- [Static Parameter Validation](static-validation.md) - typically run immediately after a gate.
+- [Test Plan Specification](../04-test-plan-spec.md) - how gates slot into the change-to-validation transition.
