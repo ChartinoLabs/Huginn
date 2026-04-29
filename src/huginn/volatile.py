@@ -49,19 +49,24 @@ Each observation record written to the JSONL log includes:
 from __future__ import annotations
 
 import json
+import re
 from abc import abstractmethod
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, ClassVar, Generic, TypeVar
+from typing import Any, ClassVar, Generic, TypedDict, TypeVar
 
 from huginn.context import Context
-from huginn.testcase import LearningTestCase
+from huginn.testcase import ApplicabilityResult, LearningTestCase
+from huginn.utils.commands import is_command_unsupported
 
 VolatileParametersT = TypeVar("VolatileParametersT", bound=Mapping[str, object])
 
 _SUPPORTED_OPERATORS = frozenset({"gte", "lt", "gt", "lte"})
+_OPERATOR_ANY = "any"
+
+_NOT_SUPPORTED_REASON = "Device does not support '{command}'"
 
 
 @dataclass
@@ -347,3 +352,187 @@ class VolatileLearningTestCase(
                 )
 
         write_observations(context, self.SERIES_PREFIX, new_records)
+
+
+class OperatorVolatileParameters(TypedDict):
+    """Parameter schema for operator-based volatile jobs.
+
+    The single ``operator`` key drives the comparison between a new
+    observation and its prior. Supported values are ``"gte"``, ``"gt"``,
+    ``"lt"``, ``"lte"``, and the special value ``"any"`` — which records
+    the observation in the chain but always passes the comparison. The
+    ``"any"`` operator is useful at phase boundaries where the impact on
+    individual series is heterogeneous (e.g. a process restart resets
+    some sessions but leaves others untouched), so a single directional
+    operator cannot satisfy every series at once.
+    """
+
+    operator: str
+
+
+class OperatorVolatileLearningTestCase(
+    VolatileLearningTestCase[OperatorVolatileParameters],
+):
+    """Volatile base class using a single-operator parameter schema.
+
+    This intermediate sits between :class:`VolatileLearningTestCase` and
+    concrete jobs that follow the common pattern of:
+
+    1. Executing a single device command (declared via :attr:`command`).
+    2. Producing one or more monotonic-style observations per device.
+    3. Comparing each observation against its prior using a single
+       operator persisted as the parameter payload.
+
+    Subclasses must still implement :meth:`gather_observations` — the
+    parsing step is intentionally left to each subclass so the framework
+    does not depend on any particular parser library.
+
+    Typical subclass structure:
+
+    .. code-block:: python
+
+        class VerifyUptimeIncreased(OperatorVolatileLearningTestCase):
+            SERIES_PREFIX = "version-uptime"
+            command = "show version"
+
+            async def gather_observations(self, context):
+                ...
+    """
+
+    command: ClassVar[str] = ""
+    DEFAULT_OPERATOR: ClassVar[str] = "gte"
+
+    @abstractmethod
+    async def gather_observations(
+        self,
+        context: Context,
+    ) -> Iterable[Observation]:
+        """Yield current observations from devices.
+
+        Subclasses implement this to execute :attr:`command` on each
+        target, parse the output with their chosen parser, and yield
+        one :class:`Observation` per tracked object. The framework does
+        not prescribe a parser library — this hook is the boundary.
+        """
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        """Validate that concrete subclasses declare a device command."""
+        super().__init_subclass__(**kwargs)
+        declares_abstract = any(
+            getattr(value, "__isabstractmethod__", False)
+            for value in cls.__dict__.values()
+        )
+        if declares_abstract:
+            return
+        if getattr(cls, "__abstractmethods__", frozenset()):
+            return
+        if not cls.command:
+            msg = f"{cls.__name__} must define command"
+            raise TypeError(msg)
+
+    async def check_applicability(
+        self,
+        context: Context,
+    ) -> ApplicabilityResult:
+        """Default applicability: target supports the configured command."""
+        applicable = []
+        not_applicable: dict[str, str] = {}
+        for device in context.targets:
+            result = await context.broker.execute(device, self.command)
+            if is_command_unsupported(result.output):
+                not_applicable[device.name] = _NOT_SUPPORTED_REASON.format(
+                    command=self.command,
+                )
+                continue
+            applicable.append(device)
+        return ApplicabilityResult(
+            applicable=applicable,
+            not_applicable=not_applicable,
+        )
+
+    async def gather_state(
+        self,
+        context: Context,
+    ) -> OperatorVolatileParameters:
+        """Persist the default operator as the learned parameter payload."""
+        return {"operator": self.DEFAULT_OPERATOR}
+
+    def passes_comparison(
+        self,
+        *,
+        parameters: OperatorVolatileParameters,
+        observation: Observation,
+        prior: dict[str, Any],
+        context: Context,
+    ) -> bool:
+        """Compare current and prior via the learned operator.
+
+        The ``"any"`` operator records the observation in the chain but
+        always passes. Any other value is delegated to
+        :func:`apply_operator`.
+        """
+        if parameters["operator"] == _OPERATOR_ANY:
+            return True
+        return apply_operator(
+            parameters["operator"],
+            observation.value,
+            prior["value"],
+        )
+
+    def build_failure_message(
+        self,
+        *,
+        device_name: str,
+        series_key: str,
+        prior: dict[str, Any],
+        current: Observation,
+    ) -> str:
+        """Surface the operator framing in failure messages."""
+        return (
+            f"{device_name}'s {self.SERIES_PREFIX} for '{series_key}' "
+            f"failed operator comparison: prior={prior['raw']!r}, "
+            f"current={current.raw!r}"
+        )
+
+
+def parse_duration_seconds(duration: str) -> int:
+    """Parse a Cisco-style duration string to total seconds.
+
+    Handles both verbose and compact forms emitted across different IOS
+    commands:
+
+    - Verbose: ``"5 weeks, 2 days, 13 hours, 30 minutes, 45 seconds"``
+    - Compact: ``"1w2d"``, optionally followed by ``"HH:MM:SS"``
+
+    Unknown formats return ``0`` rather than raising, consistent with how
+    the function is typically used for monotonic comparison values where
+    a missing value should simply fail the ``gt``/``gte`` check.
+    """
+    total = 0
+    for count_s, unit in re.findall(
+        r"(\d+)\s+(week|day|hour|minute|second)s?",
+        duration,
+    ):
+        count = int(count_s)
+        if unit == "week":
+            total += count * 604800
+        elif unit == "day":
+            total += count * 86400
+        elif unit == "hour":
+            total += count * 3600
+        elif unit == "minute":
+            total += count * 60
+        else:
+            total += count
+    if total:
+        return total
+    weeks = re.search(r"(\d+)w", duration)
+    if weeks:
+        total += int(weeks.group(1)) * 604800
+    days = re.search(r"(\d+)d", duration)
+    if days:
+        total += int(days.group(1)) * 86400
+    hms = re.search(r"(\d+):(\d+):(\d+)", duration)
+    if hms:
+        total += int(hms.group(1)) * 3600 + int(hms.group(2)) * 60 + int(hms.group(3))
+    return total

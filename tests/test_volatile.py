@@ -493,3 +493,209 @@ def test_framework_does_not_import_parser_library() -> None:
             assert not mod_name.startswith(token), (
                 f"volatile module leaks parser dependency: {mod_name}"
             )
+
+
+# -- OperatorVolatileLearningTestCase ----------------------------------------
+
+
+def _make_operator_job(
+    series_prefix: str = "operator-series",
+    command: str = "show something",
+    default_operator: str = "gte",
+    planned: list[Observation] | None = None,
+) -> type:
+    """Build a concrete OperatorVolatileLearningTestCase subclass inline."""
+    from huginn import OperatorVolatileLearningTestCase
+
+    captured = list(planned or [])
+
+    async def gather_observations(
+        self: OperatorVolatileLearningTestCase,
+        context: Context,
+    ) -> Iterable[Observation]:
+        return captured
+
+    return type(
+        "_Job",
+        (OperatorVolatileLearningTestCase,),
+        {
+            "SERIES_PREFIX": series_prefix,
+            "command": command,
+            "DEFAULT_OPERATOR": default_operator,
+            "gather_observations": gather_observations,
+        },
+    )
+
+
+def test_operator_subclass_must_declare_command() -> None:
+    """Concrete operator subclasses must declare a device command."""
+    from huginn import OperatorVolatileLearningTestCase
+
+    with pytest.raises(TypeError, match="must define command"):
+
+        class _Bad(OperatorVolatileLearningTestCase):
+            SERIES_PREFIX = "some-series"
+
+            async def gather_observations(
+                self, context: Context
+            ) -> Iterable[Observation]:
+                return []
+
+
+def test_operator_passes_comparison_uses_apply_operator(tmp_path: Path) -> None:
+    """Operator schema passes comparisons via apply_operator."""
+    import asyncio
+
+    cls = _make_operator_job(
+        planned=[Observation(device="R1", series_key="k", value=200, raw="200")],
+    )
+    ctx1 = _make_context(tmp_path)
+    asyncio.run(
+        cls().compare_state(
+            expected={"operator": "gte"},
+            current={"operator": "gte"},
+            context=ctx1,
+        )
+    )
+
+    cls2 = _make_operator_job(
+        planned=[Observation(device="R1", series_key="k", value=300, raw="300")],
+    )
+    ctx2 = _make_context(tmp_path, phase="post-change")
+    asyncio.run(
+        cls2().compare_state(
+            expected={"operator": "gte"},
+            current={"operator": "gte"},
+            context=ctx2,
+        )
+    )
+
+    results = cast(_FakeResults, ctx2.results).entries
+    assert results[0][0] == ResultStatus.PASSED
+
+
+def test_operator_any_always_passes(tmp_path: Path) -> None:
+    """The 'any' operator records observations but always passes."""
+    import asyncio
+
+    cls = _make_operator_job(
+        planned=[Observation(device="R1", series_key="k", value=500, raw="500")],
+    )
+    ctx1 = _make_context(tmp_path)
+    asyncio.run(
+        cls().compare_state(
+            expected={"operator": "any"},
+            current={"operator": "any"},
+            context=ctx1,
+        )
+    )
+
+    # A value that would fail gte (smaller than prior) still passes under 'any'.
+    cls2 = _make_operator_job(
+        planned=[Observation(device="R1", series_key="k", value=1, raw="1")],
+    )
+    ctx2 = _make_context(tmp_path, phase="post-change")
+    asyncio.run(
+        cls2().compare_state(
+            expected={"operator": "any"},
+            current={"operator": "any"},
+            context=ctx2,
+        )
+    )
+
+    results = cast(_FakeResults, ctx2.results).entries
+    assert all(status == ResultStatus.PASSED for status, _ in results)
+
+
+def test_operator_gather_state_returns_default_operator(tmp_path: Path) -> None:
+    """gather_state persists the declared default operator."""
+    import asyncio
+
+    cls = _make_operator_job(default_operator="lt")
+    ctx = _make_context(tmp_path, targets=[_FakeDevice(name="R1")])
+    result = asyncio.run(cls().gather_state(ctx))
+    assert result == {"operator": "lt"}
+
+
+def test_operator_failure_message_mentions_operator(tmp_path: Path) -> None:
+    """Failure messages surface the operator framing."""
+    import asyncio
+
+    cls = _make_operator_job(
+        planned=[Observation(device="R1", series_key="k", value=100, raw="100")],
+    )
+    ctx1 = _make_context(tmp_path)
+    asyncio.run(
+        cls().compare_state(
+            expected={"operator": "gte"},
+            current={"operator": "gte"},
+            context=ctx1,
+        )
+    )
+
+    cls2 = _make_operator_job(
+        planned=[Observation(device="R1", series_key="k", value=50, raw="50")],
+    )
+    ctx2 = _make_context(tmp_path, phase="post-change")
+    asyncio.run(
+        cls2().compare_state(
+            expected={"operator": "gte"},
+            current={"operator": "gte"},
+            context=ctx2,
+        )
+    )
+
+    failed = [
+        e
+        for e in cast(_FakeResults, ctx2.results).entries
+        if e[0] == ResultStatus.FAILED
+    ]
+    assert len(failed) == 1
+    assert "failed operator comparison" in failed[0][1]
+
+
+# -- parse_duration_seconds --------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "duration, expected",
+    [
+        ("5 minutes", 300),
+        ("2 hours, 30 minutes", 9000),
+        ("1 day, 2 hours", 93600),
+        ("1 week, 2 days", 604800 + 2 * 86400),
+        ("45 seconds", 45),
+        (
+            "3 weeks, 4 days, 5 hours, 6 minutes, 7 seconds",
+            3 * 604800 + 4 * 86400 + 5 * 3600 + 6 * 60 + 7,
+        ),
+    ],
+)
+def test_parse_duration_verbose_forms(duration: str, expected: int) -> None:
+    """Verbose Cisco-style durations parse to total seconds."""
+    from huginn import parse_duration_seconds
+
+    assert parse_duration_seconds(duration) == expected
+
+
+@pytest.mark.parametrize(
+    "duration, expected",
+    [
+        ("1w2d", 604800 + 2 * 86400),
+        ("2d03:04:05", 2 * 86400 + 3 * 3600 + 4 * 60 + 5),
+        ("00:05:00", 5 * 60),
+        ("01:00:00", 3600),
+    ],
+)
+def test_parse_duration_compact_forms(duration: str, expected: int) -> None:
+    """Compact Cisco-style durations parse to total seconds."""
+    from huginn import parse_duration_seconds
+
+    assert parse_duration_seconds(duration) == expected
+
+
+def test_parse_duration_unknown_returns_zero() -> None:
+    """Unparseable durations return zero rather than raising."""
+    from huginn import parse_duration_seconds
+
+    assert parse_duration_seconds("never") == 0
