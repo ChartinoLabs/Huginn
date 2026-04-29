@@ -2,14 +2,16 @@
 
 This section is the practical guide to writing Huginn jobs. It is organized by archetype because each archetype has a distinct shape, and writing one well means following that shape closely.
 
-If you have not yet read [Concepts › Job Archetypes](../concepts/archetypes.md), do that first. The rest of this section assumes you understand which archetype your job belongs to.
+If you have not yet read [Concepts › Job Archetypes](../concepts/archetypes.md), do that first - it covers what the four archetypes are and why each one exists. The rest of this section assumes you understand which archetype your job belongs to.
 
 ## Pages in this section
 
-- **[Static Parameter Validation](static-validation.md)** - verify that current state still matches a previously-learned baseline of deterministic values.
-- **[Volatile Parameter Validation](volatile-validation.md)** - track values that change continuously and assert the relationship between consecutive observations.
-- **[Change Jobs](change.md)** - invoke an action against the testbed (fault injection, normalization, configuration change, reload, …).
-- **[Gate Jobs](gate.md)** - halt test plan execution until expected post-change conditions are met.
+- [Static Parameter Validation](static-validation.md)
+- [Volatile Parameter Validation](volatile-validation.md)
+- [Change Jobs](change.md)
+- [Gate Jobs](gate.md)
+
+The remainder of this page covers conventions that apply to *every* archetype. The per-archetype pages above pick up where this one leaves off and assume you have read it.
 
 ## Conventions shared across all archetypes
 

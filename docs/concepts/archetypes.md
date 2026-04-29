@@ -2,12 +2,14 @@
 
 Huginn jobs fall into four archetypes. Each archetype solves a different validation or orchestration problem, but all four share the same execution interface - the framework treats them uniformly.
 
-| Archetype | Purpose | Authoring page |
-|---|---|---|
-| Static parameter validation | Confirm that previously-learned, deterministic state still matches reality. | [Static Parameter Validation](../authoring/static-validation.md) |
-| Volatile parameter validation | Track attributes that change continuously and assert the *relationship* between consecutive observations. | [Volatile Parameter Validation](../authoring/volatile-validation.md) |
-| Change | Invoke an action against the testbed (inject a fault, normalize a configuration, reload a device, …). | [Change Jobs](../authoring/change.md) |
-| Gate | Halt test plan execution until the testbed reaches a stable expected state, so post-change validation does not run before convergence completes. | [Gate Jobs](../authoring/gate.md) |
+The four archetypes are:
+
+- [Static parameter validation](../authoring/static-validation.md)
+- [Volatile parameter validation](../authoring/volatile-validation.md)
+- [Change](../authoring/change.md)
+- [Gate](../authoring/gate.md)
+
+This page explains why each archetype exists, how `LearningTestCase` relates to the archetypes, and where each archetype typically appears in a test plan. For the practical conventions that apply to every archetype - filename and class naming, module layout, class metadata, result recording, applicability - see [Authoring Jobs](../authoring/index.md). For the shape and reference example specific to one archetype, follow the link to that archetype's authoring page.
 
 ## Why these four
 
