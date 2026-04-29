@@ -21,8 +21,7 @@ Volatile jobs are dramatically smaller than static validation jobs because the f
 
 1. The narrative class metadata (`DESCRIPTION`, `SETUP`, `PROCEDURE`, `PASS_FAIL_CRITERIA`).
 2. The series prefix used to identify this observation stream across phases.
-3. The show command to execute.
-4. How to extract per-object observations from the parsed output.
+3. How observations are gathered from each target.
 
 A complete reference example follows. The job tracks BGP keepalives sent per neighbor per device.
 
@@ -32,10 +31,19 @@ A complete reference example follows. The job tracks BGP keepalives sent per nei
 from collections.abc import Iterable
 from typing import Any
 
-from catalog._volatile import Observation, VolatileLearningTestCase
+import muninn
+
+from huginn import (
+    Context,
+    Observation,
+    OperatorVolatileLearningTestCase,
+)
+
+mn = muninn.Muninn()
+mn.load_builtin_parsers()
 
 
-class VerifyBgpNeighborKeepalivesSentIncreasing(VolatileLearningTestCase):
+class VerifyBgpNeighborKeepalivesSentIncreasing(OperatorVolatileLearningTestCase):
     """Observation chain for BGP neighbor keepalives sent."""
 
     DESCRIPTION = (
@@ -64,39 +72,62 @@ class VerifyBgpNeighborKeepalivesSentIncreasing(VolatileLearningTestCase):
     SERIES_PREFIX = "bgp-neighbor-keepalives-sent"
     command = "show ip bgp neighbors"
 
-    def extract_observations(
-        self, device_name: str, parsed: dict[str, Any],
+    async def gather_observations(
+        self, context: Context,
     ) -> Iterable[Observation]:
-        for neighbor, data in parsed.get("neighbors", {}).items():
-            stats = data.get("message_stats", {})
-            value = stats.get("keepalives_sent")
-            if value is None:
-                continue
-            yield Observation(
-                device=device_name,
-                series_key=neighbor,
-                value=int(value),
-                raw=str(value),
-                extra={"neighbor": neighbor},
+        observations: list[Observation] = []
+        for device in context.targets:
+            result = await context.broker.execute(
+                device, self.command, use_cache=False,
             )
+            parsed = mn.parse(
+                os=device.os, command=self.command, output=result.output,
+            )
+            context.results.add_command_execution(
+                device=device.name,
+                command=self.command,
+                output=result,
+                parsed=parsed,
+            )
+            for neighbor, data in parsed.get("neighbors", {}).items():
+                stats = data.get("message_stats", {})
+                value = stats.get("keepalives_sent")
+                if value is None:
+                    continue
+                observations.append(Observation(
+                    device=device.name,
+                    series_key=neighbor,
+                    value=int(value),
+                    raw=str(value),
+                    extra={"neighbor": neighbor},
+                ))
+        return observations
 ```
 
 That is the entire job. There are no message constants, no `TypedDict`s, no `check_applicability`, no `gather_state`, and no `compare_state`. The base class provides all of them.
+
+### Sharing boilerplate across volatile jobs
+
+The example above repeats the `muninn` parse pipeline inside `gather_observations`. If your job package contains many volatile jobs that all use the same parsing pipeline, factor that boilerplate into a package-local intermediate base class that overrides `gather_observations` once and exposes a smaller `extract_observations(device_name, parsed)` hook for subclasses. Volatile jobs in that package then inherit from your intermediate base and only need to declare `SERIES_PREFIX`, `command`, and `extract_observations`.
+
+This is a job-package convention, not a framework requirement. The framework only knows about `OperatorVolatileLearningTestCase` and its `gather_observations` hook.
 
 ## What each piece does
 
 ### Imports
 
-Volatile jobs import only:
+A volatile job that uses the framework class directly imports:
 
 ```python
 from collections.abc import Iterable
 from typing import Any
 
-from catalog._volatile import Observation, VolatileLearningTestCase
+import muninn  # or whichever parser library you use
+
+from huginn import Context, Observation, OperatorVolatileLearningTestCase
 ```
 
-`VolatileLearningTestCase` (the catalog-local subclass) wraps the framework's `huginn.OperatorVolatileLearningTestCase` and adds the `muninn`-aware command execution and parsing pipeline that the rest of the catalog uses. Inherit from this - not from the framework class directly.
+If your job package provides its own intermediate base class (see [Sharing boilerplate](#sharing-boilerplate-across-volatile-jobs) above), import that instead and skip the parser imports.
 
 ### Class metadata
 
@@ -119,19 +150,19 @@ The convention is `<category>-<subject>-<aspect>`, lowercase and hyphenated:
 
 The `show` command to execute on each target. As with other archetypes, prefer a class attribute (`self.command`).
 
-### `extract_observations`
+### `gather_observations`
 
-A regular (non-async) method. The base class calls it once per device, after executing `self.command` and parsing with `muninn`. Yield one `Observation` per logical object the job tracks on that device.
+An async method. The framework calls it once per execution and expects an iterable of `Observation` objects covering every logical object the job tracks across every applicable target.
 
 `Observation` fields:
 
-- `device` - the device name. Use the `device_name` argument as-is.
+- `device` - the device name.
 - `series_key` - the per-object identity within this device's contribution to the series. For BGP, this is typically the neighbor address. For OSPF, the LSA ID. For per-device scalars, use the device name or an empty string.
 - `value` - the comparable scalar. **Must be an `int`** for operator-based comparisons (`gte`, `lt`, etc.). For duration strings, parse to seconds with `huginn.parse_duration_seconds(...)`.
 - `raw` - the human-readable form of the value, recorded in the observation log alongside the comparable scalar. Useful for debugging.
 - `extra` - optional dict of additional context attached to the observation in the log.
 
-Skip yielding an observation if the underlying parsed value is missing - `extract_observations` returns an `Iterable`, so a `continue` cleanly omits the item.
+Skip an observation if the underlying parsed value is missing rather than yielding an `Observation` with a sentinel value.
 
 ## Choosing a comparison operator
 
@@ -159,7 +190,7 @@ You do not need to opt into this behavior. The base class handles it. Do not add
 
 ## Common pitfalls
 
-- **Don't add `check_applicability`, `gather_state`, or `compare_state` overrides** unless you have a genuinely custom comparison scheme. The base class' implementations are correct for almost every case. If you do override, inherit from the framework's `VolatileLearningTestCase` (not the catalog wrapper) and study `09-volatile-parameters.md` first.
+- **Don't add `check_applicability`, `gather_state`, or `compare_state` overrides** unless you have a genuinely custom comparison scheme. The base class' implementations are correct for almost every case. If you do need a custom scheme that does not fit the single-operator model, inherit from the framework's `VolatileLearningTestCase` directly and study [Volatile Parameters](../09-volatile-parameters.md) first.
 - **Don't yield observations whose `value` is not directly comparable with `gte` / `lt`.** If the underlying value is a duration string, parse it to seconds first. If it's a string with no ordinal relationship, this archetype is not the right fit.
 - **Don't compose `series_key` from values that change as a side effect of the job's own execution.** The series identity must survive across phase boundaries unchanged.
 - **Don't expect the first observation in a run to compare against anything.** It establishes the baseline for the chain. The framework records it but does not compare. Subsequent observations in the same run compare against the most recent prior observation.

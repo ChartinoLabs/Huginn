@@ -4,14 +4,9 @@ A change job invokes an action against the testbed - applying a configuration ch
 
 ## When to use this archetype
 
-Use a change job whenever the test plan needs to *do* something to the testbed, as opposed to *observe* something. This includes both directions of intentional action:
+Use a change job whenever the test plan needs to *do* something to the testbed, as opposed to *observe* something. Examples of actions a change job might perform include bringing a link up or down, shutting or unshutting an interface, clearing a routing process, applying or removing a configuration block, mismatching or matching MTUs, and reloading a device.
 
-- **Failure injection** - bringing down a link, shutting an interface, clearing a routing process, reloading a device, mismatching MTUs.
-- **Normalization** - restoring a link, bringing an interface back up, restoring a configuration, returning MTUs to matching values.
-
-Whether a particular action is "fault" or "normalization" depends on the testbed and test plan. The same `change_link_down.py` job that injects a fault in one plan may be the normalization step in another (e.g., for a plan that begins with the link administratively up and validates that bringing it down gracefully drains traffic).
-
-If the action you need to invoke is the inverse of an existing change job, write a paired `_restore` variant rather than a new mechanism. See [Restore variants](#restore-variants) below.
+A change job describes the action itself, not the intent behind it. The same job may be invoked in different test plans to introduce a condition or to remove one - the job does not need to know which.
 
 ## Anatomy of a change job
 
@@ -259,12 +254,12 @@ class ChangeClearBgpPeer(LearningTestCase[ClearBgpPeerParameters]):
 
 ## Why a change job inherits from `LearningTestCase`
 
-Change jobs do not "validate" in the sense that static and volatile jobs do - but they still need a parameter file. The parameter file records *which targets the job will act on*: which BGP peers were Established and therefore eligible to be cleared, which interfaces were up and therefore eligible to be shut down, which CML link IDs were started, and so on. This identification step is exactly what `LearningTestCase` was built for.
+Change jobs do not "validate" in the sense that static and volatile jobs do, but they still need a parameter file. The parameter file records *which targets the job is eligible to act on*: which BGP peers were Established and therefore eligible to be cleared, which interfaces were up and therefore eligible to be shut down, and so on. The test author then reviews and edits this parameter file to narrow the candidate set down to the targets the job should actually act on at that point in the test plan. This identification-and-curation step is exactly what `LearningTestCase` was built for.
 
 The verbs `gather_state` and `compare_state` describe the interface contract, not the semantic intent:
 
-- `gather_state` - identify the targets and capture metadata about them (current state, descriptions, identifiers).
-- `compare_state` - execute the action and verify it took effect.
+- `gather_state` - identify candidate targets and capture metadata about them (current state, descriptions, identifiers).
+- `compare_state` - execute the action against the curated parameters and verify it took effect.
 
 This overload is intentional. Treat the verb names as fixed by the framework's interface, not as descriptions of what your job does. Use the docstring and message constants to communicate intent.
 
@@ -277,7 +272,7 @@ Every change job's `compare_state` follows the same four-step skeleton:
 3. **Apply the action** - execute the change. Use `context.broker.execute(device, "<exec command>", use_cache=False)` for exec-mode commands like `clear ip bgp` or `reload`. Use `context.broker.edit(device, "<config block>")` for configuration changes. For non-CLI changes (REST APIs, controller calls), see [Non-CLI change jobs](#non-cli-change-jobs).
 4. **Wait, then verify** - sleep for a fixed `_POST_*_DELAY_SECONDS` (or poll for `_MAX_POLL_ATTEMPTS × _POLL_INTERVAL_SECONDS`), then re-execute the show command and confirm the action took effect. Emit `*_CONFIRMED` or `*_FAILED` per target.
 
-This skeleton is consistent across the catalog. Deviating from it makes the job harder to read.
+Following this skeleton produces jobs that are predictable to read, debug, and modify. Deviating from it makes both reviewing the job and troubleshooting failures more difficult, because readers can no longer rely on the standard structure to locate the action, the precondition check, or the verification step.
 
 ## Module-level message constants
 
@@ -290,7 +285,7 @@ Change jobs add a few constants beyond the standard set:
 | Action outcome | `CLEAR_CONFIRMED` / `SHUTDOWN_CONFIRMED` / `RELOAD_CONFIRMED`, `CLEAR_FAILED` / `SHUTDOWN_FAILED` / `RELOAD_FAILED_*` | Emitted in step 4. |
 | Tuning constants | `_POST_CLEAR_DELAY_SECONDS`, `_POLL_INTERVAL_SECONDS`, `_MAX_POLL_ATTEMPTS` | Private (`_` prefix). Used by step 3 / 4. |
 
-Keep tuning constants as private module-level names. Do not hoist them to class attributes unless the test plan needs to override them per-instance - at which point they belong as top-level fields in the parameters TypedDict (see the `change_interface_flap.py` pattern in the catalog).
+Keep tuning constants as private module-level names. Do not hoist them to class attributes unless the test plan needs to override them per-instance, at which point they belong as top-level fields in the parameters TypedDict alongside `devices` (see [TypedDict shape](#typeddict-shape) below).
 
 ## TypedDict shape
 
@@ -302,34 +297,25 @@ Change jobs use a richer per-device payload than static validation, because the 
 
 If the change job exposes a tuning knob to the test plan author (e.g., `flap_count`, `hold_down_seconds`, `timeout`), add it as a top-level field in the parameters TypedDict alongside `devices`.
 
-## Restore variants
-
-Many change jobs ship with a paired `change_*_restore.py` variant. The restore variant inverts the action of the original - `change_local_preference.py` applies a route-map change, and `change_local_preference_restore.py` removes it. The restore variant follows the same skeleton with simplifications:
-
-- Skip the precondition step. The restore is unconditional - you do not need to validate prior state before tearing it down.
-- Drop fields from the candidate record that only mattered for the apply (e.g., the new value being applied).
-- Emit `RESTORE_CONFIRMED` instead of `*_CONFIRMED`.
-
-A change/restore pair is the right structure when the test plan needs to apply a change in one phase and undo it in another. If the inverse of the change is itself a meaningful test action with its own preconditions (e.g., bringing a link back up after it was brought down), write a separate full change job rather than a restore variant.
-
 ## Non-CLI change jobs
 
-Some changes target controllers, REST APIs, or out-of-band orchestration systems rather than the device CLI. The CML link control jobs (`catalog/cml/change_link_*.py`) are the canonical example: they call the CML controller's REST API to bring lab links up or down.
+Some changes target controllers, REST APIs, or out-of-band orchestration systems rather than the device CLI. A change job that brings a virtual link up or down through a network simulator's API is one example; a change job that toggles a power outlet through a smart PDU's HTTP interface is another.
 
-Non-CLI change jobs follow the same skeleton, but step 3 (apply the action) uses HTTP requests, SDK calls, or other mechanisms instead of `broker.execute(...)`. A few additional patterns:
+Non-CLI change jobs follow the same four-step skeleton, but step 3 (apply the action) uses HTTP requests, SDK calls, or other mechanisms instead of `broker.execute(...)`. A few additional patterns apply:
 
-- **Read controller credentials from the testbed.** The controller is itself a `Device` in the testbed YAML, with an `https` connection and credentials. Pull them via `context.testbed.devices[<name>]` and `context.testbed.credentials[<name>]`.
-- **Wrap blocking I/O in `asyncio.to_thread(...)`.** Standard-library `urllib` is synchronous; do not call it directly inside an async function.
-- **Verify via the controller, not the device CLI.** The action's effect (e.g., link state) is most reliably observed at the controller, since the device side may take additional time to react.
+- **Read controller credentials from the testbed.** The controller is itself a `Device` in the testbed YAML, with a connection definition and credentials. Pull them via `context.testbed.devices[<name>]` and `context.testbed.credentials[<name>]`.
+- **Wrap blocking I/O in `asyncio.to_thread(...)`.** Synchronous client libraries (e.g., `urllib`, `requests`) must not be called directly inside an async function.
+- **Verify via the controller, not the device CLI.** The action's effect is most reliably observed at the controller that performed it, since the device side may take additional time to react.
 
 Otherwise, the structure (TypedDicts, message constants, four-step skeleton in `compare_state`) is identical.
 
 ## Common pitfalls
 
-- **Don't put `command` at module scope.** It belongs as a class attribute. The legacy catalog has a few change jobs that use module-level `command = "..."` - do not reproduce this pattern.
+- **Don't put `command` at module scope.** It belongs as a class attribute. Module-level `command = "..."` makes the show command invisible to subclasses and harder to override per-job.
 - **Don't skip the precondition step.** If the action assumes a starting state, validate that state explicitly. Skipping the check makes failures look like the action failed when it actually never had a chance to run.
+- **Don't boil the ocean with the precondition step.** The precondition is a final, narrowly-scoped safety check on the immediate state required for the action to be meaningful (e.g., "this BGP neighbor is currently Established before we clear it"). It is not the place to bake in pre-change validation. Broader correctness checks belong as atomic [static validation jobs](static-validation.md) in the phase leading up to the change, where they can be reused across scenarios and reported on independently.
 - **Don't use a single fixed sleep when the convergence time varies.** If the action's effect is observable within a known window but the exact time varies, use the poll loop pattern (`_POLL_INTERVAL_SECONDS × _MAX_POLL_ATTEMPTS`) and break early on success.
-- **Don't poke at framework internals** to work around connection or session lifecycle issues. The legacy `change_reload.py` reaches into `broker._handles` to evict connections after a reload - this is fragile and should be replaced with framework-level support, not copied into new jobs.
+- **Don't poke at framework internals** to work around connection or session lifecycle issues. If a change like a device reload requires evicting and rebuilding broker connections, raise the gap as a framework feature request rather than reaching into private attributes from inside the job.
 - **Don't conflate change and gate semantics.** A change job applies an action and verifies that the immediate effect occurred. If the test plan needs to wait for downstream convergence (e.g., wait for BGP sessions to re-establish after the action) before post-change validation runs, that is the [Gate](gate.md) archetype's responsibility, not the change job's.
 
 ## See also

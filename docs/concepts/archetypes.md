@@ -15,7 +15,7 @@ Each archetype exists because of a distinct, recurring problem:
 
 - **Static parameter validation** is the bread-and-butter use case Huginn was built for. The vast majority of attributes a test plan validates - interface descriptions, OSPF costs, BGP ASN configurations, device serial numbers - are deterministic. They either match a learned baseline or they don't. Most of a typical test plan is static parameter validation.
 - **Volatile parameter validation** exists because some attributes change as a normal consequence of network operation. Counters increment, uptimes grow, table versions advance. Treating these as static parameters causes false failures across sequential scenarios and across repeated runs of the same plan. Volatile jobs replace "value equals baseline" with "value satisfies a comparison operator relative to the previous observation in this run."
-- **Change jobs** exist because validation alone does not exercise infrastructure. A meaningful test plan introduces conditions and observes how the system responds. Whether a change is a "failure injection" or a "normalization" is context-dependent on the testbed and test plan; both directions use the same archetype. Bringing a link down is a fault for one plan and a normalization for another.
+- **Change jobs** exist because validation alone does not exercise infrastructure. A meaningful test plan introduces conditions and observes how the system responds.
 - **Gate jobs** exist because validation runs faster than infrastructure converges. After a change is applied, post-change validation can race convergence and produce false failures. Gates poll until expected conditions are met, halting the plan until the testbed has stabilized.
 
 ## Inheritance and naming
@@ -26,7 +26,7 @@ The name `LearningTestCase` is **not an archetype label**. It defines the interf
 
 - A static validation job *learns* the absolute expected values and *compares* current values against them.
 - A volatile validation job *learns* the comparison operator and *compares* the current observation against the most recent prior observation.
-- A change job *learns* which targets to act on (e.g., which BGP peers are currently Established and therefore eligible to be cleared) and *acts*, then verifies.
+- A change job *learns* which targets are valid candidates for the action (e.g., which BGP peers are currently Established and therefore eligible to be cleared). The test author reviews and edits the resulting parameters to match the intent of the job at that point in the test plan, and the job then *acts* against those parameters when executed in testing mode.
 - A gate job *learns* the expected post-change state and *polls* until current state matches.
 
 In every case, "learning mode" captures parameters that "testing mode" subsequently uses. The verbs `gather_state` and `compare_state` describe the interface, not the semantic intent of the job. This is a common point of confusion for new authors.

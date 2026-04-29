@@ -172,7 +172,7 @@ class VerifyBgpNeighborState(LearningTestCase[BgpNeighborStateParameters]):
 
 ### Module-level message constants
 
-Every comparison outcome you might emit gets its own named constant with `{placeholder}` slots. This makes message wording consistent across the catalog and easy to grep.
+Every comparison outcome you might emit gets its own named constant with `{placeholder}` slots. This makes message wording consistent across a job package and easy to grep.
 
 The standard families are:
 
@@ -268,7 +268,7 @@ class RouteExistenceParameters(TypedDict):
 
 - **Don't pass kwargs to `add_result`.** The convention is positional: `add_result(ResultStatus.FAILED, "message")`.
 - **Don't skip `add_command_execution`.** The reporting layer relies on it to render raw and parsed output for debugging.
-- **Don't put `command` at module scope.** It belongs as a class attribute (`self.command`). Module-level `command = "..."` is an inconsistency in the legacy catalog and should not be reproduced.
+- **Don't put `command` at module scope.** It belongs as a class attribute (`self.command`). Module-level `command = "..."` makes the show command invisible to subclasses and harder to override per-job.
 - **Don't catch `muninn` parser errors silently.** If parsing fails, let the exception propagate or emit `ResultStatus.ERRORED` explicitly with context. Silent failure makes the job look healthy when it isn't.
 - **Don't mutate `context.targets`.** The framework owns target filtering via `check_applicability`. Inside `gather_state` and `compare_state`, treat the targets as read-only.
 - **Don't override `setup` or `cleanup`** unless you genuinely need to. The defaults provided by `LearningTestCase` are correct for the vast majority of jobs.
