@@ -42,6 +42,9 @@ dev = [
     "ty>=0.0.29",
     "xenon>=0.9.3",
 ]
+docs = [
+    "mkdocs-material>=9.7.6",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
