@@ -246,7 +246,7 @@ async def compare_state(self, *, expected, current, context) -> None:
             context.results.add_result(record.status, record.message)
 ```
 
-This makes the core logic testable as a synchronous pure function, while `compare_state` remains a thin wrapper. Both approaches are valid — the pure function extraction is most beneficial when the comparison logic is complex or shared across jobs.
+This makes the core logic testable as a synchronous pure function, while `compare_state` remains a thin wrapper. Both approaches are valid - the pure function extraction is most beneficial when the comparison logic is complex or shared across jobs.
 
 ## Pattern 2: Spec-Driven Test Harness
 
@@ -394,7 +394,7 @@ def assert_value_job_build_results(spec: ValueJobSpec) -> None:
 
 ### Per-Job Test Files
 
-Each job's test file is minimal — just a spec definition and calls to shared assertions:
+Each job's test file is minimal - just a spec definition and calls to shared assertions:
 
 ```python
 # tests/jobs/test_verify_call_home_rate_limit.py
@@ -455,7 +455,7 @@ def test_compare_state(make_device, make_context) -> None:
 
 ### Why This Scales
 
-This pattern enables a small number of test files to cover a large number of structurally similar jobs. Each new job that follows the same structure (e.g., single-value comparison) only requires a new spec definition and a handful of function calls — typically under 60 lines. The shared assertion functions in `support.py` handle all the boilerplate.
+This pattern enables a small number of test files to cover a large number of structurally similar jobs. Each new job that follows the same structure (e.g., single-value comparison) only requires a new spec definition and a handful of function calls - typically under 60 lines. The shared assertion functions in `support.py` handle all the boilerplate.
 
 For jobs with unique structures (convergence gates, change actions), write custom tests that exercise their specific logic directly.
 
@@ -463,7 +463,7 @@ For jobs with unique structures (convergence gates, change actions), write custo
 
 Use simple dataclass-based fakes instead of mocking frameworks. They're easier to understand, type-safe, and sufficient for testing job logic.
 
-Currently, each project defines its own fakes in `tests/jobs/conftest.py`. We are considering whether the core framework should ship a `huginn.testing` module with canonical fake implementations (e.g., `FakeDevice`, `FakeContext`, `FakeResults`), so that projects and plugins don't independently re-implement the same test doubles. This is an open design question — see [#83](https://github.com/ChartinoLabs/Huginn/issues/83) for the discussion.
+Currently, each project defines its own fakes in `tests/jobs/conftest.py`. We are considering whether the core framework should ship a `huginn.testing` module with canonical fake implementations (e.g., `FakeDevice`, `FakeContext`, `FakeResults`), so that projects and plugins don't independently re-implement the same test doubles. This is an open design question - see [#83](https://github.com/ChartinoLabs/Huginn/issues/83) for the discussion.
 
 ### Fake Definitions
 
@@ -547,9 +547,9 @@ def make_context():
 
 ### Why Not Mocking Frameworks?
 
-- **Transparency**: Fakes are plain dataclasses — you can read exactly what they do
+- **Transparency**: Fakes are plain dataclasses - you can read exactly what they do
 - **Duck typing**: Fakes only implement the interface methods jobs actually call
-- **No magic**: No `Mock()`, `patch()`, or `MagicMock` — just Python objects
+- **No magic**: No `Mock()`, `patch()`, or `MagicMock` - just Python objects
 - **Assertion clarity**: `context.results.entries` is a real list you can inspect directly
 
 ### Monkeypatching for Parsers
@@ -563,7 +563,7 @@ def fake_parse(*, os: str, command: str, output: str) -> dict[str, Any]:
 monkeypatch.setattr(module.mn, "parse", fake_parse)
 ```
 
-This avoids needing CLI output fixture files — the parser is bypassed entirely, and the test focuses on what the job does with the parsed data.
+This avoids needing CLI output fixture files - the parser is bypassed entirely, and the test focuses on what the job does with the parsed data.
 
 ## Directory Structure
 

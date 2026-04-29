@@ -15,7 +15,7 @@ dependencies = [
     "markdown>=3.8.2",
     "pyyaml>=6.0.3",
     "scrapli-netconf[asyncssh]>=2026.1.12",
-    "scrapli[asyncssh]>=2025.1.30",
+    "scrapli[asyncssh]>=2026.2.20",
 ]
 
 [project.scripts]
@@ -41,6 +41,9 @@ dev = [
     "ruff>=0.14.9",
     "ty>=0.0.29",
     "xenon>=0.9.3",
+]
+docs = [
+    "mkdocs-material>=9.7.6",
 ]
 
 [tool.pytest.ini_options]

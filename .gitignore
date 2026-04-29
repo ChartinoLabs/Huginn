@@ -8,3 +8,6 @@ src/huginn/_version.py
 
 # Local coverage artifacts
 .coverage
+
+# MkDocs build output
+/site/
