@@ -4,7 +4,7 @@ This document describes the design for referencing test automation jobs from ins
 
 ## Motivation
 
-As test automation matures, organizations accumulate large libraries of reusable jobs — OSPF neighbor verification, BGP peering checks, interface status validation, and so on. These jobs are not specific to any one project or testbed; they encode general validation logic that applies across environments.
+As test automation matures, organizations accumulate large libraries of reusable jobs - OSPF neighbor verification, BGP peering checks, interface status validation, and so on. These jobs are not specific to any one project or testbed; they encode general validation logic that applies across environments.
 
 Currently, jobs are referenced as file paths relative to the project root:
 
@@ -17,9 +17,9 @@ test_cases:
 
 This means every project that needs OSPF validation must either copy the job file or maintain a shared directory. Neither scales well:
 
-- **Copy-paste** leads to drift — bug fixes in one copy don't propagate to others
+- **Copy-paste** leads to drift - bug fixes in one copy don't propagate to others
 - **Shared directories** create tight coupling and awkward path management
-- **Version pinning** is impossible — there's no way to say "use v2.1 of the OSPF checks"
+- **Version pinning** is impossible - there's no way to say "use v2.1 of the OSPF checks"
 
 ## Solution: Python Package References
 
@@ -37,7 +37,7 @@ test_cases:
 
   "2.0.0":
     title: Verify Interface Status
-    job: jobs/verify_interface_status.py  # Local job — file path still works
+    job: jobs/verify_interface_status.py  # Local job - file path still works
 ```
 
 The framework detects whether a `job` value is a file path or a module path and handles each accordingly.
@@ -46,8 +46,8 @@ The framework detects whether a `job` value is a file path or a module path and 
 
 The framework distinguishes between local file paths and package module paths:
 
-- **File path**: Contains `/` or ends with `.py` — resolved relative to the project root
-- **Module path**: Dot-delimited identifier with no `/` and no `.py` suffix — resolved via Python's import system
+- **File path**: Contains `/` or ends with `.py` - resolved relative to the project root
+- **Module path**: Dot-delimited identifier with no `/` and no `.py` suffix - resolved via Python's import system
 
 ```
 jobs/verify_ospf.py             → file path (contains /)
@@ -79,7 +79,7 @@ An earlier design considered referencing jobs via git repository URLs and refs. 
 
 ## Job Package Structure
 
-A job package is a standard Python package that contains `LearningTestCase` subclasses. There is no special framework-level interface required — any installable package with importable job modules works.
+A job package is a standard Python package that contains `LearningTestCase` subclasses. There is no special framework-level interface required - any installable package with importable job modules works.
 
 ### Example Package Layout
 
@@ -120,7 +120,7 @@ dependencies = [
 
 ### Job Implementation
 
-Jobs in packages are identical to local jobs — they inherit from `LearningTestCase` and follow the same patterns:
+Jobs in packages are identical to local jobs - they inherit from `LearningTestCase` and follow the same patterns:
 
 ```python
 # src/huginn_jobs_network/ospf/verify_neighbors.py
@@ -163,7 +163,7 @@ A single test plan can reference both local file-based jobs and package-based jo
 
 ```yaml
 test_cases:
-  # Package jobs — shared across projects
+  # Package jobs - shared across projects
   "1.0.0":
     title: Verify OSPF Neighbors
     job: huginn_jobs_network.ospf.verify_neighbors
@@ -172,7 +172,7 @@ test_cases:
     title: Verify BGP Peering
     job: huginn_jobs_network.bgp.verify_peering
 
-  # Local jobs — project-specific
+  # Local jobs - project-specific
   "3.0.0":
     title: Apply OSPF Configuration Change
     job: jobs/apply_ospf_change.py
@@ -219,7 +219,7 @@ dependencies = [
 ]
 ```
 
-If a job package requires a newer framework version than the project uses, `uv`/`pip` will report the conflict at install time — not at test execution time.
+If a job package requires a newer framework version than the project uses, `uv`/`pip` will report the conflict at install time - not at test execution time.
 
 ## Working with Unreleased Fixes
 
@@ -231,8 +231,8 @@ Python's dependency system does not support installing multiple versions of the 
 
 **1. You have two open PRs against `huginn-jobs-network`:**
 
-- `fix/bgp-peering-bug` — fixes a comparison error in `bgp/verify_peering.py`
-- `fix/ospf-route-detection` — fixes a parsing issue in `ospf/verify_routes.py`
+- `fix/bgp-peering-bug` - fixes a comparison error in `bgp/verify_peering.py`
+- `fix/ospf-route-detection` - fixes a parsing issue in `ospf/verify_routes.py`
 
 **2. Create a combined branch on your fork:**
 

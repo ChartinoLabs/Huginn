@@ -310,7 +310,7 @@ class RuntimeBroker:
 
 Caching is built directly into `RuntimeBroker` rather than a separate class. Cacheable operations are `execute` and `get`; `edit` is never cached since it's stateful.
 
-Cache keys are tuples of `(operation, target_name, broker_type, payload, kwargs)`. The broker's `cache_key()` method controls whether an operation is cacheable — returning `None` skips the cache entirely.
+Cache keys are tuples of `(operation, target_name, broker_type, payload, kwargs)`. The broker's `cache_key()` method controls whether an operation is cacheable - returning `None` skips the cache entirely.
 
 When multiple concurrent requests target the same cache key, single-flight semantics ensure only one actual execution occurs; other callers wait for and share the result.
 
@@ -433,11 +433,11 @@ huginn-broker-test huginn-broker-scrapli --type ssh
 
 Test categories:
 
-1. **Protocol compliance** — required attributes, method signatures, return types
-2. **Capability honesty** — declared capabilities match implemented methods
-3. **Exception compliance** — errors use the standard exception hierarchy
-4. **Lifecycle correctness** — connect/disconnect/reconnect/is_alive behavior
-5. **Concurrency safety** — multiple concurrent operations don't corrupt state
+1. **Protocol compliance** - required attributes, method signatures, return types
+2. **Capability honesty** - declared capabilities match implemented methods
+3. **Exception compliance** - errors use the standard exception hierarchy
+4. **Lifecycle correctness** - connect/disconnect/reconnect/is_alive behavior
+5. **Concurrency safety** - multiple concurrent operations don't corrupt state
 
 ### Migration Path
 

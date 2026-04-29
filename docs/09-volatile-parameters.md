@@ -4,12 +4,12 @@
 
 Huginn's `LearningTestCase` pattern captures device state during a learning phase and compares it against the same state during a testing phase. This works well for values that remain stable across test plan executions or that transition between well-defined, enumerable states. These are **static parameters**, and they fall into two subcategories:
 
-- **Fixed values** — attributes that do not change unless an explicit configuration or hardware change occurs. Examples include interface descriptions, OSPF costs, inventory serial numbers, BGP ASN configurations, and software versions.
-- **Enumerable state values** — attributes that transition between a known set of discrete states, where the expected state can be determined for any given scenario. Examples include interface operational status (`up` / `down`), routing protocol adjacency state (`FULL` / `DOWN`), and BGP peering status (`Established` / `Idle`). A link shutdown scenario changes an interface from `up` to `down`, but both values are concrete, predictable, and can be expressed as static learned parameters for the pre-change and post-change phases respectively.
+- **Fixed values** - attributes that do not change unless an explicit configuration or hardware change occurs. Examples include interface descriptions, OSPF costs, inventory serial numbers, BGP ASN configurations, and software versions.
+- **Enumerable state values** - attributes that transition between a known set of discrete states, where the expected state can be determined for any given scenario. Examples include interface operational status (`up` / `down`), routing protocol adjacency state (`FULL` / `DOWN`), and BGP peering status (`Established` / `Idle`). A link shutdown scenario changes an interface from `up` to `down`, but both values are concrete, predictable, and can be expressed as static learned parameters for the pre-change and post-change phases respectively.
 
 In both cases, the expected value at any point in the test plan is deterministic and can be captured as a learned parameter.
 
-However, a separate category of device state values changes continuously as a natural consequence of normal network operation. BGP session uptimes, message counters, keepalive counts, and table versions all increment over time without any explicit action. These values may also reset as a side effect of disruptive changes intentionally introduced by the test plan. These are **volatile parameters** — values that are inherently non-deterministic, where the specific value at any given moment depends on how much time has elapsed and what disruptions have occurred since the value was last initialized.
+However, a separate category of device state values changes continuously as a natural consequence of normal network operation. BGP session uptimes, message counters, keepalive counts, and table versions all increment over time without any explicit action. These values may also reset as a side effect of disruptive changes intentionally introduced by the test plan. These are **volatile parameters** - values that are inherently non-deterministic, where the specific value at any given moment depends on how much time has elapsed and what disruptions have occurred since the value was last initialized.
 
 This document describes the problem that volatile parameters introduce, the alternatives that were considered, and the design that addresses both isolated scenario execution and full sequential test plan execution.
 
@@ -17,7 +17,7 @@ This document describes the problem that volatile parameters introduce, the alte
 
 ### Static parameters and shared pre-change groups
 
-Test plans in Huginn are organized into scenarios, each with phases (typically pre-change, change, and post-change). The pre-change and post-change validation phases reference shared test case groups — most commonly a `state-baseline` group — so that every scenario validates the same set of device state expectations.
+Test plans in Huginn are organized into scenarios, each with phases (typically pre-change, change, and post-change). The pre-change and post-change validation phases reference shared test case groups - most commonly a `state-baseline` group - so that every scenario validates the same set of device state expectations.
 
 This works because static parameters represent a stable ground truth. Whether the test plan runs the first scenario or the fifteenth, the expected OSPF cost on an interface is the same value. The shared group with shared parameters can be reused across all scenarios without issue.
 
@@ -25,9 +25,9 @@ This works because static parameters represent a stable ground truth. Whether th
 
 Consider a test plan with the following scenarios executed in sequence:
 
-1. **Link shutdown R1-R2** — shuts an interface, validates convergence, normalizes.
-2. **OSPF restart R1** — clears the OSPF process on R1, validates recovery.
-3. **Device reload R1** — reloads R1, validates it returns to service.
+1. **Link shutdown R1-R2** - shuts an interface, validates convergence, normalizes.
+2. **OSPF restart R1** - clears the OSPF process on R1, validates recovery.
+3. **Device reload R1** - reloads R1, validates it returns to service.
 
 Scenario 2 (`clear ip ospf process` on R1) causes all OSPF adjacencies on R1 to reset. Because BGP sessions in this topology are established over loopback addresses resolved through OSPF, the OSPF disruption cascades into BGP session resets on R1. After reconvergence, the BGP sessions re-establish, but their state has changed:
 
@@ -37,7 +37,7 @@ Scenario 2 (`clear ip ospf process` on R1) causes all OSPF adjacencies on R1 to 
 - **TCP ports** change as sessions are re-established with new ephemeral ports.
 - **Last reset reason** changes from empty to a string describing the disruption.
 
-If the pre-change validation phase of scenario 3 uses the same learned parameters as scenario 1's pre-change phase, it will fail — not because anything is wrong, but because scenario 2 legitimately changed the values that the static parameters expect.
+If the pre-change validation phase of scenario 3 uses the same learned parameters as scenario 1's pre-change phase, it will fail - not because anything is wrong, but because scenario 2 legitimately changed the values that the static parameters expect.
 
 ### Two axioms that must hold
 
@@ -61,13 +61,13 @@ This was ruled out because it conflicts with axiom 1 (scenario isolation). A tes
 
 Another approach is to add a re-learning phase after each disruptive scenario, capturing new parameter values that reflect the post-disruption state. Subsequent scenarios would then compare against the refreshed parameters.
 
-This was ruled out because it conflates two fundamentally different categories of parameters. The overwhelming majority of test cases validate static parameters — values that are deterministic and stable across scenarios. Interface descriptions, OSPF costs, BGP ASN configurations, and similar attributes do not change as a side effect of disruptive scenarios. Re-learning these values after every disruption is redundant: the re-learned values would be identical to the original baseline, yet each scenario would carry its own copy of the parameter files. This creates a proliferation of duplicate parameter sets that adds maintenance burden without adding value.
+This was ruled out because it conflates two fundamentally different categories of parameters. The overwhelming majority of test cases validate static parameters - values that are deterministic and stable across scenarios. Interface descriptions, OSPF costs, BGP ASN configurations, and similar attributes do not change as a side effect of disruptive scenarios. Re-learning these values after every disruption is redundant: the re-learned values would be identical to the original baseline, yet each scenario would carry its own copy of the parameter files. This creates a proliferation of duplicate parameter sets that adds maintenance burden without adding value.
 
-The small subset of test cases that validate volatile parameters genuinely cannot reuse a single set of learned values across scenarios. But the solution for that subset should not force the entire parameter model to change. Re-learning everything per-scenario treats a targeted problem (volatile values drifting) as a global one (all parameters need refreshing), which is both wasteful and misleading — it obscures which parameters actually changed and why.
+The small subset of test cases that validate volatile parameters genuinely cannot reuse a single set of learned values across scenarios. But the solution for that subset should not force the entire parameter model to change. Re-learning everything per-scenario treats a targeted problem (volatile values drifting) as a global one (all parameters need refreshing), which is both wasteful and misleading - it obscures which parameters actually changed and why.
 
 The selected design (described below) addresses this by separating volatile parameter tests into their own test case groups, leaving the shared static parameter groups untouched. Only the volatile subset gets per-scenario treatment, while static parameters continue to benefit from a single shared baseline across all scenarios.
 
-Additionally, even if re-learning were scoped to only volatile parameters, the re-learned values would still be time-dependent. A re-learned BGP uptime of 30 seconds captured immediately after a disruption will be wrong by the time the next scenario's pre-change phase executes minutes later. Re-learning captures a point-in-time snapshot of values that are, by definition, continuously changing — which is the same fundamental problem that static learned values have with volatile parameters.
+Additionally, even if re-learning were scoped to only volatile parameters, the re-learned values would still be time-dependent. A re-learned BGP uptime of 30 seconds captured immediately after a disruption will be wrong by the time the next scenario's pre-change phase executes minutes later. Re-learning captures a point-in-time snapshot of values that are, by definition, continuously changing - which is the same fundamental problem that static learned values have with volatile parameters.
 
 ### Event-driven parameter adjustment
 
@@ -81,7 +81,7 @@ This was ruled out due to the combinatorial complexity of mapping events to effe
 
 For volatile parameters, the learned parameter is not an absolute value captured at a point in time. Instead, it is a **comparison operator** or other job-defined comparison semantics that describe the expected relationship between consecutive observations of the same value during a test run.
 
-The choice of comparison operator is defined by the volatile job itself, because the job author knows what kind of relationship is meaningful for that specific attribute. For many volatile parameters, this will default to `gte` (greater than or equal to) — under normal operation, uptimes increase, counters increment, and table versions grow. But that choice is local to the job rather than globally determined by the framework. During learning mode, the framework persists the job's selected comparison semantics for later use in testing mode; the specific observed value is never stored in the parameter file.
+The choice of comparison operator is defined by the volatile job itself, because the job author knows what kind of relationship is meaningful for that specific attribute. For many volatile parameters, this will default to `gte` (greater than or equal to) - under normal operation, uptimes increase, counters increment, and table versions grow. But that choice is local to the job rather than globally determined by the framework. During learning mode, the framework persists the job's selected comparison semantics for later use in testing mode; the specific observed value is never stored in the parameter file.
 
 During testing mode, the framework captures the current value each time the test executes and writes it to the run results as a **runtime artifact**. When the test executes a second time within the same run, it reads its own most recent prior observation, applies the comparison operator, and records the result.
 
@@ -96,7 +96,7 @@ Because volatile comparisons depend on the latest live device state, volatile jo
 Each execution of a volatile parameter test within a single run produces an observation. The chain of observations forms the basis for comparison:
 
 ```
-Scenario 1 pre-change:   observation 1 (captured, no comparison — first execution)
+Scenario 1 pre-change:   observation 1 (captured, no comparison - first execution)
 Scenario 1 post-change:  observation 2 (compared against observation 1)
 Scenario 2 pre-change:   observation 3 (compared against observation 2)
 Scenario 2 post-change:  observation 4 (compared against observation 3)
@@ -117,8 +117,8 @@ When a disruptive scenario legitimately resets a value (e.g., BGP uptime drops a
 
 Each scenario's pre-change and post-change phases reference two categories of test case groups:
 
-- **Static test case groups** — shared across all scenarios, using absolute learned values. These are the existing `state-baseline` groups.
-- **Volatile test case groups** — per-scenario, using comparison operators. These are new groups specific to volatile parameter tests.
+- **Static test case groups** - shared across all scenarios, using absolute learned values. These are the existing `state-baseline` groups.
+- **Volatile test case groups** - per-scenario, using comparison operators. These are new groups specific to volatile parameter tests.
 
 The static groups remain unchanged. The volatile groups allow each scenario to carry its own set of comparison operators, reflecting whether that specific scenario's change is expected to disrupt the volatile values.
 
@@ -129,8 +129,8 @@ ospf-restart-r1:
   phases:
     pre-change:
       test_case_groups:
-        - state-baseline           # static parameters — shared
-        - volatile-baseline        # volatile parameters — comparison operators
+        - state-baseline           # static parameters - shared
+        - volatile-baseline        # volatile parameters - comparison operators
     change:
       test_case_groups:
         - action-ospf-restart-r1
@@ -146,7 +146,7 @@ In the `volatile-baseline` group, BGP uptime uses operator `gte`. In `volatile-p
 
 When a scenario runs in isolation, the volatile parameter test executes once in pre-change (observation 1, no comparison) and once in post-change (observation 2, compared against observation 1). The comparison reflects only the effect of that scenario's change, with no dependency on prior scenarios.
 
-If a volatile phase is executed without any earlier observation in the same run — for example, by running only a post-change phase or by filtering execution down to an individual volatile test case group — then the volatile comparison has no predecessor to evaluate against. In that situation, the observation is still recorded as a runtime artifact, but the comparison should be reported as skipped for that execution because there is no valid reference point.
+If a volatile phase is executed without any earlier observation in the same run - for example, by running only a post-change phase or by filtering execution down to an individual volatile test case group - then the volatile comparison has no predecessor to evaluate against. In that situation, the observation is still recorded as a runtime artifact, but the comparison should be reported as skipped for that execution because there is no valid reference point.
 
 ### Full plan repeatability
 
@@ -154,29 +154,29 @@ When the full plan runs sequentially, observations chain across scenarios. Each 
 
 ### Operator transitions during sequential execution
 
-A common concern is what happens when the comparison operator changes mid-plan — for example, when the first several scenarios use `gte` for BGP uptime, but a later scenario's post-change group flips it to `lt` because a device reload resets the session. The following worked example traces BGP uptime for a session involving R1 through a sequential test plan:
+A common concern is what happens when the comparison operator changes mid-plan - for example, when the first several scenarios use `gte` for BGP uptime, but a later scenario's post-change group flips it to `lt` because a device reload resets the session. The following worked example traces BGP uptime for a session involving R1 through a sequential test plan:
 
 ```
 Scenario 1 (link flap R1-R2):
   pre-change:   obs 1 = 2w3d    no prior observation, comparison skipped
-  post-change:  obs 2 = 2w3d    operator gte: obs 2 >= obs 1? yes — pass
+  post-change:  obs 2 = 2w3d    operator gte: obs 2 >= obs 1? yes - pass
 
 Scenario 2 (link flap R1-R3):
-  pre-change:   obs 3 = 2w3d    operator gte: obs 3 >= obs 2? yes — pass
-  post-change:  obs 4 = 2w3d    operator gte: obs 4 >= obs 3? yes — pass
+  pre-change:   obs 3 = 2w3d    operator gte: obs 3 >= obs 2? yes - pass
+  post-change:  obs 4 = 2w3d    operator gte: obs 4 >= obs 3? yes - pass
 
   ...scenarios 3–4 follow the same pattern...
 
 Scenario 5 (device reload R1):
-  pre-change:   obs 9 = 2w3d    operator gte: obs 9 >= obs 8? yes — pass
-  post-change:  obs 10 = 0:03   operator lt:  obs 10 < obs 9?  yes — pass
+  pre-change:   obs 9 = 2w3d    operator gte: obs 9 >= obs 8? yes - pass
+  post-change:  obs 10 = 0:03   operator lt:  obs 10 < obs 9?  yes - pass
 
 Scenario 6 (device reload R2):
-  pre-change:   obs 11 = 0:05   operator gte: obs 11 >= obs 10? yes — pass
-  post-change:  obs 12 = 0:07   operator gte: obs 12 >= obs 11? yes — pass
+  pre-change:   obs 11 = 0:05   operator gte: obs 11 >= obs 10? yes - pass
+  post-change:  obs 12 = 0:07   operator gte: obs 12 >= obs 11? yes - pass
 ```
 
-The critical transition is between scenario 5's post-change and scenario 6's pre-change. Scenario 5's post-change records a BGP uptime of 3 minutes (the session just re-established after the reload). Scenario 6's pre-change, which uses the shared `volatile-baseline` group with operator `gte`, observes 5 minutes. Since 5 minutes is greater than 3 minutes, the comparison passes — even though both values are far below the original baseline of 2w3d.
+The critical transition is between scenario 5's post-change and scenario 6's pre-change. Scenario 5's post-change records a BGP uptime of 3 minutes (the session just re-established after the reload). Scenario 6's pre-change, which uses the shared `volatile-baseline` group with operator `gte`, observes 5 minutes. Since 5 minutes is greater than 3 minutes, the comparison passes - even though both values are far below the original baseline of 2w3d.
 
 The comparison operator is scoped to a single phase boundary: the relationship between one observation and its immediate predecessor. The `lt` operator in scenario 5's post-change group only asserts that the value decreases across that specific boundary. Every other boundary in the plan uses `gte`, which holds naturally because time moves the value upward between phases. The observation chain absorbs the reset without any special handling.
 

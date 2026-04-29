@@ -1,0 +1,86 @@
+site_name: Huginn
+site_description: A Python-native, async-first test automation framework for network infrastructure.
+repo_url: https://github.com/ChartinoLabs/Huginn
+repo_name: ChartinoLabs/Huginn
+edit_uri: edit/main/docs/
+
+# Public hosting (GitHub Pages, etc.) is intentionally not configured yet.
+# Build locally with `mkdocs serve` from the repo root.
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Concepts:
+      - Overview: 01-overview.md
+      - Glossary: 00-glossary.md
+      - Architecture: 02-architecture.md
+      - Job Archetypes: concepts/archetypes.md
+  - Authoring Jobs:
+      - Overview: authoring/index.md
+      - Static Parameter Validation: authoring/static-validation.md
+      - Volatile Parameter Validation: authoring/volatile-validation.md
+      - Change Jobs: authoring/change.md
+      - Gate Jobs: authoring/gate.md
+  - Specifications:
+      - Testbed: 03-testbed-spec.md
+      - Test Plan: 04-test-plan-spec.md
+      - Test Authoring (legacy): 05-test-authoring.md
+      - Configuration: 06-configuration.md
+  - Design Notes:
+      - Parser Project: 07-parser-project.md
+      - Connection Broker Plugins: 08-connection-broker-plugins.md
+      - Output Logging: 08-output-logging-design.md
+      - Package Job References: 08-package-job-references.md
+      - Parameter Reconciliation: 08-parameter-reconciliation.md
+      - Unit Testing Automation: 08-unit-testing-automation.md
+      - Volatile Parameters: 09-volatile-parameters.md
+      - Future Considerations: 99-future-considerations.md
