@@ -69,7 +69,7 @@ Jobs use `check_applicability` to exclude targets before `gather_state` runs. A 
 
 1. **Command not supported.** The device does not recognize the `show` command (e.g., a platform that lacks the feature entirely). This is the baseline check that every job should perform.
 
-2. **Attribute absent from parsed output.** The command succeeds, but the specific field the job needs does not exist in the parsed data. This happens when a platform variant omits certain fields (e.g., `config_register` absent from C9300 `show version` output) or when a feature is simply not configured on the device (e.g., no OSPF authentication, no BGP peer groups). In learning mode, saving empty parameters for these devices creates ambiguity — the prune tooling cannot distinguish "the job ran and found nothing" from "the job found data and it was empty." Marking the device as not-applicable makes the distinction explicit.
+2. **Attribute absent from parsed output.** The command succeeds, but the specific field the job needs does not exist in the parsed data. This happens when a platform variant omits certain fields (e.g., `config_register` absent from C9300 `show version` output) or when a feature is simply not configured on the device (e.g., no OSPF authentication, no BGP peer groups). In learning mode, saving empty parameters for these devices creates ambiguity  -  the prune tooling cannot distinguish "the job ran and found nothing" from "the job found data and it was empty." Marking the device as not-applicable makes the distinction explicit.
 
 The standard idiom for reason 1 alone:
 
@@ -105,7 +105,7 @@ async def check_applicability(self, context: Context) -> ApplicabilityResult:
     return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
 ```
 
-For jobs that extract per-item values (e.g., per-interface or per-neighbor), the equivalent check is whether `gather_state` would produce an empty `values` dict for a device. When every item's value is absent in the parsed output, the device has no data for this job and should be not-applicable. This can be checked either in `check_applicability` (by pre-scanning the parsed data) or as a post-gather step in `gather_state` — see [Static Parameter Validation § gather_state](static-validation.md#gather_state) for the recommended pattern.
+For jobs that extract per-item values (e.g., per-interface or per-neighbor), the equivalent check is whether `gather_state` would produce an empty `values` dict for a device. When every item's value is absent in the parsed output, the device has no data for this job and should be not-applicable. This can be checked either in `check_applicability` (by pre-scanning the parsed data) or as a post-gather step in `gather_state`  -  see [Static Parameter Validation § gather_state](static-validation.md#gather_state) for the recommended pattern.
 
 ## See also
 
