@@ -101,7 +101,12 @@ A single execution of a test plan against a testbed. A run establishes connectio
 The determination of whether a test case is relevant to a specific target device. Applicability can be:
 
 - **Static**: Declared in the test plan via target specifications (devices, device groups, operating systems). Resolved before test execution.
-- **Dynamic**: Determined at runtime by the test case itself via the `check_applicability()` method. Enables tests to introspect their assigned targets and filter based on device capabilities, running features, or other runtime conditions.
+- **Dynamic**: Determined at runtime by the test case itself via the `check_applicability()` method or during `gather_state()`. Enables tests to introspect their assigned targets and filter based on device capabilities, running features, or other runtime conditions.
+
+Dynamic non-applicability arises from two distinct situations:
+
+1. **Command not supported**: The device does not recognize the show command the job requires. Detected in `check_applicability()`.
+2. **Attribute absent**: The command succeeds but the specific attribute the job validates does not exist in the parsed output  -  either because the platform does not report it or because the feature is not configured. Detected in `check_applicability()` (for device-level fields) or in `gather_state()` (when per-item extraction produces an empty result for a device).
 
 A device that is statically targeted but dynamically determined to be not applicable is recorded with a NOT_APPLICABLE or LOST_APPLICABILITY result (depending on whether learned parameters exist) and the reason for non-applicability.
 
