@@ -63,18 +63,12 @@ Use `context.results.add_result(ResultStatus.X, message)` (positional arguments)
 
 Most jobs read fresh state. Pass `use_cache=False` when calling `context.broker.execute(...)` if the read must reflect a state change that just happened in the same job (post-action verification, gate poll, volatile observation).
 
-### Applicability
+### Command Support
 
-Jobs use `check_applicability` to exclude targets before `gather_state` runs. A device is not applicable when it cannot produce meaningful data for the job. There are two standard reasons:
-
-1. **Command not supported.** The device does not recognize the `show` command (e.g., a platform that lacks the feature entirely). This is the baseline check that every job should perform.
-
-2. **Attribute absent from parsed output.** The command succeeds, but the specific field the job needs does not exist in the parsed data. This happens when a platform variant omits certain fields (e.g., `config_register` absent from C9300 `show version` output) or when a feature is simply not configured on the device (e.g., no OSPF authentication, no BGP peer groups). In learning mode, saving empty parameters for these devices creates ambiguity  -  the prune tooling cannot distinguish "the job ran and found nothing" from "the job found data and it was empty." Marking the device as not-applicable makes the distinction explicit.
-
-The standard idiom for reason 1 alone:
+Most jobs use `check_command_support` to skip targets where the relevant `show` command is not supported. The standard idiom:
 
 ```python
-async def check_applicability(self, context: Context) -> ApplicabilityResult:
+async def check_command_support(self, context: Context) -> CommandSupportResult:
     applicable = []
     not_applicable: dict[str, str] = {}
     for device in context.targets:
@@ -83,29 +77,10 @@ async def check_applicability(self, context: Context) -> ApplicabilityResult:
             not_applicable[device.name] = NOT_SUPPORTED_REASON.format(command=self.command)
             continue
         applicable.append(device)
-    return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
+    return CommandSupportResult(applicable=applicable, not_applicable=not_applicable)
 ```
 
-When the job targets a specific parsed field that may be absent, extend the check to also verify the field exists:
-
-```python
-async def check_applicability(self, context: Context) -> ApplicabilityResult:
-    applicable = []
-    not_applicable: dict[str, str] = {}
-    for device in context.targets:
-        result = await context.broker.execute(device, self.command)
-        if is_command_unsupported(result.output):
-            not_applicable[device.name] = NOT_SUPPORTED_REASON.format(command=self.command)
-            continue
-        parsed = mn.parse(os=device.os, command=self.command, output=result.output)
-        if "target_field" not in parsed:
-            not_applicable[device.name] = MISSING_FIELD_REASON.format(command=self.command)
-            continue
-        applicable.append(device)
-    return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
-```
-
-For jobs that extract per-item values (e.g., per-interface or per-neighbor), the equivalent check is whether `gather_state` would produce an empty `values` dict for a device. When every item's value is absent in the parsed output, the device has no data for this job and should be not-applicable. This can be checked either in `check_applicability` (by pre-scanning the parsed data) or as a post-gather step in `gather_state`  -  see [Static Parameter Validation § gather_state](static-validation.md#gather_state) for the recommended pattern.
+Data-level applicability (e.g., a specific parsed field is absent, or per-item extraction yields nothing for a device) is handled in `gather_state`, not `check_command_support`. When `gather_state` determines a device has no meaningful data, it emits a `NOT_APPLICABLE` result via `context.results.add_result()` and omits the device from the returned parameters. See [Static Parameter Validation § gather_state](static-validation.md#gather_state) for the recommended pattern.
 
 ## See also
 

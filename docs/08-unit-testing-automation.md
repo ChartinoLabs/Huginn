@@ -8,7 +8,7 @@ Huginn is designed for test plans containing thousands of atomic tests. When tes
 
 - **Changes propagate widely**: A bug in one job affects every test case and environment that uses it
 - **Manual verification doesn't scale**: Thousands of tests cannot be manually verified after each change
-- **Complex logic requires validation**: Jobs contain non-trivial comparison logic, data model parsing, applicability determination, and edge case handling
+- **Complex logic requires validation**: Jobs contain non-trivial comparison logic, data model parsing, command support determination, and edge case handling
 
 Unit testing the test automation itself provides:
 
@@ -43,8 +43,8 @@ Huginn's `LearningTestCase[ParametersType]` base class enforces this separation 
 class LearningTestCase(Generic[ParametersType]):
     """Base class for jobs with learning/testing lifecycle."""
 
-    async def check_applicability(self, context: Context) -> ApplicabilityResult:
-        """Determine which targets this job applies to."""
+    async def check_command_support(self, context: Context) -> CommandSupportResult:
+        """Determine which targets support the required command(s)."""
         ...
 
     async def gather_state(self, context: Context) -> ParametersType:
@@ -64,7 +64,7 @@ class LearningTestCase(Generic[ParametersType]):
 
 Each phase has a distinct responsibility:
 
-- **`check_applicability()`**: I/O to probe device capabilities, returns `ApplicabilityResult`
+- **`check_command_support()`**: I/O to probe whether devices support the required command(s), returns `CommandSupportResult`
 - **`gather_state()`**: I/O to collect device state, returns a strongly typed `ParametersType` dict
 - **`compare_state()`**: Decision logic comparing expected vs current, reports results via `context.results`
 
@@ -79,7 +79,7 @@ from typing import Any, TypedDict
 
 import muninn
 
-from huginn import ApplicabilityResult, Context, LearningTestCase, ResultStatus
+from huginn import CommandSupportResult, Context, LearningTestCase, ResultStatus
 from huginn.utils.commands import is_command_unsupported
 
 mn = muninn.Muninn()
@@ -114,7 +114,7 @@ class VerifyCallHomeRateLimit(LearningTestCase[CallHomeRateLimitParameters]):
     DESCRIPTION = "Validate that each device's call-home rate limit remains aligned with the learned baseline."
     command = "show call-home"
 
-    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+    async def check_command_support(self, context: Context) -> CommandSupportResult:
         applicable = []
         not_applicable: dict[str, str] = {}
         for device in context.targets:
@@ -125,7 +125,7 @@ class VerifyCallHomeRateLimit(LearningTestCase[CallHomeRateLimitParameters]):
                 )
                 continue
             applicable.append(device)
-        return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
+        return CommandSupportResult(applicable=applicable, not_applicable=not_applicable)
 
     async def gather_state(self, context: Context) -> CallHomeRateLimitParameters:
         devices: dict[str, CallHomeRateLimitDeviceParameters] = {}
@@ -191,7 +191,7 @@ class VerifyCallHomeRateLimit(LearningTestCase[CallHomeRateLimitParameters]):
 1. **`LearningTestCase` enforces separation**: Data gathering (`gather_state`) and decision logic (`compare_state`) are distinct methods with distinct signatures
 2. **Strongly typed parameters**: `TypedDict` subclasses define the shape of gathered state, providing type safety without runtime overhead
 3. **Module-level message templates**: String constants like `VALUE_MISMATCH` live at module scope, making them easy to reference in test assertions
-4. **Applicability as a first-class concern**: `check_applicability()` is a separate phase, not buried inside `test()`
+4. **Command support as a first-class concern**: `check_command_support()` is a separate phase, not buried inside `test()`
 
 ### Extracting Pure Validation Functions (Optional)
 
@@ -307,7 +307,7 @@ def load_module(module_name: str):
     return importlib.import_module(module_name)
 
 
-def assert_value_job_applicability(
+def assert_value_job_command_support(
     spec: ValueJobSpec,
     *,
     make_device,
@@ -315,7 +315,7 @@ def assert_value_job_applicability(
     supported_output: str,
     unsupported_output: str,
 ) -> None:
-    """Test check_applicability for any ValueJobSpec job."""
+    """Test check_command_support for any ValueJobSpec job."""
     module = load_module(spec.module_name)
     job = getattr(module, spec.class_name)()
     supported = make_device("edge-01")
@@ -328,7 +328,7 @@ def assert_value_job_applicability(
         },
     )
 
-    result = asyncio.run(job.check_applicability(context=context))
+    result = asyncio.run(job.check_command_support(context=context))
 
     assert [device.name for device in result.applicable] == ["edge-01"]
     assert result.not_applicable == {
@@ -402,7 +402,7 @@ Each job's test file is minimal - just a spec definition and calls to shared ass
 
 from tests.jobs.support import (
     ValueJobSpec,
-    assert_value_job_applicability,
+    assert_value_job_command_support,
     assert_value_job_build_results,
     assert_value_job_compare_state,
     assert_value_job_gather_state,
@@ -420,10 +420,10 @@ def test_build_results() -> None:
     assert_value_job_build_results(SPEC)
 
 
-def test_check_applicability(
+def test_check_command_support(
     make_device, make_context, supported_output, unsupported_output,
 ) -> None:
-    assert_value_job_applicability(
+    assert_value_job_command_support(
         SPEC,
         make_device=make_device,
         make_context=make_context,
@@ -660,7 +660,7 @@ class VerifyOSPFState(LearningTestCase[OSPFStateParameters]):
 
 ### 1. Test Decision Logic, Not the Framework
 
-Unit tests should focus on your applicability and validation logic, not on testing that Huginn's `Context` or broker work correctly.
+Unit tests should focus on your command support and validation logic, not on testing that Huginn's `Context` or broker work correctly.
 
 ```python
 # Good: tests pure validation function
