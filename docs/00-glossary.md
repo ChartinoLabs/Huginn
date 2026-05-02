@@ -96,26 +96,26 @@ The execution mode for a test run. Huginn supports two modes:
 
 A single execution of a test plan against a testbed. A run establishes connections to all devices, executes phases in dependency order, executes test case groups within each phase, collects results, and generates reports. Test cases filtered out by tags or other criteria do not appear in run results.
 
-### Applicability
+### Command Support
 
-The determination of whether a test case is relevant to a specific target device. Applicability can be:
+The determination of whether a target device supports the CLI command(s) required by a test case. Command support can be:
 
 - **Static**: Declared in the test plan via target specifications (devices, device groups, operating systems). Resolved before test execution.
-- **Dynamic**: Determined at runtime by the test case itself via the `check_applicability()` method or during `gather_state()`. Enables tests to introspect their assigned targets and filter based on device capabilities, running features, or other runtime conditions.
+- **Dynamic**: Determined at runtime by the test case itself via the `check_command_support()` method or during `gather_state()`. Enables tests to introspect their assigned targets and filter based on device capabilities, running features, or other runtime conditions.
 
 Dynamic non-applicability arises from two distinct situations:
 
-1. **Command not supported**: The device does not recognize the show command the job requires. Detected in `check_applicability()`.
-2. **Attribute absent**: The command succeeds but the specific attribute the job validates does not exist in the parsed output  -  either because the platform does not report it or because the feature is not configured. Detected in `check_applicability()` (for device-level fields) or in `gather_state()` (when per-item extraction produces an empty result for a device).
+1. **Command not supported**: The device does not recognize the show command the job requires. Detected in `check_command_support()`.
+2. **Attribute absent**: The command succeeds but the specific attribute the job validates does not exist in the parsed output - either because the platform does not report it or because the feature is not configured. Detected in `gather_state()` when per-item extraction produces an empty result for a device.
 
-A device that is statically targeted but dynamically determined to be not applicable is recorded with a NOT_APPLICABLE or LOST_APPLICABILITY result (depending on whether learned parameters exist) and the reason for non-applicability.
+A device that is statically targeted but dynamically determined to lack command support is recorded with a NOT_APPLICABLE or LOST_APPLICABILITY result (depending on whether learned parameters exist) and the reason for non-support.
 
-### ApplicabilityResult
+### CommandSupportResult
 
-The return type of a test case's `check_applicability()` method. Contains:
+The return type of a test case's `check_command_support()` method. Contains:
 
-- **applicable**: List of devices the test should run against.
-- **not_applicable**: Dictionary mapping device names to reasons why the test doesn't apply to them.
+- **applicable**: List of devices that support the required command(s).
+- **not_applicable**: Dictionary mapping device names to reasons why the device does not support the required command(s).
 
 The framework uses this result to update `context.targets` before calling `setup()` and `test()`.
 

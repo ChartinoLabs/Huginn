@@ -21,8 +21,8 @@ ParametersT = TypeVar("ParametersT", bound=Mapping[str, object])
 
 
 @dataclass
-class ApplicabilityResult:
-    """Outcome of dynamic applicability checks for assigned targets."""
+class CommandSupportResult:
+    """Outcome of command-support checks for assigned targets."""
 
     applicable: list[Device] = field(default_factory=list)
     not_applicable: dict[str, str] = field(default_factory=dict)
@@ -60,30 +60,30 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
 
     async def test(self, context: Context) -> None:
         """Save state in learning mode or compare state in testing mode."""
-        applicability = await self.check_applicability(context)
+        support = await self.check_command_support(context)
         original_targets = list(context.targets)
-        applicable_targets = list(applicability.applicable)
+        supported_targets = list(support.applicable)
 
         for target in original_targets:
-            if target in applicable_targets:
+            if target in supported_targets:
                 continue
-            reason = applicability.not_applicable.get(
+            reason = support.not_applicable.get(
                 target.name,
-                "Target not applicable for this test",
+                "Command not supported on this device",
             )
             context.results.add_result(
                 ResultStatus.NOT_APPLICABLE,
                 f"{target.name}: {reason}",
             )
 
-        if not applicable_targets:
+        if not supported_targets:
             context.results.add_result(
                 ResultStatus.INFO,
-                "No applicable targets after applicability check",
+                "No supported targets after command support check",
             )
             return
 
-        context.targets = applicable_targets
+        context.targets = supported_targets
         current_state = await self.gather_state(context)
 
         derive_status = getattr(context.results, "derive_status", None)
@@ -92,10 +92,15 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
 
         if context.mode == ExecutionMode.LEARNING:
             await context.parameters.save(current_state)
-            context.results.add_result(
-                ResultStatus.PASSED,
-                "Learned parameters saved successfully",
+            all_not_applicable = (
+                callable(derive_status)
+                and derive_status() == ResultStatus.NOT_APPLICABLE
             )
+            if not all_not_applicable:
+                context.results.add_result(
+                    ResultStatus.PASSED,
+                    "Learned parameters saved successfully",
+                )
             return
 
         expected_state = cast(ParametersT, await context.parameters.load())
@@ -106,9 +111,9 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
             context=context,
         )
 
-    async def check_applicability(self, context: Context) -> ApplicabilityResult:
-        """Return applicable targets and reasons for non-applicable ones."""
-        return ApplicabilityResult(applicable=list(context.targets), not_applicable={})
+    async def check_command_support(self, context: Context) -> CommandSupportResult:
+        """Check whether target devices support the required command(s)."""
+        return CommandSupportResult(applicable=list(context.targets), not_applicable={})
 
     async def cleanup(self, context: Context) -> None:
         """Default no-op cleanup for learning/testing style tests."""

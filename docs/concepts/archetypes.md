@@ -9,7 +9,7 @@ The four archetypes are:
 - [Change](../authoring/change.md)
 - [Gate](../authoring/gate.md)
 
-This page explains why each archetype exists, how `LearningTestCase` relates to the archetypes, and where each archetype typically appears in a test plan. For the practical conventions that apply to every archetype - filename and class naming, module layout, class metadata, result recording, applicability - see [Authoring Jobs](../authoring/index.md). For the shape and reference example specific to one archetype, follow the link to that archetype's authoring page.
+This page explains why each archetype exists, how `LearningTestCase` relates to the archetypes, and where each archetype typically appears in a test plan. For the practical conventions that apply to every archetype - filename and class naming, module layout, class metadata, result recording, command support - see [Authoring Jobs](../authoring/index.md). For the shape and reference example specific to one archetype, follow the link to that archetype's authoring page.
 
 ## Why these four
 
@@ -35,7 +35,7 @@ In every case, "learning mode" captures parameters that "testing mode" subsequen
 
 ## How the framework treats them
 
-The framework does not distinguish between the four archetypes at execution time. From the framework's perspective, every job is a `TestCase` (or a subclass of one) with `check_applicability`, `setup`, `test`, and `cleanup` methods, executed inside a phase, against a target set, in either learning or testing mode.
+The framework does not distinguish between the four archetypes at execution time. From the framework's perspective, every job is a `TestCase` (or a subclass of one) with `check_command_support`, `setup`, `test`, and `cleanup` methods, executed inside a phase, against a target set, in either learning or testing mode.
 
 Archetype is a **convention** - a way of organizing how authors think about jobs and how readers find them. The four archetypes have stable shapes, naming conventions, and module layouts, documented on their respective authoring pages.
 

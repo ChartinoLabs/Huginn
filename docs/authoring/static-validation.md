@@ -24,7 +24,7 @@ from typing import Any, TypedDict
 
 import muninn
 
-from huginn import ApplicabilityResult, Context, LearningTestCase, ResultStatus
+from huginn import CommandSupportResult, Context, LearningTestCase, ResultStatus
 from huginn.utils.commands import is_command_unsupported
 
 mn = muninn.Muninn()
@@ -81,7 +81,7 @@ class VerifyBgpNeighborState(LearningTestCase[BgpNeighborStateParameters]):
 
     command = "show ip bgp neighbors"
 
-    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+    async def check_command_support(self, context: Context) -> CommandSupportResult:
         applicable = []
         not_applicable: dict[str, str] = {}
         for device in context.targets:
@@ -92,7 +92,7 @@ class VerifyBgpNeighborState(LearningTestCase[BgpNeighborStateParameters]):
                 )
                 continue
             applicable.append(device)
-        return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
+        return CommandSupportResult(applicable=applicable, not_applicable=not_applicable)
 
     async def gather_state(self, context: Context) -> BgpNeighborStateParameters:
         devices: dict[str, BgpNeighborStateDeviceParameters] = {}
@@ -195,9 +195,9 @@ The parameters payload is always wrapped in an outer `<Subject>Parameters` Typed
 
 Always type the parameters in the class generic: `LearningTestCase[<Subject>Parameters]`.
 
-### `check_applicability`
+### `check_command_support`
 
-Standard idiom - see [Authoring overview](index.md#applicability). Verify that the show command is supported on each target. Skip targets that respond with an unsupported-command marker.
+Standard idiom - see [Authoring overview](index.md#command-support). Verify that the show command is supported on each target. Skip targets that respond with an unsupported-command marker.
 
 ### `gather_state`
 
@@ -324,7 +324,7 @@ class OspfNeighborExistenceDeviceParameters(TypedDict):
 - **Don't skip `add_command_execution`.** The reporting layer relies on it to render raw and parsed output for debugging.
 - **Don't put `command` at module scope.** It belongs as a class attribute (`self.command`). Module-level `command = "..."` makes the show command invisible to subclasses and harder to override per-job.
 - **Don't catch `muninn` parser errors silently.** If parsing fails, let the exception propagate or emit `ResultStatus.ERRORED` explicitly with context. Silent failure makes the job look healthy when it isn't.
-- **Don't mutate `context.targets`.** The framework owns target filtering via `check_applicability`. Inside `gather_state` and `compare_state`, treat the targets as read-only.
+- **Don't mutate `context.targets`.** The framework owns target filtering via `check_command_support`. Inside `gather_state` and `compare_state`, treat the targets as read-only.
 - **Don't override `setup` or `cleanup`** unless you genuinely need to. The defaults provided by `LearningTestCase` are correct for the vast majority of jobs.
 
 ## See also

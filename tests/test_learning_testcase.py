@@ -6,7 +6,7 @@ from typing import cast
 import pytest
 
 from huginn import (
-    ApplicabilityResult,
+    CommandSupportResult,
     Context,
     ExecutionMode,
     LearningTestCase,
@@ -82,10 +82,10 @@ class _ApplicabilityLearningTest(_ExampleLearningTest):
         super().__init__()
         self.gathered_target_names = []
 
-    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+    async def check_command_support(self, context: Context) -> CommandSupportResult:
         targets = cast(_FakeContext, context).targets
         applicable = [targets[0]]
-        return ApplicabilityResult(
+        return CommandSupportResult(
             applicable=cast(list[Device], applicable),
             not_applicable={targets[1].name: "feature not enabled"},
         )
@@ -97,9 +97,9 @@ class _ApplicabilityLearningTest(_ExampleLearningTest):
 
 
 class _NoApplicableLearningTest(_ExampleLearningTest):
-    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+    async def check_command_support(self, context: Context) -> CommandSupportResult:
         targets = cast(_FakeContext, context).targets
-        return ApplicabilityResult(
+        return CommandSupportResult(
             applicable=[],
             not_applicable={
                 target.name: "protocol not configured" for target in targets
@@ -208,7 +208,7 @@ async def test_learning_testcase_skips_when_no_applicable_targets() -> None:
     assert context.parameters.saved_payloads == []
     assert context.results.entries == [
         (ResultStatus.NOT_APPLICABLE, "leaf-01: protocol not configured"),
-        (ResultStatus.INFO, "No applicable targets after applicability check"),
+        (ResultStatus.INFO, "No supported targets after command support check"),
     ]
 
 

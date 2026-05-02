@@ -31,7 +31,7 @@ from typing import TypedDict
 
 import muninn
 
-from huginn import ApplicabilityResult, Context, LearningTestCase, ResultStatus
+from huginn import CommandSupportResult, Context, LearningTestCase, ResultStatus
 from huginn.utils.commands import is_command_unsupported
 
 mn = muninn.Muninn()
@@ -91,7 +91,7 @@ class GateBgpPeeringStatus(LearningTestCase[BgpPeeringGateParameters]):
 
     command = "show ip bgp summary"
 
-    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+    async def check_command_support(self, context: Context) -> CommandSupportResult:
         # Standard idiom - see authoring overview.
         ...
 

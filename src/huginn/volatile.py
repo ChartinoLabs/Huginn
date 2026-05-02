@@ -58,7 +58,7 @@ from pathlib import Path
 from typing import Any, ClassVar, Generic, TypedDict, TypeVar
 
 from huginn.context import Context
-from huginn.testcase import ApplicabilityResult, LearningTestCase
+from huginn.testcase import CommandSupportResult, LearningTestCase
 from huginn.utils.commands import is_command_unsupported
 
 VolatileParametersT = TypeVar("VolatileParametersT", bound=Mapping[str, object])
@@ -430,11 +430,11 @@ class OperatorVolatileLearningTestCase(
             msg = f"{cls.__name__} must define command"
             raise TypeError(msg)
 
-    async def check_applicability(
+    async def check_command_support(
         self,
         context: Context,
-    ) -> ApplicabilityResult:
-        """Default applicability: target supports the configured command."""
+    ) -> CommandSupportResult:
+        """Check whether target devices support the configured command."""
         applicable = []
         not_applicable: dict[str, str] = {}
         for device in context.targets:
@@ -445,7 +445,7 @@ class OperatorVolatileLearningTestCase(
                 )
                 continue
             applicable.append(device)
-        return ApplicabilityResult(
+        return CommandSupportResult(
             applicable=applicable,
             not_applicable=not_applicable,
         )
