@@ -76,6 +76,8 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
                 f"{target.name}: {reason}",
             )
 
+        context.results.not_applicable_devices = dict(applicability.not_applicable)
+
         if not applicable_targets:
             context.results.add_result(
                 ResultStatus.INFO,

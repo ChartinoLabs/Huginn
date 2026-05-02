@@ -15,6 +15,14 @@ from huginn.enums import ErrorCode, ExecutionMode
 from huginn.loaders import ConfigurationError, load_test_plan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
+from huginn.prune import (
+    PruneError,
+    apply_prune_plan,
+    compute_prune_plan,
+    find_latest_learning_results,
+    parse_applicability_from_run,
+    validate_after_prune,
+)
 from huginn.reconcile import (
     ReconcileError,
     apply_reconcile_plan,
@@ -801,6 +809,157 @@ def reconcile(
             )
 
     except (ReconcileError, ConfigurationError) as error:
+        output.error(f"ERROR: {error}")
+        raise typer.Exit(code=1) from error
+
+
+@app.command()
+def prune(
+    plan: Annotated[
+        Path,
+        typer.Option(
+            "--plan",
+            "-p",
+            help="Path to test plan YAML file or directory of YAML files.",
+            exists=True,
+            file_okay=True,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_PLAN",
+        ),
+    ],
+    results_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--results-dir",
+            help="Path to results directory (default: ./results/).",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_RESULTS_DIR",
+        ),
+    ] = None,
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            help="Enable DEBUG-level logging.",
+            envvar="HUGINN_DEBUG",
+        ),
+    ] = False,
+    log_level: Annotated[
+        str,
+        typer.Option(
+            "--log-level",
+            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+            envvar="HUGINN_LOG_LEVEL",
+        ),
+    ] = "INFO",
+    show_logs: Annotated[
+        bool,
+        typer.Option(
+            "--show-logs",
+            help="Stream logs to console in addition to file.",
+            envvar="HUGINN_SHOW_LOGS",
+        ),
+    ] = False,
+    log_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--log-file",
+            help="Path to log file (default: ./huginn.log).",
+            envvar="HUGINN_LOG_FILE",
+        ),
+    ] = None,
+) -> None:
+    """Prune non-applicable tests and device targets from the test plan.
+
+    After running in learning mode, some tests return NOT_APPLICABLE for
+    certain devices. This command reads the latest learning results and:
+
+    - For tests where SOME devices are non-applicable: adds exclude_devices
+      to the test case's target definition.
+    - For tests where ALL devices are non-applicable: removes the test
+      from its test case group(s) via exclude_tests.
+
+    Examples:
+        huginn prune -p test_plan/
+        huginn prune -p test_plan.yaml --results-dir ./results/
+    """
+    resolved_results_dir = results_dir or Path.cwd() / "results"
+
+    output = _build_output(
+        debug=debug,
+        log_level=log_level,
+        show_logs=show_logs,
+        log_file=log_file,
+    )
+    output.status("Pruning non-applicable tests from test plan")
+    output.log_debug_fields(
+        "CLI prune options",
+        plan=plan,
+        results_dir=resolved_results_dir,
+        log_level="DEBUG" if debug else log_level,
+    )
+
+    try:
+        run_json_path = find_latest_learning_results(resolved_results_dir)
+        output.status(f"Using results from {run_json_path.parent.name}")
+
+        prune_input = parse_applicability_from_run(run_json_path)
+
+        total_na = len(prune_input.partial_tests) + len(prune_input.full_tests)
+        if total_na == 0:
+            output.success(
+                "No non-applicable tests found -- nothing to prune"
+            )
+            return
+
+        output.status(
+            f"Found {len(prune_input.partial_tests)} partially applicable "
+            f"and {len(prune_input.full_tests)} fully non-applicable test(s)"
+        )
+
+        test_plan_obj = load_test_plan(plan)
+        plan_result = compute_prune_plan(prune_input, test_plan_obj)
+
+        has_changes = (
+            plan_result.exclude_devices_updates
+            or plan_result.exclude_from_groups
+        )
+        if not has_changes:
+            output.success("Pruning already applied -- no changes needed")
+            if plan_result.skipped_already_pruned:
+                output.warning(
+                    f"Skipped {len(plan_result.skipped_already_pruned)} "
+                    "already-pruned test(s)"
+                )
+            return
+
+        apply_prune_plan(
+            plan_path=plan,
+            prune_plan=plan_result,
+            output=output,
+        )
+
+        validate_after_prune(plan)
+
+        device_updates = len(plan_result.exclude_devices_updates)
+        group_updates = sum(
+            len(tids) for tids in plan_result.exclude_from_groups.values()
+        )
+        output.success(
+            f"Prune complete: "
+            f"{device_updates} test(s) with exclude_devices, "
+            f"{group_updates} test(s) removed from groups"
+        )
+        if plan_result.skipped_already_pruned:
+            output.warning(
+                f"Skipped {len(plan_result.skipped_already_pruned)} "
+                "already-pruned test(s)"
+            )
+
+    except (PruneError, ConfigurationError) as error:
         output.error(f"ERROR: {error}")
         raise typer.Exit(code=1) from error
 

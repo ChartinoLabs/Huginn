@@ -20,6 +20,7 @@ class ResultCollector:
     metadata_sections: list[MetadataSection] = field(default_factory=list)
     checks: list[CheckResult] = field(default_factory=list)
     command_executions: list[CommandExecution] = field(default_factory=list)
+    not_applicable_devices: dict[str, str] = field(default_factory=dict)
 
     def add_metadata_section(self, heading: str, content: str) -> None:
         """Record one rendered metadata section for reporting."""
