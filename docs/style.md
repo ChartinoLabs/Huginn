@@ -61,6 +61,44 @@ Use heading levels to reflect the document outline. Do not skip levels (e.g., `#
 - `###` -- subsections
 - `####` -- sub-subsections (use sparingly)
 
+## Tables
+
+### Pad table cells for alignment
+
+Markdown tables must have cell contents padded so that column borders align vertically. This makes tables readable in plain-text editors and diffs, not just in rendered HTML.
+
+Wrong:
+
+```markdown
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--plan` | (required) | Path to test plan. |
+| `--dry-run` | off | Preview changes. |
+```
+
+Right:
+
+```markdown
+| Option     | Default    | Description        |
+| ---------- | ---------- | ------------------ |
+| `--plan`   | (required) | Path to test plan. |
+| `--dry-run` | off        | Preview changes.   |
+```
+
+Use `mdformat` with the `mdformat-tables` plugin to fix table formatting automatically:
+
+```bash
+uv run --group docs -- mdformat docs/
+```
+
+To check without modifying files (suitable for CI):
+
+```bash
+uv run --group docs -- mdformat --check docs/
+```
+
+Both tools are declared in the `docs` dependency group in `pyproject.toml`.
+
 ## Punctuation and typography
 
 ### No em-dashes

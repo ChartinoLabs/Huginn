@@ -86,16 +86,16 @@ huginn prune -p test_plan/ --remove-orphans
 huginn prune --plan <path> [--results-dir <path>] [--dry-run] [--remove-orphans]
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--plan`, `-p` | (required) | Path to test plan YAML file or directory. Also accepts `HUGINN_PLAN` env var. |
-| `--results-dir` | `./results/` | Path to results directory. Also accepts `HUGINN_RESULTS_DIR` env var. |
-| `--dry-run` | off | Show what would be pruned without modifying files. |
-| `--remove-orphans` | off | Delete test case definitions no longer referenced by any group. |
-| `--debug` | off | Enable DEBUG-level logging. Also accepts `HUGINN_DEBUG` env var. |
-| `--log-level` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR). Also accepts `HUGINN_LOG_LEVEL` env var. |
-| `--show-logs` | off | Stream logs to console in addition to file. Also accepts `HUGINN_SHOW_LOGS` env var. |
-| `--log-file` | `./huginn.log` | Path to log file. Also accepts `HUGINN_LOG_FILE` env var. |
+| Option             | Default        | Description                                                                           |
+| ------------------ | -------------- | ------------------------------------------------------------------------------------- |
+| `--plan`, `-p`     | (required)     | Path to test plan YAML file or directory. Also accepts `HUGINN_PLAN` env var.         |
+| `--results-dir`    | `./results/`   | Path to results directory. Also accepts `HUGINN_RESULTS_DIR` env var.                 |
+| `--dry-run`        | off            | Show what would be pruned without modifying files.                                    |
+| `--remove-orphans` | off            | Delete test case definitions no longer referenced by any group.                       |
+| `--debug`          | off            | Enable DEBUG-level logging. Also accepts `HUGINN_DEBUG` env var.                      |
+| `--log-level`      | `INFO`         | Logging level (DEBUG, INFO, WARNING, ERROR). Also accepts `HUGINN_LOG_LEVEL` env var. |
+| `--show-logs`      | off            | Stream logs to console in addition to file. Also accepts `HUGINN_SHOW_LOGS` env var.  |
+| `--log-file`       | `./huginn.log` | Path to log file. Also accepts `HUGINN_LOG_FILE` env var.                             |
 
 ## What the command modifies
 
