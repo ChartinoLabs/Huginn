@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Generic, TypeVar, cast
+from typing import Any, Generic, TypeVar, cast
 
 from jinja2 import Environment
 
@@ -89,7 +89,9 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
         current_state = await self.gather_state(context)
 
         self._capture_gather_state_na(
-            current_state, supported_targets, context,
+            current_state,
+            supported_targets,
+            context,
         )
 
         derive_status = getattr(context.results, "derive_status", None)
@@ -133,18 +135,21 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
         """
         if not isinstance(current_state, dict):
             return
-        returned_devices = current_state.get("devices")
+        returned_devices = cast(dict[str, Any], current_state).get("devices")
         if not isinstance(returned_devices, dict):
             return
         for target in supported_targets:
-            if target.name not in returned_devices and target.name not in context.results.not_applicable_devices:
+            if (
+                target.name not in returned_devices
+                and target.name not in context.results.not_applicable_devices
+            ):
                 reason = "No applicable data for this test"
                 for check in context.results.checks:
                     if (
                         check.status == ResultStatus.NOT_APPLICABLE.value
                         and check.message.startswith(target.name)
                     ):
-                        reason = check.message[len(target.name):].lstrip(": ")
+                        reason = check.message[len(target.name) :].lstrip(": ")
                         break
                 context.results.not_applicable_devices[target.name] = reason
 

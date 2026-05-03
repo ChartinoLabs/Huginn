@@ -17,7 +17,6 @@ from huginn.prune import (
     NotApplicableTestCase,
     PruneError,
     PruneInput,
-    PrunePlan,
     _add_exclude_tests_to_group,
     _extract_all_devices,
     _remove_orphaned_test_cases,
@@ -537,7 +536,7 @@ class TestExtractAllDevices:
         assert result == ["router-1", "router-2"]
 
     def test_extracts_from_not_applicable_devices_when_no_executions(self) -> None:
-        """Falls back to not_applicable_devices keys when command_executions is empty."""
+        """Falls back to not_applicable_devices when no command_executions."""
         detail = {
             "command_executions": [],
             "not_applicable_devices": {"switch-1": "No support", "switch-2": "N/A"},
