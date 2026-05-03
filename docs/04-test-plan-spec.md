@@ -94,15 +94,15 @@ If no file defines a particular metadata key, that key is unset (empty).
 
 When multiple files define the same section, the framework merges them according to these rules:
 
-| Section            | Merge Strategy                                    |
-| ------------------ | ------------------------------------------------- |
-| `name`             | Single definition only; error on duplicate        |
-| `description`      | Single definition only; error on duplicate        |
-| `data_model`       | Single definition only; error on duplicate        |
-| `defaults`         | Single definition only; error on duplicate        |
-| `test_cases`       | Map merge; error on duplicate keys                |
-| `test_case_groups` | Map merge; error on duplicate keys                |
-| `scenarios`        | Map merge; error on duplicate keys                |
+| Section            | Merge Strategy                             |
+| ------------------ | ------------------------------------------ |
+| `name`             | Single definition only; error on duplicate |
+| `description`      | Single definition only; error on duplicate |
+| `data_model`       | Single definition only; error on duplicate |
+| `defaults`         | Single definition only; error on duplicate |
+| `test_cases`       | Map merge; error on duplicate keys         |
+| `test_case_groups` | Map merge; error on duplicate keys         |
+| `scenarios`        | Map merge; error on duplicate keys         |
 
 **Example: Merging test_cases from multiple files**
 
@@ -246,13 +246,13 @@ test_cases:
 
 #### Test Case Fields
 
-| Field         | Type         | Required | Description                                        |
-| ------------- | ------------ | -------- | -------------------------------------------------- |
-| `title`       | string       | Yes      | Human-readable test name                           |
+| Field         | Type         | Required | Description                                           |
+| ------------- | ------------ | -------- | ----------------------------------------------------- |
+| `title`       | string       | Yes      | Human-readable test name                              |
 | `job`         | string       | Yes      | Job reference - see [Job References](#job-references) |
-| `description` | string       | No       | Detailed test description                          |
-| `tags`        | list[string] | No       | Labels for filtering                               |
-| `target`      | dict         | No       | Targeting specification                            |
+| `description` | string       | No       | Detailed test description                             |
+| `tags`        | list[string] | No       | Labels for filtering                                  |
+| `target`      | dict         | No       | Targeting specification                               |
 
 #### Job References
 
@@ -671,7 +671,6 @@ huginn run --tags critical,fast
 **Important**: Filtered tests do not appear in results. If you filter to run only OSPF tests, only those tests appear in the report.
 
 Test case groups can also define `tags`. Effective filtering tags are the union of test-case tags and group tags for each execution context.
-
 
 ## Complete Example
 

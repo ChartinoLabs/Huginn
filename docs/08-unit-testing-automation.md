@@ -21,11 +21,11 @@ Unit testing the test automation itself provides:
 
 Three complementary patterns enable effective unit testing:
 
-| Pattern                                                           | Purpose                          | Required?                         |
-| ----------------------------------------------------------------- | -------------------------------- | --------------------------------- |
-| [Separation of Concerns](#pattern-1-separation-of-concerns)       | Structure jobs for testability   | Yes - enforced by `LearningTestCase` |
-| [Spec-Driven Test Harness](#pattern-2-spec-driven-test-harness)   | Reusable assertions across many jobs | Recommended - scales to hundreds of jobs |
-| [Hand-Crafted Fakes](#pattern-3-hand-crafted-fakes)               | Lightweight test doubles         | Yes - needed for any approach     |
+| Pattern                                                         | Purpose                              | Required?                                |
+| --------------------------------------------------------------- | ------------------------------------ | ---------------------------------------- |
+| [Separation of Concerns](#pattern-1-separation-of-concerns)     | Structure jobs for testability       | Yes - enforced by `LearningTestCase`     |
+| [Spec-Driven Test Harness](#pattern-2-spec-driven-test-harness) | Reusable assertions across many jobs | Recommended - scales to hundreds of jobs |
+| [Hand-Crafted Fakes](#pattern-3-hand-crafted-fakes)             | Lightweight test doubles             | Yes - needed for any approach            |
 
 These patterns are layered: Pattern 1 is the foundation that makes jobs testable, Pattern 2 provides reusable test infrastructure, and Pattern 3 supplies the lightweight test doubles both patterns rely on.
 

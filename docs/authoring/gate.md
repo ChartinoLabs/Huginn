@@ -214,12 +214,12 @@ def _check_convergence(
 
 Both gate jobs and static validation jobs inherit from `LearningTestCase`. Both override `gather_state` and `compare_state`. The difference is in what `compare_state` does:
 
-| Aspect | Static validation | Gate |
-|---|---|---|
-| Number of observations | One observation, compared once. | Multiple observations, polled until convergence. |
-| Failure mode | Drift between learned and current values. | Timeout: convergence did not occur within the configured window. |
-| Pass mode | Per-target, after walking learned values. | Per-target, on the first poll where all targets match. |
-| Tuning knobs | None (baseline is the parameter). | `timeout` and `interval` carried as top-level fields in the parameters TypedDict. |
+| Aspect                 | Static validation                         | Gate                                                                              |
+| ---------------------- | ----------------------------------------- | --------------------------------------------------------------------------------- |
+| Number of observations | One observation, compared once.           | Multiple observations, polled until convergence.                                  |
+| Failure mode           | Drift between learned and current values. | Timeout: convergence did not occur within the configured window.                  |
+| Pass mode              | Per-target, after walking learned values. | Per-target, on the first poll where all targets match.                            |
+| Tuning knobs           | None (baseline is the parameter).         | `timeout` and `interval` carried as top-level fields in the parameters TypedDict. |
 
 A gate is essentially a validation job in a `while True:` loop with a deadline.
 
@@ -241,13 +241,13 @@ The `_check_convergence` helper is the only piece that varies between gates. The
 
 Gate jobs use a slightly different constant set than the other archetypes:
 
-| Constant | Purpose |
-|---|---|
-| `DEFAULT_TIMEOUT`, `DEFAULT_INTERVAL` | Module-level defaults for the polling parameters. |
-| `NOT_SUPPORTED_REASON` | Standard applicability skip reason. |
-| `MISSING_CURRENT_STATE` | Emitted by `_check_convergence` when a device's current observation is missing entirely. |
+| Constant                              | Purpose                                                                                        |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `DEFAULT_TIMEOUT`, `DEFAULT_INTERVAL` | Module-level defaults for the polling parameters.                                              |
+| `NOT_SUPPORTED_REASON`                | Standard applicability skip reason.                                                            |
+| `MISSING_CURRENT_STATE`               | Emitted by `_check_convergence` when a device's current observation is missing entirely.       |
 | One or more per-target issue messages | E.g., `PEER_NOT_ESTABLISHED`, `PEER_STATE_MISMATCH`. Composed into the per-device issues list. |
-| `GATE_PASSED`, `GATE_TIMEOUT` | Final per-device results. |
+| `GATE_PASSED`, `GATE_TIMEOUT`         | Final per-device results.                                                                      |
 
 Notably, gates do **not** use `MISSING_LEARNED_BASELINE`. A gate's parameters describe an expected post-change state, not a baseline; if the parameters are missing entirely the test plan is misconfigured and the framework will surface that earlier.
 

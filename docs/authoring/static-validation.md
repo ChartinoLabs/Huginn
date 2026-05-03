@@ -186,12 +186,12 @@ The standard families are:
 
 The parameters payload is always wrapped in an outer `<Subject>Parameters` TypedDict containing `devices: dict[str, <Subject>DeviceParameters]`. The inner per-device TypedDict's shape depends on cardinality:
 
-| Inner shape | When to use | Inner field |
-|---|---|---|
-| Scalar | One value per device (e.g. IOS version, hostname, contact email) | `value: str` |
-| Single-keyed dict | One value per object per device (e.g. one state per BGP neighbor) | `values: dict[str, str]` |
-| Double-keyed dict | One value per object-pair per device (e.g. one capability per neighbor per interface) | `<plural>: dict[str, dict[str, str]]` |
-| Existence dict | Membership-only checks (e.g. set of expected route prefixes) | `<plural>: dict[str, str]` with `"__exists__"` sentinel values |
+| Inner shape       | When to use                                                                           | Inner field                                                    |
+| ----------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Scalar            | One value per device (e.g. IOS version, hostname, contact email)                      | `value: str`                                                   |
+| Single-keyed dict | One value per object per device (e.g. one state per BGP neighbor)                     | `values: dict[str, str]`                                       |
+| Double-keyed dict | One value per object-pair per device (e.g. one capability per neighbor per interface) | `<plural>: dict[str, dict[str, str]]`                          |
+| Existence dict    | Membership-only checks (e.g. set of expected route prefixes)                          | `<plural>: dict[str, str]` with `"__exists__"` sentinel values |
 
 Always type the parameters in the class generic: `LearningTestCase[<Subject>Parameters]`.
 
@@ -206,7 +206,7 @@ For each target:
 1. Execute the show command through the broker.
 2. Parse with `mn.parse(os=device.os, command=self.command, output=result.output)`.
 3. Record the execution with `context.results.add_command_execution(...)` so the report includes the raw and parsed output.
-4. Extract the values you care about into the inner TypedDict shape. **Omit entries where the value is `None` or empty string**  -  only include items that have meaningful data.
+4. Extract the values you care about into the inner TypedDict shape. **Omit entries where the value is `None` or empty string** - only include items that have meaningful data.
 5. Stuff the per-device record into `devices[device.name]`.
 
 Return `{"devices": devices}`.
@@ -215,7 +215,7 @@ In **learning mode**, the framework persists this return value to a parameter fi
 
 #### Handling empty gathered state
 
-When `gather_state` produces an empty result for a device  -  an empty `values: {}` dict, an empty `"__exists__"` dict, or an empty scalar `value: ""`  -  it means the device has no data for the attribute this job validates. In learning mode, saving these empty parameters is misleading: the parameter file exists and looks healthy, but contains nothing to compare against during testing.
+When `gather_state` produces an empty result for a device - an empty `values: {}` dict, an empty `"__exists__"` dict, or an empty scalar `value: ""` - it means the device has no data for the attribute this job validates. In learning mode, saving these empty parameters is misleading: the parameter file exists and looks healthy, but contains nothing to compare against during testing.
 
 The correct behavior is to mark the device as **not applicable** rather than saving empty parameters. The recommended pattern is to check for empty state after extraction and emit a `NOT_APPLICABLE` result for that device:
 
@@ -309,7 +309,7 @@ for prefix in parsed["routes"]:
     prefixes[prefix] = "__exists__"
 ```
 
-`compare_state` checks dict membership: each learned key must appear in the current observation. The sentinel value is not compared  -  its purpose is to unambiguously signal that the parameter represents an existence check, not a value check. This avoids confusion with empty values that might result from a parser or job bug.
+`compare_state` checks dict membership: each learned key must appear in the current observation. The sentinel value is not compared - its purpose is to unambiguously signal that the parameter represents an existence check, not a value check. This avoids confusion with empty values that might result from a parser or job bug.
 
 For double-keyed existence checks (e.g., OSPF neighbor adjacencies keyed by interface and neighbor ID), use nested dicts with `"__exists__"` at the leaf:
 

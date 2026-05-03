@@ -113,6 +113,7 @@ result = muninn.parse("nxos", "show ip ospf neighbor", raw_output)
 ### Secondary Goals
 
 1. **Multi-Vendor Support**: Support major network operating systems:
+
    - Cisco: IOS-XE, NX-OS, IOS-XR, ACI
    - Arista: EOS
    - Juniper: Junos

@@ -683,9 +683,9 @@ Without command support regression detection, this would silently mark the devic
 
 **Result status implications:**
 
-| Status             | Meaning                                                    | Contributes to Failure? |
-| ------------------ | ---------------------------------------------------------- | ----------------------- |
-| NOT_APPLICABLE     | Never supported the command (no prior parameters)          | No                      |
+| Status             | Meaning                                                              | Contributes to Failure? |
+| ------------------ | -------------------------------------------------------------------- | ----------------------- |
+| NOT_APPLICABLE     | Never supported the command (no prior parameters)                    | No                      |
 | LOST_APPLICABILITY | Previously supported the command, now doesn't (has prior parameters) | **Yes**                 |
 
 This design ensures that unexpected changes in command support are surfaced prominently rather than hidden among normal skips.

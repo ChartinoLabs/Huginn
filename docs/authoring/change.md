@@ -278,12 +278,12 @@ Following this skeleton produces jobs that are predictable to read, debug, and m
 
 Change jobs add a few constants beyond the standard set:
 
-| Family | Examples | Purpose |
-|---|---|---|
-| Failure handling | `NOT_SUPPORTED_REASON`, `MISSING_LEARNED_PARAMETERS`, `MISSING_CURRENT_STATE` | Same as static validation. |
-| Precondition | `PRECONDITION_FAILED`, `MISSING_NEIGHBOR`, `MISSING_INTERFACE` | Emitted in step 2. |
-| Action outcome | `CLEAR_CONFIRMED` / `SHUTDOWN_CONFIRMED` / `RELOAD_CONFIRMED`, `CLEAR_FAILED` / `SHUTDOWN_FAILED` / `RELOAD_FAILED_*` | Emitted in step 4. |
-| Tuning constants | `_POST_CLEAR_DELAY_SECONDS`, `_POLL_INTERVAL_SECONDS`, `_MAX_POLL_ATTEMPTS` | Private (`_` prefix). Used by step 3 / 4. |
+| Family           | Examples                                                                                                              | Purpose                                   |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Failure handling | `NOT_SUPPORTED_REASON`, `MISSING_LEARNED_PARAMETERS`, `MISSING_CURRENT_STATE`                                         | Same as static validation.                |
+| Precondition     | `PRECONDITION_FAILED`, `MISSING_NEIGHBOR`, `MISSING_INTERFACE`                                                        | Emitted in step 2.                        |
+| Action outcome   | `CLEAR_CONFIRMED` / `SHUTDOWN_CONFIRMED` / `RELOAD_CONFIRMED`, `CLEAR_FAILED` / `SHUTDOWN_FAILED` / `RELOAD_FAILED_*` | Emitted in step 4.                        |
+| Tuning constants | `_POST_CLEAR_DELAY_SECONDS`, `_POLL_INTERVAL_SECONDS`, `_MAX_POLL_ATTEMPTS`                                           | Private (`_` prefix). Used by step 3 / 4. |
 
 Keep tuning constants as private module-level names. Do not hoist them to class attributes unless the test plan needs to override them per-instance, at which point they belong as top-level fields in the parameters TypedDict alongside `devices` (see [TypedDict shape](#typeddict-shape) below).
 

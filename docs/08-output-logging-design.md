@@ -4,21 +4,21 @@ This document describes the design for Huginn's unified output and logging syste
 
 ## Implementation Status
 
-| Component | Status |
-| --------- | ------ |
-| Two-stream separation (console vs logging) | Implemented |
-| `Output` class with `status()`, `success()`, `warning()`, `error()` | Implemented |
-| Logging methods (`log_debug()`, `log_info()`, `log_warning()`, `log_error()`) | Implemented |
-| Structured field logging (`log_debug_fields()`, `log_info_fields()`, etc.) | Implemented (beyond original design) |
-| Python `logging` hierarchy with `huginn` parent logger | Implemented |
-| File handler (always writes to log file) | Implemented |
-| `RichHandler` (conditional on `--show-logs`) | Implemented |
-| CLI flags: `--debug`, `--log-level`, `--show-logs`, `--log-file` | Implemented |
-| Dependency injection via `Context` (not a singleton) | Implemented |
-| Progress bars via `Output.progress()` | Not yet implemented |
-| `Output.result()` for structured result display | Not yet implemented |
-| Rich `Live`/`Layout` for combined progress + log panel | Not yet implemented |
-| `--no-color` CLI flag | Not yet implemented |
+| Component                                                                     | Status                               |
+| ----------------------------------------------------------------------------- | ------------------------------------ |
+| Two-stream separation (console vs logging)                                    | Implemented                          |
+| `Output` class with `status()`, `success()`, `warning()`, `error()`           | Implemented                          |
+| Logging methods (`log_debug()`, `log_info()`, `log_warning()`, `log_error()`) | Implemented                          |
+| Structured field logging (`log_debug_fields()`, `log_info_fields()`, etc.)    | Implemented (beyond original design) |
+| Python `logging` hierarchy with `huginn` parent logger                        | Implemented                          |
+| File handler (always writes to log file)                                      | Implemented                          |
+| `RichHandler` (conditional on `--show-logs`)                                  | Implemented                          |
+| CLI flags: `--debug`, `--log-level`, `--show-logs`, `--log-file`              | Implemented                          |
+| Dependency injection via `Context` (not a singleton)                          | Implemented                          |
+| Progress bars via `Output.progress()`                                         | Not yet implemented                  |
+| `Output.result()` for structured result display                               | Not yet implemented                  |
+| Rich `Live`/`Layout` for combined progress + log panel                        | Not yet implemented                  |
+| `--no-color` CLI flag                                                         | Not yet implemented                  |
 
 ## Overview
 

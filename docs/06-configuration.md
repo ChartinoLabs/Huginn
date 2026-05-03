@@ -204,11 +204,11 @@ include_command_output = true
 include_parsed_data = true
 ```
 
-| Setting                  | Type   | Default  | Description                                    |
-| ------------------------ | ------ | -------- | ---------------------------------------------- |
+| Setting                  | Type   | Default  | Description                                                |
+| ------------------------ | ------ | -------- | ---------------------------------------------------------- |
 | `report_format`          | string | `"json"` | Primary report format; JSON is the current built-in format |
-| `include_command_output` | bool   | `true`   | Include raw command output in reports          |
-| `include_parsed_data`    | bool   | `true`   | Include parsed/structured data in reports      |
+| `include_command_output` | bool   | `true`   | Include raw command output in reports                      |
+| `include_parsed_data`    | bool   | `true`   | Include parsed/structured data in reports                  |
 
 Current builds default to JSON output. Additional report formats can be added via
 report plugins as support is implemented:
