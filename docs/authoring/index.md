@@ -21,12 +21,12 @@ Before reading the per-archetype pages, internalize these conventions. They appl
 
 Every job lives in its own Python module containing exactly one job class. The filename and class name follow the archetype's prefix convention:
 
-| Archetype | Filename prefix | Class prefix |
-|---|---|---|
-| Static parameter validation | `verify_*` | `Verify*` |
-| Volatile parameter validation | `verify_*_increasing` (or similar comparison-direction suffix) | `Verify*Increasing` |
-| Change | `change_*` (and `change_*_restore` for paired restore jobs) | `Change*` / `Change*Restore` |
-| Gate | `gate_*` (often `gate_*_present` or `gate_*_absent`) | `Gate*` |
+| Archetype                     | Filename prefix                                                | Class prefix                 |
+| ----------------------------- | -------------------------------------------------------------- | ---------------------------- |
+| Static parameter validation   | `verify_*`                                                     | `Verify*`                    |
+| Volatile parameter validation | `verify_*_increasing` (or similar comparison-direction suffix) | `Verify*Increasing`          |
+| Change                        | `change_*` (and `change_*_restore` for paired restore jobs)    | `Change*` / `Change*Restore` |
+| Gate                          | `gate_*` (often `gate_*_present` or `gate_*_absent`)           | `Gate*`                      |
 
 ### Module structure
 

@@ -139,12 +139,12 @@ A string identifying this observation stream. The framework composes the full se
 
 The convention is `<category>-<subject>-<aspect>`, lowercase and hyphenated:
 
-| Example | Series prefix |
-|---|---|
+| Example                      | Series prefix                  |
+| ---------------------------- | ------------------------------ |
 | BGP neighbor keepalives sent | `bgp-neighbor-keepalives-sent` |
-| BGP neighbor uptime | `bgp-neighbor-uptime` |
-| Device uptime | `version-uptime` |
-| OSPF database LSA ages | `ospf-database-lsa-ages` |
+| BGP neighbor uptime          | `bgp-neighbor-uptime`          |
+| Device uptime                | `version-uptime`               |
+| OSPF database LSA ages       | `ospf-database-lsa-ages`       |
 
 ### `command`
 

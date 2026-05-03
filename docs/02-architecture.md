@@ -160,8 +160,7 @@ Executes a single test:
 - Calls `check_command_support()` to determine which target devices support the required command(s)
 - Updates `context.targets` to contain only applicable devices
 - For each non-applicable device, checks if learned parameters exist:
--
-  - If parameters exist: Records as LOST_APPLICABILITY (was applicable, now isn't)
+- - If parameters exist: Records as LOST_APPLICABILITY (was applicable, now isn't)
   - If no parameters: Records as NOT_APPLICABLE (never was applicable)
 - If applicable devices exist, calls `setup()`, `test()`, `cleanup()` in sequence
 - Ensures `cleanup()` runs even if `setup()` or `test()` fails
@@ -185,22 +184,26 @@ The Connection Broker is a critical architectural component that manages all dev
 #### Responsibilities
 
 1. **Connection Lifecycle Management**
+
    - Establish connections to all testbed devices at test plan start
    - Maintain connection health throughout test plan execution
    - Reconnect automatically if connections drop
    - Disconnect cleanly at test plan end
 
 2. **Connection Pool**
+
    - Manage SSH, HTTP, and other transport connections
    - Provide connection handles to tests on demand
    - Track connection state (connected, disconnected, error)
 
 3. **Command Execution**
+
    - Route command execution requests from tests to appropriate connections
    - Handle timeouts and retries
    - Record command execution for reporting
 
 4. **Command Output Caching**
+
    - Cache command output to avoid redundant execution
    - Support cache invalidation policies
    - Handle concurrent access with locking
@@ -247,6 +250,7 @@ Many tests execute the same commands. For example, 20 tests might all need outpu
 **Cache Strategies:**
 
 1. **On-Demand Caching with Locking**
+
    - First test to request a command executes it and caches the result
    - Concurrent requests wait on a lock until cache is populated
    - Subsequent requests receive cached output
@@ -273,6 +277,7 @@ Many tests execute the same commands. For example, 20 tests might all need outpu
    ```
 
 2. **Pre-Execution Caching** (optional optimization)
+
    - Before running tests, analyze which commands will be executed
    - Pre-execute and cache non-disruptive commands
    - Tests receive cached output immediately

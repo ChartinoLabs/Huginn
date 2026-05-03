@@ -68,14 +68,14 @@ When no class is specified, the framework loads the first concrete `TestCase` (o
 
 An earlier design considered referencing jobs via git repository URLs and refs. The package-based approach is simpler and more robust:
 
-| Concern | Git References | Package References |
-|---------|---------------|-------------------|
-| Version pinning | `ref: v2.1.0` (custom) | `huginn-jobs-network>=2.1.0,<3.0.0` (standard) |
-| Dependency resolution | Manual, no conflict detection | Handled by `uv`/`pip` |
-| Installation | Clone at runtime | Pre-installed via `uv sync` |
-| Offline support | Requires network at execution | Works after install |
-| IDE support | None (code not in environment) | Full (autocomplete, type checking) |
-| Reproducibility | Depends on git state | Lock file guarantees |
+| Concern               | Git References                 | Package References                             |
+| --------------------- | ------------------------------ | ---------------------------------------------- |
+| Version pinning       | `ref: v2.1.0` (custom)         | `huginn-jobs-network>=2.1.0,<3.0.0` (standard) |
+| Dependency resolution | Manual, no conflict detection  | Handled by `uv`/`pip`                          |
+| Installation          | Clone at runtime               | Pre-installed via `uv sync`                    |
+| Offline support       | Requires network at execution  | Works after install                            |
+| IDE support           | None (code not in environment) | Full (autocomplete, type checking)             |
+| Reproducibility       | Depends on git state           | Lock file guarantees                           |
 
 ## Job Package Structure
 

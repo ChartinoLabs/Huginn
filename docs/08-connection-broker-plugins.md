@@ -4,21 +4,21 @@ This document describes the plugin architecture for connection brokers in Huginn
 
 ## Implementation Status
 
-| Component | Status |
-| --------- | ------ |
-| `ConnectionBrokerProtocolV1` protocol definition | Implemented |
-| Data classes (`ConnectionHandle`, `CommandResult`, `ConnectionConfig`, `ConnectionState`) | Implemented |
-| Exception hierarchy (`BrokerError` and subclasses) | Implemented |
-| In-tree SSH broker (Scrapli) | Implemented |
-| In-tree HTTP broker (aiohttp) | Implemented |
-| In-tree NETCONF broker (scrapli_netconf) | Implemented |
-| `RuntimeBroker` manager with caching and connection pooling | Implemented |
-| Capability-aware routing | Implemented |
-| Configuration passthrough via `options` dict | Implemented |
-| Entry point discovery for external broker plugins | Not yet implemented |
-| `[tool.huginn.brokers]` explicit broker configuration | Not yet implemented |
-| Conformance test suite (`huginn-broker-conformance`) | Not yet implemented |
-| Broker extraction to separate packages | Not yet implemented |
+| Component                                                                                 | Status              |
+| ----------------------------------------------------------------------------------------- | ------------------- |
+| `ConnectionBrokerProtocolV1` protocol definition                                          | Implemented         |
+| Data classes (`ConnectionHandle`, `CommandResult`, `ConnectionConfig`, `ConnectionState`) | Implemented         |
+| Exception hierarchy (`BrokerError` and subclasses)                                        | Implemented         |
+| In-tree SSH broker (Scrapli)                                                              | Implemented         |
+| In-tree HTTP broker (aiohttp)                                                             | Implemented         |
+| In-tree NETCONF broker (scrapli_netconf)                                                  | Implemented         |
+| `RuntimeBroker` manager with caching and connection pooling                               | Implemented         |
+| Capability-aware routing                                                                  | Implemented         |
+| Configuration passthrough via `options` dict                                              | Implemented         |
+| Entry point discovery for external broker plugins                                         | Not yet implemented |
+| `[tool.huginn.brokers]` explicit broker configuration                                     | Not yet implemented |
+| Conformance test suite (`huginn-broker-conformance`)                                      | Not yet implemented |
+| Broker extraction to separate packages                                                    | Not yet implemented |
 
 ## Overview
 
@@ -220,11 +220,11 @@ All brokers currently live in the core `huginn` package. This enables rapid iter
 
 ### Included Brokers
 
-| Broker | Connection Type | Library | Capabilities |
-|--------|----------------|---------|--------------|
-| `SSHBroker` | `ssh` | Scrapli | execute, configure, get, edit |
-| `HTTPBroker` | `http` | aiohttp | get, edit |
-| `NETCONFBroker` | `netconf` | scrapli_netconf | get, edit |
+| Broker          | Connection Type | Library         | Capabilities                  |
+| --------------- | --------------- | --------------- | ----------------------------- |
+| `SSHBroker`     | `ssh`           | Scrapli         | execute, configure, get, edit |
+| `HTTPBroker`    | `http`          | aiohttp         | get, edit                     |
+| `NETCONFBroker` | `netconf`       | scrapli_netconf | get, edit                     |
 
 SSH broker's `get()` delegates to `execute()` and `edit()` delegates to `configure()`, so SSH devices can be accessed through the same `get`/`edit` interface as NETCONF and HTTP devices.
 
@@ -445,16 +445,19 @@ Test categories:
 All brokers live in the core `huginn` package. This enables rapid iteration on the protocol without cross-package coordination.
 
 **Phase 2: Extraction Ready**
+
 - Protocol is stable (no breaking changes for 6+ months)
 - Conformance test suite is comprehensive
 - At least one external broker exists and works
 
 **Phase 3: Extraction**
+
 1. Create external packages (e.g., `huginn-broker-scrapli`)
 2. Add deprecation warnings to in-tree versions
 3. Update documentation to recommend external packages
 
 **Phase 4: Removal**
+
 1. Remove deprecated in-tree implementations
 2. Core `huginn` has no connection library dependencies
 

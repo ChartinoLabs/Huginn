@@ -184,11 +184,11 @@ The comparison operator is scoped to a single phase boundary: the relationship b
 
 Not all volatile parameters use the same comparison operator or assertion strategy. The following categories are illustrative rather than prescriptive: they show common patterns, but each volatile job remains responsible for choosing the comparison semantics that make sense for the attribute it validates.
 
-| Category           | Examples                                     | Default operator | Notes                                                                     |
-| ------------------ | -------------------------------------------- | ---------------- | ------------------------------------------------------------------------- |
-| Uptime / duration  | BGP neighbor uptime, state duration          | `gte`            | Often flips to `lt` when a disruption resets the session.                 |
-| Monotonic counters | Messages sent/received, keepalives           | `gte`            | Often flips to `lt` when a disruption resets the counters.                |
-| Version counters   | BGP table version, AF table/neighbor version | `gte`            | Often behaves monotonically within a run and may not require overrides.   |
+| Category           | Examples                                     | Default operator | Notes                                                                   |
+| ------------------ | -------------------------------------------- | ---------------- | ----------------------------------------------------------------------- |
+| Uptime / duration  | BGP neighbor uptime, state duration          | `gte`            | Often flips to `lt` when a disruption resets the session.               |
+| Monotonic counters | Messages sent/received, keepalives           | `gte`            | Often flips to `lt` when a disruption resets the counters.              |
+| Version counters   | BGP table version, AF table/neighbor version | `gte`            | Often behaves monotonically within a run and may not require overrides. |
 
 Some values that currently fail alongside volatile parameters do not fit the comparison operator model and should remain as static parameters with per-scenario reconciliation:
 

@@ -41,12 +41,12 @@ Archetype is a **convention** - a way of organizing how authors think about jobs
 
 ## Where archetype affects test plan structure
 
-| Archetype | Typical phase placement |
-|---|---|
-| Static parameter validation | Pre-change and post-change validation phases. Reused across scenarios via shared test case groups. |
+| Archetype                     | Typical phase placement                                                                                                                                                                                                 |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Static parameter validation   | Pre-change and post-change validation phases. Reused across scenarios via shared test case groups.                                                                                                                      |
 | Volatile parameter validation | Pre-change and post-change validation phases. Grouped per-scenario rather than shared, because comparison operators may need scenario-specific reconciliation. See [Volatile Parameters](../09-volatile-parameters.md). |
-| Change | Change phase. One or more change jobs apply the scenario's intended action. |
-| Gate | Between change and post-change. Halts the plan until convergence completes, so post-change validation runs against a stable testbed. |
+| Change                        | Change phase. One or more change jobs apply the scenario's intended action.                                                                                                                                             |
+| Gate                          | Between change and post-change. Halts the plan until convergence completes, so post-change validation runs against a stable testbed.                                                                                    |
 
 ## See also
 

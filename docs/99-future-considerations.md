@@ -36,25 +36,30 @@ parameters/
 ### Questions to Explore
 
 1. **Device Identity Abstraction**
+
    - Should devices have a stable logical identifier separate from their testbed key/hostname?
    - How would this affect testbed YAML authoring complexity?
    - Could this be opt-in for migration scenarios only?
 
 2. **Migration Mapping**
+
    - Could the test plan define explicit device mappings for migration scenarios?
    - Example: `device_mapping: { "core-sw-01": "core-sw-01-new" }`
    - How would this interact with the data model?
 
 3. **Expected State Transformations**
+
    - Some state changes are expected during migration (interface naming, platform-specific features)
    - How do we express "these differences are acceptable" vs "these differences are failures"?
    - Could transformation rules be defined per-migration type?
 
 4. **Parameter Migration Tooling**
+
    - Should there be CLI tooling to "migrate" parameters from one device identity to another?
    - `huginn parameters migrate --from core-sw-01 --to core-sw-01-new`
 
 5. **Testbed Versioning**
+
    - Should the testbed support "before" and "after" snapshots for migration scenarios?
    - How does this interact with inventory plugins that pull live state?
 
@@ -100,7 +105,7 @@ Production testing at scale introduces additional concerns:
 - Rollback/abort mechanisms if tests detect critical issues
 - Integration with change management systems
 
----
+______________________________________________________________________
 
 ## Additional Future Items
 
@@ -146,7 +151,7 @@ inventory_merge = true  # Future: merge with testbed.yaml
 - Credential merging behavior
 - Group membership merging (union? intersection?)
 
----
+______________________________________________________________________
 
 ## Related Documents
 

@@ -152,17 +152,17 @@ See [Parser Project Brief](07-parser-project.md) for details.
 
 ## Documentation Structure
 
-| Document                                             | Description                                                        |
-| ---------------------------------------------------- | ------------------------------------------------------------------ |
-| [Glossary](00-glossary.md)                           | Formal lexicon and term definitions                                |
-| [Architecture](02-architecture.md)                   | Core components, execution flow, plugin system                     |
-| [Testbed Specification](03-testbed-spec.md)          | Testbed YAML schema, devices, groups, connectivity                 |
-| [Test Plan Specification](04-test-plan-spec.md)      | Test plan schema, multi-file support, phases, groups, test cases   |
-| [Test Authoring](05-test-authoring.md)               | ABC class, base classes, async patterns                            |
-| [Configuration](06-configuration.md)                 | pyproject.toml schema, defaults                                    |
-| [Parser Project Brief](07-parser-project.md)         | Muninn motivation and goals                                        |
-| [Unit Testing Automation](08-unit-testing-automation.md) | Patterns for unit testing test automation jobs                  |
-| [Future Considerations](99-future-considerations.md) | Roadmap items and use cases for future exploration                 |
+| Document                                                 | Description                                                      |
+| -------------------------------------------------------- | ---------------------------------------------------------------- |
+| [Glossary](00-glossary.md)                               | Formal lexicon and term definitions                              |
+| [Architecture](02-architecture.md)                       | Core components, execution flow, plugin system                   |
+| [Testbed Specification](03-testbed-spec.md)              | Testbed YAML schema, devices, groups, connectivity               |
+| [Test Plan Specification](04-test-plan-spec.md)          | Test plan schema, multi-file support, phases, groups, test cases |
+| [Test Authoring](05-test-authoring.md)                   | ABC class, base classes, async patterns                          |
+| [Configuration](06-configuration.md)                     | pyproject.toml schema, defaults                                  |
+| [Parser Project Brief](07-parser-project.md)             | Muninn motivation and goals                                      |
+| [Unit Testing Automation](08-unit-testing-automation.md) | Patterns for unit testing test automation jobs                   |
+| [Future Considerations](99-future-considerations.md)     | Roadmap items and use cases for future exploration               |
 
 ## Quick Example
 

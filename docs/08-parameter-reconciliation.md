@@ -81,10 +81,10 @@ test_case_groups:
 huginn reconcile --plan <path> --phase <phase-name> [--scenario <scenario-id>] [--results-dir <path>] [--parameters-dir <path>]
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--plan`, `-p` | (required) | Path to test plan file or directory |
-| `--phase` | (required) | Phase name to reconcile (used as suffix for new test IDs) |
-| `--scenario` | all | Filter to a specific scenario |
-| `--results-dir` | `./results/` | Directory containing test run results |
-| `--parameters-dir` | `./parameters/` | Directory containing parameter files |
+| Option             | Default         | Description                                               |
+| ------------------ | --------------- | --------------------------------------------------------- |
+| `--plan`, `-p`     | (required)      | Path to test plan file or directory                       |
+| `--phase`          | (required)      | Phase name to reconcile (used as suffix for new test IDs) |
+| `--scenario`       | all             | Filter to a specific scenario                             |
+| `--results-dir`    | `./results/`    | Directory containing test run results                     |
+| `--parameters-dir` | `./parameters/` | Directory containing parameter files                      |

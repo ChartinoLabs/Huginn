@@ -103,7 +103,7 @@ Both tools are declared in the `docs` dependency group in `pyproject.toml`.
 
 ### No em-dashes
 
-Do not use the Unicode em-dash character (U+2014). Use a space-surrounded hyphen (` -- `) instead.
+Do not use the Unicode em-dash character (U+2014). Use a space-surrounded hyphen (`--`) instead.
 
 This rule is enforced by CI via `tests/test_docs_em_dashes.py`. Pages with em-dashes will fail the test suite.
 
