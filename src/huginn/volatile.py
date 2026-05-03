@@ -354,20 +354,27 @@ class VolatileLearningTestCase(
         write_observations(context, self.SERIES_PREFIX, new_records)
 
 
+class OperatorVolatileDeviceParameters(TypedDict):
+    """Per-device operator configuration for volatile jobs."""
+
+    operator: str
+
+
 class OperatorVolatileParameters(TypedDict):
     """Parameter schema for operator-based volatile jobs.
 
-    The single ``operator`` key drives the comparison between a new
-    observation and its prior. Supported values are ``"gte"``, ``"gt"``,
-    ``"lt"``, ``"lte"``, and the special value ``"any"`` — which records
-    the observation in the chain but always passes the comparison. The
-    ``"any"`` operator is useful at phase boundaries where the impact on
-    individual series is heterogeneous (e.g. a process restart resets
-    some sessions but leaves others untouched), so a single directional
-    operator cannot satisfy every series at once.
+    Each device has its own ``operator`` that drives the comparison
+    between a new observation and its prior. Supported values are
+    ``"gte"``, ``"gt"``, ``"lt"``, ``"lte"``, and the special value
+    ``"any"`` - which records the observation in the chain but always
+    passes the comparison. The ``"any"`` operator is useful at phase
+    boundaries where the impact on individual series is heterogeneous
+    (e.g. a process restart resets some sessions but leaves others
+    untouched), so a single directional operator cannot satisfy every
+    series at once.
     """
 
-    operator: str
+    devices: dict[str, OperatorVolatileDeviceParameters]
 
 
 class OperatorVolatileLearningTestCase(
@@ -454,8 +461,11 @@ class OperatorVolatileLearningTestCase(
         self,
         context: Context,
     ) -> OperatorVolatileParameters:
-        """Persist the default operator as the learned parameter payload."""
-        return {"operator": self.DEFAULT_OPERATOR}
+        """Persist a per-device operator as the learned parameter payload."""
+        devices: dict[str, OperatorVolatileDeviceParameters] = {}
+        for device in context.targets:
+            devices[device.name] = {"operator": self.DEFAULT_OPERATOR}
+        return {"devices": devices}
 
     def passes_comparison(
         self,
@@ -465,19 +475,19 @@ class OperatorVolatileLearningTestCase(
         prior: dict[str, Any],
         context: Context,
     ) -> bool:
-        """Compare current and prior via the learned operator.
+        """Compare current and prior via the per-device learned operator.
 
         The ``"any"`` operator records the observation in the chain but
         always passes. Any other value is delegated to
         :func:`apply_operator`.
         """
-        if parameters["operator"] == _OPERATOR_ANY:
+        device_params = parameters["devices"].get(observation.device)
+        if device_params is None:
             return True
-        return apply_operator(
-            parameters["operator"],
-            observation.value,
-            prior["value"],
-        )
+        operator = device_params["operator"]
+        if operator == _OPERATOR_ANY:
+            return True
+        return apply_operator(operator, observation.value, prior["value"])
 
     def build_failure_message(
         self,

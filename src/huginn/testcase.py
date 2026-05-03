@@ -88,6 +88,10 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
         context.targets = supported_targets
         current_state = await self.gather_state(context)
 
+        self._capture_gather_state_na(
+            current_state, supported_targets, context,
+        )
+
         derive_status = getattr(context.results, "derive_status", None)
         if callable(derive_status) and derive_status() == ResultStatus.ERRORED:
             return
@@ -112,6 +116,35 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
             current=current_state,
             context=context,
         )
+
+    @staticmethod
+    def _capture_gather_state_na(
+        current_state: object,
+        supported_targets: list[Device],
+        context: Context,
+    ) -> None:
+        """Detect devices excluded by gather_state and merge into N/A map.
+
+        After gather_state runs, any supported target whose name does not
+        appear in the returned ``devices`` dict was marked not-applicable
+        by the job (e.g., empty extracted data). This method finds those
+        devices and populates ``context.results.not_applicable_devices``
+        so the prune command can act on them.
+        """
+        if not isinstance(current_state, dict):
+            return
+        returned_devices = current_state.get("devices")
+        if not isinstance(returned_devices, dict):
+            return
+        na_checks = {
+            check.message.split(": ", 1)[0]: check.message.split(": ", 1)[-1]
+            for check in context.results.checks
+            if check.status == ResultStatus.NOT_APPLICABLE.value and ": " in check.message
+        }
+        for target in supported_targets:
+            if target.name not in returned_devices and target.name not in context.results.not_applicable_devices:
+                reason = na_checks.get(target.name, "No applicable data for this test")
+                context.results.not_applicable_devices[target.name] = reason
 
     async def check_command_support(self, context: Context) -> CommandSupportResult:
         """Check whether target devices support the required command(s)."""

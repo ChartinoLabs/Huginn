@@ -8,6 +8,7 @@ from huginn.testcase import CommandSupportResult, LearningTestCase, TestCase
 from huginn.utils.commands import is_command_unsupported
 from huginn.volatile import (
     Observation,
+    OperatorVolatileDeviceParameters,
     OperatorVolatileLearningTestCase,
     OperatorVolatileParameters,
     VolatileLearningTestCase,
@@ -26,6 +27,7 @@ __all__ = [
     "CommandSupportResult",
     "Observation",
     "VolatileLearningTestCase",
+    "OperatorVolatileDeviceParameters",
     "OperatorVolatileLearningTestCase",
     "OperatorVolatileParameters",
     "parse_duration_seconds",
