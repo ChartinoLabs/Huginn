@@ -85,3 +85,5 @@ nav:
       - Unit Testing Automation: 08-unit-testing-automation.md
       - Volatile Parameters: 09-volatile-parameters.md
       - Future Considerations: 99-future-considerations.md
+  - Contributing:
+      - Documentation Style Guide: style.md

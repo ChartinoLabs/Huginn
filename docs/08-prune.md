@@ -130,9 +130,11 @@ If the test case already has `exclude_devices`, the prune command merges the new
 
 ### Full non-applicability: group removal
 
-When all devices are non-applicable for a test, the test ID is removed from its group. The removal strategy depends on the group type:
+When all devices are non-applicable for a test, the test ID is removed from its group. The removal strategy depends on the group type.
 
-**Leaf groups** (groups that directly list test IDs in `tests`): the test ID is removed from the `tests` list.
+#### Leaf groups
+
+Groups that directly list test IDs in `tests` have the test ID removed from the list.
 
 Before:
 
@@ -150,7 +152,9 @@ test_case_groups:
     tests: ["3.0.0", "3.1.0"]
 ```
 
-**Composite groups** (groups that use `groups` to inherit from other groups): the test ID is added to `exclude_tests` rather than modifying the inherited group.
+#### Composite groups
+
+Groups that inherit from other groups via `groups` have the test ID added to `exclude_tests` rather than modifying the inherited group.
 
 Before:
 
