@@ -30,6 +30,28 @@ Groups that directly list test IDs in `tests` have the test ID removed from the 
 Groups that inherit from other groups via `groups` have the test ID added to `exclude_tests`.
 ```
 
+### No numbered headings
+
+Do not prefix headings with numbers to indicate sequence. Headings should describe content, not position. Ordering is already conveyed by the page layout.
+
+Wrong:
+
+```markdown
+### 1. Run in learning mode
+### 2. Preview changes
+### 3. Apply the prune
+```
+
+Right:
+
+```markdown
+### Run in learning mode
+### Preview changes
+### Apply the prune
+```
+
+If a procedure requires explicit ordering, use a numbered list within a section rather than encoding the sequence into the heading text.
+
 ### Heading hierarchy
 
 Use heading levels to reflect the document outline. Do not skip levels (e.g., `##` followed by `####` with no `###` in between).

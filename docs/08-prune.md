@@ -30,7 +30,7 @@ Both sources produce the same `NOT_APPLICABLE` status in the learning results. T
 
 The typical workflow is: learn, preview, apply.
 
-### 1. Run in learning mode
+### Run in learning mode
 
 Execute the test plan against the live testbed to capture current state and identify which tests apply to which devices.
 
@@ -38,7 +38,7 @@ Execute the test plan against the live testbed to capture current state and iden
 huginn run -m learning -t testbed.yaml -p test_plan/
 ```
 
-### 2. Preview changes with dry run
+### Preview changes with dry run
 
 Inspect what the prune command would change without modifying any files.
 
@@ -62,7 +62,7 @@ Fully non-applicable tests (remove from groups):
 Dry run complete: 3 test(s) would get exclude_devices, 2 test(s) would be removed from groups
 ```
 
-### 3. Apply the prune
+### Apply the prune
 
 Run without `--dry-run` to modify the test plan files.
 
@@ -72,7 +72,7 @@ huginn prune -p test_plan/
 
 The command validates the modified test plan after writing changes. If validation fails, it reports the error and exits with a non-zero status.
 
-### 4. Optionally remove orphaned definitions
+### Optionally remove orphaned definitions
 
 If fully non-applicable tests were removed from all groups, their test case definitions still exist in the YAML but are unreferenced. Use `--remove-orphans` to clean them up.
 
