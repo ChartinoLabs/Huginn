@@ -4,17 +4,20 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
-import yaml
 from ruamel.yaml import YAML
-
-_ruamel = YAML()
-_ruamel.preserve_quotes = True
 
 from huginn.loaders import ConfigurationError, discover_yaml_files, load_test_plan
 from huginn.models import TestPlan
 from huginn.output import Output
+
+_ruamel = YAML()
+_ruamel.preserve_quotes = True
+
+# Raw YAML data loaded from files -- inherently dynamic, so ``Any``
+# is the correct type for values.
+RawYAML = dict[str, Any]
 
 
 class PruneError(ValueError):
@@ -99,46 +102,65 @@ def parse_applicability_from_run(run_json_path: Path) -> PruneInput:
             for group in phase.get("test_case_groups", []):
                 group_id = group["id"]
                 for test_case in group.get("test_cases", []):
-                    test_id = test_case["test_id"]
-                    if test_id in seen_test_ids:
-                        continue
-
-                    result_path = test_case.get("result_path")
-                    if result_path is None:
-                        continue
-
-                    detail = _load_test_case_detail(run_dir / result_path)
-                    if detail is None:
-                        continue
-
-                    na_devices = detail.get("not_applicable_devices", {})
-                    if not na_devices:
-                        continue
-
-                    seen_test_ids.add(test_id)
-                    all_devices = _extract_all_devices(detail)
-                    applicable = [
-                        d for d in all_devices
-                        if d not in na_devices
-                    ]
-
-                    entry = NotApplicableTestCase(
-                        test_id=test_id,
+                    _collect_na_test_case(
+                        test_case,
                         group_id=group_id,
                         scenario_id=scenario_id,
-                        not_applicable_devices=dict(na_devices),
-                        applicable_devices=applicable,
+                        run_dir=run_dir,
+                        seen=seen_test_ids,
+                        partial=partial_tests,
+                        full=full_tests,
                     )
-
-                    if applicable:
-                        partial_tests.append(entry)
-                    else:
-                        full_tests.append(entry)
 
     return PruneInput(partial_tests=partial_tests, full_tests=full_tests)
 
 
-def _load_test_case_detail(path: Path) -> dict[str, object] | None:
+def _collect_na_test_case(
+    test_case: RawYAML,
+    *,
+    group_id: str,
+    scenario_id: str,
+    run_dir: Path,
+    seen: set[str],
+    partial: list[NotApplicableTestCase],
+    full: list[NotApplicableTestCase],
+) -> None:
+    """Process a single test case entry and append to partial/full lists."""
+    test_id = test_case["test_id"]
+    if not isinstance(test_id, str) or test_id in seen:
+        return
+
+    result_path = test_case.get("result_path")
+    if not isinstance(result_path, str):
+        return
+
+    detail = _load_test_case_detail(run_dir / result_path)
+    if detail is None:
+        return
+
+    na_devices = detail.get("not_applicable_devices", {})
+    if not isinstance(na_devices, dict) or not na_devices:
+        return
+
+    seen.add(test_id)
+    all_devices = _extract_all_devices(detail)
+    applicable = [d for d in all_devices if d not in na_devices]
+
+    entry = NotApplicableTestCase(
+        test_id=test_id,
+        group_id=group_id,
+        scenario_id=scenario_id,
+        not_applicable_devices=dict(na_devices),
+        applicable_devices=applicable,
+    )
+
+    if applicable:
+        partial.append(entry)
+    else:
+        full.append(entry)
+
+
+def _load_test_case_detail(path: Path) -> RawYAML | None:
     """Load a test case result.json, returning None on failure."""
     if not path.is_file():
         return None
@@ -148,7 +170,7 @@ def _load_test_case_detail(path: Path) -> dict[str, object] | None:
         return None
 
 
-def _extract_all_devices(detail: dict[str, object]) -> list[str]:
+def _extract_all_devices(detail: RawYAML) -> list[str]:
     """Extract all device names that participated in this test case.
 
     Uses command_executions as the primary source (most reliable), then
@@ -188,20 +210,7 @@ def compute_prune_plan(
     skipped: list[str] = []
 
     for entry in prune_input.partial_tests:
-        tc_def = test_plan.test_cases.get(entry.test_id)
-        if tc_def is None:
-            continue
-
-        na_device_names = sorted(entry.not_applicable_devices.keys())
-        existing_excludes = (
-            tc_def.target.exclude_devices if tc_def.target and tc_def.target.exclude_devices else []
-        )
-        if set(na_device_names).issubset(set(existing_excludes)):
-            skipped.append(entry.test_id)
-            continue
-
-        merged = sorted(set(existing_excludes) | set(na_device_names))
-        exclude_devices_updates[entry.test_id] = merged
+        _compute_partial_entry(entry, test_plan, exclude_devices_updates, skipped)
 
     for entry in prune_input.full_tests:
         for group_id, group in test_plan.test_case_groups.items():
@@ -211,23 +220,9 @@ def compute_prune_plan(
                     continue
                 exclude_from_groups.setdefault(group_id, []).append(entry.test_id)
 
-    orphaned: list[str] = []
-    if remove_orphans:
-        removed_ids = {tid for tids in exclude_from_groups.values() for tid in tids}
-        for test_id in removed_ids:
-            still_referenced = False
-            for group in test_plan.test_case_groups.values():
-                if test_id not in group.tests:
-                    continue
-                if test_id in group.exclude_tests:
-                    continue
-                group_removals = exclude_from_groups.get(group.identifier, [])
-                if test_id not in group_removals:
-                    still_referenced = True
-                    break
-            if not still_referenced:
-                orphaned.append(test_id)
-        orphaned.sort()
+    orphaned = (
+        _find_orphaned_tests(exclude_from_groups, test_plan) if remove_orphans else []
+    )
 
     return PrunePlan(
         exclude_devices_updates=exclude_devices_updates,
@@ -235,6 +230,62 @@ def compute_prune_plan(
         skipped_already_pruned=skipped,
         orphaned_test_cases=orphaned,
     )
+
+
+def _compute_partial_entry(
+    entry: NotApplicableTestCase,
+    test_plan: TestPlan,
+    updates: dict[str, list[str]],
+    skipped: list[str],
+) -> None:
+    """Compute exclude_devices for a partially-applicable test case."""
+    tc_def = test_plan.test_cases.get(entry.test_id)
+    if tc_def is None:
+        return
+
+    na_device_names = sorted(entry.not_applicable_devices.keys())
+    existing_excludes = (
+        tc_def.target.exclude_devices
+        if tc_def.target and tc_def.target.exclude_devices
+        else []
+    )
+    if set(na_device_names).issubset(set(existing_excludes)):
+        skipped.append(entry.test_id)
+        return
+
+    merged = sorted(set(existing_excludes) | set(na_device_names))
+    updates[entry.test_id] = merged
+
+
+def _find_orphaned_tests(
+    exclude_from_groups: dict[str, list[str]],
+    test_plan: TestPlan,
+) -> list[str]:
+    """Identify tests no longer referenced by any group after exclusions."""
+    removed_ids = {tid for tids in exclude_from_groups.values() for tid in tids}
+    orphaned: list[str] = []
+    for test_id in removed_ids:
+        if not _is_still_referenced(test_id, exclude_from_groups, test_plan):
+            orphaned.append(test_id)
+    orphaned.sort()
+    return orphaned
+
+
+def _is_still_referenced(
+    test_id: str,
+    exclude_from_groups: dict[str, list[str]],
+    test_plan: TestPlan,
+) -> bool:
+    """Return True if test_id is still active in at least one group."""
+    for group in test_plan.test_case_groups.values():
+        if test_id not in group.tests:
+            continue
+        if test_id in group.exclude_tests:
+            continue
+        group_removals = exclude_from_groups.get(group.identifier, [])
+        if test_id not in group_removals:
+            return True
+    return False
 
 
 def apply_prune_plan(
@@ -257,9 +308,7 @@ def validate_after_prune(plan_path: Path) -> None:
     try:
         load_test_plan(plan_path)
     except ConfigurationError as error:
-        raise PruneError(
-            f"Pruned test plan failed validation: {error}"
-        ) from error
+        raise PruneError(f"Pruned test plan failed validation: {error}") from error
 
 
 def _apply_single_file(
@@ -281,70 +330,87 @@ def _apply_directory(
     output: Output,
 ) -> None:
     """Apply prune changes to a directory of YAML files."""
+    tc_file_map: dict[str, Path] = {}
+
     if prune_plan.exclude_devices_updates:
         tc_file_map = _find_test_case_files(plan_dir)
-        files_to_write: dict[Path, dict[str, object]] = {}
-
-        for test_id, devices in prune_plan.exclude_devices_updates.items():
-            file_path = tc_file_map.get(test_id)
-            if file_path is None:
-                output.warning(
-                    f"Cannot locate YAML file containing test case '{test_id}'"
-                )
-                continue
-
-            if file_path not in files_to_write:
-                files_to_write[file_path] = _load_raw_yaml(file_path)
-
-            data = files_to_write[file_path]
-            _set_exclude_devices_on_test_case(data, test_id, devices)
-
-        for file_path, data in files_to_write.items():
-            _write_yaml(file_path, data)
+        _apply_dir_exclude_devices(prune_plan, tc_file_map, output)
 
     if prune_plan.exclude_from_groups:
-        group_file_map = _find_group_files(plan_dir)
-        files_to_write_groups: dict[Path, dict[str, object]] = {}
-
-        for group_id, test_ids in prune_plan.exclude_from_groups.items():
-            file_path = group_file_map.get(group_id)
-            if file_path is None:
-                output.warning(
-                    f"Cannot locate YAML file containing group '{group_id}'"
-                )
-                continue
-
-            if file_path not in files_to_write_groups:
-                files_to_write_groups[file_path] = _load_raw_yaml(file_path)
-
-            data = files_to_write_groups[file_path]
-            _add_exclude_tests_to_group(data, group_id, test_ids)
-
-        for file_path, data in files_to_write_groups.items():
-            _write_yaml(file_path, data)
+        _apply_dir_exclude_from_groups(prune_plan, plan_dir, output)
 
     if prune_plan.orphaned_test_cases:
-        tc_file_map = (
-            tc_file_map
-            if prune_plan.exclude_devices_updates
-            else _find_test_case_files(plan_dir)
-        )
-        orphan_files: dict[Path, dict[str, object]] = {}
-        for test_id in prune_plan.orphaned_test_cases:
-            file_path = tc_file_map.get(test_id)
-            if file_path is None:
-                continue
-            if file_path not in orphan_files:
-                orphan_files[file_path] = _load_raw_yaml(file_path)
-            _remove_orphaned_test_cases(
-                orphan_files[file_path], [test_id],
-            )
-        for file_path, data in orphan_files.items():
-            _write_yaml(file_path, data)
+        if not tc_file_map:
+            tc_file_map = _find_test_case_files(plan_dir)
+        _apply_dir_remove_orphans(prune_plan, tc_file_map)
+
+
+def _apply_dir_exclude_devices(
+    prune_plan: PrunePlan,
+    tc_file_map: dict[str, Path],
+    output: Output,
+) -> None:
+    """Apply exclude_devices updates across a directory of YAML files."""
+    files_to_write: dict[Path, RawYAML] = {}
+
+    for test_id, devices in prune_plan.exclude_devices_updates.items():
+        file_path = tc_file_map.get(test_id)
+        if file_path is None:
+            output.warning(f"Cannot locate YAML file containing test case '{test_id}'")
+            continue
+
+        if file_path not in files_to_write:
+            files_to_write[file_path] = _load_raw_yaml(file_path)
+
+        _set_exclude_devices_on_test_case(files_to_write[file_path], test_id, devices)
+
+    for file_path, data in files_to_write.items():
+        _write_yaml(file_path, data)
+
+
+def _apply_dir_exclude_from_groups(
+    prune_plan: PrunePlan,
+    plan_dir: Path,
+    output: Output,
+) -> None:
+    """Apply exclude_tests additions across a directory of YAML files."""
+    group_file_map = _find_group_files(plan_dir)
+    files_to_write: dict[Path, RawYAML] = {}
+
+    for group_id, test_ids in prune_plan.exclude_from_groups.items():
+        file_path = group_file_map.get(group_id)
+        if file_path is None:
+            output.warning(f"Cannot locate YAML file containing group '{group_id}'")
+            continue
+
+        if file_path not in files_to_write:
+            files_to_write[file_path] = _load_raw_yaml(file_path)
+
+        _add_exclude_tests_to_group(files_to_write[file_path], group_id, test_ids)
+
+    for file_path, data in files_to_write.items():
+        _write_yaml(file_path, data)
+
+
+def _apply_dir_remove_orphans(
+    prune_plan: PrunePlan,
+    tc_file_map: dict[str, Path],
+) -> None:
+    """Remove orphaned test case definitions across a directory."""
+    orphan_files: dict[Path, RawYAML] = {}
+    for test_id in prune_plan.orphaned_test_cases:
+        file_path = tc_file_map.get(test_id)
+        if file_path is None:
+            continue
+        if file_path not in orphan_files:
+            orphan_files[file_path] = _load_raw_yaml(file_path)
+        _remove_orphaned_test_cases(orphan_files[file_path], [test_id])
+    for file_path, data in orphan_files.items():
+        _write_yaml(file_path, data)
 
 
 def _apply_exclude_devices(
-    data: dict[str, object],
+    data: RawYAML,
     prune_plan: PrunePlan,
     output: Output,
 ) -> None:
@@ -354,7 +420,7 @@ def _apply_exclude_devices(
 
 
 def _apply_exclude_from_groups(
-    data: dict[str, object],
+    data: RawYAML,
     prune_plan: PrunePlan,
     output: Output,
 ) -> None:
@@ -364,7 +430,7 @@ def _apply_exclude_from_groups(
 
 
 def _set_exclude_devices_on_test_case(
-    data: dict[str, object],
+    data: RawYAML,
     test_id: str,
     devices: list[str],
 ) -> None:
@@ -377,7 +443,7 @@ def _set_exclude_devices_on_test_case(
     if not isinstance(raw_tc, dict):
         return
 
-    tc_dict = cast(dict[str, object], raw_tc)
+    tc_dict = cast(RawYAML, raw_tc)
     target = tc_dict.get("target")
     if target is None:
         tc_dict["target"] = {"exclude_devices": devices}
@@ -386,7 +452,7 @@ def _set_exclude_devices_on_test_case(
 
 
 def _add_exclude_tests_to_group(
-    data: dict[str, object],
+    data: RawYAML,
     group_id: str,
     test_ids: list[str],
 ) -> None:
@@ -404,27 +470,37 @@ def _add_exclude_tests_to_group(
     if not isinstance(raw_group, dict):
         return
 
-    group_dict = cast(dict[str, object], raw_group)
-    has_groups_inheritance = "groups" in group_dict
+    group_dict = cast(RawYAML, raw_group)
 
-    if has_groups_inheritance:
-        existing = group_dict.get("exclude_tests")
-        if existing is None:
-            group_dict["exclude_tests"] = list(test_ids)
-        elif isinstance(existing, list):
-            for tid in test_ids:
-                if tid not in existing:
-                    existing.append(tid)
+    if "groups" in group_dict:
+        _append_exclude_tests(group_dict, test_ids)
     else:
-        tests_list = group_dict.get("tests")
-        if isinstance(tests_list, list):
-            for tid in test_ids:
-                while tid in tests_list:
-                    tests_list.remove(tid)
+        _remove_tests_from_list(group_dict, test_ids)
+
+
+def _append_exclude_tests(group_dict: RawYAML, test_ids: list[str]) -> None:
+    """Append test IDs to exclude_tests on a composite group."""
+    existing = group_dict.get("exclude_tests")
+    if not isinstance(existing, list):
+        group_dict["exclude_tests"] = list(test_ids)
+        return
+    for tid in test_ids:
+        if tid not in existing:
+            existing.append(tid)
+
+
+def _remove_tests_from_list(group_dict: RawYAML, test_ids: list[str]) -> None:
+    """Remove test IDs from a leaf group's tests list."""
+    tests_list = group_dict.get("tests")
+    if not isinstance(tests_list, list):
+        return
+    for tid in test_ids:
+        while tid in tests_list:
+            tests_list.remove(tid)
 
 
 def _remove_orphaned_test_cases(
-    data: dict[str, object],
+    data: RawYAML,
     test_ids: list[str],
 ) -> None:
     """Remove test case definitions from raw YAML data."""
@@ -463,15 +539,15 @@ def _find_group_files(plan_dir: Path) -> dict[str, Path]:
     return group_map
 
 
-def _load_raw_yaml(path: Path) -> dict[str, object]:
+def _load_raw_yaml(path: Path) -> RawYAML:
     """Load a YAML file preserving formatting for round-trip editing."""
     loaded = _ruamel.load(path.read_text(encoding="utf-8"))
     if not isinstance(loaded, dict):
         raise PruneError(f"Expected mapping at root of {path}")
-    return cast(dict[str, object], loaded)
+    return cast(RawYAML, loaded)
 
 
-def _write_yaml(path: Path, data: dict[str, object]) -> None:
+def _write_yaml(path: Path, data: RawYAML) -> None:
     """Write a dictionary to a YAML file preserving original formatting."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as fh:

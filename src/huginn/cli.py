@@ -17,6 +17,8 @@ from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
 from huginn.prune import (
     PruneError,
+    PruneInput,
+    PrunePlan,
     apply_prune_plan,
     compute_prune_plan,
     find_latest_learning_results,
@@ -813,6 +815,119 @@ def reconcile(
         raise typer.Exit(code=1) from error
 
 
+def _display_prune_input(prune_input: PruneInput, output: Output) -> None:
+    """Log a summary of the parsed applicability data."""
+    output.status(
+        f"Found {len(prune_input.partial_tests)} partially applicable "
+        f"and {len(prune_input.full_tests)} fully non-applicable test(s)"
+    )
+
+    if prune_input.partial_tests:
+        output.status("Partially applicable tests (exclude_devices):")
+        for entry in prune_input.partial_tests:
+            na_devs = ", ".join(sorted(entry.not_applicable_devices.keys()))
+            output.status(f"  {entry.test_id}: exclude {na_devs}")
+
+    if prune_input.full_tests:
+        output.status("Fully non-applicable tests (remove from groups):")
+        for entry in prune_input.full_tests:
+            output.status(f"  {entry.test_id}")
+
+
+def _execute_prune_plan(
+    plan_result: PrunePlan,
+    plan: Path,
+    dry_run: bool,
+    output: Output,
+) -> None:
+    """Display, optionally apply, and summarize the prune plan."""
+    has_changes = (
+        plan_result.exclude_devices_updates
+        or plan_result.exclude_from_groups
+        or plan_result.orphaned_test_cases
+    )
+    if not has_changes:
+        output.success("Pruning already applied -- no changes needed")
+        if plan_result.skipped_already_pruned:
+            output.warning(
+                f"Skipped {len(plan_result.skipped_already_pruned)} "
+                "already-pruned test(s)"
+            )
+        return
+
+    _display_prune_plan_details(plan_result, output)
+    counts = _prune_plan_counts(plan_result)
+
+    if dry_run:
+        _report_prune_dry_run(counts, output)
+        return
+
+    apply_prune_plan(plan_path=plan, prune_plan=plan_result, output=output)
+    validate_after_prune(plan)
+    _report_prune_applied(counts, plan_result, output)
+
+
+def _display_prune_plan_details(plan_result: PrunePlan, output: Output) -> None:
+    """Log detailed info about planned prune changes."""
+    if plan_result.exclude_devices_updates:
+        output.status("Applying exclude_devices to test cases:")
+        for test_id, devices in sorted(plan_result.exclude_devices_updates.items()):
+            output.status(f"  {test_id}: exclude_devices={devices}")
+
+    if plan_result.exclude_from_groups:
+        output.status("Removing tests from groups:")
+        for group_id, test_ids in sorted(plan_result.exclude_from_groups.items()):
+            for tid in test_ids:
+                output.status(f"  {tid} from {group_id}")
+
+    if plan_result.orphaned_test_cases:
+        output.status("Removing orphaned test case definitions:")
+        for tid in plan_result.orphaned_test_cases:
+            output.status(f"  {tid}")
+
+
+def _prune_plan_counts(
+    plan_result: PrunePlan,
+) -> tuple[int, int, int]:
+    """Return (device_updates, group_updates, orphan_count)."""
+    device_updates = len(plan_result.exclude_devices_updates)
+    group_updates = sum(len(tids) for tids in plan_result.exclude_from_groups.values())
+    orphan_count = len(plan_result.orphaned_test_cases)
+    return device_updates, group_updates, orphan_count
+
+
+def _report_prune_dry_run(counts: tuple[int, int, int], output: Output) -> None:
+    """Report a dry-run prune summary."""
+    device_updates, group_updates, orphan_count = counts
+    parts = [
+        f"{device_updates} test(s) would get exclude_devices",
+        f"{group_updates} test(s) would be removed from groups",
+    ]
+    if orphan_count:
+        parts.append(f"{orphan_count} test case definition(s) would be removed")
+    output.success(f"Dry run complete: {', '.join(parts)}")
+
+
+def _report_prune_applied(
+    counts: tuple[int, int, int],
+    plan_result: PrunePlan,
+    output: Output,
+) -> None:
+    """Report a completed prune summary."""
+    device_updates, group_updates, orphan_count = counts
+    parts = [
+        f"{device_updates} test(s) with exclude_devices",
+        f"{group_updates} test(s) removed from groups",
+    ]
+    if orphan_count:
+        parts.append(f"{orphan_count} test case definition(s) removed")
+    output.success(f"Prune complete: {', '.join(parts)}")
+    if plan_result.skipped_already_pruned:
+        output.warning(
+            f"Skipped {len(plan_result.skipped_already_pruned)} already-pruned test(s)"
+        )
+
+
 @app.command()
 def prune(
     plan: Annotated[
@@ -882,7 +997,10 @@ def prune(
         bool,
         typer.Option(
             "--remove-orphans",
-            help="Remove test case definitions that are no longer referenced by any group after pruning.",
+            help=(
+                "Remove test case definitions that are no longer"
+                " referenced by any group after pruning."
+            ),
         ),
     ] = False,
 ) -> None:
@@ -925,98 +1043,19 @@ def prune(
 
         total_na = len(prune_input.partial_tests) + len(prune_input.full_tests)
         if total_na == 0:
-            output.success(
-                "No non-applicable tests found -- nothing to prune"
-            )
+            output.success("No non-applicable tests found -- nothing to prune")
             return
 
-        output.status(
-            f"Found {len(prune_input.partial_tests)} partially applicable "
-            f"and {len(prune_input.full_tests)} fully non-applicable test(s)"
-        )
-
-        if prune_input.partial_tests:
-            output.status("Partially applicable tests (exclude_devices):")
-            for entry in prune_input.partial_tests:
-                na_devs = ", ".join(sorted(entry.not_applicable_devices.keys()))
-                output.status(f"  {entry.test_id}: exclude {na_devs}")
-
-        if prune_input.full_tests:
-            output.status("Fully non-applicable tests (remove from groups):")
-            for entry in prune_input.full_tests:
-                output.status(f"  {entry.test_id}")
+        _display_prune_input(prune_input, output)
 
         test_plan_obj = load_test_plan(plan)
         plan_result = compute_prune_plan(
-            prune_input, test_plan_obj, remove_orphans=remove_orphans,
+            prune_input,
+            test_plan_obj,
+            remove_orphans=remove_orphans,
         )
 
-        has_changes = (
-            plan_result.exclude_devices_updates
-            or plan_result.exclude_from_groups
-            or plan_result.orphaned_test_cases
-        )
-        if not has_changes:
-            output.success("Pruning already applied -- no changes needed")
-            if plan_result.skipped_already_pruned:
-                output.warning(
-                    f"Skipped {len(plan_result.skipped_already_pruned)} "
-                    "already-pruned test(s)"
-                )
-            return
-
-        if plan_result.exclude_devices_updates:
-            output.status("Applying exclude_devices to test cases:")
-            for test_id, devices in sorted(plan_result.exclude_devices_updates.items()):
-                output.status(f"  {test_id}: exclude_devices={devices}")
-
-        if plan_result.exclude_from_groups:
-            output.status("Removing tests from groups:")
-            for group_id, test_ids in sorted(plan_result.exclude_from_groups.items()):
-                for tid in test_ids:
-                    output.status(f"  {tid} from {group_id}")
-
-        if plan_result.orphaned_test_cases:
-            output.status("Removing orphaned test case definitions:")
-            for tid in plan_result.orphaned_test_cases:
-                output.status(f"  {tid}")
-
-        device_updates = len(plan_result.exclude_devices_updates)
-        group_updates = sum(
-            len(tids) for tids in plan_result.exclude_from_groups.values()
-        )
-        orphan_count = len(plan_result.orphaned_test_cases)
-
-        if dry_run:
-            parts = [
-                f"{device_updates} test(s) would get exclude_devices",
-                f"{group_updates} test(s) would be removed from groups",
-            ]
-            if orphan_count:
-                parts.append(f"{orphan_count} test case definition(s) would be removed")
-            output.success(f"Dry run complete: {', '.join(parts)}")
-            return
-
-        apply_prune_plan(
-            plan_path=plan,
-            prune_plan=plan_result,
-            output=output,
-        )
-
-        validate_after_prune(plan)
-
-        parts = [
-            f"{device_updates} test(s) with exclude_devices",
-            f"{group_updates} test(s) removed from groups",
-        ]
-        if orphan_count:
-            parts.append(f"{orphan_count} test case definition(s) removed")
-        output.success(f"Prune complete: {', '.join(parts)}")
-        if plan_result.skipped_already_pruned:
-            output.warning(
-                f"Skipped {len(plan_result.skipped_already_pruned)} "
-                "already-pruned test(s)"
-            )
+        _execute_prune_plan(plan_result, plan, dry_run, output)
 
     except (PruneError, ConfigurationError) as error:
         output.error(f"ERROR: {error}")
