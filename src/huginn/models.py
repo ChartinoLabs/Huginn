@@ -47,6 +47,7 @@ class TargetDefinition:
     devices: list[str] | None = None
     groups: list[str] | None = None
     os: list[str] | None = None
+    exclude_devices: list[str] | None = None
 
 
 @dataclass
@@ -197,6 +198,7 @@ class ExecutedTestCase:
     metadata_sections: list[MetadataSection] = field(default_factory=list)
     checks: list[CheckResult] = field(default_factory=list)
     command_executions: list[CommandExecution] = field(default_factory=list)
+    not_applicable_devices: dict[str, str] = field(default_factory=dict)
     error: str | None = None
     error_code: str | None = None
     error_traceback: str | None = None

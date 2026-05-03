@@ -257,7 +257,17 @@ def _load_target_definition(
         context_name=context_name,
         field_name="os",
     )
-    target = TargetDefinition(devices=devices, groups=groups, os=os_values)
+    exclude_devices = _load_target_selector_values(
+        target_mapping.get("exclude_devices"),
+        context_name=context_name,
+        field_name="exclude_devices",
+    )
+    target = TargetDefinition(
+        devices=devices,
+        groups=groups,
+        os=os_values,
+        exclude_devices=exclude_devices,
+    )
     _validate_target_selector_exclusivity(context_name=context_name, target=target)
     return target
 

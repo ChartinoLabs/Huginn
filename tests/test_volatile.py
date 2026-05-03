@@ -552,8 +552,8 @@ def test_operator_passes_comparison_uses_apply_operator(tmp_path: Path) -> None:
     ctx1 = _make_context(tmp_path)
     asyncio.run(
         cls().compare_state(
-            expected={"operator": "gte"},
-            current={"operator": "gte"},
+            expected={"devices": {"R1": {"operator": "gte"}}},
+            current={"devices": {"R1": {"operator": "gte"}}},
             context=ctx1,
         )
     )
@@ -564,8 +564,8 @@ def test_operator_passes_comparison_uses_apply_operator(tmp_path: Path) -> None:
     ctx2 = _make_context(tmp_path, phase="post-change")
     asyncio.run(
         cls2().compare_state(
-            expected={"operator": "gte"},
-            current={"operator": "gte"},
+            expected={"devices": {"R1": {"operator": "gte"}}},
+            current={"devices": {"R1": {"operator": "gte"}}},
             context=ctx2,
         )
     )
@@ -584,8 +584,8 @@ def test_operator_any_always_passes(tmp_path: Path) -> None:
     ctx1 = _make_context(tmp_path)
     asyncio.run(
         cls().compare_state(
-            expected={"operator": "any"},
-            current={"operator": "any"},
+            expected={"devices": {"R1": {"operator": "any"}}},
+            current={"devices": {"R1": {"operator": "any"}}},
             context=ctx1,
         )
     )
@@ -597,8 +597,8 @@ def test_operator_any_always_passes(tmp_path: Path) -> None:
     ctx2 = _make_context(tmp_path, phase="post-change")
     asyncio.run(
         cls2().compare_state(
-            expected={"operator": "any"},
-            current={"operator": "any"},
+            expected={"devices": {"R1": {"operator": "any"}}},
+            current={"devices": {"R1": {"operator": "any"}}},
             context=ctx2,
         )
     )
@@ -614,7 +614,7 @@ def test_operator_gather_state_returns_default_operator(tmp_path: Path) -> None:
     cls = _make_operator_job(default_operator="lt")
     ctx = _make_context(tmp_path, targets=[_FakeDevice(name="R1")])
     result = asyncio.run(cls().gather_state(ctx))
-    assert result == {"operator": "lt"}
+    assert result == {"devices": {"R1": {"operator": "lt"}}}
 
 
 def test_operator_failure_message_mentions_operator(tmp_path: Path) -> None:
@@ -627,8 +627,8 @@ def test_operator_failure_message_mentions_operator(tmp_path: Path) -> None:
     ctx1 = _make_context(tmp_path)
     asyncio.run(
         cls().compare_state(
-            expected={"operator": "gte"},
-            current={"operator": "gte"},
+            expected={"devices": {"R1": {"operator": "gte"}}},
+            current={"devices": {"R1": {"operator": "gte"}}},
             context=ctx1,
         )
     )
@@ -639,8 +639,8 @@ def test_operator_failure_message_mentions_operator(tmp_path: Path) -> None:
     ctx2 = _make_context(tmp_path, phase="post-change")
     asyncio.run(
         cls2().compare_state(
-            expected={"operator": "gte"},
-            current={"operator": "gte"},
+            expected={"devices": {"R1": {"operator": "gte"}}},
+            current={"devices": {"R1": {"operator": "gte"}}},
             context=ctx2,
         )
     )

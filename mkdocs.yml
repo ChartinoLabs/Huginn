@@ -81,6 +81,9 @@ nav:
       - Output Logging: 08-output-logging-design.md
       - Package Job References: 08-package-job-references.md
       - Parameter Reconciliation: 08-parameter-reconciliation.md
+      - Pruning Non-Applicable Tests: 08-prune.md
       - Unit Testing Automation: 08-unit-testing-automation.md
       - Volatile Parameters: 09-volatile-parameters.md
       - Future Considerations: 99-future-considerations.md
+  - Contributing:
+      - Documentation Style Guide: style.md

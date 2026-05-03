@@ -1373,6 +1373,7 @@ async def _execute_test_case_once(
         metadata_sections=result_collector.metadata_sections,
         checks=result_collector.checks,
         command_executions=result_collector.command_executions,
+        not_applicable_devices=result_collector.not_applicable_devices,
     )
 
 
@@ -1807,7 +1808,11 @@ def _apply_target_scope(
     if error is not None:
         return [], error
 
-    return _apply_target_filters(selected_devices, target), None
+    filtered = _apply_target_filters(selected_devices, target)
+    if target.exclude_devices:
+        exclude_set = set(target.exclude_devices)
+        filtered = [d for d in filtered if d.name not in exclude_set]
+    return filtered, None
 
 
 def _apply_target_filters(
