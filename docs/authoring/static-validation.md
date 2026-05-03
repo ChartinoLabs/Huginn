@@ -24,7 +24,7 @@ from typing import Any, TypedDict
 
 import muninn
 
-from huginn import ApplicabilityResult, Context, LearningTestCase, ResultStatus
+from huginn import CommandSupportResult, Context, LearningTestCase, ResultStatus
 from huginn.utils.commands import is_command_unsupported
 
 mn = muninn.Muninn()
@@ -81,7 +81,7 @@ class VerifyBgpNeighborState(LearningTestCase[BgpNeighborStateParameters]):
 
     command = "show ip bgp neighbors"
 
-    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+    async def check_command_support(self, context: Context) -> CommandSupportResult:
         applicable = []
         not_applicable: dict[str, str] = {}
         for device in context.targets:
@@ -92,7 +92,7 @@ class VerifyBgpNeighborState(LearningTestCase[BgpNeighborStateParameters]):
                 )
                 continue
             applicable.append(device)
-        return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
+        return CommandSupportResult(applicable=applicable, not_applicable=not_applicable)
 
     async def gather_state(self, context: Context) -> BgpNeighborStateParameters:
         devices: dict[str, BgpNeighborStateDeviceParameters] = {}
@@ -191,13 +191,13 @@ The parameters payload is always wrapped in an outer `<Subject>Parameters` Typed
 | Scalar | One value per device (e.g. IOS version, hostname, contact email) | `value: str` |
 | Single-keyed dict | One value per object per device (e.g. one state per BGP neighbor) | `values: dict[str, str]` |
 | Double-keyed dict | One value per object-pair per device (e.g. one capability per neighbor per interface) | `<plural>: dict[str, dict[str, str]]` |
-| List | Membership-only checks (e.g. set of expected route prefixes) | `<plural>: list[str]` |
+| Existence dict | Membership-only checks (e.g. set of expected route prefixes) | `<plural>: dict[str, str]` with `"__exists__"` sentinel values |
 
 Always type the parameters in the class generic: `LearningTestCase[<Subject>Parameters]`.
 
-### `check_applicability`
+### `check_command_support`
 
-Standard idiom - see [Authoring overview](index.md#applicability). Verify that the show command is supported on each target. Skip targets that respond with an unsupported-command marker.
+Standard idiom - see [Authoring overview](index.md#command-support). Verify that the show command is supported on each target. Skip targets that respond with an unsupported-command marker.
 
 ### `gather_state`
 
@@ -206,12 +206,51 @@ For each target:
 1. Execute the show command through the broker.
 2. Parse with `mn.parse(os=device.os, command=self.command, output=result.output)`.
 3. Record the execution with `context.results.add_command_execution(...)` so the report includes the raw and parsed output.
-4. Extract the values you care about into the inner TypedDict shape.
+4. Extract the values you care about into the inner TypedDict shape. **Omit entries where the value is `None` or empty string**  -  only include items that have meaningful data.
 5. Stuff the per-device record into `devices[device.name]`.
 
 Return `{"devices": devices}`.
 
 In **learning mode**, the framework persists this return value to a parameter file. In **testing mode**, the framework calls `gather_state` to get the current observation, then loads the persisted file as the expected baseline and calls `compare_state`.
+
+#### Handling empty gathered state
+
+When `gather_state` produces an empty result for a device  -  an empty `values: {}` dict, an empty `"__exists__"` dict, or an empty scalar `value: ""`  -  it means the device has no data for the attribute this job validates. In learning mode, saving these empty parameters is misleading: the parameter file exists and looks healthy, but contains nothing to compare against during testing.
+
+The correct behavior is to mark the device as **not applicable** rather than saving empty parameters. The recommended pattern is to check for empty state after extraction and emit a `NOT_APPLICABLE` result for that device:
+
+```python
+async def gather_state(self, context: Context) -> SomeParameters:
+    devices: dict[str, SomeDeviceParameters] = {}
+    remaining_targets: list[Device] = []
+    for device in context.targets:
+        result = await context.broker.execute(device, self.command)
+        parsed = mn.parse(os=device.os, command=self.command, output=result.output)
+        context.results.add_command_execution(
+            device=device.name, command=self.command, output=result, parsed=parsed,
+        )
+        values: dict[str, str] = {}
+        for item_key, data in parsed["items"].items():
+            value = data.get("target_field")
+            if value is not None and str(value) != "":
+                values[item_key] = str(value)
+        if not values:
+            context.results.add_result(
+                ResultStatus.NOT_APPLICABLE,
+                NO_DATA_REASON.format(device=device.name, command=self.command),
+            )
+            continue
+        devices[device.name] = {"values": values}
+        remaining_targets.append(device)
+    context.targets = remaining_targets
+    return {"devices": devices}
+```
+
+This ensures that:
+
+- Devices with no data are recorded as `NOT_APPLICABLE` in the run results.
+- The parameter file only contains devices that have meaningful data.
+- Downstream tooling (such as a prune command) can mechanically identify tests with no applicable targets and remove them from the test plan.
 
 ### `compare_state`
 
@@ -252,17 +291,32 @@ class LldpCapabilitiesParameters(TypedDict):
 
 `compare_state` walks two nested loops and uses the `has_failures` accumulator.
 
-### List (existence / membership)
+### Existence dict (membership)
 
 ```python
 class RouteExistenceDeviceParameters(TypedDict):
-    prefixes: list[str]
+    prefixes: dict[str, str]   # prefix -> "__exists__"
 
 class RouteExistenceParameters(TypedDict):
     devices: dict[str, RouteExistenceDeviceParameters]
 ```
 
-`compare_state` checks set membership: each learned prefix must appear in the current observation. There is no value to mismatch against.
+In `gather_state`, store each observed key with the sentinel value `"__exists__"`:
+
+```python
+prefixes: dict[str, str] = {}
+for prefix in parsed["routes"]:
+    prefixes[prefix] = "__exists__"
+```
+
+`compare_state` checks dict membership: each learned key must appear in the current observation. The sentinel value is not compared  -  its purpose is to unambiguously signal that the parameter represents an existence check, not a value check. This avoids confusion with empty values that might result from a parser or job bug.
+
+For double-keyed existence checks (e.g., OSPF neighbor adjacencies keyed by interface and neighbor ID), use nested dicts with `"__exists__"` at the leaf:
+
+```python
+class OspfNeighborExistenceDeviceParameters(TypedDict):
+    adjacencies: dict[str, dict[str, str]]   # interface -> neighbor_id -> "__exists__"
+```
 
 ## Common pitfalls
 
@@ -270,7 +324,7 @@ class RouteExistenceParameters(TypedDict):
 - **Don't skip `add_command_execution`.** The reporting layer relies on it to render raw and parsed output for debugging.
 - **Don't put `command` at module scope.** It belongs as a class attribute (`self.command`). Module-level `command = "..."` makes the show command invisible to subclasses and harder to override per-job.
 - **Don't catch `muninn` parser errors silently.** If parsing fails, let the exception propagate or emit `ResultStatus.ERRORED` explicitly with context. Silent failure makes the job look healthy when it isn't.
-- **Don't mutate `context.targets`.** The framework owns target filtering via `check_applicability`. Inside `gather_state` and `compare_state`, treat the targets as read-only.
+- **Don't mutate `context.targets`.** The framework owns target filtering via `check_command_support`. Inside `gather_state` and `compare_state`, treat the targets as read-only.
 - **Don't override `setup` or `cleanup`** unless you genuinely need to. The defaults provided by `LearningTestCase` are correct for the vast majority of jobs.
 
 ## See also

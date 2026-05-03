@@ -130,7 +130,7 @@ from typing import TypedDict
 
 import muninn
 
-from huginn import ApplicabilityResult, Context, LearningTestCase, ResultStatus
+from huginn import CommandSupportResult, Context, LearningTestCase, ResultStatus
 from huginn.utils.commands import is_command_unsupported
 
 mn = muninn.Muninn()

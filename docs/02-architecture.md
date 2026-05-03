@@ -157,7 +157,7 @@ Executes a single test:
 
 - Instantiates the test class
 - Constructs and injects the Context
-- Calls `check_applicability()` to determine which targets are relevant
+- Calls `check_command_support()` to determine which target devices support the required command(s)
 - Updates `context.targets` to contain only applicable devices
 - For each non-applicable device, checks if learned parameters exist:
 -
@@ -517,7 +517,7 @@ Parameters are stored as JSON files, enabling version control and manual inspect
        iv.  For each test case in group (potentially parallel):
             - Instantiate job class
             - Construct Context with targets, broker, parameters, data_model
-            - Call job.check_applicability(context)
+            - Call job.check_command_support(context)
             - For each non-applicable device:
               * If learned parameters exist for device → record as LOST_APPLICABILITY
               * Otherwise → record as NOT_APPLICABLE
@@ -545,7 +545,7 @@ Parameters are stored as JSON files, enabling version control and manual inspect
                          │
                          ▼
           ┌──────────────────────────┐
-          │ check_applicability()    │
+          │ check_command_support()   │
           │ (filter targets)         │
           └────────────┬─────────────┘
                        │
@@ -581,10 +581,10 @@ Success            Failure         │
                └───────────────┘
 ```
 
-**Notes on applicability:**
+**Notes on command support checking:**
 
-- `check_applicability()` is called first with all assigned targets
-- Non-applicable devices are recorded with their reasons:
+- `check_command_support()` is called first with all assigned targets
+- Devices that lack command support are recorded with their reasons:
   - **NOT_APPLICABLE**: If no learned parameters exist for the device (never was applicable)
   - **LOST_APPLICABILITY**: If learned parameters exist (was applicable, now isn't)
 - LOST_APPLICABILITY results contribute to test failure; NOT_APPLICABLE results do not

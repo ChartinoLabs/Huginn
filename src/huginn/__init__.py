@@ -4,7 +4,7 @@ from huginn.cli import main
 from huginn.context import Context
 from huginn.enums import ExecutionMode, ResultStatus
 from huginn.output import Output
-from huginn.testcase import ApplicabilityResult, LearningTestCase, TestCase
+from huginn.testcase import CommandSupportResult, LearningTestCase, TestCase
 from huginn.utils.commands import is_command_unsupported
 from huginn.volatile import (
     Observation,
@@ -23,7 +23,7 @@ __all__ = [
     "Context",
     "TestCase",
     "LearningTestCase",
-    "ApplicabilityResult",
+    "CommandSupportResult",
     "Observation",
     "VolatileLearningTestCase",
     "OperatorVolatileLearningTestCase",

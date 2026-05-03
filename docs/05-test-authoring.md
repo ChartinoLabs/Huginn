@@ -6,7 +6,7 @@ This document describes how to write tests for Huginn, including the base class 
 
 Huginn tests are Python classes that inherit from the `TestCase` abstract base class. Each test implements up to four async methods:
 
-- `check_applicability()`: Determine which assigned targets the test applies to (optional, has default)
+- `check_command_support()`: Determine which target devices support the required command(s) (optional, has default)
 - `setup()`: Verify prerequisites and prepare test state
 - `test()`: Execute the actual test logic
 - `cleanup()`: Clean up test-specific state (not connections - the framework manages those)
@@ -17,36 +17,34 @@ Huginn tests are Python classes that inherit from the `TestCase` abstract base c
 
 ```python
 from abc import ABC, abstractmethod
-from huginn import Context, ApplicabilityResult
+from huginn import Context, CommandSupportResult
 
 class TestCase(ABC):
     """Abstract base class for all Huginn tests."""
 
-    async def check_applicability(self, context: Context) -> ApplicabilityResult:
-        """Determine which target devices this test applies to.
+    async def check_command_support(self, context: Context) -> CommandSupportResult:
+        """Determine which target devices support the required command(s).
 
         Called before test(). Override this method to dynamically filter
-        targets based on device capabilities, running features, or other
-        runtime conditions. The default implementation marks all targets
-        as applicable.
+        targets based on whether the device supports the CLI command(s)
+        the test needs to execute. The default implementation marks all
+        targets as supported.
 
-        This method enables tests to introspect their assigned targets and
-        determine applicability without relying on external data models.
         Common patterns include:
-        - Checking if a protocol is enabled on the device
-        - Verifying required features are present
-        - Confirming device role matches test requirements
+        - Checking if a show command is recognized by the device
+        - Verifying the device OS supports the required command syntax
+        - Confirming the device platform has the necessary CLI capability
 
         Returns:
-            ApplicabilityResult containing:
-            - applicable: list of devices the test should run against
+            CommandSupportResult containing:
+            - applicable: list of devices that support the required command(s)
             - not_applicable: dict mapping device names to skip reasons
 
-        The framework updates context.targets to contain only applicable
-        devices before calling test(). Non-applicable devices are recorded
+        The framework updates context.targets to contain only supported
+        devices before calling test(). Unsupported devices are recorded
         with NOT_APPLICABLE status and their reasons in the test results.
         """
-        return ApplicabilityResult(
+        return CommandSupportResult(
             applicable=list(context.targets),
             not_applicable={}
         )
@@ -55,7 +53,7 @@ class TestCase(ABC):
     async def setup(self, context: Context) -> None:
         """Prepare for test execution.
 
-        Called after check_applicability() filters targets. Use this to
+        Called after check_command_support() filters targets. Use this to
         verify prerequisites like device connectivity (already established
         by framework) or set up test-specific state. If this method raises
         an exception, test() is skipped but cleanup() still runs.
@@ -71,7 +69,7 @@ class TestCase(ABC):
 
         This is where the main test logic lives. Use context.broker
         to execute commands and context.results to record outcomes.
-        Only devices marked as applicable in check_applicability()
+        Only devices marked as supported in check_command_support()
         are available in context.targets.
         """
         ...
@@ -359,80 +357,80 @@ class VerifyBGPNeighbors(TestCase):
         pass
 ```
 
-## Dynamic Applicability
+## Dynamic Command Support Checking
 
-While data model-driven tests can determine applicability by checking whether a feature is declared in the intended state, many tests operate without a data model. These tests - particularly those using the learning/testing pattern with file-based parameters - need a mechanism to dynamically determine which of their assigned targets are actually relevant.
+While data model-driven tests can determine applicability by checking whether a feature is declared in the intended state, many tests operate without a data model. These tests - particularly those using the learning/testing pattern with file-based parameters - need a mechanism to dynamically determine which of their assigned targets actually support the required CLI command(s).
 
-The `check_applicability()` method provides a structured way for tests to introspect their targets and filter out devices where the test doesn't apply.
+The `check_command_support()` method provides a structured way for tests to introspect their targets and filter out devices that do not support the required command(s).
 
-### The ApplicabilityResult Class
+### The CommandSupportResult Class
 
 ```python
 from dataclasses import dataclass, field
 from huginn import DeviceAdapter
 
 @dataclass
-class ApplicabilityResult:
-    """Result of a test's applicability check.
+class CommandSupportResult:
+    """Result of a test's command support check.
 
     Attributes:
-        applicable: Devices the test should run against.
+        applicable: Devices that support the required command(s).
         not_applicable: Mapping of device names to reasons why
-            the test doesn't apply to them.
+            the device does not support the required command(s).
     """
     applicable: list[DeviceAdapter] = field(default_factory=list)
     not_applicable: dict[str, str] = field(default_factory=dict)
 ```
 
-### When to Use Dynamic Applicability
+### When to Use Dynamic Command Support Checking
 
-Use `check_applicability()` when:
+Use `check_command_support()` when:
 
-1. **Feature presence varies across targets**: A test for OSPF validation is assigned to all "router" devices, but not all routers run OSPF.
+1. **Command availability varies across targets**: A test executes a show command that not all target devices recognize (e.g., `show ip ospf neighbor` on devices that don't support OSPF commands).
 
-2. **Device capabilities differ**: A test validates a platform-specific feature only available on certain hardware models.
+2. **Device capabilities differ**: A test validates a platform-specific feature whose CLI commands are only available on certain hardware models.
 
-3. **Role-based logic**: A test applies only to devices acting in a specific role (e.g., route reflector, DHCP server) that isn't captured in device groups.
+3. **OS-level command differences**: A test uses commands that exist on some operating systems but not others within the same target group.
 
-4. **Runtime state matters**: A test should only run if certain preconditions exist (e.g., interface is up, feature is licensed).
+4. **Feature licensing**: A test requires commands that are only available when certain features are licensed on the device.
 
 ### Basic Example
 
 ```python
-from huginn import TestCase, Context, ApplicabilityResult, ResultStatus
+from huginn import TestCase, Context, CommandSupportResult, ResultStatus
 import muninn
 
 class VerifyOSPFNeighbors(TestCase):
     """Verify OSPF neighbors match expected state."""
 
-    async def check_applicability(self, context: Context) -> ApplicabilityResult:
-        """Only test devices that have OSPF enabled."""
+    async def check_command_support(self, context: Context) -> CommandSupportResult:
+        """Only test devices that support OSPF commands."""
         applicable = []
         not_applicable = {}
 
         for device in context.targets:
-            # Check if OSPF is running on this device
+            # Check if the device supports OSPF commands
             output = await context.broker.execute(device, "show ip protocols")
             parsed = muninn.parse(device.os, "show ip protocols", output)
 
             if "ospf" in parsed.get("routing_protocols", []):
                 applicable.append(device)
             else:
-                not_applicable[device.name] = "OSPF not enabled on device"
+                not_applicable[device.name] = "Device does not support OSPF commands"
 
-        return ApplicabilityResult(
+        return CommandSupportResult(
             applicable=applicable,
             not_applicable=not_applicable
         )
 
     async def setup(self, context: Context) -> None:
-        # At this point, context.targets only contains applicable devices
+        # At this point, context.targets only contains devices with command support
         for device in context.targets:
             if not context.broker.is_connected(device.name):
                 raise RuntimeError(f"Device {device.name} is not connected")
 
     async def test(self, context: Context) -> None:
-        # Test logic runs only against applicable devices
+        # Test logic runs only against devices with command support
         for device in context.targets:
             output = await context.broker.execute(device, "show ip ospf neighbor")
             # ... validation logic ...
@@ -443,26 +441,26 @@ class VerifyOSPFNeighbors(TestCase):
 
 ### Execution Flow
 
-When a test implements `check_applicability()`, the framework:
+When a test implements `check_command_support()`, the framework:
 
-1. Calls `check_applicability(context)` with all originally assigned targets
-2. Records non-applicable devices with `NOT_APPLICABLE` status and their reasons
-3. Updates `context.targets` to contain only applicable devices
+1. Calls `check_command_support(context)` with all originally assigned targets
+2. Records unsupported devices with `NOT_APPLICABLE` status and their reasons
+3. Updates `context.targets` to contain only supported devices
 4. Proceeds with `setup()` → `test()` → `cleanup()` using filtered targets
-5. If no devices are applicable, skips `setup()` and `test()` entirely
+5. If no devices support the command, skips `setup()` and `test()` entirely
 
 ```txt
 Original targets: [spine-01, spine-02, leaf-01, leaf-02, leaf-03]
                               │
                               ▼
-                   check_applicability()
+                   check_command_support()
                               │
               ┌───────────────┴───────────────┐
               │                               │
-        Applicable:                    Not Applicable:
-    [spine-01, spine-02]           leaf-01: "OSPF not enabled"
-                                   leaf-02: "OSPF not enabled"
-                                   leaf-03: "OSPF not enabled"
+        Supported:                     Not Supported:
+    [spine-01, spine-02]           leaf-01: "Command not supported"
+                                   leaf-02: "Command not supported"
+                                   leaf-03: "Command not supported"
               │                               │
               ▼                               ▼
        context.targets              Recorded as NOT_APPLICABLE
@@ -476,14 +474,14 @@ Original targets: [spine-01, spine-02, leaf-01, leaf-02, leaf-03]
 
 ### Caching Considerations
 
-Commands executed in `check_applicability()` are cached by the broker like any other command. This means:
+Commands executed in `check_command_support()` are cached by the broker like any other command. This means:
 
 - If the same command is used later in `test()`, it uses the cached result
-- Multiple tests checking the same conditions share cached output
-- Use `use_cache=False` only if the applicability check requires fresh data
+- Multiple tests checking the same commands share cached output
+- Use `use_cache=False` only if the command support check requires fresh data
 
 ```python
-async def check_applicability(self, context: Context) -> ApplicabilityResult:
+async def check_command_support(self, context: Context) -> CommandSupportResult:
     applicable = []
     not_applicable = {}
 
@@ -491,20 +489,20 @@ async def check_applicability(self, context: Context) -> ApplicabilityResult:
         # This output is cached and can be reused in test()
         output = await context.broker.execute(device, "show ip ospf neighbor")
 
-        if "No OSPF neighbors" in output:
-            not_applicable[device.name] = "No OSPF neighbors configured"
+        if is_command_unsupported(output):
+            not_applicable[device.name] = "Device does not support 'show ip ospf neighbor'"
         else:
             applicable.append(device)
 
-    return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
+    return CommandSupportResult(applicable=applicable, not_applicable=not_applicable)
 ```
 
-### Pattern: Metadata-Based Applicability
+### Pattern: Metadata-Based Command Support
 
-For simple cases, device metadata can drive applicability without executing commands:
+For simple cases, device metadata can drive command support without executing commands:
 
 ```python
-async def check_applicability(self, context: Context) -> ApplicabilityResult:
+async def check_command_support(self, context: Context) -> CommandSupportResult:
     """Only test devices with 'ospf_enabled' metadata flag."""
     applicable = []
     not_applicable = {}
@@ -513,28 +511,28 @@ async def check_applicability(self, context: Context) -> ApplicabilityResult:
         if device.metadata.get("ospf_enabled", False):
             applicable.append(device)
         else:
-            not_applicable[device.name] = "Device metadata indicates OSPF not enabled"
+            not_applicable[device.name] = "Device metadata indicates OSPF commands not available"
 
-    return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
+    return CommandSupportResult(applicable=applicable, not_applicable=not_applicable)
 ```
 
 This pattern is useful when:
 
-- Testbed authors annotate devices with feature flags
+- Testbed authors annotate devices with command capability flags
 - Device metadata is populated from an inventory system (NetBox, etc.)
-- Applicability is known ahead of time and doesn't require runtime discovery
+- Command support is known ahead of time and doesn't require runtime discovery
 
 ### Pattern: Platform-Specific Tests
 
 ```python
-from huginn import TestCase, Context, ApplicabilityResult
+from huginn import TestCase, Context, CommandSupportResult
 
 class VerifyVXLANVTEPs(TestCase):
     """Verify VXLAN VTEP configuration - only applicable to leaf switches."""
 
     SUPPORTED_PLATFORMS = {"N9K-C93180YC-EX", "N9K-C93180YC-FX"}
 
-    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+    async def check_command_support(self, context: Context) -> CommandSupportResult:
         applicable = []
         not_applicable = {}
 
@@ -545,10 +543,10 @@ class VerifyVXLANVTEPs(TestCase):
                 applicable.append(device)
             else:
                 not_applicable[device.name] = (
-                    f"Platform {platform} does not support VXLAN VTEP"
+                    f"Platform {platform} does not support VXLAN VTEP commands"
                 )
 
-        return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
+        return CommandSupportResult(applicable=applicable, not_applicable=not_applicable)
 
     async def setup(self, context: Context) -> None:
         pass
@@ -565,16 +563,16 @@ class VerifyVXLANVTEPs(TestCase):
 
 ### Pattern: Combining with Learning Mode
 
-When using dynamic applicability with learning mode, consider what happens when applicability changes between learning and testing runs:
+When using dynamic command support checking with learning mode, consider what happens when command support changes between learning and testing runs:
 
 ```python
-from huginn import TestCase, Context, ApplicabilityResult, ExecutionMode, ResultStatus
+from huginn import TestCase, Context, CommandSupportResult, ExecutionMode, ResultStatus
 import muninn
 
 class VerifyBGPNeighbors(TestCase):
-    """Verify BGP neighbors with dynamic applicability."""
+    """Verify BGP neighbors with dynamic command support checking."""
 
-    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+    async def check_command_support(self, context: Context) -> CommandSupportResult:
         applicable = []
         not_applicable = {}
 
@@ -585,9 +583,9 @@ class VerifyBGPNeighbors(TestCase):
             if "bgp" in parsed.get("routing_protocols", []):
                 applicable.append(device)
             else:
-                not_applicable[device.name] = "BGP not enabled"
+                not_applicable[device.name] = "Device does not support BGP commands"
 
-        return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
+        return CommandSupportResult(applicable=applicable, not_applicable=not_applicable)
 
     async def setup(self, context: Context) -> None:
         pass
@@ -650,26 +648,26 @@ class VerifyBGPNeighbors(TestCase):
         pass
 ```
 
-### Applicability Regression Detection
+### Command Support Regression Detection
 
-When running in **testing mode** with file-based parameters, the framework automatically detects a critical scenario: devices that were applicable when parameters were learned but are no longer applicable during testing. This is called an **applicability regression**.
+When running in **testing mode** with file-based parameters, the framework automatically detects a critical scenario: devices that supported the required command(s) when parameters were learned but no longer support them during testing. This is called a **command support regression**.
 
 **How it works:**
 
-1. The test's `check_applicability()` method returns devices as not applicable
-2. The framework checks whether learned parameters exist for each non-applicable device
-3. If parameters exist, this indicates the device was previously testable
+1. The test's `check_command_support()` method returns devices as not supported
+2. The framework checks whether learned parameters exist for each unsupported device
+3. If parameters exist, this indicates the device previously supported the command
 4. The framework records this as `LOST_APPLICABILITY` rather than `NOT_APPLICABLE`
 
 ```txt
 Framework logic:
 
-for device in applicability_result.not_applicable:
+for device in command_support_result.not_applicable:
     if parameters_exist_for(test_id, device.name):
-        # Was applicable during learning, not anymore
+        # Supported the command during learning, not anymore
         record_result(device, LOST_APPLICABILITY, reason)
     else:
-        # Never was applicable → expected
+        # Never supported the command → expected
         record_result(device, NOT_APPLICABLE, reason)
 ```
 
@@ -677,49 +675,49 @@ for device in applicability_result.not_applicable:
 
 Consider a hardware migration scenario:
 
-1. **Pre-migration (learning mode)**: You learn parameters for all devices. Device `core-sw-01` runs OSPF with neighbors A, B, C.
+1. **Pre-migration (learning mode)**: You learn parameters for all devices. Device `core-sw-01` supports OSPF commands and has neighbors A, B, C.
 
-2. **Post-migration (testing mode)**: The new hardware doesn't have OSPF configured (configuration was lost, feature not migrated, etc.). The applicability check returns "OSPF not running."
+2. **Post-migration (testing mode)**: The new hardware doesn't support OSPF commands (configuration was lost, feature not migrated, etc.). The command support check returns "command not supported."
 
-Without applicability regression detection, this would silently mark the device as not applicable - you'd never know that a previously-tested feature disappeared. With regression detection, the framework flags this as `LOST_APPLICABILITY`, which contributes to test failure and surfaces the issue.
+Without command support regression detection, this would silently mark the device as not applicable - you'd never know that a previously-supported command disappeared. With regression detection, the framework flags this as `LOST_APPLICABILITY`, which contributes to test failure and surfaces the issue.
 
 **Result status implications:**
 
-| Status             | Meaning                                          | Contributes to Failure? |
-| ------------------ | ------------------------------------------------ | ----------------------- |
-| NOT_APPLICABLE     | Never was applicable (no prior parameters)       | No                      |
-| LOST_APPLICABILITY | Was applicable, now isn't (has prior parameters) | **Yes**                 |
+| Status             | Meaning                                                    | Contributes to Failure? |
+| ------------------ | ---------------------------------------------------------- | ----------------------- |
+| NOT_APPLICABLE     | Never supported the command (no prior parameters)          | No                      |
+| LOST_APPLICABILITY | Previously supported the command, now doesn't (has prior parameters) | **Yes**                 |
 
-This design ensures that unexpected changes in applicability are surfaced prominently rather than hidden among normal skips.
+This design ensures that unexpected changes in command support are surfaced prominently rather than hidden among normal skips.
 
 ### Reporting
 
-The framework captures applicability results in test reports:
+The framework captures command support results in test reports:
 
 ```txt
 Test: 3.0.0 Verify OSPF Neighbors
-Targets: 5 assigned, 2 applicable, 1 lost applicability, 2 not applicable
+Targets: 5 assigned, 2 supported, 1 lost applicability, 2 not supported
 
-Applicable (2):
+Supported (2):
   ✓ spine-01: PASSED
   ✓ spine-02: PASSED
 
 Lost Applicability (1):
-  ✗ core-sw-01: OSPF not enabled (was enabled during learning)
+  ✗ core-sw-01: Command not supported (was supported during learning)
 
-Not Applicable (2):
-  ○ leaf-01: OSPF not enabled on device
-  ○ leaf-02: OSPF not enabled on device
+Not Supported (2):
+  ○ leaf-01: Device does not support 'show ip ospf neighbor'
+  ○ leaf-02: Device does not support 'show ip ospf neighbor'
 
-Result: PARTIAL (2/2 applicable passed, 1 lost applicability)
+Result: PARTIAL (2/2 supported passed, 1 lost applicability)
 ```
 
 This provides visibility into why certain devices weren't tested, distinguishing between:
 
-- **PASSED**: Device was applicable and the test succeeded
-- **FAILED**: Device was applicable and the test found issues
-- **LOST_APPLICABILITY**: Device was applicable during learning but isn't now
-- **NOT_APPLICABLE**: Device was never applicable (no prior parameters)
+- **PASSED**: Device supported the command and the test succeeded
+- **FAILED**: Device supported the command and the test found issues
+- **LOST_APPLICABILITY**: Device supported the command during learning but doesn't now
+- **NOT_APPLICABLE**: Device never supported the command (no prior parameters)
 
 ## Learning and Testing Modes (File-Based Parameters)
 
@@ -838,8 +836,8 @@ class VerifyOSPFNeighbors(LearningTestCase):
 `LearningTestCase` provides default no-op `setup()`/`cleanup()` and implements `test()` as:
 
 1. Call `gather_state(context)`
-2. Call `check_applicability(context)` (override optional)
-3. Record skipped results for non-applicable targets
+2. Call `check_command_support(context)` (override optional)
+3. Record skipped results for unsupported targets
 4. If no targets are applicable, record skip and return
 5. If `context.mode == LEARNING`, save with `context.parameters.save(...)`
 6. Otherwise load expected state with `context.parameters.load()`
@@ -1259,7 +1257,7 @@ Don't repeat setup/cleanup logic across tests. Create project-specific base clas
 
 ## Related Documents
 
-- [Glossary](00-glossary.md): Formal term definitions including Applicability
+- [Glossary](00-glossary.md): Formal term definitions including Command Support
 - [Architecture](02-architecture.md): Context and adapter details
 - [Testbed Specification](03-testbed-spec.md): Device definitions
 - [Test Plan Specification](04-test-plan-spec.md): Test organization

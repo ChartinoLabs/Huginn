@@ -104,7 +104,7 @@ class VerifyBgpNeighborKeepalivesSentIncreasing(OperatorVolatileLearningTestCase
         return observations
 ```
 
-That is the entire job. There are no message constants, no `TypedDict`s, no `check_applicability`, no `gather_state`, and no `compare_state`. The base class provides all of them.
+That is the entire job. There are no message constants, no `TypedDict`s, no `check_command_support`, no `gather_state`, and no `compare_state`. The base class provides all of them.
 
 ### Sharing boilerplate across volatile jobs
 
@@ -190,7 +190,7 @@ You do not need to opt into this behavior. The base class handles it. Do not add
 
 ## Common pitfalls
 
-- **Don't add `check_applicability`, `gather_state`, or `compare_state` overrides** unless you have a genuinely custom comparison scheme. The base class' implementations are correct for almost every case. If you do need a custom scheme that does not fit the single-operator model, inherit from the framework's `VolatileLearningTestCase` directly and study [Volatile Parameters](../09-volatile-parameters.md) first.
+- **Don't add `check_command_support`, `gather_state`, or `compare_state` overrides** unless you have a genuinely custom comparison scheme. The base class' implementations are correct for almost every case. If you do need a custom scheme that does not fit the single-operator model, inherit from the framework's `VolatileLearningTestCase` directly and study [Volatile Parameters](../09-volatile-parameters.md) first.
 - **Don't yield observations whose `value` is not directly comparable with `gte` / `lt`.** If the underlying value is a duration string, parse it to seconds first. If it's a string with no ordinal relationship, this archetype is not the right fit.
 - **Don't compose `series_key` from values that change as a side effect of the job's own execution.** The series identity must survive across phase boundaries unchanged.
 - **Don't expect the first observation in a run to compare against anything.** It establishes the baseline for the chain. The framework records it but does not compare. Subsequent observations in the same run compare against the most recent prior observation.

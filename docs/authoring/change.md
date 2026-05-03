@@ -21,7 +21,7 @@ from typing import TypedDict
 import muninn
 
 from huginn import (
-    ApplicabilityResult,
+    CommandSupportResult,
     Context,
     LearningTestCase,
     ResultStatus,
@@ -100,7 +100,7 @@ class ChangeClearBgpPeer(LearningTestCase[ClearBgpPeerParameters]):
 
     command = "show ip bgp neighbors"
 
-    async def check_applicability(self, context: Context) -> ApplicabilityResult:
+    async def check_command_support(self, context: Context) -> CommandSupportResult:
         # Standard idiom - see authoring overview.
         ...
 

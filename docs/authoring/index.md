@@ -63,12 +63,12 @@ Use `context.results.add_result(ResultStatus.X, message)` (positional arguments)
 
 Most jobs read fresh state. Pass `use_cache=False` when calling `context.broker.execute(...)` if the read must reflect a state change that just happened in the same job (post-action verification, gate poll, volatile observation).
 
-### Applicability
+### Command Support
 
-Most jobs use `check_applicability` to skip targets where the relevant `show` command is not supported. The standard idiom:
+Most jobs use `check_command_support` to skip targets where the relevant `show` command is not supported. The standard idiom:
 
 ```python
-async def check_applicability(self, context: Context) -> ApplicabilityResult:
+async def check_command_support(self, context: Context) -> CommandSupportResult:
     applicable = []
     not_applicable: dict[str, str] = {}
     for device in context.targets:
@@ -77,10 +77,10 @@ async def check_applicability(self, context: Context) -> ApplicabilityResult:
             not_applicable[device.name] = NOT_SUPPORTED_REASON.format(command=self.command)
             continue
         applicable.append(device)
-    return ApplicabilityResult(applicable=applicable, not_applicable=not_applicable)
+    return CommandSupportResult(applicable=applicable, not_applicable=not_applicable)
 ```
 
-This is universal enough that it could be extracted into a base class in the future. Until then, copy the idiom as written.
+Data-level applicability (e.g., a specific parsed field is absent, or per-item extraction yields nothing for a device) is handled in `gather_state`, not `check_command_support`. When `gather_state` determines a device has no meaningful data, it emits a `NOT_APPLICABLE` result via `context.results.add_result()` and omits the device from the returned parameters. See [Static Parameter Validation § gather_state](static-validation.md#gather_state) for the recommended pattern.
 
 ## See also
 
