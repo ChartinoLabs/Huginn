@@ -14,6 +14,7 @@ dependencies = [
     "jinja2>=3.1.6",
     "markdown>=3.8.2",
     "pyyaml>=6.0.3",
+    "ruamel.yaml>=0.18.10",
     "scrapli-netconf[asyncssh]>=2026.1.12",
     "scrapli[asyncssh]>=2026.2.20",
 ]

@@ -136,14 +136,16 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
         returned_devices = current_state.get("devices")
         if not isinstance(returned_devices, dict):
             return
-        na_checks = {
-            check.message.split(": ", 1)[0]: check.message.split(": ", 1)[-1]
-            for check in context.results.checks
-            if check.status == ResultStatus.NOT_APPLICABLE.value and ": " in check.message
-        }
         for target in supported_targets:
             if target.name not in returned_devices and target.name not in context.results.not_applicable_devices:
-                reason = na_checks.get(target.name, "No applicable data for this test")
+                reason = "No applicable data for this test"
+                for check in context.results.checks:
+                    if (
+                        check.status == ResultStatus.NOT_APPLICABLE.value
+                        and check.message.startswith(target.name)
+                    ):
+                        reason = check.message[len(target.name):].lstrip(": ")
+                        break
                 context.results.not_applicable_devices[target.name] = reason
 
     async def check_command_support(self, context: Context) -> CommandSupportResult:
