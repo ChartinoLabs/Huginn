@@ -1072,32 +1072,20 @@ def _render_execute_results(
     results: list[ExecuteCommandResult],
     output: Output,
 ) -> None:
-    """Render execute results in a human-readable format using Rich."""
-    from rich.panel import Panel
-    from rich.syntax import Syntax
+    """Render execute results in a human-readable, copy-friendly format."""
+    from rich.rule import Rule
     from rich.text import Text
 
     console = output.console
 
     for result in results:
-        if result.error is not None:
-            header = Text()
-            header.append(result.device, style="bold red")
-            header.append(f"  {result.command}", style="dim")
-            console.print(
-                Panel(
-                    Text(result.error, style="red"),
-                    title=header,
-                    subtitle=Text("error", style="red"),
-                    border_style="red",
-                    expand=True,
-                )
-            )
-            continue
-
         header = Text()
-        header.append(result.device, style="bold cyan")
-        header.append(f"  {result.command}", style="dim")
+        if result.error is not None:
+            header.append(result.device, style="bold red")
+        else:
+            header.append(result.device, style="bold cyan")
+        header.append("  ", style="default")
+        header.append(result.command, style="dim")
 
         meta_parts = []
         if result.device_os:
@@ -1105,25 +1093,21 @@ def _render_execute_results(
         meta_parts.append(f"broker={result.broker}")
         if result.elapsed_ms is not None:
             meta_parts.append(f"{result.elapsed_ms:.0f}ms")
-        subtitle = Text(" | ".join(meta_parts), style="dim")
+        header.append("  ", style="default")
+        header.append(" | ".join(meta_parts), style="dim")
 
-        body = (result.raw_output or "").strip()
-        if body:
-            content = Syntax(
-                body, "text", theme="ansi_dark", word_wrap=True,
-            )
+        console.print(Rule(header))
+
+        if result.error is not None:
+            console.print(Text(result.error, style="red"))
         else:
-            content = Text("(no output)", style="dim italic")
+            body = (result.raw_output or "").strip()
+            if body:
+                console.print(body, highlight=False)
+            else:
+                console.print(Text("(no output)", style="dim italic"))
 
-        console.print(
-            Panel(
-                content,
-                title=header,
-                subtitle=subtitle,
-                border_style="green",
-                expand=True,
-            )
-        )
+        console.print()
 
 
 @app.command()
