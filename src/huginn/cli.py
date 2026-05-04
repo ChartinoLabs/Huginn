@@ -5,15 +5,20 @@ against infrastructure testbeds.
 """
 
 import asyncio
+import json
+import sys
+from dataclasses import asdict
 from importlib.metadata import version as get_version
 from pathlib import Path
 from typing import Annotated
 
 import typer
+from rich.console import Console
 
 from huginn.enums import ErrorCode, ExecutionMode
+from huginn.execute import ExecuteCommandSpec, execute_commands, load_command_specs
 from huginn.loaders import ConfigurationError, load_test_plan
-from huginn.output import Output
+from huginn.output import Output, _console_log_time
 from huginn.plan_filtering import PlanFilterOptions
 from huginn.prune import (
     PruneError,
@@ -1058,6 +1063,171 @@ def prune(
         _execute_prune_plan(plan_result, plan, dry_run, output)
 
     except (PruneError, ConfigurationError) as error:
+        output.error(f"ERROR: {error}")
+        raise typer.Exit(code=1) from error
+
+
+@app.command()
+def execute(
+    testbed: Annotated[
+        Path,
+        typer.Option(
+            "--testbed",
+            "-t",
+            help="Path to testbed YAML file defining device inventory.",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            envvar="HUGINN_TESTBED",
+        ),
+    ],
+    device: Annotated[
+        str | None,
+        typer.Option(
+            "--device",
+            help="Device name from the testbed to execute against.",
+        ),
+    ] = None,
+    command: Annotated[
+        str | None,
+        typer.Option(
+            "--command",
+            "-c",
+            help="Command string or API path to execute on the device.",
+        ),
+    ] = None,
+    commands: Annotated[
+        Path | None,
+        typer.Option(
+            "--commands",
+            help="Path to a YAML file defining batch command executions.",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+        ),
+    ] = None,
+    broker: Annotated[
+        str,
+        typer.Option(
+            "--broker",
+            "-b",
+            help="Broker type: ssh, http, or netconf (default: ssh).",
+        ),
+    ] = "ssh",
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            help="Enable DEBUG-level logging.",
+            envvar="HUGINN_DEBUG",
+        ),
+    ] = False,
+    log_level: Annotated[
+        str,
+        typer.Option(
+            "--log-level",
+            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+            envvar="HUGINN_LOG_LEVEL",
+        ),
+    ] = "INFO",
+    show_logs: Annotated[
+        bool,
+        typer.Option(
+            "--show-logs",
+            help="Stream logs to console in addition to file.",
+            envvar="HUGINN_SHOW_LOGS",
+        ),
+    ] = False,
+    log_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--log-file",
+            help="Path to log file (default: ./huginn.log).",
+            envvar="HUGINN_LOG_FILE",
+        ),
+    ] = None,
+) -> None:
+    """Execute ad-hoc commands on testbed devices.
+
+    Run one or more commands against devices defined in a testbed file.
+    Output is JSON on stdout; status messages go to stderr.
+
+    Single-command mode requires both --device and --command.
+    Batch mode uses --commands with a YAML file of command specifications.
+
+    Examples:
+        huginn execute -t testbed.yaml --device spine-01 -c "show version"
+        huginn execute -t testbed.yaml --device ctrl-01 -c "/api/v1/status" -b http
+        huginn execute -t testbed.yaml --commands commands.yaml
+    """
+    has_single = device is not None or command is not None
+    has_batch = commands is not None
+
+    if has_single and has_batch:
+        raise typer.BadParameter(
+            "--device/--command and --commands are mutually exclusive."
+        )
+    if not has_single and not has_batch:
+        raise typer.BadParameter(
+            "Either --device/--command or --commands must be specified."
+        )
+    if has_single and (device is None or command is None):
+        raise typer.BadParameter(
+            "--device and --command must both be specified together."
+        )
+
+    output = _build_output(
+        debug=debug,
+        log_level=log_level,
+        show_logs=show_logs,
+        log_file=log_file,
+    )
+    output.console = Console(
+        stderr=True,
+        log_time=True,
+        log_path=False,
+        log_time_format=_console_log_time,
+    )
+
+    try:
+        from huginn.loaders import load_testbed
+
+        loaded_testbed = load_testbed(testbed)
+
+        if has_batch:
+            specs = load_command_specs(commands)  # type: ignore[arg-type]
+        else:
+            specs = [
+                ExecuteCommandSpec(
+                    device=device,  # type: ignore[arg-type]
+                    command=command,  # type: ignore[arg-type]
+                    broker=broker,
+                )
+            ]
+
+        output.status(f"Executing {len(specs)} command(s)")
+        results = asyncio.run(
+            execute_commands(
+                testbed=loaded_testbed,
+                specs=specs,
+                output=output,
+            )
+        )
+
+        results_json = [asdict(r) for r in results]
+        sys.stdout.write(json.dumps(results_json, indent=2) + "\n")
+
+        has_errors = any(r.error is not None for r in results)
+        if has_errors:
+            error_count = sum(1 for r in results if r.error is not None)
+            output.warning(f"{error_count} of {len(results)} command(s) had errors")
+            raise typer.Exit(code=1)
+
+        output.success(f"All {len(results)} command(s) succeeded")
+
+    except ConfigurationError as error:
         output.error(f"ERROR: {error}")
         raise typer.Exit(code=1) from error
 
