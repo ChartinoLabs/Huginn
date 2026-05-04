@@ -1106,7 +1106,7 @@ def _render_execute_results(
             prompt.append(result.command, style="bold")
             console.print(prompt)
 
-        body = (result.raw_output or "").strip()
+        body = result.raw_output or ""
         if body:
             console.print(body, highlight=False)
         elif result.error is None:
