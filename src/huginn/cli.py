@@ -16,7 +16,12 @@ import typer
 from rich.console import Console
 
 from huginn.enums import ErrorCode, ExecutionMode
-from huginn.execute import ExecuteCommandSpec, execute_commands, load_command_specs
+from huginn.execute import (
+    ExecuteCommandResult,
+    ExecuteCommandSpec,
+    execute_commands,
+    load_command_specs,
+)
 from huginn.loaders import ConfigurationError, load_test_plan
 from huginn.output import Output, _console_log_time
 from huginn.plan_filtering import PlanFilterOptions
@@ -1067,6 +1072,64 @@ def prune(
         raise typer.Exit(code=1) from error
 
 
+def _render_execute_results(
+    results: list[ExecuteCommandResult],
+    output: Output,
+) -> None:
+    """Render execute results in a human-readable format using Rich."""
+    from rich.panel import Panel
+    from rich.syntax import Syntax
+    from rich.text import Text
+
+    console = output.console
+
+    for result in results:
+        if result.error is not None:
+            header = Text()
+            header.append(result.device, style="bold red")
+            header.append(f"  {result.command}", style="dim")
+            console.print(
+                Panel(
+                    Text(result.error, style="red"),
+                    title=header,
+                    subtitle=Text("error", style="red"),
+                    border_style="red",
+                    expand=True,
+                )
+            )
+            continue
+
+        header = Text()
+        header.append(result.device, style="bold cyan")
+        header.append(f"  {result.command}", style="dim")
+
+        meta_parts = []
+        if result.device_os:
+            meta_parts.append(f"os={result.device_os}")
+        meta_parts.append(f"broker={result.broker}")
+        if result.elapsed_ms is not None:
+            meta_parts.append(f"{result.elapsed_ms:.0f}ms")
+        subtitle = Text(" | ".join(meta_parts), style="dim")
+
+        body = (result.raw_output or "").strip()
+        if body:
+            content = Syntax(
+                body, "text", theme="ansi_dark", word_wrap=True,
+            )
+        else:
+            content = Text("(no output)", style="dim italic")
+
+        console.print(
+            Panel(
+                content,
+                title=header,
+                subtitle=subtitle,
+                border_style="green",
+                expand=True,
+            )
+        )
+
+
 @app.command()
 def execute(
     testbed: Annotated[
@@ -1116,6 +1179,13 @@ def execute(
             help="Broker type: ssh, http, or netconf (default: ssh).",
         ),
     ] = "ssh",
+    json_output: Annotated[
+        bool,
+        typer.Option(
+            "--json",
+            help="Output results as JSON instead of human-readable format.",
+        ),
+    ] = False,
     debug: Annotated[
         bool,
         typer.Option(
@@ -1152,7 +1222,8 @@ def execute(
     """Execute ad-hoc commands on testbed devices.
 
     Run one or more commands against devices defined in a testbed file.
-    Output is JSON on stdout; status messages go to stderr.
+    Results are displayed in a human-readable format by default, or as
+    JSON with --json for programmatic consumption.
 
     Single-command mode requires both --device and --command.
     Batch mode uses --commands with a YAML file of command specifications.
@@ -1161,6 +1232,7 @@ def execute(
         huginn execute -t testbed.yaml --device spine-01 -c "show version"
         huginn execute -t testbed.yaml --device ctrl-01 -c "/api/v1/status" -b http
         huginn execute -t testbed.yaml --commands commands.yaml
+        huginn execute -t testbed.yaml --device spine-01 -c "show version" --json
     """
     has_single = device is not None or command is not None
     has_batch = commands is not None
@@ -1184,12 +1256,13 @@ def execute(
         show_logs=show_logs,
         log_file=log_file,
     )
-    output.console = Console(
-        stderr=True,
-        log_time=True,
-        log_path=False,
-        log_time_format=_console_log_time,
-    )
+    if json_output:
+        output.console = Console(
+            stderr=True,
+            log_time=True,
+            log_path=False,
+            log_time_format=_console_log_time,
+        )
 
     try:
         from huginn.loaders import load_testbed
@@ -1216,13 +1289,18 @@ def execute(
             )
         )
 
-        results_json = [asdict(r) for r in results]
-        sys.stdout.write(json.dumps(results_json, indent=2) + "\n")
+        if json_output:
+            results_json = [asdict(r) for r in results]
+            sys.stdout.write(json.dumps(results_json, indent=2) + "\n")
+        else:
+            _render_execute_results(results, output)
 
         has_errors = any(r.error is not None for r in results)
         if has_errors:
             error_count = sum(1 for r in results if r.error is not None)
-            output.warning(f"{error_count} of {len(results)} command(s) had errors")
+            output.warning(
+                f"{error_count} of {len(results)} command(s) had errors"
+            )
             raise typer.Exit(code=1)
 
         output.success(f"All {len(results)} command(s) succeeded")

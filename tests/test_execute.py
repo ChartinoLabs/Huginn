@@ -25,6 +25,7 @@ from huginn.execute import (
     ExecuteCommandSpec,
     execute_commands,
     load_command_specs,
+    resolve_device_name,
 )
 from huginn.loaders import ConfigurationError
 from huginn.models import ConnectionDefinition, Device, Testbed
@@ -208,6 +209,45 @@ class TestLoadCommandSpecs:
 
 
 # ---------------------------------------------------------------------------
+# resolve_device_name tests
+# ---------------------------------------------------------------------------
+
+
+class TestResolveDeviceName:
+    """Tests for case-insensitive device name resolution."""
+
+    def test_exact_match(self) -> None:
+        """Exact case match returns the name unchanged."""
+        testbed = _make_testbed(_make_device(name="TAC-R2"))
+        assert resolve_device_name(testbed, "TAC-R2") == "TAC-R2"
+
+    def test_case_insensitive_match(self) -> None:
+        """Lowercase input resolves to canonical case from testbed."""
+        testbed = _make_testbed(_make_device(name="TAC-R2"))
+        assert resolve_device_name(testbed, "tac-r2") == "TAC-R2"
+
+    def test_mixed_case_match(self) -> None:
+        """Mixed-case input resolves correctly."""
+        testbed = _make_testbed(_make_device(name="TAC-R2"))
+        assert resolve_device_name(testbed, "Tac-R2") == "TAC-R2"
+
+    def test_no_match_raises(self) -> None:
+        """Completely unknown name raises ConfigurationError."""
+        testbed = _make_testbed(_make_device(name="TAC-R2"))
+        with pytest.raises(ConfigurationError, match="not found in testbed"):
+            resolve_device_name(testbed, "no-such-device")
+
+    def test_error_lists_available_devices(self) -> None:
+        """Error message includes available device names."""
+        testbed = _make_testbed(
+            _make_device(name="TAC-R2"),
+            _make_device(name="TAC-S1", protocol="ssh"),
+        )
+        with pytest.raises(ConfigurationError, match="TAC-R2"):
+            resolve_device_name(testbed, "unknown")
+
+
+# ---------------------------------------------------------------------------
 # execute_commands SDK tests
 # ---------------------------------------------------------------------------
 
@@ -338,6 +378,19 @@ class TestExecuteCommands:
 
         with pytest.raises(ConfigurationError, match="Invalid broker"):
             await execute_commands(testbed=testbed, specs=specs)
+
+    @pytest.mark.asyncio
+    async def test_case_insensitive_device_name(self) -> None:
+        """Device names are resolved case-insensitively."""
+        ssh = _FakeBroker("ssh")
+        testbed = _make_testbed(_make_device(name="TAC-R2"))
+        specs = [ExecuteCommandSpec(device="tac-r2", command="show version")]
+
+        results = await _run_with_broker(testbed, specs, ssh_broker=ssh)
+
+        assert len(results) == 1
+        assert results[0].device == "TAC-R2"
+        assert results[0].error is None
 
     @pytest.mark.asyncio
     async def test_multiple_commands_same_device(self) -> None:
