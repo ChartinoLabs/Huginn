@@ -1101,7 +1101,8 @@ def _render_execute_results(
         if show_prompt:
             prompt = Text()
             prompt.append(
-                f"{result.device}# ", style="bold green",
+                f"{result.device}# ",
+                style="bold green",
             )
             prompt.append(result.command, style="bold")
             console.print(prompt)
@@ -1116,6 +1117,52 @@ def _render_execute_results(
             console.print(Text(f"\n{result.error}", style="red"))
 
         console.print()
+
+
+def _resolve_execute_specs(
+    *,
+    device: str | None,
+    command: str | None,
+    commands: Path | None,
+    broker: str,
+) -> list[ExecuteCommandSpec]:
+    """Validate execute CLI options and build the spec list."""
+    has_single = device is not None or command is not None
+    has_batch = commands is not None
+
+    if has_single and has_batch:
+        raise typer.BadParameter(
+            "--device/--command and --commands are mutually exclusive."
+        )
+    if not has_single and not has_batch:
+        raise typer.BadParameter(
+            "Either --device/--command or --commands must be specified."
+        )
+    if has_single and (device is None or command is None):
+        raise typer.BadParameter(
+            "--device and --command must both be specified together."
+        )
+
+    if has_batch:
+        assert commands is not None
+        return load_command_specs(commands)
+
+    assert device is not None
+    assert command is not None
+    return [ExecuteCommandSpec(device=device, command=command, broker=broker)]
+
+
+def _check_execute_errors(
+    results: list[ExecuteCommandResult],
+    output: Output,
+) -> None:
+    """Check for errors in execute results and exit if any found."""
+    has_errors = any(r.error is not None for r in results)
+    if has_errors:
+        error_count = sum(1 for r in results if r.error is not None)
+        output.warning(f"{error_count} of {len(results)} command(s) had errors")
+        raise typer.Exit(code=1)
+    output.success(f"All {len(results)} command(s) succeeded")
 
 
 @app.command()
@@ -1221,22 +1268,12 @@ def execute(
         huginn execute -t testbed.yaml --device ctrl-01 -c "/api/v1/status" -b http
         huginn execute -t testbed.yaml --commands commands.yaml
     """
-    has_single = device is not None or command is not None
-    has_batch = commands is not None
-
-    if has_single and has_batch:
-        raise typer.BadParameter(
-            "--device/--command and --commands are mutually exclusive."
-        )
-    if not has_single and not has_batch:
-        raise typer.BadParameter(
-            "Either --device/--command or --commands must be specified."
-        )
-    if has_single and (device is None or command is None):
-        raise typer.BadParameter(
-            "--device and --command must both be specified together."
-        )
-
+    specs = _resolve_execute_specs(
+        device=device,
+        command=command,
+        commands=commands,
+        broker=broker,
+    )
     output = _build_output(
         debug=debug,
         log_level=log_level,
@@ -1248,18 +1285,6 @@ def execute(
         from huginn.loaders import load_testbed
 
         loaded_testbed = load_testbed(testbed)
-
-        if has_batch:
-            specs = load_command_specs(commands)  # type: ignore[arg-type]
-        else:
-            specs = [
-                ExecuteCommandSpec(
-                    device=device,  # type: ignore[arg-type]
-                    command=command,  # type: ignore[arg-type]
-                    broker=broker,
-                )
-            ]
-
         output.status(f"Executing {len(specs)} command(s)")
         results = asyncio.run(
             execute_commands(
@@ -1269,19 +1294,8 @@ def execute(
             )
         )
 
-        _render_execute_results(
-            results, output, show_prompt=not no_prompt,
-        )
-
-        has_errors = any(r.error is not None for r in results)
-        if has_errors:
-            error_count = sum(1 for r in results if r.error is not None)
-            output.warning(
-                f"{error_count} of {len(results)} command(s) had errors"
-            )
-            raise typer.Exit(code=1)
-
-        output.success(f"All {len(results)} command(s) succeeded")
+        _render_execute_results(results, output, show_prompt=not no_prompt)
+        _check_execute_errors(results, output)
 
     except ConfigurationError as error:
         output.error(f"ERROR: {error}")

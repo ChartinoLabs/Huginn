@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import yaml
 
@@ -89,6 +89,17 @@ def load_command_specs(path: Path) -> list[ExecuteCommandSpec]:
     Raises:
         ConfigurationError: If the file structure is invalid.
     """
+    data = _read_command_specs_yaml(path)
+    specs = [_parse_one_spec(idx, entry) for idx, entry in enumerate(data)]
+
+    if not specs:
+        raise ConfigurationError("Command specs file contains no entries")
+
+    return specs
+
+
+def _read_command_specs_yaml(path: Path) -> list[dict[str, object]]:
+    """Read and validate the top-level structure of a command specs file."""
     try:
         with open(path) as fh:
             data = yaml.safe_load(fh)
@@ -101,36 +112,37 @@ def load_command_specs(path: Path) -> list[ExecuteCommandSpec]:
         raise ConfigurationError(
             f"Command specs file must contain a YAML list, got {type(data).__name__}"
         )
+    return data
 
-    specs: list[ExecuteCommandSpec] = []
-    for idx, entry in enumerate(data):
-        if not isinstance(entry, dict):
-            raise ConfigurationError(f"Command spec #{idx + 1} must be a mapping")
 
-        device = entry.get("device")
-        if not device or not isinstance(device, str):
-            raise ConfigurationError(
-                f"Command spec #{idx + 1} is missing required 'device' field"
-            )
+def _parse_one_spec(
+    idx: int,
+    entry: object,
+) -> ExecuteCommandSpec:
+    """Parse and validate a single command spec entry."""
+    if not isinstance(entry, dict):
+        raise ConfigurationError(f"Command spec #{idx + 1} must be a mapping")
 
-        command = entry.get("command") or entry.get("path")
-        if not command or not isinstance(command, str):
-            raise ConfigurationError(
-                f"Command spec #{idx + 1} is missing required 'command' or 'path' field"
-            )
+    fields = cast(dict[str, object], entry)
+    device = fields.get("device")
+    if not device or not isinstance(device, str):
+        raise ConfigurationError(
+            f"Command spec #{idx + 1} is missing required 'device' field"
+        )
 
-        broker = entry.get("broker", "ssh")
-        if not isinstance(broker, str):
-            raise ConfigurationError(
-                f"Command spec #{idx + 1} has invalid 'broker' field: expected string"
-            )
+    command = fields.get("command") or fields.get("path")
+    if not command or not isinstance(command, str):
+        raise ConfigurationError(
+            f"Command spec #{idx + 1} is missing required 'command' or 'path' field"
+        )
 
-        specs.append(ExecuteCommandSpec(device=device, command=command, broker=broker))
+    broker_raw = fields.get("broker", "ssh")
+    if not isinstance(broker_raw, str):
+        raise ConfigurationError(
+            f"Command spec #{idx + 1} has invalid 'broker' field: expected string"
+        )
 
-    if not specs:
-        raise ConfigurationError("Command specs file contains no entries")
-
-    return specs
+    return ExecuteCommandSpec(device=device, command=command, broker=broker_raw)
 
 
 async def execute_commands(
@@ -207,8 +219,7 @@ def _validate_specs(
             normalize_broker_key(spec.broker)
         except RuntimeBrokerError as err:
             raise ConfigurationError(
-                f"Invalid broker '{spec.broker}' for "
-                f"device '{spec.device}': {err}"
+                f"Invalid broker '{spec.broker}' for device '{spec.device}': {err}"
             ) from err
 
 
@@ -280,11 +291,17 @@ async def _execute_one(
     try:
         if broker_key == BrokerType.SSH:
             cmd_result = await runtime_broker.execute(
-                device, spec.command, broker=broker_key, use_cache=False,
+                device,
+                spec.command,
+                broker=broker_key,
+                use_cache=False,
             )
         else:
             cmd_result = await runtime_broker.get(
-                device, spec.command, broker=broker_key, use_cache=False,
+                device,
+                spec.command,
+                broker=broker_key,
+                use_cache=False,
             )
 
         if output:
@@ -299,9 +316,7 @@ async def _execute_one(
         ):
             error_msg = "Device rejected command as invalid or unsupported"
             if output:
-                output.warning(
-                    f"Command rejected on {spec.device}: {spec.command}"
-                )
+                output.warning(f"Command rejected on {spec.device}: {spec.command}")
 
         return ExecuteCommandResult(
             device=spec.device,
@@ -314,9 +329,7 @@ async def _execute_one(
         )
     except RuntimeBrokerError as err:
         if output:
-            output.warning(
-                f"Command failed on {spec.device}: {spec.command} — {err}"
-            )
+            output.warning(f"Command failed on {spec.device}: {spec.command} — {err}")
         return ExecuteCommandResult(
             device=spec.device,
             command=spec.command,

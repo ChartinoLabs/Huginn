@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
-import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 import pytest
 from typer.testing import CliRunner
@@ -28,8 +26,8 @@ from huginn.execute import (
 )
 from huginn.loaders import ConfigurationError
 from huginn.models import ConnectionDefinition, Device, Testbed
+from huginn.output import Output
 from huginn.runtime_broker import RuntimeBroker, RuntimeBrokerError
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -57,26 +55,22 @@ class _FakeBroker:
         self.disconnect_calls += 1
 
     async def execute(
-        self, handle: ConnectionHandle, command: str, **kwargs: Any
+        self, handle: ConnectionHandle, command: str, **kwargs: object
     ) -> CommandResult:
         self.execute_calls += 1
-        return CommandResult(
-            output=f"output-of:{command}", elapsed_ms=42.0
-        )
+        return CommandResult(output=f"output-of:{command}", elapsed_ms=42.0)
 
     async def get(
-        self, handle: ConnectionHandle, path: str, **kwargs: Any
+        self, handle: ConnectionHandle, path: str, **kwargs: object
     ) -> CommandResult:
         self.get_calls += 1
-        return CommandResult(
-            output=f"get-output-of:{path}", elapsed_ms=55.0
-        )
+        return CommandResult(output=f"get-output-of:{path}", elapsed_ms=55.0)
 
 
 @dataclass
 class _FailingBroker(_FakeBroker):
     async def execute(
-        self, handle: ConnectionHandle, command: str, **kwargs: Any
+        self, handle: ConnectionHandle, command: str, **kwargs: object
     ) -> CommandResult:
         self.execute_calls += 1
         raise RuntimeBrokerError(f"execute failed: {command}")
@@ -136,9 +130,7 @@ class TestLoadCommandSpecs:
     def test_single_entry_default_broker(self, tmp_path: Path) -> None:
         """Single entry with default broker resolves to ssh."""
         spec_file = tmp_path / "commands.yaml"
-        spec_file.write_text(
-            "- device: spine-01\n  command: show version\n"
-        )
+        spec_file.write_text("- device: spine-01\n  command: show version\n")
         specs = load_command_specs(spec_file)
 
         assert len(specs) == 1
@@ -187,7 +179,9 @@ class TestLoadCommandSpecs:
         spec_file = tmp_path / "commands.yaml"
         spec_file.write_text("- device: spine-01\n")
 
-        with pytest.raises(ConfigurationError, match="missing required 'command' or 'path'"):
+        with pytest.raises(
+            ConfigurationError, match="missing required 'command' or 'path'"
+        ):
             load_command_specs(spec_file)
 
     def test_non_list_yaml_raises(self, tmp_path: Path) -> None:
@@ -320,9 +314,7 @@ class TestExecuteCommands:
         testbed = _make_testbed(_make_device())
         specs = [ExecuteCommandSpec(device="spine-01", command="show version")]
 
-        results = await _run_with_broker(
-            testbed, specs, ssh_broker=ssh, output=None
-        )
+        results = await _run_with_broker(testbed, specs, ssh_broker=ssh, output=None)
 
         assert results[0].error is None
 
@@ -343,10 +335,9 @@ class TestExecuteCommands:
     async def test_invalid_command_detected_as_error(self) -> None:
         """SSH output containing device rejection markers sets result.error."""
         ssh = _FakeBroker("ssh")
-        ssh_original_execute = ssh.execute
 
         async def _reject(
-            handle: ConnectionHandle, command: str, **kwargs: Any
+            handle: ConnectionHandle, command: str, **kwargs: object
         ) -> CommandResult:
             return CommandResult(
                 output="% Invalid input detected at '^' marker.",
@@ -362,7 +353,10 @@ class TestExecuteCommands:
 
         assert len(results) == 1
         assert results[0].error is not None
-        assert "invalid" in results[0].error.lower() or "unsupported" in results[0].error.lower()
+        assert (
+            "invalid" in results[0].error.lower()
+            or "unsupported" in results[0].error.lower()
+        )
         assert results[0].raw_output is not None
 
     @pytest.mark.asyncio
@@ -421,9 +415,7 @@ class TestExecuteCommand:
         )
         assert result.exit_code != 0
 
-    def test_device_and_commands_mutually_exclusive(
-        self, tmp_path: Path
-    ) -> None:
+    def test_device_and_commands_mutually_exclusive(self, tmp_path: Path) -> None:
         """--device/--command and --commands together are rejected."""
         spec_file = tmp_path / "commands.yaml"
         spec_file.write_text("- device: spine-01\n  command: show version\n")
@@ -467,7 +459,7 @@ async def _run_with_broker(
     ssh_broker: _FakeBroker | None = None,
     http_broker: _FakeBroker | None = None,
     netconf_broker: _FakeBroker | None = None,
-    output: Any = None,
+    output: Output | None = None,
 ) -> list[ExecuteCommandResult]:
     """Run execute_commands with injected fake brokers.
 
@@ -475,12 +467,8 @@ async def _run_with_broker(
     """
     from unittest.mock import patch
 
-    fake_ssh = cast(
-        ConnectionBrokerProtocolV1, ssh_broker or _FakeBroker("ssh")
-    )
-    fake_http = cast(
-        ConnectionBrokerProtocolV1, http_broker or _FakeBroker("http")
-    )
+    fake_ssh = cast(ConnectionBrokerProtocolV1, ssh_broker or _FakeBroker("ssh"))
+    fake_http = cast(ConnectionBrokerProtocolV1, http_broker or _FakeBroker("http"))
     fake_netconf = cast(
         ConnectionBrokerProtocolV1, netconf_broker or _FakeBroker("netconf")
     )
@@ -488,7 +476,10 @@ async def _run_with_broker(
     original_init = RuntimeBroker.__init__
 
     def patched_init(
-        self: RuntimeBroker, *, required_brokers: set[BrokerType] | None = None, **kwargs: Any
+        self: RuntimeBroker,
+        *,
+        required_brokers: set[BrokerType] | None = None,
+        **kwargs: object,
     ) -> None:
         original_init(
             self,
