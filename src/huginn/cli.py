@@ -12,6 +12,12 @@ from typing import Annotated
 import typer
 
 from huginn.enums import ErrorCode, ExecutionMode
+from huginn.execute import (
+    ExecuteCommandResult,
+    ExecuteCommandSpec,
+    execute_commands,
+    load_command_specs,
+)
 from huginn.loaders import ConfigurationError, load_test_plan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
@@ -1058,6 +1064,243 @@ def prune(
         _execute_prune_plan(plan_result, plan, dry_run, output)
 
     except (PruneError, ConfigurationError) as error:
+        output.error(f"ERROR: {error}")
+        raise typer.Exit(code=1) from error
+
+
+def _render_execute_results(
+    results: list[ExecuteCommandResult],
+    output: Output,
+    *,
+    show_prompt: bool = True,
+) -> None:
+    """Render execute results in a human-readable, copy-friendly format."""
+    from rich.rule import Rule
+    from rich.text import Text
+
+    console = output.console
+
+    for result in results:
+        meta_parts = []
+        if result.device_os:
+            meta_parts.append(f"os={result.device_os}")
+        meta_parts.append(f"broker={result.broker}")
+        if result.elapsed_ms is not None:
+            meta_parts.append(f"{result.elapsed_ms:.0f}ms")
+
+        header = Text()
+        if result.error is not None:
+            header.append(result.device, style="bold red")
+        else:
+            header.append(result.device, style="bold cyan")
+        header.append("  ", style="default")
+        header.append(" | ".join(meta_parts), style="dim")
+
+        console.print(Rule(header))
+
+        if show_prompt:
+            prompt = Text()
+            prompt.append(
+                f"{result.device}# ",
+                style="bold green",
+            )
+            prompt.append(result.command, style="bold")
+            console.print(prompt)
+
+        body = result.raw_output or ""
+        if body:
+            console.print(body, highlight=False)
+        elif result.error is None:
+            console.print(Text("(no output)", style="dim italic"))
+
+        if result.error is not None:
+            console.print(Text(f"\n{result.error}", style="red"))
+
+        console.print()
+
+
+def _resolve_execute_specs(
+    *,
+    device: str | None,
+    command: str | None,
+    commands: Path | None,
+    broker: str,
+) -> list[ExecuteCommandSpec]:
+    """Validate execute CLI options and build the spec list."""
+    if commands is not None:
+        _reject_single_with_batch(device, command)
+        return load_command_specs(commands)
+
+    if device is not None and command is not None:
+        return [ExecuteCommandSpec(device=device, command=command, broker=broker)]
+
+    if device is not None or command is not None:
+        raise typer.BadParameter(
+            "--device and --command must both be specified together."
+        )
+
+    raise typer.BadParameter(
+        "Either --device/--command or --commands must be specified."
+    )
+
+
+def _reject_single_with_batch(
+    device: str | None,
+    command: str | None,
+) -> None:
+    """Raise if single-command options are mixed with batch mode."""
+    if device is not None or command is not None:
+        raise typer.BadParameter(
+            "--device/--command and --commands are mutually exclusive."
+        )
+
+
+def _check_execute_errors(
+    results: list[ExecuteCommandResult],
+    output: Output,
+) -> None:
+    """Check for errors in execute results and exit if any found."""
+    has_errors = any(r.error is not None for r in results)
+    if has_errors:
+        error_count = sum(1 for r in results if r.error is not None)
+        output.warning(f"{error_count} of {len(results)} command(s) had errors")
+        raise typer.Exit(code=1)
+    output.success(f"All {len(results)} command(s) succeeded")
+
+
+@app.command()
+def execute(
+    testbed: Annotated[
+        Path,
+        typer.Option(
+            "--testbed",
+            "-t",
+            help="Path to testbed YAML file defining device inventory.",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            envvar="HUGINN_TESTBED",
+        ),
+    ],
+    device: Annotated[
+        str | None,
+        typer.Option(
+            "--device",
+            help="Device name from the testbed to execute against.",
+        ),
+    ] = None,
+    command: Annotated[
+        str | None,
+        typer.Option(
+            "--command",
+            "-c",
+            help="Command string or API path to execute on the device.",
+        ),
+    ] = None,
+    commands: Annotated[
+        Path | None,
+        typer.Option(
+            "--commands",
+            help="Path to a YAML file defining batch command executions.",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+        ),
+    ] = None,
+    broker: Annotated[
+        str,
+        typer.Option(
+            "--broker",
+            "-b",
+            help="Broker type: ssh, http, or netconf (default: ssh).",
+        ),
+    ] = "ssh",
+    no_prompt: Annotated[
+        bool,
+        typer.Option(
+            "--no-prompt",
+            help="Hide the simulated device prompt line above command output.",
+        ),
+    ] = False,
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            help="Enable DEBUG-level logging.",
+            envvar="HUGINN_DEBUG",
+        ),
+    ] = False,
+    log_level: Annotated[
+        str,
+        typer.Option(
+            "--log-level",
+            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+            envvar="HUGINN_LOG_LEVEL",
+        ),
+    ] = "INFO",
+    show_logs: Annotated[
+        bool,
+        typer.Option(
+            "--show-logs",
+            help="Stream logs to console in addition to file.",
+            envvar="HUGINN_SHOW_LOGS",
+        ),
+    ] = False,
+    log_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--log-file",
+            help="Path to log file (default: ./huginn.log).",
+            envvar="HUGINN_LOG_FILE",
+        ),
+    ] = None,
+) -> None:
+    """Execute ad-hoc commands on testbed devices.
+
+    Run one or more commands against devices defined in a testbed file.
+    Results are displayed in a human-readable format. Programmatic
+    consumers should use the SDK directly (``huginn.execute``).
+
+    Single-command mode requires both --device and --command.
+    Batch mode uses --commands with a YAML file of command specifications.
+
+    Examples:
+        huginn execute -t testbed.yaml --device spine-01 -c "show version"
+        huginn execute -t testbed.yaml --device ctrl-01 -c "/api/v1/status" -b http
+        huginn execute -t testbed.yaml --commands commands.yaml
+    """
+    specs = _resolve_execute_specs(
+        device=device,
+        command=command,
+        commands=commands,
+        broker=broker,
+    )
+    output = _build_output(
+        debug=debug,
+        log_level=log_level,
+        show_logs=show_logs,
+        log_file=log_file,
+    )
+
+    try:
+        from huginn.loaders import load_testbed
+
+        loaded_testbed = load_testbed(testbed)
+        output.status(f"Executing {len(specs)} command(s)")
+        results = asyncio.run(
+            execute_commands(
+                testbed=loaded_testbed,
+                specs=specs,
+                output=output,
+            )
+        )
+
+        _render_execute_results(results, output, show_prompt=not no_prompt)
+        _check_execute_errors(results, output)
+
+    except ConfigurationError as error:
         output.error(f"ERROR: {error}")
         raise typer.Exit(code=1) from error
 
