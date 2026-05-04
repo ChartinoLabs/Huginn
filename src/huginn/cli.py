@@ -1098,22 +1098,22 @@ def _render_execute_results(
 
         console.print(Rule(header))
 
-        if result.error is not None:
-            console.print(Text(result.error, style="red"))
-        else:
-            if show_prompt:
-                prompt = Text()
-                prompt.append(
-                    f"{result.device}# ", style="bold green",
-                )
-                prompt.append(result.command, style="bold")
-                console.print(prompt)
+        if show_prompt:
+            prompt = Text()
+            prompt.append(
+                f"{result.device}# ", style="bold green",
+            )
+            prompt.append(result.command, style="bold")
+            console.print(prompt)
 
-            body = (result.raw_output or "").strip()
-            if body:
-                console.print(body, highlight=False)
-            else:
-                console.print(Text("(no output)", style="dim italic"))
+        body = (result.raw_output or "").strip()
+        if body:
+            console.print(body, highlight=False)
+        elif result.error is None:
+            console.print(Text("(no output)", style="dim italic"))
+
+        if result.error is not None:
+            console.print(Text(f"\n{result.error}", style="red"))
 
         console.print()
 
