@@ -1071,6 +1071,8 @@ def prune(
 def _render_execute_results(
     results: list[ExecuteCommandResult],
     output: Output,
+    *,
+    show_prompt: bool = True,
 ) -> None:
     """Render execute results in a human-readable, copy-friendly format."""
     from rich.rule import Rule
@@ -1079,20 +1081,18 @@ def _render_execute_results(
     console = output.console
 
     for result in results:
-        header = Text()
-        if result.error is not None:
-            header.append(result.device, style="bold red")
-        else:
-            header.append(result.device, style="bold cyan")
-        header.append("  ", style="default")
-        header.append(result.command, style="dim")
-
         meta_parts = []
         if result.device_os:
             meta_parts.append(f"os={result.device_os}")
         meta_parts.append(f"broker={result.broker}")
         if result.elapsed_ms is not None:
             meta_parts.append(f"{result.elapsed_ms:.0f}ms")
+
+        header = Text()
+        if result.error is not None:
+            header.append(result.device, style="bold red")
+        else:
+            header.append(result.device, style="bold cyan")
         header.append("  ", style="default")
         header.append(" | ".join(meta_parts), style="dim")
 
@@ -1101,6 +1101,14 @@ def _render_execute_results(
         if result.error is not None:
             console.print(Text(result.error, style="red"))
         else:
+            if show_prompt:
+                prompt = Text()
+                prompt.append(
+                    f"{result.device}# ", style="bold green",
+                )
+                prompt.append(result.command, style="bold")
+                console.print(prompt)
+
             body = (result.raw_output or "").strip()
             if body:
                 console.print(body, highlight=False)
@@ -1159,6 +1167,13 @@ def execute(
             help="Broker type: ssh, http, or netconf (default: ssh).",
         ),
     ] = "ssh",
+    no_prompt: Annotated[
+        bool,
+        typer.Option(
+            "--no-prompt",
+            help="Hide the simulated device prompt line above command output.",
+        ),
+    ] = False,
     debug: Annotated[
         bool,
         typer.Option(
@@ -1254,7 +1269,9 @@ def execute(
             )
         )
 
-        _render_execute_results(results, output)
+        _render_execute_results(
+            results, output, show_prompt=not no_prompt,
+        )
 
         has_errors = any(r.error is not None for r in results)
         if has_errors:
