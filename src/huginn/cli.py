@@ -5,15 +5,11 @@ against infrastructure testbeds.
 """
 
 import asyncio
-import json
-import sys
-from dataclasses import asdict
 from importlib.metadata import version as get_version
 from pathlib import Path
 from typing import Annotated
 
 import typer
-from rich.console import Console
 
 from huginn.enums import ErrorCode, ExecutionMode
 from huginn.execute import (
@@ -23,7 +19,7 @@ from huginn.execute import (
     load_command_specs,
 )
 from huginn.loaders import ConfigurationError, load_test_plan
-from huginn.output import Output, _console_log_time
+from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
 from huginn.prune import (
     PruneError,
@@ -1179,13 +1175,6 @@ def execute(
             help="Broker type: ssh, http, or netconf (default: ssh).",
         ),
     ] = "ssh",
-    json_output: Annotated[
-        bool,
-        typer.Option(
-            "--json",
-            help="Output results as JSON instead of human-readable format.",
-        ),
-    ] = False,
     debug: Annotated[
         bool,
         typer.Option(
@@ -1222,8 +1211,8 @@ def execute(
     """Execute ad-hoc commands on testbed devices.
 
     Run one or more commands against devices defined in a testbed file.
-    Results are displayed in a human-readable format by default, or as
-    JSON with --json for programmatic consumption.
+    Results are displayed in a human-readable format. Programmatic
+    consumers should use the SDK directly (``huginn.execute``).
 
     Single-command mode requires both --device and --command.
     Batch mode uses --commands with a YAML file of command specifications.
@@ -1232,7 +1221,6 @@ def execute(
         huginn execute -t testbed.yaml --device spine-01 -c "show version"
         huginn execute -t testbed.yaml --device ctrl-01 -c "/api/v1/status" -b http
         huginn execute -t testbed.yaml --commands commands.yaml
-        huginn execute -t testbed.yaml --device spine-01 -c "show version" --json
     """
     has_single = device is not None or command is not None
     has_batch = commands is not None
@@ -1256,13 +1244,6 @@ def execute(
         show_logs=show_logs,
         log_file=log_file,
     )
-    if json_output:
-        output.console = Console(
-            stderr=True,
-            log_time=True,
-            log_path=False,
-            log_time_format=_console_log_time,
-        )
 
     try:
         from huginn.loaders import load_testbed
@@ -1289,11 +1270,7 @@ def execute(
             )
         )
 
-        if json_output:
-            results_json = [asdict(r) for r in results]
-            sys.stdout.write(json.dumps(results_json, indent=2) + "\n")
-        else:
-            _render_execute_results(results, output)
+        _render_execute_results(results, output)
 
         has_errors = any(r.error is not None for r in results)
         if has_errors:

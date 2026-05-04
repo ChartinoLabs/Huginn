@@ -157,7 +157,7 @@ async def execute_commands(
         ConfigurationError: If a spec references an unknown device or
             an unsupported broker type.
     """
-    specs = _validate_and_normalize_specs(testbed, specs)
+    _validate_specs(testbed, specs)
     required_brokers = _compute_required_brokers(specs)
     unique_devices = _compute_unique_devices(testbed, specs)
 
@@ -189,60 +189,26 @@ async def execute_commands(
         await runtime_broker.disconnect_targets()
 
 
-def resolve_device_name(testbed: Testbed, name: str) -> str:
-    """Resolve a device name against the testbed, case-insensitively.
-
-    Args:
-        testbed: Loaded testbed containing device definitions.
-        name: Device name to resolve (may differ in case).
-
-    Returns:
-        The canonical device name as it appears in the testbed.
-
-    Raises:
-        ConfigurationError: If the device name cannot be resolved.
-    """
-    if name in testbed.devices:
-        return name
-
-    lookup = {k.lower(): k for k in testbed.devices}
-    canonical = lookup.get(name.lower())
-    if canonical is not None:
-        return canonical
-
-    available = sorted(testbed.devices.keys())
-    raise ConfigurationError(
-        f"Device '{name}' not found in testbed. "
-        f"Available: {available}"
-    )
-
-
-def _validate_and_normalize_specs(
+def _validate_specs(
     testbed: Testbed,
     specs: list[ExecuteCommandSpec],
-) -> list[ExecuteCommandSpec]:
-    """Validate specs and normalize device names to canonical case.
-
-    Returns a new list with device names resolved to testbed case.
-    """
-    normalized: list[ExecuteCommandSpec] = []
+) -> None:
+    """Validate that all specs reference known devices and broker types."""
     for spec in specs:
-        canonical = resolve_device_name(testbed, spec.device)
+        if spec.device not in testbed.devices:
+            available = sorted(testbed.devices.keys())
+            bullet_list = "\n".join(f"  - {name}" for name in available)
+            raise ConfigurationError(
+                f"Device '{spec.device}' not found in testbed. "
+                f"Available devices:\n{bullet_list}"
+            )
         try:
             normalize_broker_key(spec.broker)
         except RuntimeBrokerError as err:
             raise ConfigurationError(
                 f"Invalid broker '{spec.broker}' for "
-                f"device '{canonical}': {err}"
+                f"device '{spec.device}': {err}"
             ) from err
-        normalized.append(
-            ExecuteCommandSpec(
-                device=canonical,
-                command=spec.command,
-                broker=spec.broker,
-            )
-        )
-    return normalized
 
 
 def _compute_required_brokers(
