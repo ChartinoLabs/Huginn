@@ -32,6 +32,7 @@ from huginn.runtime_broker import (
     RuntimeBrokerError,
     normalize_broker_key,
 )
+from huginn.utils.commands import is_command_unsupported
 
 
 @dataclass(frozen=True)
@@ -292,6 +293,16 @@ async def _execute_one(
                 f"({cmd_result.elapsed_ms:.0f}ms)"
             )
 
+        error_msg = None
+        if broker_key == BrokerType.SSH and is_command_unsupported(
+            cmd_result.output,
+        ):
+            error_msg = "Device rejected command as invalid or unsupported"
+            if output:
+                output.warning(
+                    f"Command rejected on {spec.device}: {spec.command}"
+                )
+
         return ExecuteCommandResult(
             device=spec.device,
             command=spec.command,
@@ -299,6 +310,7 @@ async def _execute_one(
             device_os=device.os,
             raw_output=cmd_result.output,
             elapsed_ms=cmd_result.elapsed_ms,
+            error=error_msg,
         )
     except RuntimeBrokerError as err:
         if output:

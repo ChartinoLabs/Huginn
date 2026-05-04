@@ -340,6 +340,32 @@ class TestExecuteCommands:
             await execute_commands(testbed=testbed, specs=specs)
 
     @pytest.mark.asyncio
+    async def test_invalid_command_detected_as_error(self) -> None:
+        """SSH output containing device rejection markers sets result.error."""
+        ssh = _FakeBroker("ssh")
+        ssh_original_execute = ssh.execute
+
+        async def _reject(
+            handle: ConnectionHandle, command: str, **kwargs: Any
+        ) -> CommandResult:
+            return CommandResult(
+                output="% Invalid input detected at '^' marker.",
+                elapsed_ms=10.0,
+            )
+
+        ssh.execute = _reject  # type: ignore[assignment]
+
+        testbed = _make_testbed(_make_device())
+        specs = [ExecuteCommandSpec(device="spine-01", command="show foobar")]
+
+        results = await _run_with_broker(testbed, specs, ssh_broker=ssh)
+
+        assert len(results) == 1
+        assert results[0].error is not None
+        assert "invalid" in results[0].error.lower() or "unsupported" in results[0].error.lower()
+        assert results[0].raw_output is not None
+
+    @pytest.mark.asyncio
     async def test_unknown_device_error_lists_available(self) -> None:
         """Error for unknown device includes a bulleted list of available names."""
         testbed = _make_testbed(
