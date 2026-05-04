@@ -1127,29 +1127,32 @@ def _resolve_execute_specs(
     broker: str,
 ) -> list[ExecuteCommandSpec]:
     """Validate execute CLI options and build the spec list."""
-    has_single = device is not None or command is not None
-    has_batch = commands is not None
+    if commands is not None:
+        _reject_single_with_batch(device, command)
+        return load_command_specs(commands)
 
-    if has_single and has_batch:
-        raise typer.BadParameter(
-            "--device/--command and --commands are mutually exclusive."
-        )
-    if not has_single and not has_batch:
-        raise typer.BadParameter(
-            "Either --device/--command or --commands must be specified."
-        )
-    if has_single and (device is None or command is None):
+    if device is not None and command is not None:
+        return [ExecuteCommandSpec(device=device, command=command, broker=broker)]
+
+    if device is not None or command is not None:
         raise typer.BadParameter(
             "--device and --command must both be specified together."
         )
 
-    if has_batch:
-        assert commands is not None
-        return load_command_specs(commands)
+    raise typer.BadParameter(
+        "Either --device/--command or --commands must be specified."
+    )
 
-    assert device is not None
-    assert command is not None
-    return [ExecuteCommandSpec(device=device, command=command, broker=broker)]
+
+def _reject_single_with_batch(
+    device: str | None,
+    command: str | None,
+) -> None:
+    """Raise if single-command options are mixed with batch mode."""
+    if device is not None or command is not None:
+        raise typer.BadParameter(
+            "--device/--command and --commands are mutually exclusive."
+        )
 
 
 def _check_execute_errors(

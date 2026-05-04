@@ -69,11 +69,27 @@ class _FakeBroker:
 
 @dataclass
 class _FailingBroker(_FakeBroker):
+    """Broker that raises RuntimeBrokerError on execute."""
+
     async def execute(
         self, handle: ConnectionHandle, command: str, **kwargs: object
     ) -> CommandResult:
         self.execute_calls += 1
         raise RuntimeBrokerError(f"execute failed: {command}")
+
+
+@dataclass
+class _RejectingBroker(_FakeBroker):
+    """Broker that returns device-rejected output for any command."""
+
+    async def execute(
+        self, handle: ConnectionHandle, command: str, **kwargs: object
+    ) -> CommandResult:
+        self.execute_calls += 1
+        return CommandResult(
+            output="% Invalid input detected at '^' marker.",
+            elapsed_ms=10.0,
+        )
 
 
 def _fake_broker(name: str) -> ConnectionBrokerProtocolV1:
@@ -334,18 +350,7 @@ class TestExecuteCommands:
     @pytest.mark.asyncio
     async def test_invalid_command_detected_as_error(self) -> None:
         """SSH output containing device rejection markers sets result.error."""
-        ssh = _FakeBroker("ssh")
-
-        async def _reject(
-            handle: ConnectionHandle, command: str, **kwargs: object
-        ) -> CommandResult:
-            return CommandResult(
-                output="% Invalid input detected at '^' marker.",
-                elapsed_ms=10.0,
-            )
-
-        ssh.execute = _reject  # type: ignore[assignment]
-
+        ssh = _RejectingBroker("ssh")
         testbed = _make_testbed(_make_device())
         specs = [ExecuteCommandSpec(device="spine-01", command="show foobar")]
 
