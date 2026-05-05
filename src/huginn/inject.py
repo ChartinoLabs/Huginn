@@ -37,6 +37,7 @@ class InjectPlan:
     is_new_group: bool
     skipped_jobs: list[str] = field(default_factory=list)
     phase_updates: list[str] = field(default_factory=list)
+    parent_group: str | None = None
 
 
 def discover_jobs(path: Path) -> list[Path]:
@@ -133,6 +134,7 @@ def compute_inject_plan(
     target_groups: list[str] | None = None,
     tags: list[str] | None = None,
     phases: list[str] | None = None,
+    parent_group: str | None = None,
     id_style: str = "prefix-counter",
 ) -> InjectPlan:
     """Compute what needs to be injected without writing anything."""
@@ -155,6 +157,7 @@ def compute_inject_plan(
             is_new_group=is_new_group,
             skipped_jobs=skipped,
             phase_updates=phases or [],
+            parent_group=parent_group,
         )
 
     ids = allocate_ids(prefix, len(new_jobs), existing_ids)
@@ -169,6 +172,7 @@ def compute_inject_plan(
         is_new_group=is_new_group,
         skipped_jobs=skipped,
         phase_updates=phases or [],
+        parent_group=parent_group,
     )
 
 
@@ -227,6 +231,9 @@ def apply_inject_plan(
         _write_new_group(plan_path, inject_plan)
     else:
         _append_to_existing_group(plan_path, inject_plan)
+
+    if inject_plan.parent_group:
+        _add_to_parent_group(plan_path, inject_plan)
 
     if inject_plan.phase_updates:
         _update_phase_references(plan_path, inject_plan)
@@ -297,6 +304,47 @@ def _append_to_existing_group(plan_path: Path, inject_plan: InjectPlan) -> None:
 
     raise InjectError(
         f"Group '{inject_plan.group_id}' not found in any "
+        f"groups file under {plan_path / 'groups'}"
+    )
+
+
+def _add_to_parent_group(plan_path: Path, inject_plan: InjectPlan) -> None:
+    """Add the new group to a parent composite group's 'groups' list."""
+    parent_id = inject_plan.parent_group
+    if parent_id is None:
+        return
+
+    group_files = list((plan_path / "groups").glob("*.yaml")) + list(
+        (plan_path / "groups").glob("*.yml")
+    )
+
+    for gf in group_files:
+        data = _load_raw_yaml(gf)
+        raw_groups = data.get("test_case_groups")
+        if not isinstance(raw_groups, dict):
+            continue
+        groups_map = cast(dict[str, object], raw_groups)
+        if parent_id not in groups_map:
+            continue
+
+        raw_parent = groups_map[parent_id]
+        if not isinstance(raw_parent, dict):
+            continue
+        parent_data = cast(dict[str, object], raw_parent)
+        child_groups = parent_data.get("groups")
+        if isinstance(child_groups, list):
+            child_list = cast(list[str], child_groups)
+        else:
+            child_list: list[str] = []
+            parent_data["groups"] = child_list
+        if inject_plan.group_id not in child_list:
+            child_list.append(inject_plan.group_id)
+
+        _write_yaml(gf, data)
+        return
+
+    raise InjectError(
+        f"Parent group '{parent_id}' not found in any "
         f"groups file under {plan_path / 'groups'}"
     )
 

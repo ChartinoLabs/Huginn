@@ -1327,12 +1327,19 @@ def inject_new(
         ),
     ],
     phase: Annotated[
-        list[str],
+        list[str] | None,
         typer.Option(
             "--phase",
-            help="Phase(s) to wire the new group into.",
+            help="Phase(s) to wire the new group into directly.",
         ),
-    ],
+    ] = None,
+    parent_group: Annotated[
+        str | None,
+        typer.Option(
+            "--parent-group",
+            help="Existing composite group to nest the new group under.",
+        ),
+    ] = None,
     plan: Annotated[
         Path | None,
         typer.Option(
@@ -1382,21 +1389,27 @@ def inject_new(
         ),
     ] = False,
 ) -> None:
-    """Create a new test case group from job files and wire it into a phase.
+    """Create a new test case group from job files.
 
     Discovers job files in PATH, creates test case entries with auto-allocated
-    IDs, creates a new group, and adds the group to the specified phase(s).
+    IDs, and creates a new group. Use --phase to wire directly into a scenario
+    phase, or --parent-group to nest under an existing composite group.
 
     Examples:
         huginn inject new jobs/iosxe/cdp/ --phase pre-change
-        huginn inject new jobs/iosxe/vrf/ --phase pre-change
-        huginn inject new jobs/iosxe/bgp/ --phase pre-change --dry-run
+        huginn inject new jobs/iosxe/vrf/ --parent-group state-baseline
+        huginn inject new jobs/iosxe/bgp/ --parent-group state-baseline --dry-run
     """
     from huginn.inject import (
         InjectError,
         apply_inject_plan,
         compute_inject_plan,
     )
+
+    if not phase and not parent_group:
+        output = Output()
+        output.error("Provide --phase or --parent-group (or both)")
+        raise typer.Exit(code=1)
 
     plan_path = plan or Path.cwd() / "test_plan"
     project_root = plan_path.parent
@@ -1422,6 +1435,7 @@ def inject_new(
             target_groups=resolved_target_groups,
             tags=resolved_tags,
             phases=resolved_phases,
+            parent_group=parent_group,
             id_style=id_style,
         )
     except InjectError as exc:
@@ -1587,6 +1601,8 @@ def _display_inject_plan(inject_plan: "InjectPlan", output: Output) -> None:
     for test_id, tc_entry in inject_plan.new_test_cases.items():
         output.status(f"    {test_id}: {tc_entry.get('title', '?')}")
 
+    if inject_plan.parent_group:
+        output.status(f"  Nesting under parent group: {inject_plan.parent_group}")
     if inject_plan.phase_updates:
         output.status(f"  Wiring into phase(s): {', '.join(inject_plan.phase_updates)}")
 
