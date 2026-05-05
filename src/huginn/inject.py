@@ -10,7 +10,6 @@ from typing import cast
 import yaml
 
 from huginn.jobs import JobLoadError, load_test_case_class
-from huginn.loaders import load_test_plan
 from huginn.models import TestPlan
 
 
@@ -51,7 +50,9 @@ def discover_jobs(path: Path) -> list[Path]:
         raise InjectError(f"Path does not exist: {path}")
 
     jobs = sorted(
-        p for p in path.iterdir() if p.is_file() and p.suffix == ".py" and not p.name.startswith("_")
+        p
+        for p in path.iterdir()
+        if p.is_file() and p.suffix == ".py" and not p.name.startswith("_")
     )
     if not jobs:
         raise InjectError(f"No Python job files found in: {path}")
@@ -144,16 +145,7 @@ def compute_inject_plan(
     resolved_group_id = group_id or prefix.lower()
     resolved_group_name = group_name or _humanize_prefix(prefix)
 
-    new_jobs: list[JobMetadata] = []
-    skipped: list[str] = []
-
-    for jp in jobs:
-        job_ref = str(jp.resolve().relative_to(project_root.resolve()))
-        if job_ref in existing_job_refs:
-            skipped.append(job_ref)
-            continue
-        metadata = extract_job_metadata(jp, project_root)
-        new_jobs.append(metadata)
+    new_jobs, skipped = _partition_jobs(jobs, existing_job_refs, project_root)
 
     if not new_jobs:
         return InjectPlan(
@@ -166,19 +158,9 @@ def compute_inject_plan(
         )
 
     ids = allocate_ids(prefix, len(new_jobs), existing_ids)
-
-    new_test_cases: dict[str, dict[str, object]] = {}
-    for test_id, metadata in zip(ids, new_jobs):
-        entry: dict[str, object] = {
-            "title": metadata.title,
-            "job": metadata.job_ref,
-        }
-        resolved_tags = list(tags) if tags else []
-        if resolved_tags:
-            entry["tags"] = resolved_tags
-        if target_groups:
-            entry["target"] = {"groups": list(target_groups)}
-        new_test_cases[test_id] = entry
+    new_test_cases = _build_test_case_entries(
+        ids, new_jobs, tags=tags, target_groups=target_groups
+    )
 
     return InjectPlan(
         new_test_cases=new_test_cases,
@@ -188,6 +170,46 @@ def compute_inject_plan(
         skipped_jobs=skipped,
         phase_updates=phases or [],
     )
+
+
+def _partition_jobs(
+    jobs: list[Path],
+    existing_job_refs: set[str],
+    project_root: Path,
+) -> tuple[list[JobMetadata], list[str]]:
+    """Partition jobs into new (to inject) and skipped (already present)."""
+    new_jobs: list[JobMetadata] = []
+    skipped: list[str] = []
+    for jp in jobs:
+        job_ref = str(jp.resolve().relative_to(project_root.resolve()))
+        if job_ref in existing_job_refs:
+            skipped.append(job_ref)
+            continue
+        metadata = extract_job_metadata(jp, project_root)
+        new_jobs.append(metadata)
+    return new_jobs, skipped
+
+
+def _build_test_case_entries(
+    ids: list[str],
+    jobs: list[JobMetadata],
+    *,
+    tags: list[str] | None,
+    target_groups: list[str] | None,
+) -> dict[str, dict[str, object]]:
+    """Build serialized test case entries from allocated IDs and metadata."""
+    new_test_cases: dict[str, dict[str, object]] = {}
+    for test_id, metadata in zip(ids, jobs, strict=True):
+        entry: dict[str, object] = {
+            "title": metadata.title,
+            "job": metadata.job_ref,
+        }
+        if tags:
+            entry["tags"] = list(tags)
+        if target_groups:
+            entry["target"] = {"groups": list(target_groups)}
+        new_test_cases[test_id] = entry
+    return new_test_cases
 
 
 def apply_inject_plan(
@@ -258,31 +280,30 @@ def _append_to_existing_group(plan_path: Path, inject_plan: InjectPlan) -> None:
         raw_groups = data.get("test_case_groups")
         if not isinstance(raw_groups, dict):
             continue
-        if inject_plan.group_id not in raw_groups:
+        groups_map = cast(dict[str, object], raw_groups)
+        if inject_plan.group_id not in groups_map:
             continue
 
-        group_data = cast(dict[str, object], raw_groups[inject_plan.group_id])
-        tests = cast(list[str], group_data.get("tests", []))
-        tests.extend(inject_plan.new_test_cases.keys())
-        group_data["tests"] = tests
+        raw_group = groups_map[inject_plan.group_id]
+        if not isinstance(raw_group, dict):
+            continue
+        group_data = cast(dict[str, object], raw_group)
+        existing_tests: list[str] = list(cast(list[str], group_data.get("tests", [])))
+        existing_tests.extend(inject_plan.new_test_cases.keys())
+        group_data["tests"] = existing_tests
 
         _write_yaml(gf, data)
         return
 
     raise InjectError(
-        f"Group '{inject_plan.group_id}' not found in any groups file under {plan_path / 'groups'}"
+        f"Group '{inject_plan.group_id}' not found in any "
+        f"groups file under {plan_path / 'groups'}"
     )
 
 
 def _update_phase_references(plan_path: Path, inject_plan: InjectPlan) -> None:
     """Add the new group to specified phases in scenarios."""
-    scenarios_file = plan_path / "scenarios.yaml"
-    if not scenarios_file.exists():
-        scenarios_candidates = list(plan_path.glob("scenarios*.yaml"))
-        if scenarios_candidates:
-            scenarios_file = scenarios_candidates[0]
-        else:
-            raise InjectError("No scenarios.yaml found in test plan")
+    scenarios_file = _find_scenarios_file(plan_path)
 
     data = _load_raw_yaml(scenarios_file)
     raw_scenarios = data.get("scenarios")
@@ -295,20 +316,41 @@ def _update_phase_references(plan_path: Path, inject_plan: InjectPlan) -> None:
         raw_phases = cast(dict[str, object], scenario_data).get("phases")
         if not isinstance(raw_phases, dict):
             continue
-
-        for phase_name in inject_plan.phase_updates:
-            raw_phase = cast(dict[str, object], raw_phases).get(phase_name)
-            if not isinstance(raw_phase, dict):
-                continue
-            phase_dict = cast(dict[str, object], raw_phase)
-            current_groups = phase_dict.get("test_case_groups")
-            if not isinstance(current_groups, list):
-                current_groups = []
-            if inject_plan.group_id not in current_groups:
-                current_groups.append(inject_plan.group_id)
-                phase_dict["test_case_groups"] = current_groups
+        _inject_group_into_phases(raw_phases, inject_plan)
 
     _write_yaml(scenarios_file, data)
+
+
+def _find_scenarios_file(plan_path: Path) -> Path:
+    """Locate the scenarios YAML file in the test plan."""
+    scenarios_file = plan_path / "scenarios.yaml"
+    if scenarios_file.exists():
+        return scenarios_file
+    candidates = list(plan_path.glob("scenarios*.yaml"))
+    if candidates:
+        return candidates[0]
+    raise InjectError("No scenarios.yaml found in test plan")
+
+
+def _inject_group_into_phases(
+    raw_phases: object,
+    inject_plan: InjectPlan,
+) -> None:
+    """Add the group to matching phases within a single scenario."""
+    phases_dict = cast(dict[str, object], raw_phases)
+    for phase_name in inject_plan.phase_updates:
+        raw_phase = phases_dict.get(phase_name)
+        if not isinstance(raw_phase, dict):
+            continue
+        phase_dict = cast(dict[str, object], raw_phase)
+        raw_group_list = phase_dict.get("test_case_groups")
+        if isinstance(raw_group_list, list):
+            group_list = cast(list[str], raw_group_list)
+        else:
+            group_list: list[str] = []
+        if inject_plan.group_id not in group_list:
+            group_list.append(inject_plan.group_id)
+            phase_dict["test_case_groups"] = group_list
 
 
 def _humanize_prefix(prefix: str) -> str:

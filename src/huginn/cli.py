@@ -1388,9 +1388,9 @@ def inject_new(
     IDs, creates a new group, and adds the group to the specified phase(s).
 
     Examples:
-        huginn inject new jobs/iosxe/cdp_global/ --phase pre-change
-        huginn inject new jobs/iosxe/vrf/ --phase pre-change --target-groups routers
-        huginn inject new jobs/iosxe/bgp/ --phase pre-change --group my-bgp-group --dry-run
+        huginn inject new jobs/iosxe/cdp/ --phase pre-change
+        huginn inject new jobs/iosxe/vrf/ --phase pre-change
+        huginn inject new jobs/iosxe/bgp/ --phase pre-change --dry-run
     """
     from huginn.inject import (
         InjectError,
