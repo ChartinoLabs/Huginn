@@ -99,10 +99,7 @@ class HookDispatcher:
         for hook in hooks:
             try:
                 result = await hook.on_event(event, context)
-                if (
-                    event in INFLUENCING_EVENTS
-                    and result == HookSignal.SKIP
-                ):
+                if event in INFLUENCING_EVENTS and result == HookSignal.SKIP:
                     signal = HookSignal.SKIP
             except Exception:
                 logger.warning(

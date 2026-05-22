@@ -88,7 +88,7 @@ class RuntimeBroker:
     def __init__(
         self,
         *,
-        required_brokers: set[BrokerType] | None = None,
+        required_brokers: set[BrokerType] | set[str] | None = None,
         registry: PluginRegistry | None = None,
         broker_overrides: dict[str, ConnectionBrokerProtocolV1] | None = None,
         ssh_broker: ConnectionBrokerProtocolV1 | None = None,
@@ -132,7 +132,7 @@ class RuntimeBroker:
     async def connect_targets(
         self,
         targets: list[Device],
-        required_brokers: set[BrokerType],
+        required_brokers: set[BrokerType] | set[str],
     ) -> None:
         """Open required broker connections for all target devices."""
         required_keys = _normalize_required_broker_strings(required_brokers)
@@ -214,7 +214,7 @@ class RuntimeBroker:
         target: Device,
         command: str,
         *,
-        broker: BrokerType | None = None,
+        broker: BrokerType | str | None = None,
         use_cache: bool = True,
         bust_cache: bool = False,
     ) -> CommandResult:
@@ -241,7 +241,7 @@ class RuntimeBroker:
         target: Device,
         interact_events: list[tuple[str, str]] | list[tuple[str, str, bool]],
         *,
-        broker: BrokerType | None = None,
+        broker: BrokerType | str | None = None,
     ) -> CommandResult:
         """Execute an interactive command sequence on a target device.
 
@@ -278,7 +278,7 @@ class RuntimeBroker:
         target: Device,
         path: str,
         *,
-        broker: BrokerType | None = None,
+        broker: BrokerType | str | None = None,
         use_cache: bool = True,
         bust_cache: bool = False,
         **kwargs: object,
@@ -306,7 +306,7 @@ class RuntimeBroker:
         target: Device,
         config: str,
         *,
-        broker: BrokerType | None = None,
+        broker: BrokerType | str | None = None,
         **kwargs: object,
     ) -> CommandResult:
         """Run an edit-style operation for a target device."""
@@ -326,7 +326,7 @@ class RuntimeBroker:
         *,
         target: Device,
         command: str,
-        broker: BrokerType | None = None,
+        broker: BrokerType | str | None = None,
     ) -> None:
         """Invalidate one cached execute response for a target command."""
         broker_key = self._resolve_broker_key(target=target, broker=broker)
@@ -344,7 +344,7 @@ class RuntimeBroker:
         *,
         target: Device,
         path: str,
-        broker: BrokerType | None = None,
+        broker: BrokerType | str | None = None,
         **kwargs: object,
     ) -> None:
         """Invalidate one cached get response for a target/path/kwargs tuple."""
@@ -597,7 +597,7 @@ def _merge_legacy_overrides(
 
 
 def _normalize_required_broker_strings(
-    required_brokers: set[BrokerType],
+    required_brokers: set[BrokerType] | set[str],
 ) -> set[str]:
     """Normalize and validate required broker identifiers to strings."""
     if not required_brokers:

@@ -66,10 +66,12 @@ class _FakeHook:
         pass
 
 
-def _mock_entry_points(mapping: dict[str, list[_FakeEntryPoint]]):
+def _mock_entry_points(
+    mapping: dict[str, list[_FakeEntryPoint]],
+) -> object:
     """Create a side_effect for entry_points(group=...) calls."""
 
-    def _side_effect(*, group: str):
+    def _side_effect(*, group: str) -> list[_FakeEntryPoint]:
         return mapping.get(group, [])
 
     return _side_effect
@@ -252,7 +254,9 @@ class TestHookDiscovery:
             hooks = registry.resolve_hooks()
 
         assert len(hooks) == 1
-        assert hooks[0].config == {"webhook_url": "https://example.com"}
+        hook = hooks[0]
+        assert isinstance(hook, _FakeHook)
+        assert hook.config == {"webhook_url": "https://example.com"}
 
 
 class TestPluginConfig:

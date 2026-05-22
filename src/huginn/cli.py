@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Annotated
 
 if TYPE_CHECKING:
     from huginn.inject import InjectPlan
+    from huginn.plugin_registry import PluginRegistry
 
 import typer
 
@@ -1615,22 +1616,19 @@ def version() -> None:
     typer.echo(f"huginn v{get_version('huginn')}")
 
 
-def _load_plugin_registry(project_root: Path) -> "PluginRegistry":  # noqa: F821
+def _load_plugin_registry(project_root: Path) -> "PluginRegistry":
     """Load plugin configuration and construct a registry.
 
     Reads [tool.huginn.plugins] from the project's pyproject.toml if
     present, otherwise returns a default registry with no filtering.
     """
+    import tomllib
+
     from huginn.plugin_registry import PluginConfig, PluginRegistry
 
     pyproject_path = project_root / "pyproject.toml"
     if not pyproject_path.exists():
         return PluginRegistry()
-
-    try:
-        import tomllib
-    except ModuleNotFoundError:
-        import tomli as tomllib  # type: ignore[no-redef]
 
     with open(pyproject_path, "rb") as f:
         data = tomllib.load(f)

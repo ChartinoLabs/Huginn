@@ -404,7 +404,7 @@ def _normalize_required_brokers(test_case_class: type[TestCase]) -> set[str]:
             raise RuntimeBrokerError(
                 f"{test_case_class.__name__}.required_brokers values must be strings"
             )
-        normalized.add(normalize_broker_key(broker).value)
+        normalized.add(normalize_broker_key(broker))
     return normalized
 
 

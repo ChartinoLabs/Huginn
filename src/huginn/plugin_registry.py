@@ -99,8 +99,7 @@ class PluginRegistry:
                 )
             available = sorted(all_discovered.keys())
             raise PluginResolutionError(
-                f"No broker plugin found for '{broker_type}'. "
-                f"Available: {available}"
+                f"No broker plugin found for '{broker_type}'. Available: {available}"
             )
         return broker_cls()
 
@@ -134,8 +133,7 @@ class PluginRegistry:
         if plugin_cls is None:
             available = sorted(classes.keys())
             raise PluginResolutionError(
-                f"No inventory plugin found for '{plugin_name}'. "
-                f"Available: {available}"
+                f"No inventory plugin found for '{plugin_name}'. Available: {available}"
             )
         return plugin_cls
 
@@ -186,9 +184,7 @@ class PluginRegistry:
 
         if self._config.hooks is not None:
             filtered = {
-                name: cls
-                for name, cls in classes.items()
-                if name in self._config.hooks
+                name: cls for name, cls in classes.items() if name in self._config.hooks
             }
         else:
             filtered = classes
