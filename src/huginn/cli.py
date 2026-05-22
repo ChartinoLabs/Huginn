@@ -7,7 +7,10 @@ against infrastructure testbeds.
 import asyncio
 from importlib.metadata import version as get_version
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
+
+if TYPE_CHECKING:
+    from huginn.inject import InjectPlan
 
 import typer
 
@@ -1303,6 +1306,305 @@ def execute(
     except ConfigurationError as error:
         output.error(f"ERROR: {error}")
         raise typer.Exit(code=1) from error
+
+
+inject_app = typer.Typer(
+    name="inject",
+    help="Inject job files into the test plan as new test cases.",
+    no_args_is_help=True,
+)
+app.add_typer(inject_app)
+
+
+@inject_app.command("new")
+def inject_new(
+    path: Annotated[
+        Path,
+        typer.Argument(
+            help="Directory of job files or a single .py file.",
+            exists=True,
+            resolve_path=True,
+        ),
+    ],
+    phase: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--phase",
+            help="Phase(s) to wire the new group into directly.",
+        ),
+    ] = None,
+    parent_group: Annotated[
+        str | None,
+        typer.Option(
+            "--parent-group",
+            help="Existing composite group to nest the new group under.",
+        ),
+    ] = None,
+    plan: Annotated[
+        Path | None,
+        typer.Option(
+            "--plan",
+            "-p",
+            help="Path to test plan directory (default: ./test_plan).",
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_PLAN",
+        ),
+    ] = None,
+    id_style: Annotated[
+        str,
+        typer.Option(
+            "--id-style",
+            help="ID generation style.",
+        ),
+    ] = "prefix-counter",
+    target_groups: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--target-groups",
+            help="Device groups for targeting (comma-separated).",
+        ),
+    ] = None,
+    tags: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--tags",
+            help="Additional tags to apply (comma-separated).",
+        ),
+    ] = None,
+    group: Annotated[
+        str | None,
+        typer.Option(
+            "--group",
+            help="Explicit group identifier (default: derived from path).",
+        ),
+    ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Preview changes without writing.",
+        ),
+    ] = False,
+) -> None:
+    """Create a new test case group from job files.
+
+    Discovers job files in PATH, creates test case entries with auto-allocated
+    IDs, and creates a new group. Use --phase to wire directly into a scenario
+    phase, or --parent-group to nest under an existing composite group.
+
+    Examples:
+        huginn inject new jobs/iosxe/cdp/ --phase pre-change
+        huginn inject new jobs/iosxe/vrf/ --parent-group state-baseline
+        huginn inject new jobs/iosxe/bgp/ --parent-group state-baseline --dry-run
+    """
+    from huginn.inject import (
+        InjectError,
+        apply_inject_plan,
+        compute_inject_plan,
+    )
+
+    if not phase and not parent_group:
+        output = Output()
+        output.error("Provide --phase or --parent-group (or both)")
+        raise typer.Exit(code=1)
+
+    plan_path = plan or Path.cwd() / "test_plan"
+    project_root = plan_path.parent
+    output = Output()
+
+    resolved_target_groups = _split_csv_option_values(target_groups)
+    resolved_tags = _split_csv_option_values(tags)
+    resolved_phases = _split_csv_option_values(phase)
+
+    try:
+        test_plan = load_test_plan(plan_path)
+    except ConfigurationError as exc:
+        output.error(f"Failed to load test plan: {exc}")
+        raise typer.Exit(code=1) from exc
+
+    try:
+        inject_plan = compute_inject_plan(
+            job_path=path,
+            project_root=project_root,
+            test_plan=test_plan,
+            group_id=group,
+            is_new_group=True,
+            target_groups=resolved_target_groups,
+            tags=resolved_tags,
+            phases=resolved_phases,
+            parent_group=parent_group,
+            id_style=id_style,
+        )
+    except InjectError as exc:
+        output.error(str(exc))
+        raise typer.Exit(code=1) from exc
+
+    _display_inject_plan(inject_plan, output)
+
+    if dry_run:
+        output.status("Dry run — no changes written")
+        return
+
+    try:
+        apply_inject_plan(plan_path=plan_path, inject_plan=inject_plan)
+    except InjectError as exc:
+        output.error(f"Failed to apply: {exc}")
+        raise typer.Exit(code=1) from exc
+
+    output.success(
+        f"Injected {len(inject_plan.new_test_cases)} test case(s) "
+        f"into new group '{inject_plan.group_id}'"
+    )
+
+
+@inject_app.command("into")
+def inject_into(
+    group: Annotated[
+        str,
+        typer.Argument(
+            help="Existing group identifier to inject into.",
+        ),
+    ],
+    path: Annotated[
+        Path,
+        typer.Argument(
+            help="Directory of job files or a single .py file.",
+            exists=True,
+            resolve_path=True,
+        ),
+    ],
+    plan: Annotated[
+        Path | None,
+        typer.Option(
+            "--plan",
+            "-p",
+            help="Path to test plan directory (default: ./test_plan).",
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_PLAN",
+        ),
+    ] = None,
+    id_style: Annotated[
+        str,
+        typer.Option(
+            "--id-style",
+            help="ID generation style.",
+        ),
+    ] = "prefix-counter",
+    target_groups: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--target-groups",
+            help="Device groups for targeting (comma-separated).",
+        ),
+    ] = None,
+    tags: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--tags",
+            help="Additional tags to apply (comma-separated).",
+        ),
+    ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Preview changes without writing.",
+        ),
+    ] = False,
+) -> None:
+    """Add job files to an existing test case group.
+
+    Discovers job files in PATH, creates test case entries with auto-allocated
+    IDs, and appends them to the specified existing group.
+
+    Examples:
+        huginn inject into cdp-global-baseline jobs/iosxe/cdp_global/
+        huginn inject into iosxe-vrf-detail jobs/iosxe/vrf_detail/new_job.py
+    """
+    from huginn.inject import (
+        InjectError,
+        apply_inject_plan,
+        compute_inject_plan,
+    )
+
+    plan_path = plan or Path.cwd() / "test_plan"
+    project_root = plan_path.parent
+    output = Output()
+
+    resolved_target_groups = _split_csv_option_values(target_groups)
+    resolved_tags = _split_csv_option_values(tags)
+
+    try:
+        test_plan = load_test_plan(plan_path)
+    except ConfigurationError as exc:
+        output.error(f"Failed to load test plan: {exc}")
+        raise typer.Exit(code=1) from exc
+
+    if group not in test_plan.test_case_groups:
+        output.error(f"Group '{group}' not found in test plan")
+        raise typer.Exit(code=1)
+
+    try:
+        inject_plan = compute_inject_plan(
+            job_path=path,
+            project_root=project_root,
+            test_plan=test_plan,
+            group_id=group,
+            is_new_group=False,
+            target_groups=resolved_target_groups,
+            tags=resolved_tags,
+            id_style=id_style,
+        )
+    except InjectError as exc:
+        output.error(str(exc))
+        raise typer.Exit(code=1) from exc
+
+    _display_inject_plan(inject_plan, output)
+
+    if dry_run:
+        output.status("Dry run — no changes written")
+        return
+
+    try:
+        apply_inject_plan(plan_path=plan_path, inject_plan=inject_plan)
+    except InjectError as exc:
+        output.error(f"Failed to apply: {exc}")
+        raise typer.Exit(code=1) from exc
+
+    output.success(
+        f"Injected {len(inject_plan.new_test_cases)} test case(s) "
+        f"into existing group '{inject_plan.group_id}'"
+    )
+
+
+def _display_inject_plan(inject_plan: "InjectPlan", output: Output) -> None:
+    """Display the inject plan to the user."""
+    if inject_plan.skipped_jobs:
+        output.status(f"Skipped {len(inject_plan.skipped_jobs)} job(s) already in plan")
+
+    if not inject_plan.new_test_cases:
+        output.status("No new jobs to inject")
+        return
+
+    action = "Creating new" if inject_plan.is_new_group else "Appending to"
+    output.status(f"{action} group: {inject_plan.group_id}")
+    if inject_plan.group_name:
+        output.status(f"  Display name: {inject_plan.group_name}")
+
+    output.status(f"  New test cases: {len(inject_plan.new_test_cases)}")
+    for test_id, tc_entry in inject_plan.new_test_cases.items():
+        output.status(f"    {test_id}: {tc_entry.get('title', '?')}")
+
+    if inject_plan.parent_group:
+        output.status(f"  Nesting under parent group: {inject_plan.parent_group}")
+    if inject_plan.phase_updates:
+        output.status(f"  Wiring into phase(s): {', '.join(inject_plan.phase_updates)}")
 
 
 @app.command()
