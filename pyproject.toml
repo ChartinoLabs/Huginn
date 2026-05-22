@@ -22,6 +22,17 @@ dependencies = [
 [project.scripts]
 huginn = "huginn:main"
 
+[project.entry-points."huginn.brokers"]
+ssh = "huginn.brokers.ssh:SSHBroker"
+http = "huginn.brokers.http:HTTPBroker"
+netconf = "huginn.brokers.netconf:NETCONFBroker"
+
+[project.entry-points."huginn.inventory"]
+file = "huginn.inventory_plugins:FileInventoryPlugin"
+
+[project.entry-points."huginn.reporters"]
+html = "huginn.reporting.html:HTMLReporterPlugin"
+
 [build-system]
 requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"

@@ -1,5 +1,7 @@
 """Minimal end-to-end test plan runner for first implementation slice."""
 
+from __future__ import annotations
+
 import asyncio
 import copy
 import traceback
@@ -9,6 +11,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from time import perf_counter
+from typing import TYPE_CHECKING
 
 from huginn.context import Context
 from huginn.enums import BrokerType, ErrorCode, ExecutionMode, ResultStatus
@@ -48,6 +51,9 @@ from huginn.runtime_broker import (
     normalize_broker_key,
 )
 from huginn.testcase import LearningTestCase, TestCase
+
+if TYPE_CHECKING:
+    from huginn.plugin_registry import PluginRegistry
 
 
 class RunExecutionError(RuntimeError):
@@ -90,6 +96,7 @@ async def run_test_plan(
     output_dir: Path | None = None,
     output: Output | None = None,
     broker_factory: Callable[[], RuntimeBroker] | None = None,
+    registry: PluginRegistry | None = None,
 ) -> RunResult:
     """Execute a minimal test plan and persist run artifacts."""
     run_started = perf_counter()
@@ -114,6 +121,7 @@ async def run_test_plan(
             testbed_path=testbed_path,
             inventory_plugin=inventory_plugin,
             project_root=project_root,
+            registry=registry,
         )
         test_plan = filter_test_plan(load_test_plan(plan_path), filters)
         log_debug(
@@ -171,6 +179,7 @@ async def run_test_plan(
     runtime_broker = _create_broker(
         broker_factory=broker_factory,
         required_brokers=planned_brokers,
+        registry=registry,
     )
 
     try:
@@ -228,11 +237,12 @@ async def run_test_plan(
     )
     try:
         run_files = write_run_result(result=result, run_dir=run_dir, mode=mode)
-        dashboard_path = write_standard_html_report(
+        dashboard_path = await _run_reporters(
             result=result,
+            run_dir=run_files.run_dir,
             reports_dir=project_root / "reports",
-            results_run_dir=run_files.run_dir,
             test_case_result_paths=run_files.test_case_paths,
+            registry=registry,
         )
     except (ResultWriteError, ReportRenderError) as error:
         raise RunExecutionError(
@@ -252,10 +262,51 @@ async def run_test_plan(
         skipped=result.summary.skipped,
         blocked=result.summary.blocked,
     )
-    log_info(output, "HTML report written", path=str(dashboard_path))
-    _emit_status(output, f"HTML report written to {dashboard_path}")
+    if dashboard_path is not None:
+        log_info(output, "Report written", path=str(dashboard_path))
+        _emit_status(output, f"Report written to {dashboard_path}")
     _emit_status(output, f"Run completed in {_format_elapsed(run_started)}")
     return result
+
+
+async def _run_reporters(
+    *,
+    result: RunResult,
+    run_dir: Path,
+    reports_dir: Path,
+    test_case_result_paths: dict[str, str],
+    registry: PluginRegistry | None,
+) -> Path | None:
+    """Invoke all active reporter plugins and return the primary report path."""
+    if registry is not None:
+        reporters = registry.resolve_reporters()
+    else:
+        reporters = None
+
+    if reporters is not None and len(reporters) == 0:
+        return None
+
+    if reporters is not None:
+        primary_path: Path | None = None
+        for reporter in reporters:
+            config = registry.get_plugin_config(reporter.name) if registry else {}
+            report_path = await reporter.generate_report(
+                result=result,
+                run_dir=run_dir,
+                reports_dir=reports_dir,
+                test_case_result_paths=test_case_result_paths,
+                config=config,
+            )
+            if primary_path is None and report_path is not None:
+                primary_path = report_path
+        return primary_path
+
+    return write_standard_html_report(
+        result=result,
+        reports_dir=reports_dir,
+        results_run_dir=run_dir,
+        test_case_result_paths=test_case_result_paths,
+    )
 
 
 async def _execute_scenarios(
@@ -1649,10 +1700,14 @@ async def _disconnect_runtime_broker(
 def _create_broker(
     broker_factory: Callable[[], RuntimeBroker] | None,
     required_brokers: set[BrokerType],
+    registry: PluginRegistry | None = None,
 ) -> RuntimeBroker:
     """Construct a broker instance for one test case execution."""
     if broker_factory is None:
-        return RuntimeBroker(required_brokers=required_brokers)
+        return RuntimeBroker(
+            required_brokers=required_brokers,
+            registry=registry,
+        )
     return broker_factory()
 
 

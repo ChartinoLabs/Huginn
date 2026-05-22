@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from importlib.resources import files
 from pathlib import Path
+from typing import Any
 
 from jinja2 import Environment, Template
 from markdown import markdown
@@ -437,3 +438,29 @@ def _format_elapsed_seconds(elapsed_seconds: float) -> str:
 def _status_class(status: str) -> str:
     """Return a CSS-safe status class name."""
     return status.replace("-", "_")
+
+
+class HTMLReporterPlugin:
+    """Built-in HTML report renderer exposed as a ReporterPlugin."""
+
+    @property
+    def name(self) -> str:
+        """Return the plugin identifier."""
+        return "html"
+
+    async def generate_report(
+        self,
+        *,
+        result: RunResult,
+        run_dir: Path,
+        reports_dir: Path,
+        test_case_result_paths: dict[str, str],
+        config: dict[str, Any],
+    ) -> Path | None:
+        """Generate the standard HTML dashboard report."""
+        return write_standard_html_report(
+            result=result,
+            reports_dir=reports_dir,
+            results_run_dir=run_dir,
+            test_case_result_paths=test_case_result_paths,
+        )

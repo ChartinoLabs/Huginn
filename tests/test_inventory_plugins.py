@@ -86,7 +86,7 @@ async def test_resolve_inventory_supports_sync_plugin_implementations(
     monkeypatch.setattr(
         inventory_plugins,
         "_parse_inventory_plugin_spec",
-        lambda _spec: _SyncPlugin(),
+        lambda _spec, **_kwargs: _SyncPlugin(),
     )
 
     resolved = await resolve_inventory_testbed(

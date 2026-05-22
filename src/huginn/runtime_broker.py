@@ -1,25 +1,27 @@
 """Runtime broker abstraction for protocol-aware target operations."""
 
+from __future__ import annotations
+
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from huginn.brokers import (
     ConnectionBrokerProtocolV1,
     ConnectionConfig,
     ConnectionHandle,
-    HTTPBroker,
-    NETCONFBroker,
-    SSHBroker,
 )
 from huginn.brokers.protocol import CommandResult
 from huginn.enums import BrokerType, ConnectionProtocol
 from huginn.models import ConnectionDefinition, CredentialFields, Device
 
+if TYPE_CHECKING:
+    from huginn.plugin_registry import PluginRegistry
+
 _CacheOperation = Literal["execute", "get"]
 _CacheKwargs = tuple[tuple[str, str], ...]
-_CacheKey = tuple[_CacheOperation, str, BrokerType, str, _CacheKwargs]
+_CacheKey = tuple[_CacheOperation, str, str, str, _CacheKwargs]
 _Operation = Callable[[], Awaitable[CommandResult]]
 
 
@@ -31,8 +33,8 @@ class RuntimeBrokerError(RuntimeError):
 class RuntimeBrokerClient:
     """A protocol-pinned broker view for test job access."""
 
-    _runtime_broker: "RuntimeBroker"
-    _broker_key: BrokerType
+    _runtime_broker: RuntimeBroker
+    _broker_key: str
 
     async def execute(
         self,
@@ -87,24 +89,43 @@ class RuntimeBroker:
         self,
         *,
         required_brokers: set[BrokerType] | None = None,
+        registry: PluginRegistry | None = None,
+        broker_overrides: dict[str, ConnectionBrokerProtocolV1] | None = None,
         ssh_broker: ConnectionBrokerProtocolV1 | None = None,
         http_broker: ConnectionBrokerProtocolV1 | None = None,
         netconf_broker: ConnectionBrokerProtocolV1 | None = None,
     ) -> None:
-        """Initialize runtime broker facade with required broker instances."""
+        """Initialize runtime broker facade with required broker instances.
+
+        Args:
+            required_brokers: Set of broker types needed for this run.
+            registry: Plugin registry for discovering broker implementations.
+                If None, falls back to direct imports of built-in brokers.
+            broker_overrides: Pre-built broker instances keyed by type name.
+                Takes precedence over registry discovery.
+            ssh_broker: Deprecated. Use broker_overrides instead. Kept for
+                backward compatibility with existing tests.
+            http_broker: Deprecated. Use broker_overrides instead.
+            netconf_broker: Deprecated. Use broker_overrides instead.
+        """
         required = required_brokers or {BrokerType.SSH}
-        self._brokers: dict[BrokerType, ConnectionBrokerProtocolV1] = _build_brokers(
-            required_brokers=required,
+        overrides = _merge_legacy_overrides(
+            broker_overrides=broker_overrides,
             ssh_broker=ssh_broker,
             http_broker=http_broker,
             netconf_broker=netconf_broker,
         )
-        self._handles: dict[tuple[str, BrokerType], ConnectionHandle] = {}
+        self._brokers: dict[str, ConnectionBrokerProtocolV1] = _build_brokers(
+            required_brokers={str(b) for b in required},
+            registry=registry,
+            overrides=overrides,
+        )
+        self._handles: dict[tuple[str, str], ConnectionHandle] = {}
         self._inflight_connections: dict[
-            tuple[str, BrokerType],
+            tuple[str, str],
             asyncio.Task[ConnectionHandle],
         ] = {}
-        self._operation_locks: dict[tuple[str, BrokerType], asyncio.Lock] = {}
+        self._operation_locks: dict[tuple[str, str], asyncio.Lock] = {}
         self._command_cache: dict[_CacheKey, CommandResult] = {}
         self._inflight_commands: dict[_CacheKey, asyncio.Task[CommandResult]] = {}
 
@@ -114,7 +135,7 @@ class RuntimeBroker:
         required_brokers: set[BrokerType],
     ) -> None:
         """Open required broker connections for all target devices."""
-        required_keys = _normalize_required_brokers(required_brokers)
+        required_keys = _normalize_required_broker_strings(required_brokers)
         try:
             tasks: list[asyncio.Task[None]] = []
             for device in targets:
@@ -132,7 +153,7 @@ class RuntimeBroker:
     async def _connect_target_broker_pair(
         self,
         device: Device,
-        broker_key: BrokerType,
+        broker_key: str,
     ) -> None:
         """Connect one target+broker pair once across concurrent callers."""
         handle_key = (device.name, broker_key)
@@ -156,7 +177,7 @@ class RuntimeBroker:
     async def _open_connection(
         self,
         device: Device,
-        broker_key: BrokerType,
+        broker_key: str,
     ) -> ConnectionHandle:
         """Open and return one runtime connection handle."""
         connection = _select_connection(
@@ -354,7 +375,7 @@ class RuntimeBroker:
         target: Device,
         path: str,
         *,
-        broker: BrokerType,
+        broker: str,
         kwargs: dict[str, object],
     ) -> CommandResult:
         """Proxy get() for pinned clients while validating cache controls."""
@@ -394,11 +415,11 @@ class RuntimeBroker:
     async def _run_cached_operation(
         self,
         *,
-        cache_key: "_CacheKey",
+        cache_key: _CacheKey,
         use_cache: bool,
         bust_cache: bool,
-        lock_key: tuple[str, BrokerType],
-        operation: "_Operation",
+        lock_key: tuple[str, str],
+        operation: _Operation,
     ) -> CommandResult:
         """Execute an operation with cache and single-flight semantics."""
         if bust_cache:
@@ -430,9 +451,9 @@ class RuntimeBroker:
 
     async def _run_operation(
         self,
-        operation: "_Operation",
+        operation: _Operation,
         *,
-        lock_key: tuple[str, BrokerType] | None = None,
+        lock_key: tuple[str, str] | None = None,
     ) -> CommandResult:
         """Run one broker operation and normalize raised errors."""
         if lock_key is not None:
@@ -445,15 +466,15 @@ class RuntimeBroker:
     async def _run_locked_operation(
         self,
         *,
-        lock_key: tuple[str, BrokerType],
-        operation: "_Operation",
+        lock_key: tuple[str, str],
+        operation: _Operation,
     ) -> CommandResult:
         """Run one broker operation under per-device+broker lock."""
         lock = self._operation_locks.setdefault(lock_key, asyncio.Lock())
         async with lock:
             return await self._run_unlocked_operation(operation)
 
-    async def _run_unlocked_operation(self, operation: "_Operation") -> CommandResult:
+    async def _run_unlocked_operation(self, operation: _Operation) -> CommandResult:
         """Run one broker operation and normalize raised errors."""
         try:
             return await operation()
@@ -464,10 +485,10 @@ class RuntimeBroker:
         self,
         *,
         target: Device,
-        broker: BrokerType | None,
-    ) -> BrokerType:
+        broker: BrokerType | str | None,
+    ) -> str:
         """Resolve broker key for an operation call."""
-        available: list[BrokerType] = [
+        available: list[str] = [
             broker_key
             for (device_name, broker_key) in self._handles
             if device_name == target.name
@@ -496,7 +517,7 @@ class RuntimeBroker:
         self,
         *,
         target: Device,
-        broker_key: BrokerType,
+        broker_key: str,
     ) -> ConnectionHandle:
         """Get a connected handle for a target+broker pair."""
         handle = self._handles.get((target.name, broker_key))
@@ -509,27 +530,76 @@ class RuntimeBroker:
 
 def _build_brokers(
     *,
-    required_brokers: set[BrokerType],
-    ssh_broker: ConnectionBrokerProtocolV1 | None,
-    http_broker: ConnectionBrokerProtocolV1 | None,
-    netconf_broker: ConnectionBrokerProtocolV1 | None,
-) -> dict[BrokerType, ConnectionBrokerProtocolV1]:
-    """Instantiate only required broker implementations for the run."""
-    normalized = _normalize_required_brokers(required_brokers)
-    available: dict[BrokerType, ConnectionBrokerProtocolV1] = {}
-    if BrokerType.SSH in normalized:
-        available[BrokerType.SSH] = ssh_broker or SSHBroker()
-    if BrokerType.HTTP in normalized:
-        available[BrokerType.HTTP] = http_broker or HTTPBroker()
-    if BrokerType.NETCONF in normalized:
-        available[BrokerType.NETCONF] = netconf_broker or NETCONFBroker()
+    required_brokers: set[str],
+    registry: PluginRegistry | None,
+    overrides: dict[str, ConnectionBrokerProtocolV1] | None,
+) -> dict[str, ConnectionBrokerProtocolV1]:
+    """Instantiate required broker implementations via registry or fallback."""
+    if not required_brokers:
+        raise RuntimeBrokerError("At least one broker must be required")
+
+    normalized = {normalize_broker_key(b) for b in required_brokers}
+    overrides = overrides or {}
+    available: dict[str, ConnectionBrokerProtocolV1] = {}
+
+    for broker_name in normalized:
+        if broker_name in overrides:
+            available[broker_name] = overrides[broker_name]
+        elif registry is not None:
+            available[broker_name] = registry.resolve_broker(broker_name)
+        else:
+            available[broker_name] = _fallback_instantiate(broker_name)
+
     return available
 
 
-def _normalize_required_brokers(
+def _fallback_instantiate(broker_name: str) -> ConnectionBrokerProtocolV1:
+    """Instantiate a built-in broker by name without the registry.
+
+    Used when no PluginRegistry is provided (backward compat for tests).
+    """
+    from huginn.brokers.http import HTTPBroker
+    from huginn.brokers.netconf import NETCONFBroker
+    from huginn.brokers.ssh import SSHBroker
+
+    fallback_map: dict[str, type[ConnectionBrokerProtocolV1]] = {
+        BrokerType.SSH: SSHBroker,
+        BrokerType.HTTP: HTTPBroker,
+        BrokerType.NETCONF: NETCONFBroker,
+    }
+    cls = fallback_map.get(broker_name)
+    if cls is None:
+        raise RuntimeBrokerError(
+            f"No built-in broker for '{broker_name}'. "
+            "Provide a PluginRegistry to discover third-party brokers."
+        )
+    return cls()
+
+
+def _merge_legacy_overrides(
+    *,
+    broker_overrides: dict[str, ConnectionBrokerProtocolV1] | None,
+    ssh_broker: ConnectionBrokerProtocolV1 | None,
+    http_broker: ConnectionBrokerProtocolV1 | None,
+    netconf_broker: ConnectionBrokerProtocolV1 | None,
+) -> dict[str, ConnectionBrokerProtocolV1] | None:
+    """Merge deprecated named broker params into unified overrides dict."""
+    merged: dict[str, ConnectionBrokerProtocolV1] = {}
+    if broker_overrides:
+        merged.update(broker_overrides)
+    if ssh_broker is not None:
+        merged[BrokerType.SSH] = ssh_broker
+    if http_broker is not None:
+        merged[BrokerType.HTTP] = http_broker
+    if netconf_broker is not None:
+        merged[BrokerType.NETCONF] = netconf_broker
+    return merged or None
+
+
+def _normalize_required_broker_strings(
     required_brokers: set[BrokerType],
-) -> set[BrokerType]:
-    """Normalize and validate required broker identifiers."""
+) -> set[str]:
+    """Normalize and validate required broker identifiers to strings."""
     if not required_brokers:
         raise RuntimeBrokerError("At least one broker must be required")
     return {normalize_broker_key(broker) for broker in required_brokers}
@@ -538,7 +608,7 @@ def _normalize_required_brokers(
 def _select_connection(
     *,
     device: Device,
-    broker_key: BrokerType,
+    broker_key: str,
 ) -> ConnectionDefinition:
     """Select connection definition matching the requested broker key."""
     protocol_preferences = _preferred_protocols_for_broker(broker_key)
@@ -552,7 +622,7 @@ def _select_connection(
 
 
 def _preferred_protocols_for_broker(
-    broker_key: BrokerType,
+    broker_key: str,
 ) -> tuple[ConnectionProtocol, ...]:
     """Return preferred connection protocol order for a broker key."""
     if broker_key == BrokerType.SSH:
@@ -570,8 +640,13 @@ def _preferred_protocols_for_broker(
 
 def normalize_broker_key(
     protocol: str | ConnectionProtocol | BrokerType,
-) -> BrokerType:
-    """Normalize protocol/broker aliases into canonical broker keys."""
+) -> str:
+    """Normalize protocol/broker aliases into canonical broker keys.
+
+    Built-in protocols are mapped to their canonical BrokerType string.
+    Unknown protocols are passed through as-is to support third-party
+    broker types discovered via the plugin registry.
+    """
     if protocol in {BrokerType.SSH, ConnectionProtocol.SSH, "ssh"}:
         return BrokerType.SSH
     if protocol in {
@@ -586,7 +661,7 @@ def normalize_broker_key(
         return BrokerType.HTTP
     if protocol in {BrokerType.NETCONF, ConnectionProtocol.NETCONF, "netconf"}:
         return BrokerType.NETCONF
-    raise RuntimeBrokerError(f"Unsupported connection protocol '{protocol}'")
+    return str(protocol)
 
 
 def _resolve_credential(
@@ -606,7 +681,7 @@ def _build_cache_key(
     *,
     operation: _CacheOperation,
     target: Device,
-    broker_key: BrokerType,
+    broker_key: str,
     payload: str,
     kwargs: dict[str, object],
 ) -> _CacheKey:

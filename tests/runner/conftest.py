@@ -25,6 +25,7 @@ class _FakeRuntimeBroker:
         self,
         *,
         required_brokers: set[BrokerType] | None = None,
+        **_kwargs: object,
     ) -> None:
         self._planned_brokers = required_brokers or {BrokerType.SSH}
 

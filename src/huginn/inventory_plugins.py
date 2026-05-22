@@ -1,13 +1,18 @@
 """Inventory plugin contract and built-in plugin resolution."""
 
+from __future__ import annotations
+
 from collections.abc import Awaitable
 from dataclasses import dataclass
 from inspect import isawaitable
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from huginn.loaders import load_testbed
 from huginn.models import Testbed
+
+if TYPE_CHECKING:
+    from huginn.plugin_registry import PluginRegistry
 
 
 class InventoryPluginError(ValueError):
@@ -48,6 +53,7 @@ async def resolve_inventory_testbed(
     testbed_path: Path | None,
     inventory_plugin: str | None,
     project_root: Path,
+    registry: PluginRegistry | None = None,
 ) -> Testbed:
     """Resolve testbed object from explicit file or inventory plugin spec."""
     if testbed_path is not None and inventory_plugin is not None:
@@ -63,7 +69,7 @@ async def resolve_inventory_testbed(
             "Either --testbed or --inventory-plugin must be specified."
         )
 
-    plugin = _parse_inventory_plugin_spec(inventory_plugin)
+    plugin = _parse_inventory_plugin_spec(inventory_plugin, registry=registry)
     return await _resolve_plugin_testbed(plugin=plugin, project_root=project_root)
 
 
@@ -87,8 +93,16 @@ def _ensure_testbed(value: object) -> Testbed:
     return value
 
 
-def _parse_inventory_plugin_spec(spec: str) -> InventoryPlugin:
-    """Parse inventory plugin specification string into plugin object."""
+def _parse_inventory_plugin_spec(
+    spec: str,
+    *,
+    registry: PluginRegistry | None = None,
+) -> InventoryPlugin:
+    """Parse inventory plugin specification string into plugin object.
+
+    When a registry is provided, plugin names are resolved via entry point
+    discovery. Otherwise, only the built-in 'file' plugin is supported.
+    """
     if ":" not in spec:
         raise InventoryPluginError(
             "Inventory plugin must use '<plugin>:<config>' format, "
@@ -96,14 +110,26 @@ def _parse_inventory_plugin_spec(spec: str) -> InventoryPlugin:
         )
 
     plugin_name, config = spec.split(":", maxsplit=1)
-    if plugin_name != "file":
-        raise InventoryPluginError(
-            f"Unsupported inventory plugin '{plugin_name}'. Supported: file"
-        )
-    if not config:
-        raise InventoryPluginError(
-            "Inventory plugin 'file' requires a testbed file path, "
-            "for example 'file:testbed.yaml'."
-        )
 
-    return FileInventoryPlugin(file_path=Path(config))
+    if plugin_name == "file":
+        if not config:
+            raise InventoryPluginError(
+                "Inventory plugin 'file' requires a testbed file path, "
+                "for example 'file:testbed.yaml'."
+            )
+        return FileInventoryPlugin(file_path=Path(config))
+
+    if registry is not None:
+        from huginn.plugin_registry import PluginResolutionError
+
+        try:
+            plugin_cls = registry.resolve_inventory_plugin_class(plugin_name)
+        except PluginResolutionError as error:
+            raise InventoryPluginError(str(error)) from error
+        return plugin_cls(config=config)
+
+    raise InventoryPluginError(
+        f"Unsupported inventory plugin '{plugin_name}'. "
+        "Provide a plugin registry to discover third-party inventory plugins. "
+        "Built-in plugins: file"
+    )
