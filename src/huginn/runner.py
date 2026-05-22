@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from time import perf_counter
-from typing import TYPE_CHECKING
 
 from huginn.context import Context
 from huginn.enums import BrokerType, ErrorCode, ExecutionMode, ResultStatus
@@ -42,6 +41,7 @@ from huginn.models import (
 from huginn.output import Output
 from huginn.parameters import ParameterManager
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
+from huginn.plugin_registry import PluginRegistry
 from huginn.reporting.html import ReportRenderError, write_standard_html_report
 from huginn.result_store import ResultWriteError, create_run_dir, write_run_result
 from huginn.results import ResultCollector
@@ -51,9 +51,6 @@ from huginn.runtime_broker import (
     normalize_broker_key,
 )
 from huginn.testcase import LearningTestCase, TestCase
-
-if TYPE_CHECKING:
-    from huginn.plugin_registry import PluginRegistry
 
 
 class RunExecutionError(RuntimeError):

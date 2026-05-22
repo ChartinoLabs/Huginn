@@ -6,13 +6,11 @@ from collections.abc import Awaitable
 from dataclasses import dataclass
 from inspect import isawaitable
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
 
 from huginn.loaders import load_testbed
 from huginn.models import Testbed
-
-if TYPE_CHECKING:
-    from huginn.plugin_registry import PluginRegistry
+from huginn.plugin_registry import PluginRegistry, PluginResolutionError
 
 
 class InventoryPluginError(ValueError):
@@ -120,8 +118,6 @@ def _parse_inventory_plugin_spec(
         return FileInventoryPlugin(file_path=Path(config))
 
     if registry is not None:
-        from huginn.plugin_registry import PluginResolutionError
-
         try:
             plugin_cls = registry.resolve_inventory_plugin_class(plugin_name)
         except PluginResolutionError as error:

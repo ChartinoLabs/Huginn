@@ -5,19 +5,20 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal, cast
+from typing import Literal, cast
 
 from huginn.brokers import (
     ConnectionBrokerProtocolV1,
     ConnectionConfig,
     ConnectionHandle,
 )
+from huginn.brokers.http import HTTPBroker
+from huginn.brokers.netconf import NETCONFBroker
 from huginn.brokers.protocol import CommandResult
+from huginn.brokers.ssh import SSHBroker
 from huginn.enums import BrokerType, ConnectionProtocol
 from huginn.models import ConnectionDefinition, CredentialFields, Device
-
-if TYPE_CHECKING:
-    from huginn.plugin_registry import PluginRegistry
+from huginn.plugin_registry import PluginRegistry
 
 _CacheOperation = Literal["execute", "get"]
 _CacheKwargs = tuple[tuple[str, str], ...]
@@ -558,10 +559,6 @@ def _fallback_instantiate(broker_name: str) -> ConnectionBrokerProtocolV1:
 
     Used when no PluginRegistry is provided (backward compat for tests).
     """
-    from huginn.brokers.http import HTTPBroker
-    from huginn.brokers.netconf import NETCONFBroker
-    from huginn.brokers.ssh import SSHBroker
-
     fallback_map: dict[str, type[ConnectionBrokerProtocolV1]] = {
         BrokerType.SSH: SSHBroker,
         BrokerType.HTTP: HTTPBroker,
