@@ -8,8 +8,6 @@ Resolution order for all plugin types:
     2. Entry point discovery via importlib.metadata.entry_points(group=...)
 """
 
-from __future__ import annotations
-
 import logging
 from dataclasses import dataclass, field
 from importlib.metadata import entry_points
