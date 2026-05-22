@@ -1,4 +1,4 @@
-"""Tests for CLI filtering options: --phase, --test-case-group, --test-id, --tags, --exclude-tags."""
+"""Tests for CLI filtering options: --phase, --group, --test-id, --tags."""
 
 from pathlib import Path
 

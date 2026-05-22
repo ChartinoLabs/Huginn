@@ -1,4 +1,4 @@
-"""Tests for reporting: command recording, CLI output, context, and phase dependencies."""
+"""Tests for reporting: command recording, CLI output, and context."""
 
 from pathlib import Path
 
