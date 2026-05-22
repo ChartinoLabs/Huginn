@@ -1,7 +1,5 @@
 """Inventory plugin contract and built-in plugin resolution."""
 
-from __future__ import annotations
-
 from collections.abc import Awaitable
 from dataclasses import dataclass
 from inspect import isawaitable

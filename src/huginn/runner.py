@@ -1,7 +1,5 @@
 """Minimal end-to-end test plan runner for first implementation slice."""
 
-from __future__ import annotations
-
 import asyncio
 import copy
 import traceback

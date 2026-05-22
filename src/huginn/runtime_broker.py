@@ -1,7 +1,5 @@
 """Runtime broker abstraction for protocol-aware target operations."""
 
-from __future__ import annotations
-
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -34,7 +32,7 @@ class RuntimeBrokerError(RuntimeError):
 class RuntimeBrokerClient:
     """A protocol-pinned broker view for test job access."""
 
-    _runtime_broker: RuntimeBroker
+    _runtime_broker: "RuntimeBroker"
     _broker_key: str
 
     async def execute(
