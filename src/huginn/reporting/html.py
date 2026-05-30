@@ -396,9 +396,41 @@ def _format_elapsed_ms(elapsed_ms: float | None) -> str | None:
 def _render_markdown(text: str) -> str:
     """Render report markdown into safe HTML fragments."""
     return markdown(
-        text,
+        _ensure_list_breaks(text),
         extensions=["extra", "fenced_code", "tables"],
     )
+
+
+def _ensure_list_breaks(text: str) -> str:
+    """Insert blank lines before list markers that follow paragraph text.
+
+    Python-Markdown requires a blank line between a paragraph and a
+    subsequent list for proper list detection.  Jinja2 templates with
+    trim_blocks naturally produce single-newline transitions, so this
+    pre-processor bridges the gap.
+    """
+    lines = text.split("\n")
+    result: list[str] = []
+    for i, line in enumerate(lines):
+        if (
+            i > 0
+            and _is_list_marker(line)
+            and result
+            and result[-1].strip()
+            and not _is_list_marker(result[-1])
+        ):
+            result.append("")
+        result.append(line)
+    return "\n".join(result)
+
+
+def _is_list_marker(line: str) -> bool:
+    """Check if a line starts with a markdown list marker."""
+    stripped = line.lstrip()
+    if stripped.startswith(("- ", "* ", "+ ")):
+        return True
+    dot = stripped.find(". ")
+    return dot > 0 and stripped[:dot].isdigit()
 
 
 def _format_run_timestamp(timestamp: str) -> str:
