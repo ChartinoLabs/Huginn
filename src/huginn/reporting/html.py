@@ -396,9 +396,28 @@ def _format_elapsed_ms(elapsed_ms: float | None) -> str | None:
 def _render_markdown(text: str) -> str:
     """Render report markdown into safe HTML fragments."""
     return markdown(
-        text,
+        _normalize_list_indentation(text),
         extensions=["extra", "fenced_code", "tables"],
     )
+
+
+def _normalize_list_indentation(text: str) -> str:
+    """Double 2-space list indentation to 4-space for Python-Markdown.
+
+    Python-Markdown requires 4 spaces for nested list items, but Jinja2
+    templates naturally use 2-space indentation.  This converts any
+    2-space-indented list markers to 4-space so nesting renders correctly.
+    """
+    lines = text.split("\n")
+    result: list[str] = []
+    for line in lines:
+        stripped = line.lstrip(" ")
+        indent = len(line) - len(stripped)
+        if indent > 0 and stripped.startswith(("- ", "* ", "+ ")):
+            result.append(" " * (indent * 2) + stripped)
+        else:
+            result.append(line)
+    return "\n".join(result)
 
 
 def _format_run_timestamp(timestamp: str) -> str:
