@@ -215,6 +215,17 @@ def run(
             envvar="HUGINN_RESULTS_DIR",
         ),
     ] = None,
+    parameters_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--parameters-dir",
+            help="Path to parameters directory (default: ./parameters/).",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_PARAMETERS_DIR",
+        ),
+    ] = None,
     output_dir: Annotated[
         Path | None,
         typer.Option(
@@ -241,6 +252,7 @@ def run(
     """
     plan = _resolve_plan_option(plan)
     resolved_results_dir = results_dir or Path.cwd() / "results"
+    resolved_parameters_dir = parameters_dir or Path.cwd() / "parameters"
 
     testbed_path = _resolve_testbed_option(
         testbed=testbed,
@@ -291,7 +303,7 @@ def run(
                 plan_path=plan,
                 filters=filters,
                 project_root=Path.cwd(),
-                parameters_dir=Path.cwd() / "parameters",
+                parameters_dir=resolved_parameters_dir,
                 results_dir=resolved_results_dir,
                 output_dir=output_dir,
                 output=output,
