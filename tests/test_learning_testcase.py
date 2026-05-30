@@ -226,24 +226,7 @@ async def test_learning_testcase_renders_metadata_in_testing_mode() -> None:
     await test_case.test(cast(Context, context))
 
     assert test_case.compared == [({"device": "leaf-01"}, {"current": True})]
-    assert context.results.entries == [
-        (
-            ResultStatus.INFO,
-            "Test Metadata: Rendered Metadata\n"
-            "\n"
-            "Description:\n"
-            "Validate expected payload for leaf-01\n"
-            "\n"
-            "Setup:\n"
-            "Connect to leaf-01\n"
-            "\n"
-            "Procedure:\n"
-            "Compare state for leaf-01\n"
-            "\n"
-            "Pass/Fail Criteria:\n"
-            "Pass when baseline matches leaf-01",
-        )
-    ]
+    assert context.results.entries == []
     assert context.results.metadata_sections == [
         MetadataSection(
             heading="Description",

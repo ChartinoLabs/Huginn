@@ -397,7 +397,7 @@ def _render_markdown(text: str) -> str:
     """Render report markdown into safe HTML fragments."""
     return markdown(
         text,
-        extensions=["extra", "fenced_code", "tables", "nl2br"],
+        extensions=["extra", "fenced_code", "tables"],
     )
 
 

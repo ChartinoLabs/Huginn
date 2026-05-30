@@ -167,22 +167,16 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
         context: Context,
         parameters: ParametersT,
     ) -> None:
-        """Render optional metadata templates and append one INFO result."""
+        """Render metadata templates into structured report sections."""
         metadata_sections = self._metadata_sections()
         if not metadata_sections:
             return
 
-        title = f"Test Metadata: {context.test_title}"
-        lines: list[str] = [title]
         for heading, template in metadata_sections:
             rendered = _METADATA_TEMPLATE_ENV.from_string(template).render(
                 parameters=parameters
             )
-            rendered_text = rendered.strip()
-            context.results.add_metadata_section(heading, rendered_text)
-            lines.extend(["", f"{heading}:", rendered_text])
-
-        context.results.add_result(ResultStatus.INFO, "\n".join(lines).strip())
+            context.results.add_metadata_section(heading, rendered.strip())
 
     def _metadata_sections(self) -> list[tuple[str, str]]:
         """Return available metadata templates in report display order."""
