@@ -215,19 +215,24 @@ def _validate_specs(
                 f"Device '{spec.device}' not found in testbed. "
                 f"Available devices:\n{bullet_list}"
             )
-        try:
-            normalize_broker_key(spec.broker)
-        except RuntimeBrokerError as err:
+        normalized = normalize_broker_key(spec.broker)
+        if normalized not in {
+            BrokerType.SSH,
+            BrokerType.HTTP,
+            BrokerType.NETCONF,
+        }:
             raise ConfigurationError(
-                f"Invalid broker '{spec.broker}' for device '{spec.device}': {err}"
-            ) from err
+                f"Invalid broker '{spec.broker}' for device '{spec.device}': "
+                f"unsupported broker type. "
+                f"Supported: ssh, http, netconf"
+            )
 
 
 def _compute_required_brokers(
     specs: list[ExecuteCommandSpec],
 ) -> set[BrokerType]:
     """Determine the set of broker types needed across all specs."""
-    return {normalize_broker_key(spec.broker) for spec in specs}
+    return {BrokerType(normalize_broker_key(spec.broker)) for spec in specs}
 
 
 def _compute_unique_devices(

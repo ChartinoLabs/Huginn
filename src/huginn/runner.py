@@ -39,6 +39,7 @@ from huginn.models import (
 from huginn.output import Output
 from huginn.parameters import ParameterManager
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
+from huginn.plugin_registry import PluginRegistry
 from huginn.reporting.html import ReportRenderError, write_standard_html_report
 from huginn.result_store import ResultWriteError, create_run_dir, write_run_result
 from huginn.results import ResultCollector
@@ -71,7 +72,7 @@ class PlannedExecution:
     """Validation plan for a single test case execution."""
 
     test_case_class: type[TestCase] | None
-    required_brokers: set[BrokerType]
+    required_brokers: set[str]
     planning_error: str | None
     planning_error_traceback: str | None = None
     skip_reason: str | None = None
@@ -90,6 +91,7 @@ async def run_test_plan(
     output_dir: Path | None = None,
     output: Output | None = None,
     broker_factory: Callable[[], RuntimeBroker] | None = None,
+    registry: PluginRegistry | None = None,
 ) -> RunResult:
     """Execute a minimal test plan and persist run artifacts."""
     run_started = perf_counter()
@@ -114,6 +116,7 @@ async def run_test_plan(
             testbed_path=testbed_path,
             inventory_plugin=inventory_plugin,
             project_root=project_root,
+            registry=registry,
         )
         test_plan = filter_test_plan(load_test_plan(plan_path), filters)
         log_debug(
@@ -157,7 +160,7 @@ async def run_test_plan(
         "Execution planning complete",
         planned_test_cases=len(planned_executions),
         planning_errors=planning_errors,
-        required_brokers=sorted(broker.value for broker in planned_brokers),
+        required_brokers=sorted(planned_brokers),
     )
     _emit_status(
         output,
@@ -171,6 +174,7 @@ async def run_test_plan(
     runtime_broker = _create_broker(
         broker_factory=broker_factory,
         required_brokers=planned_brokers,
+        registry=registry,
     )
 
     try:
@@ -226,13 +230,36 @@ async def run_test_plan(
         completed_at=completed_at.isoformat(timespec="seconds"),
         elapsed_seconds=completed_at.timestamp() - started_at.timestamp(),
     )
+    await _persist_and_report(
+        result=result,
+        run_dir=run_dir,
+        mode=mode,
+        project_root=project_root,
+        registry=registry,
+        output=output,
+    )
+    _emit_status(output, f"Run completed in {_format_elapsed(run_started)}")
+    return result
+
+
+async def _persist_and_report(
+    *,
+    result: RunResult,
+    run_dir: Path,
+    mode: ExecutionMode,
+    project_root: Path,
+    registry: PluginRegistry | None,
+    output: Output | None,
+) -> None:
+    """Write run artifacts to disk and invoke reporter plugins."""
     try:
         run_files = write_run_result(result=result, run_dir=run_dir, mode=mode)
-        dashboard_path = write_standard_html_report(
+        dashboard_path = await _run_reporters(
             result=result,
+            run_dir=run_files.run_dir,
             reports_dir=project_root / "reports",
-            results_run_dir=run_files.run_dir,
             test_case_result_paths=run_files.test_case_paths,
+            registry=registry,
         )
     except (ResultWriteError, ReportRenderError) as error:
         raise RunExecutionError(
@@ -252,10 +279,49 @@ async def run_test_plan(
         skipped=result.summary.skipped,
         blocked=result.summary.blocked,
     )
-    log_info(output, "HTML report written", path=str(dashboard_path))
-    _emit_status(output, f"HTML report written to {dashboard_path}")
-    _emit_status(output, f"Run completed in {_format_elapsed(run_started)}")
-    return result
+    if dashboard_path is not None:
+        log_info(output, "Report written", path=str(dashboard_path))
+        _emit_status(output, f"Report written to {dashboard_path}")
+
+
+async def _run_reporters(
+    *,
+    result: RunResult,
+    run_dir: Path,
+    reports_dir: Path,
+    test_case_result_paths: dict[str, str],
+    registry: PluginRegistry | None,
+) -> Path | None:
+    """Invoke all active reporter plugins and return the primary report path."""
+    if registry is not None:
+        reporters = registry.resolve_reporters()
+    else:
+        reporters = None
+
+    if reporters is not None and len(reporters) == 0:
+        return None
+
+    if reporters is not None:
+        primary_path: Path | None = None
+        for reporter in reporters:
+            config = registry.get_plugin_config(reporter.name) if registry else {}
+            report_path = await reporter.generate_report(
+                result=result,
+                run_dir=run_dir,
+                reports_dir=reports_dir,
+                test_case_result_paths=test_case_result_paths,
+                config=config,
+            )
+            if primary_path is None and report_path is not None:
+                primary_path = report_path
+        return primary_path
+
+    return write_standard_html_report(
+        result=result,
+        reports_dir=reports_dir,
+        results_run_dir=run_dir,
+        test_case_result_paths=test_case_result_paths,
+    )
 
 
 async def _execute_scenarios(
@@ -1047,14 +1113,14 @@ def _plan_executions(
 
 def _required_brokers_for_test_case_class(
     test_case_class: type[TestCase],
-) -> set[BrokerType]:
+) -> set[str]:
     """Read and normalize required broker declarations from a test class."""
     raw_required = getattr(test_case_class, "required_brokers", {BrokerType.SSH})
     if not isinstance(raw_required, set) or not raw_required:
         raise RuntimeBrokerError(
             f"{test_case_class.__name__}.required_brokers must be a non-empty set"
         )
-    normalized: set[BrokerType] = set()
+    normalized: set[str] = set()
     for broker in raw_required:
         if not isinstance(broker, str):
             raise RuntimeBrokerError(
@@ -1064,9 +1130,9 @@ def _required_brokers_for_test_case_class(
     return normalized
 
 
-def _collect_planned_brokers(planned: dict[str, PlannedExecution]) -> set[BrokerType]:
+def _collect_planned_brokers(planned: dict[str, PlannedExecution]) -> set[str]:
     """Aggregate required brokers for all successfully planned test cases."""
-    required: set[BrokerType] = set()
+    required: set[str] = set()
     for execution in planned.values():
         if execution.planning_error is None and execution.skip_reason is None:
             required.update(execution.required_brokers)
@@ -1446,7 +1512,7 @@ def _skipped_test_case(
 async def _connect_targets_or_raise(
     broker: RuntimeBroker,
     targets: list[Device],
-    required_brokers: set[BrokerType],
+    required_brokers: set[str],
 ) -> None:
     """Connect all resolved target devices via runtime broker."""
     await broker.connect_targets(targets, required_brokers)
@@ -1474,7 +1540,7 @@ async def _prime_runtime_connections(
             broker_sets=len(targets_by_brokers),
         )
         for required_brokers, target_lookup in targets_by_brokers.items():
-            method_names = sorted(broker_type.value for broker_type in required_brokers)
+            method_names = sorted(required_brokers)
             target_names = sorted(target_lookup)
             broker_name = broker.__class__.__name__
             set_started = perf_counter()
@@ -1540,9 +1606,9 @@ def _collect_prime_targets(
     testbed: Testbed,
     test_plan: TestPlan,
     planned_executions: dict[str, PlannedExecution],
-) -> dict[frozenset[BrokerType], dict[str, Device]]:
+) -> dict[frozenset[str], dict[str, Device]]:
     """Collect per-broker target sets that require run-start connections."""
-    targets_by_brokers: dict[frozenset[BrokerType], dict[str, Device]] = {}
+    targets_by_brokers: dict[frozenset[str], dict[str, Device]] = {}
 
     for scenario in test_plan.scenarios.values():
         for phase in scenario.phases.values():
@@ -1598,8 +1664,8 @@ def _resolve_prime_targets(
 
 def _add_targets_for_brokers(
     *,
-    targets_by_brokers: dict[frozenset[BrokerType], dict[str, Device]],
-    broker_key: frozenset[BrokerType],
+    targets_by_brokers: dict[frozenset[str], dict[str, Device]],
+    broker_key: frozenset[str],
     targets: list[Device],
 ) -> None:
     """Add resolved targets into per-broker-key lookup map."""
@@ -1648,11 +1714,15 @@ async def _disconnect_runtime_broker(
 
 def _create_broker(
     broker_factory: Callable[[], RuntimeBroker] | None,
-    required_brokers: set[BrokerType],
+    required_brokers: set[str],
+    registry: PluginRegistry | None = None,
 ) -> RuntimeBroker:
     """Construct a broker instance for one test case execution."""
     if broker_factory is None:
-        return RuntimeBroker(required_brokers=required_brokers)
+        return RuntimeBroker(
+            required_brokers=required_brokers,
+            registry=registry,
+        )
     return broker_factory()
 
 

@@ -5,12 +5,10 @@ against infrastructure testbeds.
 """
 
 import asyncio
+import tomllib
 from importlib.metadata import version as get_version
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated
-
-if TYPE_CHECKING:
-    from huginn.inject import InjectPlan
+from typing import Annotated
 
 import typer
 
@@ -21,9 +19,11 @@ from huginn.execute import (
     execute_commands,
     load_command_specs,
 )
+from huginn.inject import InjectPlan
 from huginn.loaders import ConfigurationError, load_test_plan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
+from huginn.plugin_registry import PluginConfig, PluginRegistry
 from huginn.prune import (
     PruneError,
     PruneInput,
@@ -295,6 +295,7 @@ def run(
             test_ids=test_id,
             test_id_pattern=test_id_pattern,
         )
+        plugin_registry = _load_plugin_registry(project_root=Path.cwd())
         result = asyncio.run(
             run_test_plan(
                 mode=mode,
@@ -307,6 +308,7 @@ def run(
                 results_dir=resolved_results_dir,
                 output_dir=output_dir,
                 output=output,
+                registry=plugin_registry,
             )
         )
     except ConfigurationError as error:
@@ -1623,6 +1625,32 @@ def _display_inject_plan(inject_plan: "InjectPlan", output: Output) -> None:
 def version() -> None:
     """Display the Huginn version."""
     typer.echo(f"huginn v{get_version('huginn')}")
+
+
+def _load_plugin_registry(project_root: Path) -> PluginRegistry:
+    """Load plugin configuration and construct a registry.
+
+    Reads [tool.huginn.plugins] from the project's pyproject.toml if
+    present, otherwise returns a default registry with no filtering.
+    """
+    pyproject_path = project_root / "pyproject.toml"
+    if not pyproject_path.exists():
+        return PluginRegistry()
+
+    with open(pyproject_path, "rb") as f:
+        data = tomllib.load(f)
+
+    plugins_section = data.get("tool", {}).get("huginn", {}).get("plugins", {})
+    if not plugins_section:
+        return PluginRegistry()
+
+    config = PluginConfig(
+        brokers=plugins_section.get("brokers"),
+        reporters=plugins_section.get("reporters"),
+        hooks=plugins_section.get("hooks"),
+        plugin_options=plugins_section.get("config", {}),
+    )
+    return PluginRegistry(config=config)
 
 
 def main() -> None:
