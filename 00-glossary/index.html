@@ -1,0 +1,2020 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Python-native, async-first test automation framework for network infrastructure.">
+      
+      
+      
+        <link rel="canonical" href="https://chartinolabs.github.io/Huginn/00-glossary/">
+      
+      
+        <link rel="prev" href="../01-overview/">
+      
+      
+        <link rel="next" href="../02-architecture/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Glossary - Huginn</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#glossary" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Huginn" class="md-header__button md-logo" aria-label="Huginn" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Huginn
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Glossary
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ChartinoLabs/Huginn" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ChartinoLabs/Huginn
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Huginn" class="md-nav__button md-logo" aria-label="Huginn" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Huginn
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ChartinoLabs/Huginn" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ChartinoLabs/Huginn
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01-overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Infrastructure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Infrastructure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Device
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#device-group" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Device Group
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testbed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testbed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Definitions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Test Definitions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#job" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#target" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-case-group" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Case Group
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Plan
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Execution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#command-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Command Support
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#commandsupportresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CommandSupportResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#result" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Result
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aggregate-result" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Aggregate Result
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02-architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/archetypes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Archetypes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authoring Jobs
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Authoring Jobs
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authoring/static-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Static Parameter Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authoring/volatile-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volatile Parameter Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authoring/change/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Jobs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authoring/gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gate Jobs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specifications
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Specifications
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03-testbed-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testbed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04-test-plan-spec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Test Plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05-test-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Test Authoring (legacy)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06-configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design Notes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design Notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07-parser-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parser Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-connection-broker-plugins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connection Broker Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-output-logging-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Output Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-package-job-references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Package Job References
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-parameter-reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parameter Reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-prune/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pruning Non-Applicable Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08-unit-testing-automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unit Testing Automation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09-volatile-parameters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volatile Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../99-future-considerations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Future Considerations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../style/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation Style Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Infrastructure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Infrastructure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Device
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#device-group" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Device Group
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testbed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testbed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#test-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Definitions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Test Definitions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#job" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#target" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-case-group" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Case Group
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Plan
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Execution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#command-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Command Support
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#commandsupportresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CommandSupportResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#result" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Result
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aggregate-result" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Aggregate Result
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="glossary">Glossary<a class="headerlink" href="#glossary" title="Permanent link">&para;</a></h1>
+<p>This document defines the formal lexicon for Huginn. These terms have specific meanings within the framework and documentation.</p>
+<h2 id="infrastructure">Infrastructure<a class="headerlink" href="#infrastructure" title="Permanent link">&para;</a></h2>
+<h3 id="device">Device<a class="headerlink" href="#device" title="Permanent link">&para;</a></h3>
+<p>A unit of infrastructure within a testbed. Devices can be network equipment (routers, switches, firewalls), servers, appliances, or any system that can be connected to and queried. Each device has a hostname, operating system identifier, optional device group memberships, and one or more connection configurations.</p>
+<h3 id="device-group">Device Group<a class="headerlink" href="#device-group" title="Permanent link">&para;</a></h3>
+<p>A logical grouping of devices in a testbed. Device groups are arbitrary labels assigned to devices for organizational and targeting purposes. A device can belong to multiple device groups. Common patterns include role-based groups (spine, leaf, border), location-based groups (datacenter-1, building-a), and environment-based groups (production, staging).</p>
+<h3 id="testbed">Testbed<a class="headerlink" href="#testbed" title="Permanent link">&para;</a></h3>
+<p>A collection of devices making up a production-like, scaled-down version of an environment. The testbed defines the infrastructure inventory including device connection parameters, device group memberships, and metadata. Defined in YAML format.</p>
+<h2 id="test-definitions">Test Definitions<a class="headerlink" href="#test-definitions" title="Permanent link">&para;</a></h2>
+<h3 id="job">Job<a class="headerlink" href="#job" title="Permanent link">&para;</a></h3>
+<p>A unit of test automation that can be executed against one or more devices in a testbed. A job is implemented as a Python module containing a class that inherits from the TestCase base class. Jobs define reusable test logic independent of specific targets or parameters. The same job can be referenced by multiple test cases, each with different parameters.</p>
+<h3 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">&para;</a></h3>
+<p>Expected state data associated with a test case, used for validation during test execution. Parameters can be sourced from:</p>
+<ul>
+<li><strong>File-based</strong>: JSON files following the convention <code>parameters/{test_case_id}.json</code>. In learning mode, parameters are captured from live infrastructure and persisted. In testing mode, parameters are loaded and compared against current state.</li>
+<li><strong>Data model-based</strong>: Derived from an external data model (e.g., Network as Code YAML) representing intended infrastructure state. The job queries the data model for expected values.</li>
+</ul>
+<p>If a test case has no parameters file and no data model, it requires execution in learning mode to establish baseline parameters.</p>
+<h3 id="data-model">Data Model<a class="headerlink" href="#data-model" title="Permanent link">&para;</a></h3>
+<p>An external source of truth representing intended infrastructure state, typically a YAML file conforming to a defined schema. Data models can serve as parameters for test cases, enabling validation of actual device state against declared intent. This pattern is commonly used with Infrastructure as Code approaches like Cisco's Network as Code.</p>
+<h3 id="target">Target<a class="headerlink" href="#target" title="Permanent link">&para;</a></h3>
+<p>The specification of which devices a test case applies to. Targets can be defined by:</p>
+<ul>
+<li><strong>Explicit devices</strong>: A list of device names.</li>
+<li><strong>Device groups</strong>: All devices belonging to specified device groups.</li>
+<li><strong>Operating system</strong>: All devices running specified operating systems.</li>
+</ul>
+<p>Multiple selectors are intersected (AND logic). Targets can be specified at the phase level, test case group level, test case level, or any combination (intersected).</p>
+<h3 id="test-case">Test Case<a class="headerlink" href="#test-case" title="Permanent link">&para;</a></h3>
+<p>A first-class entity in the test plan that instantiates a job with a specific identity. Test cases are defined once in the <code>test_cases</code> section of a test plan and referenced by ID in test case groups. Each test case has:</p>
+<ul>
+<li>A unique identifier</li>
+<li>A reference to a job (module path)</li>
+<li>Optional target specification</li>
+<li>Optional tags for filtering</li>
+<li>Parameters sourced by convention (<code>parameters/{id}.json</code>) or from a data model</li>
+</ul>
+<p>The same test case can be referenced in multiple test case groups, enabling reuse across phases (e.g., pre-change and post-change validation).</p>
+<h3 id="test-case-group">Test Case Group<a class="headerlink" href="#test-case-group" title="Permanent link">&para;</a></h3>
+<p>A logical grouping of test cases and/or other test case groups within a phase. Test case groups reference test cases by ID and can include other groups by name, enabling hierarchical organization. Groups can specify targets that apply to all contained test cases, and the framework executes test cases within a group potentially in parallel.</p>
+<p><strong>Nesting</strong>: Test case groups can be nested to create reusable, feature-specific groupings. For example, an "ospf-tests" group containing OSPF-related test cases can be included in both "pre-change-validation" and "post-change-validation" groups. This promotes reuse and keeps feature-specific tests organized together.</p>
+<h3 id="phase">Phase<a class="headerlink" href="#phase" title="Permanent link">&para;</a></h3>
+<p>A high-level organizational unit in a test plan representing a stage of test execution. Phases contain one or more test case groups and can declare dependencies on other phases. Common patterns include:</p>
+<ul>
+<li><strong>Pre-change</strong>: Validate state before making changes</li>
+<li><strong>Change</strong>: Apply configuration or operational changes</li>
+<li><strong>Post-change</strong>: Validate state after changes</li>
+</ul>
+<p>Phases provide structure for reporting (collapse/expand, filtering) and establish execution order through dependencies.</p>
+<h3 id="test-plan">Test Plan<a class="headerlink" href="#test-plan" title="Permanent link">&para;</a></h3>
+<p>A collection of test cases, test case groups, phases, and associated metadata defining how testing outcomes should be achieved. The test plan specifies:</p>
+<ul>
+<li><strong>Test cases</strong>: First-class definitions of what to test</li>
+<li><strong>Test case groups</strong>: Logical groupings of test case references</li>
+<li><strong>Phases</strong>: High-level stages with dependencies defining execution order</li>
+</ul>
+<p>Defined in YAML format.</p>
+<h2 id="execution">Execution<a class="headerlink" href="#execution" title="Permanent link">&para;</a></h2>
+<h3 id="mode">Mode<a class="headerlink" href="#mode" title="Permanent link">&para;</a></h3>
+<p>The execution mode for a test run. Huginn supports two modes:</p>
+<ul>
+<li><strong>Learning</strong>: Execute against live infrastructure, capture current state, and persist it as parameters for future comparison.</li>
+<li><strong>Testing</strong>: Execute against live infrastructure, compare current state against previously learned parameters (or data model), and report deviations.</li>
+</ul>
+<h3 id="run">Run<a class="headerlink" href="#run" title="Permanent link">&para;</a></h3>
+<p>A single execution of a test plan against a testbed. A run establishes connections to all devices, executes phases in dependency order, executes test case groups within each phase, collects results, and generates reports. Test cases filtered out by tags or other criteria do not appear in run results.</p>
+<h3 id="command-support">Command Support<a class="headerlink" href="#command-support" title="Permanent link">&para;</a></h3>
+<p>The determination of whether a target device supports the CLI command(s) required by a test case. Command support can be:</p>
+<ul>
+<li><strong>Static</strong>: Declared in the test plan via target specifications (devices, device groups, operating systems). Resolved before test execution.</li>
+<li><strong>Dynamic</strong>: Determined at runtime by the test case itself via the <code>check_command_support()</code> method or during <code>gather_state()</code>. Enables tests to introspect their assigned targets and filter based on device capabilities, running features, or other runtime conditions.</li>
+</ul>
+<p>Dynamic non-applicability arises from two distinct situations:</p>
+<ol>
+<li><strong>Command not supported</strong>: The device does not recognize the show command the job requires. Detected in <code>check_command_support()</code>.</li>
+<li><strong>Attribute absent</strong>: The command succeeds but the specific attribute the job validates does not exist in the parsed output - either because the platform does not report it or because the feature is not configured. Detected in <code>gather_state()</code> when per-item extraction produces an empty result for a device.</li>
+</ol>
+<p>A device that is statically targeted but dynamically determined to lack command support is recorded with a NOT_APPLICABLE or LOST_APPLICABILITY result (depending on whether learned parameters exist) and the reason for non-support.</p>
+<h3 id="commandsupportresult">CommandSupportResult<a class="headerlink" href="#commandsupportresult" title="Permanent link">&para;</a></h3>
+<p>The return type of a test case's <code>check_command_support()</code> method. Contains:</p>
+<ul>
+<li><strong>applicable</strong>: List of devices that support the required command(s).</li>
+<li><strong>not_applicable</strong>: Dictionary mapping device names to reasons why the device does not support the required command(s).</li>
+</ul>
+<p>The framework uses this result to update <code>context.targets</code> before calling <code>setup()</code> and <code>test()</code>.</p>
+<h3 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h3>
+<p>The object passed to jobs during execution. Contains access to the connection broker, target devices, results collector, parameters (file-based or data model), and execution metadata. The context is the primary interface between a job and the framework.</p>
+<h3 id="result">Result<a class="headerlink" href="#result" title="Permanent link">&para;</a></h3>
+<p>The outcome of a test case execution. Possible values:</p>
+<ul>
+<li><strong>Passed</strong>: All assertions succeeded.</li>
+<li><strong>Failed</strong>: One or more assertions did not match expected state.</li>
+<li><strong>Errored</strong>: An exception occurred during execution.</li>
+<li><strong>Not Applicable</strong>: The test case was in scope but determined at runtime to be not applicable, and no learned parameters exist for the device. This is the expected outcome when a test is assigned to a broad target group but only applies to a subset of devices.</li>
+<li><strong>Lost Applicability</strong>: The test case was applicable when parameters were learned but is no longer applicable during testing. This indicates that something changed between learning and testing that caused a previously testable device to become untestable. This status contributes to test failure by default, as it typically indicates an unexpected change that warrants investigation.</li>
+<li><strong>Blocked</strong>: The test case could not run because a dependency (phase or group) failed.</li>
+</ul>
+<p>The distinction between NOT_APPLICABLE and LOST_APPLICABILITY is important:</p>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Learned Parameters Exist?</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Device never applicable</td>
+<td>No</td>
+<td>NOT_APPLICABLE</td>
+</tr>
+<tr>
+<td>Device was applicable, now isn't</td>
+<td>Yes</td>
+<td>LOST_APPLICABILITY</td>
+</tr>
+</tbody>
+</table>
+<p>Test cases filtered out before execution (e.g., by tags) do not appear in results at all. This is distinct from NOT_APPLICABLE and LOST_APPLICABILITY, which appear in results with reasons.</p>
+<h3 id="aggregate-result">Aggregate Result<a class="headerlink" href="#aggregate-result" title="Permanent link">&para;</a></h3>
+<p>The computed outcome for a test case group or phase, derived from the results of contained test cases. Possible values:</p>
+<ul>
+<li><strong>Passed</strong>: 100% of test cases passed (no failures, errors, or lost applicability results).</li>
+<li><strong>Partial</strong>: Some test cases passed, some did not (mixed results including failures, errors, or lost applicability).</li>
+<li><strong>Failed</strong>: 0% of test cases passed (catastrophic failure).</li>
+<li><strong>Blocked</strong>: Could not execute because a dependency failed.</li>
+<li><strong>Not Applicable</strong>: All contained test cases were not applicable (none were applicable and none had prior learned parameters).</li>
+</ul>
+<p>Aggregate results include counts (e.g., "1995/2000 passed") to provide visibility into the scope and nature of any failures. LOST_APPLICABILITY results are counted separately from NOT_APPLICABLE in aggregate reporting to highlight unexpected applicability changes.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
