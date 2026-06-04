@@ -1,11 +1,9 @@
 site_name: Huginn
 site_description: A Python-native, async-first test automation framework for network infrastructure.
+site_url: https://chartinolabs.github.io/Huginn/
 repo_url: https://github.com/ChartinoLabs/Huginn
 repo_name: ChartinoLabs/Huginn
 edit_uri: edit/main/docs/
-
-# Public hosting (GitHub Pages, etc.) is intentionally not configured yet.
-# Build locally with `mkdocs serve` from the repo root.
 
 theme:
   name: material

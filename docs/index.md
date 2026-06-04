@@ -2,7 +2,7 @@
 
 Huginn is a Python-native, async-first test automation framework for validating network infrastructure, servers, and applications. It is named after one of Odin's ravens - dispatched across the world to gather information and report back.
 
-This site is the working documentation for the framework. Public hosting is intentionally not configured yet; until then, build the site locally with `mkdocs serve` from the repository root.
+This site is the working documentation for the framework.
 
 ## Where to start
 
