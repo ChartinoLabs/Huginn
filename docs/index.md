@@ -1,8 +1,42 @@
 # Huginn
 
-Huginn is a Python-native, async-first test automation framework for validating network infrastructure, servers, and applications. It is named after one of Odin's ravens - dispatched across the world to gather information and report back.
+Huginn is a Python-native, async-first test automation framework for validating network infrastructure, servers, and applications. It is named after one of Odin's ravens — dispatched across the world to gather information and report back.
 
-This site is the working documentation for the framework.
+## Why Huginn?
+
+- **Python-native** — Write tests as real Python classes with full IDE support, type hints, and debugging.
+- **Async-first** — Concurrent device connections and test execution out of the box.
+- **Dual-mode execution** — Learning mode captures baseline state; testing mode detects drift.
+- **Plugin-extensible** — Inventory plugins, connection brokers, and reporting hooks are all pluggable.
+- **Companion to Muninn** — Pair with the [Muninn](https://chartinolabs.github.io/Muninn/) parser library for structured CLI output parsing.
+
+## Quick example
+
+```python
+from huginn import Context, LearningTestCase, ResultStatus
+
+
+class VerifyHostname(LearningTestCase):
+    """Learn and verify device hostnames."""
+
+    async def gather_state(self, context: Context) -> dict[str, object]:
+        devices: dict[str, dict[str, object]] = {}
+        for device in context.targets:
+            output = await device.ssh.send_command("show hostname")
+            devices[device.name] = {"hostname": output.result.strip()}
+        return {"devices": devices}
+
+    async def compare_state(self, *, expected, current, context: Context) -> None:
+        if expected == current:
+            context.results.add_result(ResultStatus.PASSED, "Hostnames match")
+        else:
+            context.results.add_result(ResultStatus.FAILED, "Hostname drift detected")
+```
+
+```bash
+huginn run -m learning -t testbed.yaml -p test_plan.yaml   # capture baseline
+huginn run -m testing  -t testbed.yaml -p test_plan.yaml   # detect drift
+```
 
 ## Where to start
 
