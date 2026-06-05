@@ -32,7 +32,11 @@ Each device needs an OS identifier, at least one connection, and credentials. En
 
 ## Write a test job
 
-Create `jobs/verify_ios_version.py` with a minimal learning/testing job:
+This test job executes `show version` on each target device and validates that the current IOS-XE software version matches the learned baseline. It uses [Muninn](https://chartinolabs.github.io/Muninn/) to parse raw CLI output into structured data.
+
+> **Note:** Muninn is not required. You can use regular expressions, TextFSM templates, or pyATS Genie parsers to extract structured data from CLI output. Muninn is recommended because it provides type-hinted return values and integrates cleanly with Huginn's async patterns.
+
+Create `jobs/verify_ios_version.py`:
 
 ```python
 from typing import TypedDict
