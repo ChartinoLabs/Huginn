@@ -1,6 +1,12 @@
 # Quick Start
 
-This guide walks through running your first test with Huginn: define a testbed, write a test job, create a test plan, and execute it.
+This guide walks through running your first test with Huginn. You will:
+
+- Define a testbed
+- Write a test job
+- Create a test plan
+- Execute the test plan
+- Review the HTML report
 
 ## Define your testbed
 
@@ -10,8 +16,6 @@ Create a `testbed.yaml` describing the devices you want to test against:
 devices:
   spine-01:
     os: nxos
-    groups:
-      - spine
     credentials:
       default:
         username: admin
