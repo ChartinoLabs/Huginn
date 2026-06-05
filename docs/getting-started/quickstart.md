@@ -144,23 +144,58 @@ The test plan organizes test cases into groups, which are arranged into phases w
 
 ## Run in learning mode
 
-Learning mode captures the current device state as your baseline:
+Learning mode captures the current device state as the expected parameters to be used for comparison against when the test plan is executed in testing mode.
 
 ```bash
 huginn run -m learning -t testbed.yaml -p test_plan.yaml
 ```
 
-This connects to each device, executes `gather_state`, and saves the results as learned parameters.
+This connects to each device, executes `gather_state`, and saves the results as learned parameters. You should see a JSON file in the `parameters` directory with the name `VERSION-IOS-VERSION.json` containing the learned parameters that look something like this:
+
+```json
+{
+  "devices": {
+    "rtr-01": {
+      "value": "17.18.02"
+    }
+  }
+}
+```
 
 ## Run in testing mode
 
-Testing mode compares current state against the learned baseline:
+Testing mode compares current state against the learned parameters. This is typically when you want to validate that the device state matches the expected parameters before or after a change has been made.
 
 ```bash
 huginn run -m testing -t testbed.yaml -p test_plan.yaml
 ```
 
 If the device state matches the learned parameters, the test passes. If state has drifted, the test fails with a diff showing what changed.
+
+## Review the HTML report
+
+After each run, Huginn generates an HTML report in the `reports/` directory. The report includes a dashboard with pass/fail statistics and a detail page for each test case showing the commands executed, parsed output, and comparison results.
+
+The report is written to `reports/<run-timestamp>/html/index.html`. A `latest` symlink always points to the most recent run:
+
+```
+reports/
+  latest -> 2026-06-05T10-30-00/html
+  2026-06-05T10-30-00/
+    html/
+      index.html          # dashboard
+      styles.css
+      test-cases/
+        VERSION-IOS-VERSION.html
+```
+
+To view the report locally, start a simple HTTP server from the report directory:
+
+```bash
+python -m http.server 8000 --directory reports/latest
+```
+
+Then open `http://localhost:8000` in your browser. The dashboard shows a summary of all test cases with their status, and you can click into any test case to see the full execution details — including the raw CLI output, parsed data, and pass/fail checks.
 
 ## Next steps
 
