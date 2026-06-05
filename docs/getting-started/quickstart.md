@@ -32,7 +32,7 @@ Each device needs an OS identifier, at least one connection, and credentials. En
 
 ## Write a test job
 
-This test job executes `show version` on each target device and validates that the current IOS-XE software version matches the learned baseline. It uses [Muninn](https://chartinolabs.github.io/Muninn/) to parse raw CLI output into structured data.
+This test job executes `show version` on each target device and validates that the current IOS-XE software version matches the learned baseline. It uses [Muninn](https://github.com/ChartinoLabs/muninn) to parse raw CLI output into structured data.
 
 > **Note:** Muninn is not required. You can use regular expressions, TextFSM templates, or pyATS Genie parsers to extract structured data from CLI output. Muninn is recommended because it provides type-hinted return values and integrates cleanly with Huginn's async patterns.
 
@@ -101,36 +101,43 @@ class VerifyIosVersion(LearningTestCase[VersionParameters]):
                 )
 ```
 
-A `LearningTestCase` implements two methods:
+A job containing a class that inherits from `LearningTestCase` implements two methods:
 
 - **`gather_state`** — collects current device state (runs in both modes)
 - **`compare_state`** — compares learned state against current state (runs only in testing mode)
 
-In learning mode, Huginn saves the output of `gather_state` as parameters. In testing mode, it loads those saved parameters and passes them to `compare_state`.
+When the job is executed in learning mode, Huginn saves the output of `gather_state` as parameters in a JSON file, typically in a directory named `parameters`. When the job is executed in testing mode, it loads those saved parameters and passes them to `compare_state` to compare those saved parameters against the current device state.
 
 ## Create a test plan
+
+Next, we need to create a test plan that defines defines how test cases will be executed. The hierarchy of objects in a test plan are:
+
+- **Scenario**: An organizational unit in a test plan representing a stage of test execution. Scenarios contain one or more phases.
+- **Phase**: An organizational unit in a test plan representing a stage of test execution. Phases contain one or more test case groups and can have dependencies on other phases in the same scenario.
+- **Test Case Group**: A logical grouping of test cases. Test case groups reference test cases by ID and can include other groups by name, enabling hierarchical organization. Groups can specify targets that apply to all contained test cases, and the framework executes test cases within a group in parallel.
+- **Test Case**: A first-class entity defining what to test. A test case references a job and, and the test case identifier drives the name of the JSON file where parameters are stored.
 
 Create `test_plan.yaml` referencing your job:
 
 ```yaml
 test_cases:
-  1.0.0:
-    title: Verify IOS-XE Version
+  VERSION-IOS-VERSION:
+    title: IOS version matches learned baseline
     job: jobs/verify_ios_version.py
     tags:
-      - baseline
+      - version
 
 test_case_groups:
-  baseline-checks:
+  version-baseline:
     tests:
-      - 1.0.0
+      - VERSION-IOS-VERSION
 
 scenarios:
   validation:
     phases:
-      verify-state:
+      pre-change:
         test_case_groups:
-          - baseline-checks
+          - version-baseline
 ```
 
 The test plan organizes test cases into groups, which are arranged into phases within scenarios.
