@@ -13,24 +13,32 @@ Huginn is a Python-native, async-first test automation framework for validating 
 ## Quick example
 
 ```python
+import muninn
 from huginn import Context, LearningTestCase, ResultStatus
+
+mn = muninn.Muninn()
+mn.load_builtin_parsers()
 
 
 class VerifyHostname(LearningTestCase):
     """Learn and verify device hostnames."""
 
+    command = "show run | include hostname"
+
     async def gather_state(self, context: Context) -> dict[str, object]:
         devices: dict[str, dict[str, object]] = {}
         for device in context.targets:
-            output = await device.ssh.send_command("show hostname")
-            devices[device.name] = {"hostname": output.result.strip()}
+            result = await context.broker.execute(device, self.command)
+            parsed = mn.parse(os=device.os, command=self.command, output=result.output)
+            devices[device.name] = {"hostname": parsed["hostname"]}
         return {"devices": devices}
 
     async def compare_state(self, *, expected, current, context: Context) -> None:
-        if expected == current:
-            context.results.add_result(ResultStatus.PASSED, "Hostnames match")
-        else:
-            context.results.add_result(ResultStatus.FAILED, "Hostname drift detected")
+        for device in context.targets:
+            if expected["devices"][device.name] == current["devices"][device.name]:
+                context.results.add_result(ResultStatus.PASSED, f"{device.name}: ok")
+            else:
+                context.results.add_result(ResultStatus.FAILED, f"{device.name}: drifted")
 ```
 
 ```bash

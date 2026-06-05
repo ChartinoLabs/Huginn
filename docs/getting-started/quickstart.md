@@ -35,35 +35,66 @@ Each device needs an OS identifier, at least one connection, and credentials. En
 Create `jobs/verify_hostname.py` with a minimal learning/testing job:
 
 ```python
+from typing import TypedDict
+
+import muninn
+
 from huginn import Context, LearningTestCase, ResultStatus
 
+mn = muninn.Muninn()
+mn.load_builtin_parsers()
 
-class VerifyHostname(LearningTestCase):
+
+class HostnameDeviceParameters(TypedDict):
+    hostname: str
+
+
+class HostnameParameters(TypedDict):
+    devices: dict[str, HostnameDeviceParameters]
+
+
+class VerifyHostname(LearningTestCase[HostnameParameters]):
     """Learn and verify device hostnames."""
 
-    async def gather_state(self, context: Context) -> dict[str, object]:
+    command = "show run | include hostname"
+
+    async def gather_state(self, context: Context) -> HostnameParameters:
         """Collect current hostname from each target device."""
-        devices: dict[str, dict[str, object]] = {}
+        devices: dict[str, HostnameDeviceParameters] = {}
         for device in context.targets:
-            output = await device.ssh.send_command("show hostname")
-            devices[device.name] = {"hostname": output.result.strip()}
+            result = await context.broker.execute(device, self.command)
+            parsed = mn.parse(os=device.os, command=self.command, output=result.output)
+            context.results.add_command_execution(
+                device=device.name,
+                command=self.command,
+                output=result,
+                parsed=parsed,
+            )
+            devices[device.name] = {"hostname": parsed["hostname"]}
         return {"devices": devices}
 
     async def compare_state(
         self,
         *,
-        expected: dict[str, object],
-        current: dict[str, object],
+        expected: HostnameParameters,
+        current: HostnameParameters,
         context: Context,
     ) -> None:
         """Compare learned hostnames against current state."""
-        if expected == current:
-            context.results.add_result(ResultStatus.PASSED, "Hostnames match")
-        else:
-            context.results.add_result(
-                ResultStatus.FAILED,
-                f"Hostname mismatch: expected={expected}, current={current}",
-            )
+        for device in context.targets:
+            expected_hostname = expected["devices"][device.name]["hostname"]
+            current_hostname = current["devices"][device.name]["hostname"]
+            if current_hostname == expected_hostname:
+                context.results.add_result(
+                    ResultStatus.PASSED,
+                    f"{device.name}: hostname '{current_hostname}' matches baseline",
+                )
+            else:
+                context.results.add_result(
+                    ResultStatus.FAILED,
+                    f"{device.name}: hostname drifted from '{expected_hostname}' "
+                    f"to '{current_hostname}'",
+                )
 ```
 
 A `LearningTestCase` implements two methods:
