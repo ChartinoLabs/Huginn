@@ -14,8 +14,8 @@ Create a `testbed.yaml` describing the devices you want to test against:
 
 ```yaml
 devices:
-  spine-01:
-    os: nxos
+  rtr-01:
+    os: iosxe
     credentials:
       default:
         username: admin
@@ -32,7 +32,7 @@ Each device needs an OS identifier, at least one connection, and credentials. En
 
 ## Write a test job
 
-Create `jobs/verify_hostname.py` with a minimal learning/testing job:
+Create `jobs/verify_ios_version.py` with a minimal learning/testing job:
 
 ```python
 from typing import TypedDict
@@ -45,22 +45,22 @@ mn = muninn.Muninn()
 mn.load_builtin_parsers()
 
 
-class HostnameDeviceParameters(TypedDict):
-    hostname: str
+class VersionDeviceParameters(TypedDict):
+    value: str
 
 
-class HostnameParameters(TypedDict):
-    devices: dict[str, HostnameDeviceParameters]
+class VersionParameters(TypedDict):
+    devices: dict[str, VersionDeviceParameters]
 
 
-class VerifyHostname(LearningTestCase[HostnameParameters]):
-    """Learn and verify device hostnames."""
+class VerifyIosVersion(LearningTestCase[VersionParameters]):
+    """Learn and verify the IOS-XE software version."""
 
-    command = "show run | include hostname"
+    command = "show version"
 
-    async def gather_state(self, context: Context) -> HostnameParameters:
-        """Collect current hostname from each target device."""
-        devices: dict[str, HostnameDeviceParameters] = {}
+    async def gather_state(self, context: Context) -> VersionParameters:
+        """Collect current IOS version from each target device."""
+        devices: dict[str, VersionDeviceParameters] = {}
         for device in context.targets:
             result = await context.broker.execute(device, self.command)
             parsed = mn.parse(os=device.os, command=self.command, output=result.output)
@@ -70,30 +70,30 @@ class VerifyHostname(LearningTestCase[HostnameParameters]):
                 output=result,
                 parsed=parsed,
             )
-            devices[device.name] = {"hostname": parsed["hostname"]}
+            devices[device.name] = {"value": str(parsed["version"])}
         return {"devices": devices}
 
     async def compare_state(
         self,
         *,
-        expected: HostnameParameters,
-        current: HostnameParameters,
+        expected: VersionParameters,
+        current: VersionParameters,
         context: Context,
     ) -> None:
-        """Compare learned hostnames against current state."""
+        """Compare learned IOS version against current state."""
         for device in context.targets:
-            expected_hostname = expected["devices"][device.name]["hostname"]
-            current_hostname = current["devices"][device.name]["hostname"]
-            if current_hostname == expected_hostname:
+            expected_version = expected["devices"][device.name]["value"]
+            current_version = current["devices"][device.name]["value"]
+            if current_version == expected_version:
                 context.results.add_result(
                     ResultStatus.PASSED,
-                    f"{device.name}: hostname '{current_hostname}' matches baseline",
+                    f"{device.name}: IOS version '{current_version}' matches baseline",
                 )
             else:
                 context.results.add_result(
                     ResultStatus.FAILED,
-                    f"{device.name}: hostname drifted from '{expected_hostname}' "
-                    f"to '{current_hostname}'",
+                    f"{device.name}: IOS version drifted from '{expected_version}' "
+                    f"to '{current_version}'",
                 )
 ```
 
@@ -111,8 +111,8 @@ Create `test_plan.yaml` referencing your job:
 ```yaml
 test_cases:
   1.0.0:
-    title: Verify Device Hostname
-    job: jobs/verify_hostname.py
+    title: Verify IOS-XE Version
+    job: jobs/verify_ios_version.py
     tags:
       - baseline
 
