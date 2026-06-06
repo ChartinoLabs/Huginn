@@ -330,5 +330,5 @@ class OspfNeighborExistenceDeviceParameters(TypedDict):
 ## See also
 
 - [Volatile Parameter Validation](volatile-validation.md) - for attributes that change continuously.
-- [Test Plan Specification](../04-test-plan-spec.md) - how to reference a job from a test case.
-- [Glossary](../00-glossary.md) - formal definitions of `Job`, `Parameters`, `Test Case`, and related terms.
+- [Test Plan Specification](../reference/test-plan.md) - how to reference a job from a test case.
+- [Glossary](../concepts/glossary.md) - formal definitions of `Job`, `Parameters`, `Test Case`, and related terms.

@@ -2,7 +2,7 @@
 
 A volatile parameter validation job tracks an attribute that changes continuously as a normal consequence of network operation, and asserts the *relationship* between consecutive observations rather than equality against a fixed baseline.
 
-For the design rationale behind this archetype - including why "expected failures" and "re-learning" were rejected as alternatives - read [Volatile Parameters](../09-volatile-parameters.md). This page is the practical guide to writing one.
+For the design rationale behind this archetype - including why "expected failures" and "re-learning" were rejected as alternatives - read [Volatile Parameters](../design/volatile-parameters.md). This page is the practical guide to writing one.
 
 ## When to use this archetype
 
@@ -170,7 +170,7 @@ The operator is part of the *learned* parameter set, not a class attribute. In l
 
 The default operator for most volatile attributes is `gte` (greater than or equal to) - counters increment, uptimes grow, table versions advance.
 
-The operator can be overridden per-scenario via parameter reconciliation. For example, a scenario that resets BGP sessions can reconcile the post-change comparison to use `lt` (the post-change uptime is *less than* the pre-change uptime). See [Parameter Reconciliation](../08-parameter-reconciliation.md).
+The operator can be overridden per-scenario via parameter reconciliation. For example, a scenario that resets BGP sessions can reconcile the post-change comparison to use `lt` (the post-change uptime is *less than* the pre-change uptime). See [Parameter Reconciliation](../reference/reconcile.md).
 
 The `"any"` operator is special - observations are still recorded in the chain, but comparisons always pass. Use `"any"` at phase boundaries where the impact on individual series is heterogeneous (e.g., a disruption that resets some sessions but not others).
 
@@ -190,13 +190,13 @@ You do not need to opt into this behavior. The base class handles it. Do not add
 
 ## Common pitfalls
 
-- **Don't add `check_command_support`, `gather_state`, or `compare_state` overrides** unless you have a genuinely custom comparison scheme. The base class' implementations are correct for almost every case. If you do need a custom scheme that does not fit the single-operator model, inherit from the framework's `VolatileLearningTestCase` directly and study [Volatile Parameters](../09-volatile-parameters.md) first.
+- **Don't add `check_command_support`, `gather_state`, or `compare_state` overrides** unless you have a genuinely custom comparison scheme. The base class' implementations are correct for almost every case. If you do need a custom scheme that does not fit the single-operator model, inherit from the framework's `VolatileLearningTestCase` directly and study [Volatile Parameters](../design/volatile-parameters.md) first.
 - **Don't yield observations whose `value` is not directly comparable with `gte` / `lt`.** If the underlying value is a duration string, parse it to seconds first. If it's a string with no ordinal relationship, this archetype is not the right fit.
 - **Don't compose `series_key` from values that change as a side effect of the job's own execution.** The series identity must survive across phase boundaries unchanged.
 - **Don't expect the first observation in a run to compare against anything.** It establishes the baseline for the chain. The framework records it but does not compare. Subsequent observations in the same run compare against the most recent prior observation.
 
 ## See also
 
-- [Volatile Parameters](../09-volatile-parameters.md) - design rationale, alternatives considered, and the operator-transition worked example.
+- [Volatile Parameters](../design/volatile-parameters.md) - design rationale, alternatives considered, and the operator-transition worked example.
 - [Static Parameter Validation](static-validation.md) - for attributes whose expected value is deterministic.
-- [Parameter Reconciliation](../08-parameter-reconciliation.md) - how scenarios override parameters (including operators) for specific phases.
+- [Parameter Reconciliation](../reference/reconcile.md) - how scenarios override parameters (including operators) for specific phases.

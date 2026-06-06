@@ -199,8 +199,8 @@ Then open `http://localhost:8000` in your browser. The dashboard shows a summary
 
 ## Next steps
 
-- [Concepts Overview](../01-overview.md) — understand what the framework does and doesn't do
+- [Concepts Overview](../concepts/overview.md) — understand what the framework does and doesn't do
 - [Job Archetypes](../concepts/archetypes.md) — the four shapes a job can take
 - [Authoring Jobs](../authoring/index.md) — detailed guides for each archetype
-- [Testbed Specification](../03-testbed-spec.md) — full testbed YAML reference
-- [Test Plan Specification](../04-test-plan-spec.md) — full test plan YAML reference
+- [Testbed Specification](../reference/testbed.md) — full testbed YAML reference
+- [Test Plan Specification](../reference/test-plan.md) — full test plan YAML reference

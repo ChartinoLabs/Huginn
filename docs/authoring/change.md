@@ -322,4 +322,4 @@ Otherwise, the structure (TypedDicts, message constants, four-step skeleton in `
 
 - [Gate Jobs](gate.md) - for halting the test plan until convergence completes after a change.
 - [Volatile Parameter Validation](volatile-validation.md) - for tracking attributes that the change job's effect will modify.
-- [Test Plan Specification](../04-test-plan-spec.md) - phases, scenarios, and how change jobs slot into the change phase.
+- [Test Plan Specification](../reference/test-plan.md) - phases, scenarios, and how change jobs slot into the change phase.

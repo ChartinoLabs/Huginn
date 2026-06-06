@@ -56,10 +56,10 @@ If a procedure requires explicit ordering, use a numbered list within a section 
 
 Use heading levels to reflect the document outline. Do not skip levels (e.g., `##` followed by `####` with no `###` in between).
 
-- `#` -- page title (one per page)
-- `##` -- major sections
-- `###` -- subsections
-- `####` -- sub-subsections (use sparingly)
+- `#` - page title (one per page)
+- `##` - major sections
+- `###` - subsections
+- `####` - sub-subsections (use sparingly)
 
 ## Tables
 
@@ -101,15 +101,15 @@ Both tools are declared in the `docs` dependency group in `pyproject.toml`.
 
 ## Punctuation and typography
 
-### No em-dashes
+### No em-dashes or double-dashes
 
-Do not use the Unicode em-dash character (U+2014). Use a space-surrounded hyphen (`--`) instead.
+Do not use the Unicode em-dash character (U+2014) or double hyphens (`--`). Use a single space-surrounded hyphen (` - `) instead.
 
-This rule is enforced by CI via `tests/test_docs_em_dashes.py`. Pages with em-dashes will fail the test suite.
+Wrong: `The command reads results — then modifies the plan.` (em-dash)
 
-Wrong: `The command reads results -- then modifies the plan.` (em-dash)
+Wrong: `The command reads results -- then modifies the plan.` (double-hyphen)
 
-Right: `The command reads results -- then modifies the plan.` (space-hyphen-hyphen-space)
+Right: `The command reads results - then modifies the plan.` (single hyphen)
 
 ### No smart quotes
 
@@ -129,10 +129,10 @@ Right: `Devices with no applicable data are excluded from the test. The framewor
 
 When using AI tools to draft documentation, watch for and correct these common patterns:
 
-- **Bold-as-heading** -- covered above. If the bold text could have been a heading, make it one.
-- **Redundant lead-in sentences** -- phrases like "Let's take a look at..." or "In this section, we will explore..." add no information. Start with the content.
-- **Over-qualification** -- phrases like "It is important to note that" or "It should be noted that" can almost always be deleted without changing the meaning.
-- **Trailing summaries** -- restating what was just explained in a "In summary" paragraph. If the section is well-organized, the reader already understood it.
+- **Bold-as-heading** - covered above. If the bold text could have been a heading, make it one.
+- **Redundant lead-in sentences** - phrases like "Let's take a look at..." or "In this section, we will explore..." add no information. Start with the content.
+- **Over-qualification** - phrases like "It is important to note that" or "It should be noted that" can almost always be deleted without changing the meaning.
+- **Trailing summaries** - restating what was just explained in a "In summary" paragraph. If the section is well-organized, the reader already understood it.
 
 ## Code examples
 
@@ -157,6 +157,6 @@ Code examples should use plausible values (real command names, realistic IP addr
 
 Link to other documentation pages using relative paths. Include a short description of what the linked page covers so the reader can decide whether to follow the link.
 
-Wrong: `See [here](04-test-plan-spec.md).`
+Wrong: `See [here](reference/test-plan.md).`
 
-Right: `See [Test Plan Specification - Targeting](04-test-plan-spec.md#targeting) for the full target block schema.`
+Right: `See [Test Plan Schema - Targeting](reference/test-plan.md#targeting) for the full target block schema.`

@@ -50,19 +50,20 @@ huginn run -m testing  -t testbed.yaml -p test_plan.yaml   # detect drift
 
 If you are new to Huginn, read in order:
 
-1. **[Concepts › Overview](01-overview.md)** - what the framework does and what it doesn't.
-2. **[Concepts › Glossary](00-glossary.md)** - the formal lexicon. Most other pages assume you know these terms.
-3. **[Concepts › Job Archetypes](concepts/archetypes.md)** - the four shapes a job can take in Huginn.
-4. **[Authoring Jobs](authoring/index.md)** - one page per archetype, each with a complete worked example.
+1. **[Concepts - Overview](concepts/overview.md)** - what the framework does and what it doesn't.
+2. **[Concepts - Execution Modes](concepts/execution-modes.md)** - how learning and testing modes work together.
+3. **[Concepts - Glossary](concepts/glossary.md)** - the formal lexicon. Most other pages assume you know these terms.
+4. **[Concepts - Job Archetypes](concepts/archetypes.md)** - the four shapes a job can take in Huginn.
+5. **[Authoring Jobs](authoring/index.md)** - one page per archetype, each with a complete worked example.
 
-If you are extending the framework itself or trying to understand a specific design decision, the **Design Notes** section preserves the original decision documents.
+If you are extending the framework itself or trying to understand a specific design decision, the **Design** section preserves the original decision documents.
 
 ## What lives where
 
 - **Concepts** - what Huginn is, what its pieces are called, and how they fit together.
 - **Authoring Jobs** - practical guides for writing new jobs, organized by archetype.
-- **Specifications** - the formal shape of testbed YAML, test plan YAML, and the test-authoring API.
-- **Design Notes** - design decisions, RFCs, and rationale documents. Useful when you are trying to understand *why* something is the way it is.
+- **Reference** - the formal shape of testbed YAML, test plan YAML, configuration, and the context API.
+- **Design** - architecture, design decisions, and rationale documents. Useful when you are trying to understand *why* something is the way it is.
 
 ## Status
 

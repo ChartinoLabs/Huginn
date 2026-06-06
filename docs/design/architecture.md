@@ -806,6 +806,6 @@ project/
 
 ## Next Steps
 
-- [Testbed Specification](03-testbed-spec.md): Detailed testbed YAML schema
-- [Test Plan Specification](04-test-plan-spec.md): Detailed test plan YAML schema
-- [Test Authoring](05-test-authoring.md): Writing tests with the ABC pattern
+- [Testbed Specification](../reference/testbed.md): Detailed testbed YAML schema
+- [Test Plan Specification](../reference/test-plan.md): Detailed test plan YAML schema
+- [Test Authoring](../reference/context-api.md): Writing tests with the ABC pattern

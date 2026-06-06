@@ -15,7 +15,7 @@ This page explains why each archetype exists, how `LearningTestCase` relates to 
 
 Each archetype exists because of a distinct, recurring problem:
 
-- **Static parameter validation** is the bread-and-butter use case Huginn was built for. The vast majority of attributes a test plan validates - interface descriptions, OSPF costs, BGP ASN configurations, device serial numbers - are deterministic. They either match a learned baseline or they don't. Most of a typical test plan is static parameter validation.
+- **Static parameter validation** covers attributes that are deterministic - interface descriptions, OSPF costs, BGP ASN configurations, device serial numbers. They either match a learned baseline or they don't.
 - **Volatile parameter validation** exists because some attributes change as a normal consequence of network operation. Counters increment, uptimes grow, table versions advance. Treating these as static parameters causes false failures across sequential scenarios and across repeated runs of the same plan. Volatile jobs replace "value equals baseline" with "value satisfies a comparison operator relative to the previous observation in this run."
 - **Change jobs** exist because validation alone does not exercise infrastructure. A meaningful test plan introduces conditions and observes how the system responds.
 - **Gate jobs** exist because validation runs faster than infrastructure converges. After a change is applied, post-change validation can race convergence and produce false failures. Gates poll until expected conditions are met, halting the plan until the testbed has stabilized.
@@ -44,12 +44,12 @@ Archetype is a **convention** - a way of organizing how authors think about jobs
 | Archetype                     | Typical phase placement                                                                                                                                                                                                 |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Static parameter validation   | Pre-change and post-change validation phases. Reused across scenarios via shared test case groups.                                                                                                                      |
-| Volatile parameter validation | Pre-change and post-change validation phases. Grouped per-scenario rather than shared, because comparison operators may need scenario-specific reconciliation. See [Volatile Parameters](../09-volatile-parameters.md). |
+| Volatile parameter validation | Pre-change and post-change validation phases. Grouped per-scenario rather than shared, because comparison operators may need scenario-specific reconciliation. See [Volatile Parameters](../design/volatile-parameters.md). |
 | Change                        | Change phase. One or more change jobs apply the scenario's intended action.                                                                                                                                             |
 | Gate                          | Between change and post-change. Halts the plan until convergence completes, so post-change validation runs against a stable testbed.                                                                                    |
 
 ## See also
 
-- [Glossary](../00-glossary.md) - formal definitions of terms used here.
-- [Volatile Parameters](../09-volatile-parameters.md) - design rationale for the volatile archetype.
-- [Test Plan Specification](../04-test-plan-spec.md) - phases, scenarios, and test case groups.
+- [Glossary](glossary.md) - formal definitions of terms used here.
+- [Volatile Parameters](../design/volatile-parameters.md) - design rationale for the volatile archetype.
+- [Test Plan Specification](../reference/test-plan.md) - phases, scenarios, and test case groups.

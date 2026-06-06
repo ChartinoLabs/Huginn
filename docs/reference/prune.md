@@ -2,7 +2,7 @@
 
 ## Overview
 
-After running in learning mode, some tests return `NOT_APPLICABLE` for certain devices -- the device does not support the command, or the command works but produces no meaningful data. These results indicate that the test scope in the test plan is broader than the infrastructure actually requires.
+After running in learning mode, some tests return `NOT_APPLICABLE` for certain devices - the device does not support the command, or the command works but produces no meaningful data. These results indicate that the test scope in the test plan is broader than the infrastructure actually requires.
 
 The `huginn prune` command reads learning results and narrows the test plan automatically:
 
@@ -22,9 +22,9 @@ The device does not support the command at all. For example, a parsed field is m
 
 ### Empty gathered state (`gather_state`)
 
-The command executes successfully, but the extracted data is empty for a device. For example, a `show ip ospf neighbor` command returns no neighbors because OSPF is not configured on that device. The job's `gather_state` method detects the empty result and emits a `NOT_APPLICABLE` result. See [Static Parameter Validation - Handling empty gathered state](authoring/static-validation.md#handling-empty-gathered-state) for the recommended pattern.
+The command executes successfully, but the extracted data is empty for a device. For example, a `show ip ospf neighbor` command returns no neighbors because OSPF is not configured on that device. The job's `gather_state` method detects the empty result and emits a `NOT_APPLICABLE` result. See [Static Parameter Validation - Handling empty gathered state](../authoring/static-validation.md#handling-empty-gathered-state) for the recommended pattern.
 
-Both sources produce the same `NOT_APPLICABLE` status in the learning results. The prune command does not distinguish between them -- if a device is non-applicable, it is excluded.
+Both sources produce the same `NOT_APPLICABLE` status in the learning results. The prune command does not distinguish between them - if a device is non-applicable, it is excluded.
 
 ## Workflow
 
@@ -173,13 +173,13 @@ test_case_groups:
     exclude_tests: ["4.0.0"]
 ```
 
-This preserves the inheritance structure. The `exclude_tests` mechanism is the same one used by the [reconcile command](08-parameter-reconciliation.md) to exclude baseline tests that diverge after a change.
+This preserves the inheritance structure. The `exclude_tests` mechanism is the same one used by the [reconcile command](reconcile.md) to exclude baseline tests that diverge after a change.
 
 ### Orphan removal
 
 When `--remove-orphans` is passed, the command checks whether any fully non-applicable test IDs are still referenced by at least one group after all group removals are applied. Test case definitions with no remaining group references are deleted from the YAML.
 
-This is a destructive operation -- the test case definition and its key are removed from the `test_cases` map. The associated parameter files in `parameters/` are not touched; remove those manually if desired.
+This is a destructive operation - the test case definition and its key are removed from the `test_cases` map. The associated parameter files in `parameters/` are not touched; remove those manually if desired.
 
 ## Idempotency
 
@@ -191,8 +191,8 @@ When the `--plan` argument points to a directory, the prune command locates the 
 
 ## See also
 
-- [Test Plan Specification - Targeting](04-test-plan-spec.md#targeting) -- the `target` block and device filtering.
-- [Test Plan Specification - Test Case Groups](04-test-plan-spec.md#test-case-groups) -- group structure, `tests`, `groups`, and `exclude_tests`.
-- [Parameter Reconciliation](08-parameter-reconciliation.md) -- a related command that creates new test case variants after a network change.
-- [Static Parameter Validation - Handling empty gathered state](authoring/static-validation.md#handling-empty-gathered-state) -- the `gather_state` pattern that produces `NOT_APPLICABLE` results consumed by prune.
-- [Authoring Jobs - Command Support](authoring/index.md#command-support) -- the `check_command_support` pattern that produces `NOT_APPLICABLE` results consumed by prune.
+- [Test Plan Specification - Targeting](test-plan.md#targeting) - the `target` block and device filtering.
+- [Test Plan Specification - Test Case Groups](test-plan.md#test-case-groups) - group structure, `tests`, `groups`, and `exclude_tests`.
+- [Parameter Reconciliation](reconcile.md) - a related command that creates new test case variants after a network change.
+- [Static Parameter Validation - Handling empty gathered state](../authoring/static-validation.md#handling-empty-gathered-state) - the `gather_state` pattern that produces `NOT_APPLICABLE` results consumed by prune.
+- [Authoring Jobs - Command Support](../authoring/index.md#command-support) - the `check_command_support` pattern that produces `NOT_APPLICABLE` results consumed by prune.

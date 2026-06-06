@@ -237,7 +237,7 @@ false failure on series that were not disrupted.
 
 ## Related Documents
 
-- [Test Authoring Guide](05-test-authoring.md): `LearningTestCase` base class and execution modes
-- [Parameter Reconciliation](08-parameter-reconciliation.md): Reconciliation workflow for post-change parameter overrides
-- [Test Plan Specification](04-test-plan-spec.md): Scenario and phase structure
-- [Future Considerations](99-future-considerations.md): Additional enhancement ideas
+- [Test Authoring Guide](../reference/context-api.md): `LearningTestCase` base class and execution modes
+- [Parameter Reconciliation](../reference/reconcile.md): Reconciliation workflow for post-change parameter overrides
+- [Test Plan Specification](../reference/test-plan.md): Scenario and phase structure
+- [Future Considerations](../design/future.md): Additional enhancement ideas

@@ -387,5 +387,5 @@ The `--show-logs` flag adds console output for real-time visibility during troub
 
 ## Related Documents
 
-- [Architecture](02-architecture.md): Overall framework architecture
-- [Configuration](06-configuration.md): Configuration file format
+- [Architecture](../design/architecture.md): Overall framework architecture
+- [Configuration](../reference/configuration.md): Configuration file format

@@ -282,4 +282,4 @@ If a particular test plan needs different values than your defaults, the author 
 
 - [Change Jobs](change.md) - typically run immediately before a gate.
 - [Static Parameter Validation](static-validation.md) - typically run immediately after a gate.
-- [Test Plan Specification](../04-test-plan-spec.md) - how gates slot into the change-to-validation transition.
+- [Test Plan Specification](../reference/test-plan.md) - how gates slot into the change-to-validation transition.
