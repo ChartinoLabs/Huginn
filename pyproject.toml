@@ -51,7 +51,7 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.0.0",
     "ruff>=0.15.16",
-    "ty>=0.0.42",
+    "ty>=0.0.47",
     "xenon>=0.9.3",
 ]
 docs = [
