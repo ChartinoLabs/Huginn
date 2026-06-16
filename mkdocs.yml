@@ -66,7 +66,7 @@ nav:
       - Test Plan Structure: concepts/test-plan-structure.md
       - Job Archetypes: concepts/archetypes.md
       - Reconciliation: concepts/reconciliation.md
-    - Pruning: concepts/pruning.md
+      - Pruning: concepts/pruning.md
   - Glossary: concepts/glossary.md
   - Authoring Jobs:
       - Overview: authoring/index.md
