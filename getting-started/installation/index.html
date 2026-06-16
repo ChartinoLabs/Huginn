@@ -414,10 +414,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-github" class="md-nav__link">
+  <a href="#install-from-pypi" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from GitHub
+        Install from PyPI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-from-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install from source
       
     </span>
   </a>
@@ -1532,10 +1543,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-github" class="md-nav__link">
+  <a href="#install-from-pypi" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from GitHub
+        Install from PyPI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-from-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install from source
       
     </span>
   </a>
@@ -1590,18 +1612,26 @@
 <li>Python 3.11 or later</li>
 <li>Network devices reachable via SSH (or another supported transport)</li>
 </ul>
-<h2 id="install-from-github">Install from GitHub<a class="headerlink" href="#install-from-github" title="Permanent link">&para;</a></h2>
-<p>Huginn is not yet published to PyPI. Install directly from the repository as a library:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/ChartinoLabs/Huginn.git
+<h2 id="install-from-pypi">Install from PyPI<a class="headerlink" href="#install-from-pypi" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>huginn-framework
 </code></pre></div>
 <p>Or using <a href="https://docs.astral.sh/uv/">uv</a>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>add<span class="w"> </span>git+https://github.com/ChartinoLabs/Huginn.git
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>add<span class="w"> </span>huginn-framework
+</code></pre></div>
+<h2 id="install-from-source">Install from source<a class="headerlink" href="#install-from-source" title="Permanent link">&para;</a></h2>
+<p>For development or to track the latest unreleased changes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/ChartinoLabs/Huginn.git
+</code></pre></div>
+<p>Or clone and install in editable mode:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/ChartinoLabs/Huginn.git
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">cd</span><span class="w"> </span>Huginn
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>dev
 </code></pre></div>
 <h2 id="verify-installation">Verify installation<a class="headerlink" href="#verify-installation" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>huginn<span class="w"> </span>version
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>huginn<span class="w"> </span>version
 </code></pre></div>
 <p>You should see output like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Huginn version 0.1.0
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Huginn version 0.1.0
 </code></pre></div>
 <h2 id="key-dependencies">Key dependencies<a class="headerlink" href="#key-dependencies" title="Permanent link">&para;</a></h2>
 <p>Huginn pulls in a small set of runtime dependencies automatically:</p>
