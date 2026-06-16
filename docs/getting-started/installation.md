@@ -5,18 +5,32 @@
 - Python 3.11 or later
 - Network devices reachable via SSH (or another supported transport)
 
-## Install from GitHub
-
-Huginn is not yet published to PyPI. Install directly from the repository as a library:
+## Install from PyPI
 
 ```bash
-pip install git+https://github.com/ChartinoLabs/Huginn.git
+pip install huginn-framework
 ```
 
 Or using [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv add git+https://github.com/ChartinoLabs/Huginn.git
+uv add huginn-framework
+```
+
+## Install from source
+
+For development or to track the latest unreleased changes:
+
+```bash
+pip install git+https://github.com/ChartinoLabs/Huginn.git
+```
+
+Or clone and install in editable mode:
+
+```bash
+git clone https://github.com/ChartinoLabs/Huginn.git
+cd Huginn
+uv sync --group dev
 ```
 
 ## Verify installation

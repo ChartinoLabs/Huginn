@@ -1,6 +1,7 @@
 # Huginn
 
 [![CI](https://github.com/ChartinoLabs/Huginn/actions/workflows/ci.yml/badge.svg)](https://github.com/ChartinoLabs/Huginn/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/huginn-framework?logo=pypi&logoColor=white)](https://pypi.org/project/huginn-framework/)
 [![Python](https://img.shields.io/badge/python-%3E%3D3.11-blue?logo=python&logoColor=white)](https://www.python.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
@@ -13,13 +14,13 @@ Huginn is designed for skilled test engineers who need to validate infrastructur
 ## Installation
 
 ```bash
-pip install git+https://github.com/ChartinoLabs/Huginn.git
+pip install huginn-framework
 ```
 
 Or using [uv](https://docs.astral.sh/uv/):
 
 ```bash
-uv add git+https://github.com/ChartinoLabs/Huginn.git
+uv add huginn-framework
 ```
 
 Requires Python 3.11 or later. See the [documentation](https://chartinolabs.github.io/Huginn/) for a full quickstart guide.
