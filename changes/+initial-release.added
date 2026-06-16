@@ -1,1 +1,0 @@
-Initial release of the `huginn-framework` package with async-first test automation, plugin-based architecture, and SSH/HTTP/NETCONF brokers.
