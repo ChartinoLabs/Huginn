@@ -1,5 +1,5 @@
 [project]
-name = "huginn"
+name = "huginn-framework"
 dynamic = ["version"]
 description = "A Python-native, async-first test automation framework for network infrastructure, servers, and applications."
 readme = "README.md"
@@ -51,6 +51,7 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.0.0",
     "ruff>=0.15.16",
+    "towncrier>=24.8.0",
     "ty>=0.0.42",
     "xenon>=0.9.3",
 ]
@@ -88,3 +89,35 @@ convention = "google"
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
+
+[tool.towncrier]
+directory = "changes"
+filename = "CHANGELOG.md"
+title_format = "## {version} - {project_date}"
+issue_format = "[#{issue}](https://github.com/ChartinoLabs/Huginn/pull/{issue})"
+underlines = ["", "", ""]
+
+[[tool.towncrier.type]]
+directory = "added"
+name = "Added"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "Changed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "Fixed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "breaking"
+name = "Breaking Changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "internal"
+name = "Internal"
+showcontent = true
