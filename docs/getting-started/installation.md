@@ -35,7 +35,7 @@ Huginn version 0.1.0
 
 Huginn pulls in a small set of runtime dependencies automatically:
 
-- **scrapli** — async SSH and NETCONF transport for device connections
-- **typer** — CLI framework
-- **jinja2** — template rendering for test metadata and reports
-- **pyyaml / ruamel.yaml** — testbed and test plan YAML parsing
+- **scrapli** - async SSH and NETCONF transport for device connections
+- **typer** - CLI framework
+- **jinja2** - template rendering for test metadata and reports
+- **pyyaml / ruamel.yaml** - testbed and test plan YAML parsing

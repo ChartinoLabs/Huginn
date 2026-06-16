@@ -103,9 +103,9 @@ Both tools are declared in the `docs` dependency group in `pyproject.toml`.
 
 ### No em-dashes or double-dashes
 
-Do not use the Unicode em-dash character (U+2014) or double hyphens (`--`). Use a single space-surrounded hyphen (` - `) instead.
+Do not use the Unicode em-dash character (U+2014) or double hyphens (`--`). Use a single space-surrounded hyphen (`-`) instead.
 
-Wrong: `The command reads results — then modifies the plan.` (em-dash)
+Wrong: `The command reads results - then modifies the plan.` (em-dash)
 
 Wrong: `The command reads results -- then modifies the plan.` (double-hyphen)
 

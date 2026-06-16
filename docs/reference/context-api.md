@@ -99,15 +99,15 @@ async def test(self, context: Context) -> None:
 
 ### ResultStatus enum
 
-| Status             | Meaning                                                              | Contributes to failure? |
-| ------------------ | -------------------------------------------------------------------- | ----------------------- |
-| `PASSED`           | Check succeeded                                                      | No                      |
-| `FAILED`           | Check failed                                                         | Yes                     |
-| `NOT_APPLICABLE`   | Check did not apply to the target at runtime                         | No                      |
+| Status               | Meaning                                                              | Contributes to failure? |
+| -------------------- | -------------------------------------------------------------------- | ----------------------- |
+| `PASSED`             | Check succeeded                                                      | No                      |
+| `FAILED`             | Check failed                                                         | Yes                     |
+| `NOT_APPLICABLE`     | Check did not apply to the target at runtime                         | No                      |
 | `LOST_APPLICABILITY` | Previously supported the command, now doesn't (has prior parameters) | Yes                     |
-| `SKIPPED`          | Check was skipped                                                    | No                      |
-| `ERRORED`          | Check encountered an error                                           | Yes                     |
-| `INFO`             | Informational (no impact on overall status)                          | No                      |
+| `SKIPPED`            | Check was skipped                                                    | No                      |
+| `ERRORED`            | Check encountered an error                                           | Yes                     |
+| `INFO`               | Informational (no impact on overall status)                          | No                      |
 
 ## Connection broker API
 
@@ -305,10 +305,10 @@ When a test implements `check_command_support()`, the framework:
 
 When running in testing mode with file-based parameters, the framework detects devices that supported the required command(s) when parameters were learned but no longer support them. This is recorded as `LOST_APPLICABILITY` rather than `NOT_APPLICABLE`.
 
-| Status             | Meaning                                               | Contributes to failure? |
-| ------------------ | ----------------------------------------------------- | ----------------------- |
-| NOT_APPLICABLE     | Never supported the command (no prior parameters)     | No                      |
-| LOST_APPLICABILITY | Previously supported, now doesn't (has prior params)  | Yes                     |
+| Status             | Meaning                                              | Contributes to failure? |
+| ------------------ | ---------------------------------------------------- | ----------------------- |
+| NOT_APPLICABLE     | Never supported the command (no prior parameters)    | No                      |
+| LOST_APPLICABILITY | Previously supported, now doesn't (has prior params) | Yes                     |
 
 ## Async patterns
 

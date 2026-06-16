@@ -147,4 +147,3 @@ Muninn provides:
 Critically, Muninn is fully decoupled from Huginn. Users can leverage Muninn parsers without installing Huginn, and vice versa. This avoids the dependency entanglement that plagues PyATS/Genie.
 
 See the [Muninn documentation](https://chartinolabs.github.io/Muninn/) for details.
-

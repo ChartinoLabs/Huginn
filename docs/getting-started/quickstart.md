@@ -103,8 +103,8 @@ class VerifyIosVersion(LearningTestCase[VersionParameters]):
 
 A job containing a class that inherits from `LearningTestCase` implements two methods:
 
-- **`gather_state`** — collects current device state (runs in both modes)
-- **`compare_state`** — compares learned state against current state (runs only in testing mode)
+- **`gather_state`** - collects current device state (runs in both modes)
+- **`compare_state`** - compares learned state against current state (runs only in testing mode)
 
 When the job is executed in learning mode, Huginn saves the output of `gather_state` as parameters in a JSON file, typically in a directory named `parameters`. When the job is executed in testing mode, it loads those saved parameters and passes them to `compare_state` to compare those saved parameters against the current device state.
 
@@ -195,12 +195,12 @@ To view the report locally, start a simple HTTP server from the report directory
 python -m http.server 8000 --directory reports/latest
 ```
 
-Then open `http://localhost:8000` in your browser. The dashboard shows a summary of all test cases with their status, and you can click into any test case to see the full execution details — including the raw CLI output, parsed data, and pass/fail checks.
+Then open `http://localhost:8000` in your browser. The dashboard shows a summary of all test cases with their status, and you can click into any test case to see the full execution details - including the raw CLI output, parsed data, and pass/fail checks.
 
 ## Next steps
 
-- [Concepts Overview](../concepts/overview.md) — understand what the framework does and doesn't do
-- [Job Archetypes](../concepts/archetypes.md) — the four shapes a job can take
-- [Authoring Jobs](../authoring/index.md) — detailed guides for each archetype
-- [Testbed Specification](../reference/testbed.md) — full testbed YAML reference
-- [Test Plan Specification](../reference/test-plan.md) — full test plan YAML reference
+- [Concepts Overview](../concepts/overview.md) - understand what the framework does and doesn't do
+- [Job Archetypes](../concepts/archetypes.md) - the four shapes a job can take
+- [Authoring Jobs](../authoring/index.md) - detailed guides for each archetype
+- [Testbed Specification](../reference/testbed.md) - full testbed YAML reference
+- [Test Plan Specification](../reference/test-plan.md) - full test plan YAML reference
