@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://chartinolabs.github.io/Huginn/concepts/archetypes/">
+        <link rel="canonical" href="https://chartinolabs.github.io/Huginn/concepts/execution-modes/">
       
       
-        <link rel="prev" href="../test-plan-structure/">
+        <link rel="prev" href="../overview/">
       
       
-        <link rel="next" href="../reconciliation/">
+        <link rel="next" href="../test-plan-structure/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Job Archetypes - Huginn</title>
+        <title>Execution Modes - Huginn</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#job-archetypes" class="md-skip">
+        <a href="#execution-modes" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Job Archetypes
+              Execution Modes
             
           </span>
         </div>
@@ -485,10 +485,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../execution-modes/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution Modes
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -504,6 +531,137 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-two-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why two modes?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#learning-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Learning mode
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Learning mode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-run-in-learning-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to run in learning mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing mode
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing mode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-run-in-testing-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to run in testing mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works-in-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How it works in code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parameter-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameter storage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#relationship-to-scenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Relationship to scenarios
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -541,37 +699,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Job Archetypes
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../archetypes/" class="md-nav__link">
         
   
   
@@ -587,81 +718,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#why-these-four" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why these four
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#inheritance-and-naming" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Inheritance and naming
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-the-framework-treats-them" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How the framework treats them
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#where-archetype-affects-test-plan-structure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Where archetype affects test plan structure
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#see-also" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        See also
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1532,10 +1588,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#why-these-four" class="md-nav__link">
+  <a href="#why-two-modes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why these four
+        Why two modes?
       
     </span>
   </a>
@@ -1543,10 +1599,66 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#inheritance-and-naming" class="md-nav__link">
+  <a href="#learning-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Inheritance and naming
+        Learning mode
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Learning mode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-run-in-learning-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to run in learning mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing mode
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing mode">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-to-run-in-testing-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When to run in testing mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works-in-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How it works in code
       
     </span>
   </a>
@@ -1554,10 +1666,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-the-framework-treats-them" class="md-nav__link">
+  <a href="#parameter-storage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How the framework treats them
+        Parameter storage
       
     </span>
   </a>
@@ -1565,10 +1677,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#where-archetype-affects-test-plan-structure" class="md-nav__link">
+  <a href="#relationship-to-scenarios" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Where archetype affects test plan structure
+        Relationship to scenarios
       
     </span>
   </a>
@@ -1606,69 +1718,127 @@
   
 
 
-<h1 id="job-archetypes">Job Archetypes<a class="headerlink" href="#job-archetypes" title="Permanent link">&para;</a></h1>
-<p>Huginn jobs fall into four archetypes. Each archetype solves a different validation or orchestration problem, but all four share the same execution interface - the framework treats them uniformly.</p>
-<p>The four archetypes are:</p>
+<h1 id="execution-modes">Execution Modes<a class="headerlink" href="#execution-modes" title="Permanent link">&para;</a></h1>
+<p>Huginn has two execution modes: <strong>learning</strong> and <strong>testing</strong>. Learning mode observes infrastructure and records what it sees. Testing mode re-observes and compares against the recording. Any deviation is drift.</p>
+<p><img alt="Test Automation Execution Modes" src="../execution-modes-diagram.png" /></p>
+<h2 id="why-two-modes">Why two modes?<a class="headerlink" href="#why-two-modes" title="Permanent link">&para;</a></h2>
+<p>A test plan with thousands of test cases needs thousands of expected values. Populating those by hand is slow, error-prone, and brittle - any planned change invalidates large swaths of them. Dual-mode execution removes the manual step entirely: the framework captures expected values from the live network, then uses them for comparison on subsequent runs.</p>
+<h2 id="learning-mode">Learning mode<a class="headerlink" href="#learning-mode" title="Permanent link">&para;</a></h2>
+<p>Learning mode captures the current state of infrastructure as the "known good" baseline.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>learning<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan.yaml
+</code></pre></div>
+<p>During a learning run, each test case:</p>
+<ol>
+<li>Connects to its target devices (via the framework-managed connection broker)</li>
+<li>Executes commands and gathers structured state</li>
+<li>Saves the gathered state to a parameters file</li>
+</ol>
+<p>No comparison-based pass/fail judgement occurs (though a test case will still fail if it cannot successfully gather parameters). The output is a set of parameter files representing what the infrastructure looks like <em>right now</em>.</p>
+<h3 id="when-to-run-in-learning-mode">When to run in learning mode<a class="headerlink" href="#when-to-run-in-learning-mode" title="Permanent link">&para;</a></h3>
 <ul>
-<li><a href="../../authoring/static-validation/">Static parameter validation</a></li>
-<li><a href="../../authoring/volatile-validation/">Volatile parameter validation</a></li>
-<li><a href="../../authoring/change/">Change</a></li>
-<li><a href="../../authoring/gate/">Gate</a></li>
+<li><strong>Initial deployment</strong> - capture the baseline after confirming the network is healthy</li>
+<li><strong>After a planned change</strong> - re-learn parameters that were intentionally altered</li>
+<li><strong>After reconciliation</strong> - when new test case variants are created for changed infrastructure</li>
 </ul>
-<p>This page explains why each archetype exists, how <code>LearningTestCase</code> relates to the archetypes, and where each archetype typically appears in a test plan. For the practical conventions that apply to every archetype - filename and class naming, module layout, class metadata, result recording, command support - see <a href="../../authoring/">Authoring Jobs</a>. For the shape and reference example specific to one archetype, follow the link to that archetype's authoring page.</p>
-<h2 id="why-these-four">Why these four<a class="headerlink" href="#why-these-four" title="Permanent link">&para;</a></h2>
-<p>Each archetype exists because of a distinct, recurring problem:</p>
+<h2 id="testing-mode">Testing mode<a class="headerlink" href="#testing-mode" title="Permanent link">&para;</a></h2>
+<p>Testing mode evaluates infrastructure against expectations derived from previously-learned parameters.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan.yaml
+</code></pre></div>
+<p>During a testing run, each test case:</p>
+<ol>
+<li>Connects to its target devices</li>
+<li>Executes commands and gathers current state</li>
+<li>Loads previously-saved parameters as a reference point</li>
+<li>Evaluates current state against the reference (the evaluation logic depends on the job's archetype - exact match, operator-based comparison, or pass/fail criteria defined by the job itself)</li>
+<li>Records granular results</li>
+</ol>
+<h3 id="when-to-run-in-testing-mode">When to run in testing mode<a class="headerlink" href="#when-to-run-in-testing-mode" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Static parameter validation</strong> covers attributes that are deterministic - interface descriptions, OSPF costs, BGP ASN configurations, device serial numbers. They either match a learned baseline or they don't.</li>
-<li><strong>Volatile parameter validation</strong> exists because some attributes change as a normal consequence of network operation. Counters increment, uptimes grow, table versions advance. Treating these as static parameters causes false failures across sequential scenarios and across repeated runs of the same plan. Volatile jobs replace "value equals baseline" with "value satisfies a comparison operator relative to the previous observation in this run."</li>
-<li><strong>Change jobs</strong> exist because validation alone does not exercise infrastructure. A meaningful test plan introduces conditions and observes how the system responds.</li>
-<li><strong>Gate jobs</strong> exist because validation runs faster than infrastructure converges. After a change is applied, post-change validation can race convergence and produce false failures. Gates poll until expected conditions are met, halting the plan until the testbed has stabilized.</li>
+<li><strong>Drift detection</strong> - periodic validation that infrastructure hasn't changed unexpectedly</li>
+<li><strong>Change validation</strong> - run before and after a change to confirm only intended state changed</li>
+<li><strong>Regression testing</strong> - verify a software upgrade or migration hasn't introduced regressions</li>
 </ul>
-<h2 id="inheritance-and-naming">Inheritance and naming<a class="headerlink" href="#inheritance-and-naming" title="Permanent link">&para;</a></h2>
-<p>Three of the four archetypes (static validation, change, gate) inherit from <code>LearningTestCase</code>. The fourth (volatile validation) inherits from <code>VolatileLearningTestCase</code>, which is itself a descendant of <code>LearningTestCase</code>.</p>
-<p>The name <code>LearningTestCase</code> is <strong>not an archetype label</strong>. It defines the interface contract - capture-or-compare against learned parameters - that all four archetypes need in some form:</p>
-<ul>
-<li>A static validation job <em>learns</em> the absolute expected values and <em>compares</em> current values against them.</li>
-<li>A volatile validation job <em>learns</em> the comparison operator and <em>compares</em> the current observation against the most recent prior observation.</li>
-<li>A change job <em>learns</em> which targets are valid candidates for the action (e.g., which BGP peers are currently Established and therefore eligible to be cleared). The test author reviews and edits the resulting parameters to match the intent of the job at that point in the test plan, and the job then <em>acts</em> against those parameters when executed in testing mode.</li>
-<li>A gate job <em>learns</em> the expected post-change state and <em>polls</em> until current state matches.</li>
-</ul>
-<p>In every case, "learning mode" captures parameters that "testing mode" subsequently uses. The verbs <code>gather_state</code> and <code>compare_state</code> describe the interface, not the semantic intent of the job. This is a common point of confusion for new authors.</p>
-<h2 id="how-the-framework-treats-them">How the framework treats them<a class="headerlink" href="#how-the-framework-treats-them" title="Permanent link">&para;</a></h2>
-<p>The framework does not distinguish between the four archetypes at execution time. From the framework's perspective, every job is a <code>TestCase</code> (or a subclass of one) with <code>check_command_support</code>, <code>setup</code>, <code>test</code>, and <code>cleanup</code> methods, executed inside a phase, against a target set, in either learning or testing mode.</p>
-<p>Archetype is a <strong>convention</strong> - a way of organizing how authors think about jobs and how readers find them. The four archetypes have stable shapes, naming conventions, and module layouts, documented on their respective authoring pages.</p>
-<h2 id="where-archetype-affects-test-plan-structure">Where archetype affects test plan structure<a class="headerlink" href="#where-archetype-affects-test-plan-structure" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Archetype</th>
-<th>Typical phase placement</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Static parameter validation</td>
-<td>Pre-change and post-change validation phases. Reused across scenarios via shared test case groups.</td>
-</tr>
-<tr>
-<td>Volatile parameter validation</td>
-<td>Pre-change and post-change validation phases. Grouped per-scenario rather than shared, because comparison operators may need scenario-specific reconciliation. See <a href="../../design/volatile-parameters/">Volatile Parameters</a>.</td>
-</tr>
-<tr>
-<td>Change</td>
-<td>Change phase. One or more change jobs apply the scenario's intended action.</td>
-</tr>
-<tr>
-<td>Gate</td>
-<td>Between change and post-change. Halts the plan until convergence completes, so post-change validation runs against a stable testbed.</td>
-</tr>
-</tbody>
-</table>
+<h2 id="how-it-works-in-code">How it works in code<a class="headerlink" href="#how-it-works-in-code" title="Permanent link">&para;</a></h2>
+<p>Inherit from <code>LearningTestCase</code> and implement two methods - <code>gather_state</code> and <code>compare_state</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">LearningTestCase</span><span class="p">,</span> <span class="n">ResultStatus</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">VerifyOSPFCost</span><span class="p">(</span><span class="n">LearningTestCase</span><span class="p">):</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Learn and verify OSPF interface costs.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;show ip ospf interface brief&quot;</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Gather current state from all target devices.</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="sd">        Called in both modes. Returns structured data representing</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="sd">        the current infrastructure state.</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>        <span class="n">devices</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>        <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">broker</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">)</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>            <span class="n">parsed</span> <span class="o">=</span> <span class="n">mn</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">os</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">os</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>            <span class="n">devices</span><span class="p">[</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;interfaces&quot;</span><span class="p">:</span> <span class="n">parsed</span><span class="p">[</span><span class="s2">&quot;interfaces&quot;</span><span class="p">]}</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;devices&quot;</span><span class="p">:</span> <span class="n">devices</span><span class="p">}</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">compare_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">expected</span><span class="p">,</span> <span class="n">current</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compare expected state against current state.</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="sd">        Called only in testing mode. Records pass/fail results</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="sd">        for each comparison point.</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>        <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>            <span class="n">exp</span> <span class="o">=</span> <span class="n">expected</span><span class="p">[</span><span class="s2">&quot;devices&quot;</span><span class="p">][</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;interfaces&quot;</span><span class="p">]</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>            <span class="n">cur</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="s2">&quot;devices&quot;</span><span class="p">][</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;interfaces&quot;</span><span class="p">]</span>
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>            <span class="k">for</span> <span class="n">intf</span><span class="p">,</span> <span class="n">exp_cost</span> <span class="ow">in</span> <span class="n">exp</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>                <span class="n">cur_cost</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">intf</span><span class="p">)</span>
+<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a>                <span class="k">if</span> <span class="n">cur_cost</span> <span class="o">==</span> <span class="n">exp_cost</span><span class="p">:</span>
+<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>                    <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span>
+<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a>                        <span class="n">ResultStatus</span><span class="o">.</span><span class="n">PASSED</span><span class="p">,</span>
+<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a>                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">intf</span><span class="si">}</span><span class="s2">: cost </span><span class="si">{</span><span class="n">cur_cost</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a>                    <span class="p">)</span>
+<a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a>                <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a>                    <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span>
+<a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a>                        <span class="n">ResultStatus</span><span class="o">.</span><span class="n">FAILED</span><span class="p">,</span>
+<a id="__codelineno-2-41" name="__codelineno-2-41" href="#__codelineno-2-41"></a>                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">intf</span><span class="si">}</span><span class="s2">: cost is </span><span class="si">{</span><span class="n">cur_cost</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="n">exp_cost</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-42" name="__codelineno-2-42" href="#__codelineno-2-42"></a>                    <span class="p">)</span>
+</code></pre></div>
+<p>The framework calls <code>gather_state</code> in both modes. In learning mode, it saves the return value. In testing mode, it loads the saved parameters and passes both to <code>compare_state</code>.</p>
+<h2 id="parameter-storage">Parameter storage<a class="headerlink" href="#parameter-storage" title="Permanent link">&para;</a></h2>
+<p>Learned parameters are persisted as JSON files in the results directory. Each test case gets its own parameter file, named by its test case identifier:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>results/
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  2026-06-05-09-15-00-learning/
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    parameters/
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>      OSPF-NEIGHBOR-STATE.json
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>      BGP-SUMMARY-NEIGHBOR-STATE.json
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>      ...
+</code></pre></div>
+<p>When testing mode runs, it loads parameters from the most recent learning run (or a specific run, if configured).</p>
+<h2 id="relationship-to-scenarios">Relationship to scenarios<a class="headerlink" href="#relationship-to-scenarios" title="Permanent link">&para;</a></h2>
+<p>In a change-validation test plan with multiple scenarios, learning and testing modes operate within the context of phases:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">scenarios</span><span class="p">:</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">link-shutdown-r1r2</span><span class="p">:</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">phases</span><span class="p">:</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">      </span><span class="nt">pre-change</span><span class="p">:</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">        </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">learning</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">baseline</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">      </span><span class="nt">shutdown</span><span class="p">:</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">shut-link</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">      </span><span class="nt">post-shutdown</span><span class="p">:</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">        </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">testing</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">baseline</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">      </span><span class="nt">normalize</span><span class="p">:</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">normalize-link</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">      </span><span class="nt">post-normalize</span><span class="p">:</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">        </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">testing</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">baseline</span><span class="p p-Indicator">]</span>
+</code></pre></div>
+<p>The same test cases run in <code>pre-change</code> (learning) and <code>post-shutdown</code> (testing). The pre-change phase captures expected state; the post-shutdown phase detects what changed. Only intentional deviations should appear - any unexpected drift is a failure.</p>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../glossary/">Glossary</a> - formal definitions of terms used here.</li>
-<li><a href="../../design/volatile-parameters/">Volatile Parameters</a> - design rationale for the volatile archetype.</li>
-<li><a href="../../reference/test-plan/">Test Plan Specification</a> - phases, scenarios, and test case groups.</li>
+<li><a href="../archetypes/">Job Archetypes</a> - the four shapes a job can take, all built on this dual-mode foundation.</li>
+<li><a href="../../reference/context-api/#learning-and-testing-modes">Context API - Learning and Testing Modes</a> - the API surface for mode-aware test logic.</li>
+<li><a href="../../reference/test-plan/">Reference - Test Plan Schema</a> - how phases and scenarios reference execution modes.</li>
 </ul>
 
 

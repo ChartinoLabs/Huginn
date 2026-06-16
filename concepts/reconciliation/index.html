@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://chartinolabs.github.io/Huginn/concepts/archetypes/">
+        <link rel="canonical" href="https://chartinolabs.github.io/Huginn/concepts/reconciliation/">
       
       
-        <link rel="prev" href="../test-plan-structure/">
+        <link rel="prev" href="../archetypes/">
       
       
-        <link rel="next" href="../reconciliation/">
+        <link rel="next" href="../glossary/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Job Archetypes - Huginn</title>
+        <title>Reconciliation - Huginn</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#job-archetypes" class="md-skip">
+        <a href="#reconciliation" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Job Archetypes
+              Reconciliation
             
           </span>
         </div>
@@ -541,6 +541,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../archetypes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Archetypes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -560,7 +588,7 @@
   <span class="md-ellipsis">
     
   
-    Job Archetypes
+    Reconciliation
   
 
     
@@ -578,7 +606,7 @@
   <span class="md-ellipsis">
     
   
-    Job Archetypes
+    Reconciliation
   
 
     
@@ -604,10 +632,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#why-these-four" class="md-nav__link">
+  <a href="#starting-point-a-change-validation-test-plan" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why these four
+        Starting point: a change-validation test plan
       
     </span>
   </a>
@@ -615,10 +643,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#inheritance-and-naming" class="md-nav__link">
+  <a href="#what-happens-when-you-run-this" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Inheritance and naming
+        What happens when you run this
       
     </span>
   </a>
@@ -626,10 +654,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-the-framework-treats-them" class="md-nav__link">
+  <a href="#what-reconciliation-does" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How the framework treats them
+        What reconciliation does
       
     </span>
   </a>
@@ -637,10 +665,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#where-archetype-affects-test-plan-structure" class="md-nav__link">
+  <a href="#what-the-reconciled-test-plan-looks-like" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Where archetype affects test plan structure
+        What the reconciled test plan looks like
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-reconciliation-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The reconciliation workflow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-not-just-re-learn-everything" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why not just re-learn everything?
       
     </span>
   </a>
@@ -662,34 +712,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../reconciliation/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Reconciliation
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1532,10 +1554,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#why-these-four" class="md-nav__link">
+  <a href="#starting-point-a-change-validation-test-plan" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why these four
+        Starting point: a change-validation test plan
       
     </span>
   </a>
@@ -1543,10 +1565,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#inheritance-and-naming" class="md-nav__link">
+  <a href="#what-happens-when-you-run-this" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Inheritance and naming
+        What happens when you run this
       
     </span>
   </a>
@@ -1554,10 +1576,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-the-framework-treats-them" class="md-nav__link">
+  <a href="#what-reconciliation-does" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How the framework treats them
+        What reconciliation does
       
     </span>
   </a>
@@ -1565,10 +1587,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#where-archetype-affects-test-plan-structure" class="md-nav__link">
+  <a href="#what-the-reconciled-test-plan-looks-like" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Where archetype affects test plan structure
+        What the reconciled test plan looks like
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-reconciliation-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The reconciliation workflow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-not-just-re-learn-everything" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why not just re-learn everything?
       
     </span>
   </a>
@@ -1606,69 +1650,85 @@
   
 
 
-<h1 id="job-archetypes">Job Archetypes<a class="headerlink" href="#job-archetypes" title="Permanent link">&para;</a></h1>
-<p>Huginn jobs fall into four archetypes. Each archetype solves a different validation or orchestration problem, but all four share the same execution interface - the framework treats them uniformly.</p>
-<p>The four archetypes are:</p>
-<ul>
-<li><a href="../../authoring/static-validation/">Static parameter validation</a></li>
-<li><a href="../../authoring/volatile-validation/">Volatile parameter validation</a></li>
-<li><a href="../../authoring/change/">Change</a></li>
-<li><a href="../../authoring/gate/">Gate</a></li>
-</ul>
-<p>This page explains why each archetype exists, how <code>LearningTestCase</code> relates to the archetypes, and where each archetype typically appears in a test plan. For the practical conventions that apply to every archetype - filename and class naming, module layout, class metadata, result recording, command support - see <a href="../../authoring/">Authoring Jobs</a>. For the shape and reference example specific to one archetype, follow the link to that archetype's authoring page.</p>
-<h2 id="why-these-four">Why these four<a class="headerlink" href="#why-these-four" title="Permanent link">&para;</a></h2>
-<p>Each archetype exists because of a distinct, recurring problem:</p>
-<ul>
-<li><strong>Static parameter validation</strong> covers attributes that are deterministic - interface descriptions, OSPF costs, BGP ASN configurations, device serial numbers. They either match a learned baseline or they don't.</li>
-<li><strong>Volatile parameter validation</strong> exists because some attributes change as a normal consequence of network operation. Counters increment, uptimes grow, table versions advance. Treating these as static parameters causes false failures across sequential scenarios and across repeated runs of the same plan. Volatile jobs replace "value equals baseline" with "value satisfies a comparison operator relative to the previous observation in this run."</li>
-<li><strong>Change jobs</strong> exist because validation alone does not exercise infrastructure. A meaningful test plan introduces conditions and observes how the system responds.</li>
-<li><strong>Gate jobs</strong> exist because validation runs faster than infrastructure converges. After a change is applied, post-change validation can race convergence and produce false failures. Gates poll until expected conditions are met, halting the plan until the testbed has stabilized.</li>
-</ul>
-<h2 id="inheritance-and-naming">Inheritance and naming<a class="headerlink" href="#inheritance-and-naming" title="Permanent link">&para;</a></h2>
-<p>Three of the four archetypes (static validation, change, gate) inherit from <code>LearningTestCase</code>. The fourth (volatile validation) inherits from <code>VolatileLearningTestCase</code>, which is itself a descendant of <code>LearningTestCase</code>.</p>
-<p>The name <code>LearningTestCase</code> is <strong>not an archetype label</strong>. It defines the interface contract - capture-or-compare against learned parameters - that all four archetypes need in some form:</p>
-<ul>
-<li>A static validation job <em>learns</em> the absolute expected values and <em>compares</em> current values against them.</li>
-<li>A volatile validation job <em>learns</em> the comparison operator and <em>compares</em> the current observation against the most recent prior observation.</li>
-<li>A change job <em>learns</em> which targets are valid candidates for the action (e.g., which BGP peers are currently Established and therefore eligible to be cleared). The test author reviews and edits the resulting parameters to match the intent of the job at that point in the test plan, and the job then <em>acts</em> against those parameters when executed in testing mode.</li>
-<li>A gate job <em>learns</em> the expected post-change state and <em>polls</em> until current state matches.</li>
-</ul>
-<p>In every case, "learning mode" captures parameters that "testing mode" subsequently uses. The verbs <code>gather_state</code> and <code>compare_state</code> describe the interface, not the semantic intent of the job. This is a common point of confusion for new authors.</p>
-<h2 id="how-the-framework-treats-them">How the framework treats them<a class="headerlink" href="#how-the-framework-treats-them" title="Permanent link">&para;</a></h2>
-<p>The framework does not distinguish between the four archetypes at execution time. From the framework's perspective, every job is a <code>TestCase</code> (or a subclass of one) with <code>check_command_support</code>, <code>setup</code>, <code>test</code>, and <code>cleanup</code> methods, executed inside a phase, against a target set, in either learning or testing mode.</p>
-<p>Archetype is a <strong>convention</strong> - a way of organizing how authors think about jobs and how readers find them. The four archetypes have stable shapes, naming conventions, and module layouts, documented on their respective authoring pages.</p>
-<h2 id="where-archetype-affects-test-plan-structure">Where archetype affects test plan structure<a class="headerlink" href="#where-archetype-affects-test-plan-structure" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Archetype</th>
-<th>Typical phase placement</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Static parameter validation</td>
-<td>Pre-change and post-change validation phases. Reused across scenarios via shared test case groups.</td>
-</tr>
-<tr>
-<td>Volatile parameter validation</td>
-<td>Pre-change and post-change validation phases. Grouped per-scenario rather than shared, because comparison operators may need scenario-specific reconciliation. See <a href="../../design/volatile-parameters/">Volatile Parameters</a>.</td>
-</tr>
-<tr>
-<td>Change</td>
-<td>Change phase. One or more change jobs apply the scenario's intended action.</td>
-</tr>
-<tr>
-<td>Gate</td>
-<td>Between change and post-change. Halts the plan until convergence completes, so post-change validation runs against a stable testbed.</td>
-</tr>
-</tbody>
-</table>
+<h1 id="reconciliation">Reconciliation<a class="headerlink" href="#reconciliation" title="Permanent link">&para;</a></h1>
+<p>Reconciliation is a convenience command used during test plan development. It automates the creation of post-change parameter variants so you don't have to manually duplicate test cases and groups when building a change-validation scenario.</p>
+<h2 id="starting-point-a-change-validation-test-plan">Starting point: a change-validation test plan<a class="headerlink" href="#starting-point-a-change-validation-test-plan" title="Permanent link">&para;</a></h2>
+<p>A typical change-validation scenario has pre-change and post-change phases that reference the same validation groups (at least initially, while the test plan is being built):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">scenarios</span><span class="p">:</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">link-shutdown-r1r2</span><span class="p">:</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nt">phases</span><span class="p">:</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">      </span><span class="nt">pre-change</span><span class="p">:</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ospf-neighbor-baseline</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bgp-summary-baseline</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">      </span><span class="nt">shutdown</span><span class="p">:</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">action-shut-r1r2</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">      </span><span class="nt">post-shutdown</span><span class="p">:</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ospf-neighbor-baseline</span><span class="w">      </span><span class="c1"># same group as pre-change</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bgp-summary-baseline</span><span class="w">        </span><span class="c1"># same group as pre-change</span>
+</code></pre></div>
+<p>Both <code>pre-change</code> and <code>post-shutdown</code> point to the same groups, which means they reference the same learned parameters.</p>
+<h2 id="what-happens-when-you-run-this">What happens when you run this<a class="headerlink" href="#what-happens-when-you-run-this" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Pre-change</strong> runs in learning mode and captures baseline parameters - OSPF neighbors, BGP peers, all healthy.</li>
+<li><strong>Shutdown</strong> disables the R1-R2 link.</li>
+<li><strong>Post-shutdown</strong> runs in testing mode and compares current state against the baseline parameters captured in step 1.</li>
+</ol>
+<p>The OSPF tests in <code>post-shutdown</code> fail. The parameters say "neighbor 10.1.1.1 exists on GigabitEthernet2" but after the shutdown, that neighbor is gone. This is expected behavior - the link is down - but the test plan has no way to express that the post-change expected state differs from baseline.</p>
+<h2 id="what-reconciliation-does">What reconciliation does<a class="headerlink" href="#what-reconciliation-does" title="Permanent link">&para;</a></h2>
+<p>The <code>huginn reconcile</code> command is a convenience method that creates the post-change variants for you. You run it once during test plan development after you've observed which tests fail due to the intentional change. Reconciliation performs the following tasks:</p>
+<ol>
+<li>Creates new test case definitions with a phase-specific suffix (e.g., <code>OSPF-NEIGHBOR-EXISTENCE-post-shutdown</code>)</li>
+<li>Creates a reconciled test case group that inherits from the baseline group but swaps in the new variants</li>
+<li>Copies baseline parameter files as a starting point for the new variants</li>
+</ol>
+<p>After reconciliation, you re-learn parameters for just the reconciled variants to capture the actual post-change state. Then you run the full scenario again end-to-end to confirm it passes.</p>
+<h2 id="what-the-reconciled-test-plan-looks-like">What the reconciled test plan looks like<a class="headerlink" href="#what-the-reconciled-test-plan-looks-like" title="Permanent link">&para;</a></h2>
+<p>The original scenario references baseline groups in the post-change phase:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">post-shutdown</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ospf-neighbor-baseline</span>
+</code></pre></div>
+<p>After reconciliation, it references a reconciled group instead:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">post-shutdown</span><span class="p">:</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ospf-neighbor-baseline-post-shutdown</span>
+</code></pre></div>
+<p>The reconciled group inherits from the baseline, excludes tests within the baseline that fail due to the intentional change, and includes phase-specific variants:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">ospf-neighbor-baseline-post-shutdown</span><span class="p">:</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ospf-neighbor-baseline</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="nt">exclude_tests</span><span class="p">:</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-EXISTENCE</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-STATE</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-INTERFACE</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-PRIORITY</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-EXISTENCE-post-shutdown</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-STATE-post-shutdown</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-INTERFACE-post-shutdown</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-PRIORITY-post-shutdown</span>
+</code></pre></div>
+<p>The reconciled variants point to the same job modules as their baseline counterparts - only their parameters differ.</p>
+<h2 id="the-reconciliation-workflow">The reconciliation workflow<a class="headerlink" href="#the-reconciliation-workflow" title="Permanent link">&para;</a></h2>
+<p>This is a development-time workflow. You run it once while building and validating a new scenario, not every time you execute the test plan:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>1. Run scenario end-to-end             → post-change tests fail (expected)
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>2. huginn reconcile --phase &lt;phase&gt;    → creates variants + reconciled groups
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>3. Re-learn the reconciled variants    → captures actual post-change state
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>4. Run scenario end-to-end again       → passes cleanly
+</code></pre></div>
+<p>Once the reconciled parameters are in place and you've confirmed the scenario passes, the test plan is ready for repeated use without further reconciliation.</p>
+<h2 id="why-not-just-re-learn-everything">Why not just re-learn everything?<a class="headerlink" href="#why-not-just-re-learn-everything" title="Permanent link">&para;</a></h2>
+<p>Re-learning the entire baseline would overwrite pre-change parameters with post-change values. Then the pre-change phase would fail instead. The test plan needs <em>both</em> sets of parameters - baseline for phases that validate steady state, and reconciled variants for phases that validate post-change state.</p>
+<p>Reconciliation preserves this distinction by creating separate parameter files for each phase that needs different expected values, while leaving the baseline parameters untouched.</p>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../glossary/">Glossary</a> - formal definitions of terms used here.</li>
-<li><a href="../../design/volatile-parameters/">Volatile Parameters</a> - design rationale for the volatile archetype.</li>
-<li><a href="../../reference/test-plan/">Test Plan Specification</a> - phases, scenarios, and test case groups.</li>
+<li><a href="../test-plan-structure/">Test Plan Structure</a> - how scenarios, phases, and groups relate.</li>
+<li><a href="../../reference/reconcile/">Reference - reconcile CLI</a> - the command reference and full workflow.</li>
+<li><a href="../../reference/prune/">Reference - prune CLI</a> - a related command that narrows test scope based on learning results.</li>
 </ul>
 
 

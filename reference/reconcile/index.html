@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://chartinolabs.github.io/Huginn/concepts/archetypes/">
+        <link rel="canonical" href="https://chartinolabs.github.io/Huginn/reference/reconcile/">
       
       
-        <link rel="prev" href="../test-plan-structure/">
+        <link rel="prev" href="../package-jobs/">
       
       
-        <link rel="next" href="../reconciliation/">
+        <link rel="next" href="../prune/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Job Archetypes - Huginn</title>
+        <title>CLI - reconcile - Huginn</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#job-archetypes" class="md-skip">
+        <a href="#parameter-reconciliation" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Job Archetypes
+              CLI - reconcile
             
           </span>
         </div>
@@ -403,8 +403,6 @@
       
   
   
-    
-  
   
   
     
@@ -417,11 +415,13 @@
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -442,7 +442,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -460,7 +460,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../overview/" class="md-nav__link">
+      <a href="../../concepts/overview/" class="md-nav__link">
         
   
   
@@ -488,7 +488,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../execution-modes/" class="md-nav__link">
+      <a href="../../concepts/execution-modes/" class="md-nav__link">
         
   
   
@@ -516,7 +516,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../test-plan-structure/" class="md-nav__link">
+      <a href="../../concepts/test-plan-structure/" class="md-nav__link">
         
   
   
@@ -541,37 +541,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Job Archetypes
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../concepts/archetypes/" class="md-nav__link">
         
   
   
@@ -587,81 +560,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#why-these-four" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why these four
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#inheritance-and-naming" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Inheritance and naming
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-the-framework-treats-them" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How the framework treats them
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#where-archetype-affects-test-plan-structure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Where archetype affects test plan structure
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#see-also" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        See also
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -674,7 +572,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reconciliation/" class="md-nav__link">
+      <a href="../../concepts/reconciliation/" class="md-nav__link">
         
   
   
@@ -709,7 +607,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../glossary/" class="md-nav__link">
+      <a href="../../concepts/glossary/" class="md-nav__link">
         
   
   
@@ -962,8 +860,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -974,13 +874,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
@@ -1001,7 +899,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1019,7 +917,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/testbed/" class="md-nav__link">
+      <a href="../testbed/" class="md-nav__link">
         
   
   
@@ -1047,7 +945,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/test-plan/" class="md-nav__link">
+      <a href="../test-plan/" class="md-nav__link">
         
   
   
@@ -1075,7 +973,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/configuration/" class="md-nav__link">
+      <a href="../configuration/" class="md-nav__link">
         
   
   
@@ -1103,7 +1001,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/context-api/" class="md-nav__link">
+      <a href="../context-api/" class="md-nav__link">
         
   
   
@@ -1131,7 +1029,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/package-jobs/" class="md-nav__link">
+      <a href="../package-jobs/" class="md-nav__link">
         
   
   
@@ -1156,10 +1054,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../reference/reconcile/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI - reconcile
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1175,6 +1100,120 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workflow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Workflow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-run-the-scenario-in-testing-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Run the scenario in testing mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-reconcile-the-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Reconcile the failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-re-learn-the-post-change-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Re-learn the post-change parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Validate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-reconciled-group-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: reconciled group structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cli-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1187,7 +1226,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/prune/" class="md-nav__link">
+      <a href="../prune/" class="md-nav__link">
         
   
   
@@ -1532,10 +1571,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#why-these-four" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why these four
+        Overview
       
     </span>
   </a>
@@ -1543,10 +1582,71 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#inheritance-and-naming" class="md-nav__link">
+  <a href="#workflow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Inheritance and naming
+        Workflow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Workflow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-run-the-scenario-in-testing-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Run the scenario in testing mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-reconcile-the-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Reconcile the failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-re-learn-the-post-change-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Re-learn the post-change parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Validate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-reconciled-group-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: reconciled group structure
       
     </span>
   </a>
@@ -1554,32 +1654,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-the-framework-treats-them" class="md-nav__link">
+  <a href="#cli-reference" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How the framework treats them
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#where-archetype-affects-test-plan-structure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Where archetype affects test plan structure
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#see-also" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        See also
+        CLI reference
       
     </span>
   </a>
@@ -1606,70 +1684,96 @@
   
 
 
-<h1 id="job-archetypes">Job Archetypes<a class="headerlink" href="#job-archetypes" title="Permanent link">&para;</a></h1>
-<p>Huginn jobs fall into four archetypes. Each archetype solves a different validation or orchestration problem, but all four share the same execution interface - the framework treats them uniformly.</p>
-<p>The four archetypes are:</p>
+<h1 id="parameter-reconciliation">Parameter Reconciliation<a class="headerlink" href="#parameter-reconciliation" title="Permanent link">&para;</a></h1>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>When a network change occurs (e.g., a link shutdown), some baseline test cases will fail because the device state no longer matches the pre-change parameters. Huginn's <code>reconcile</code> command automates the process of creating new test case variants that reflect the post-change expected state.</p>
+<h2 id="workflow">Workflow<a class="headerlink" href="#workflow" title="Permanent link">&para;</a></h2>
+<h3 id="1-run-the-scenario-in-testing-mode">1. Run the scenario in testing mode<a class="headerlink" href="#1-run-the-scenario-in-testing-mode" title="Permanent link">&para;</a></h3>
+<p>Execute the scenario against the live testbed. Tests in the post-change phase will fail because they're still comparing against baseline parameters.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>run<span class="w"> </span>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>--scenario<span class="w"> </span>link-shutdown-r1r2
+</code></pre></div>
+<p>The failures are recorded in <code>results/&lt;timestamp&gt;-testing/run.json</code>.</p>
+<h3 id="2-reconcile-the-failures">2. Reconcile the failures<a class="headerlink" href="#2-reconcile-the-failures" title="Permanent link">&para;</a></h3>
+<p>Run the <code>reconcile</code> command, pointing it at the phase that contains the failures.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>run<span class="w"> </span>huginn<span class="w"> </span>reconcile<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>--phase<span class="w"> </span>post-shutdown<span class="w"> </span>--scenario<span class="w"> </span>link-shutdown-r1r2
+</code></pre></div>
+<p>This does several things automatically:</p>
 <ul>
-<li><a href="../../authoring/static-validation/">Static parameter validation</a></li>
-<li><a href="../../authoring/volatile-validation/">Volatile parameter validation</a></li>
-<li><a href="../../authoring/change/">Change</a></li>
-<li><a href="../../authoring/gate/">Gate</a></li>
+<li>Parses the latest test run results to identify which tests failed</li>
+<li>Creates new test case definitions with a <code>-&lt;phase&gt;</code> suffix (e.g., <code>1.1.0-post-shutdown</code>)</li>
+<li>Creates a new test case group (e.g., <code>post-shut-r1r2-post-shutdown</code>) that:</li>
+<li>Inherits from the original group (<code>post-shut-r1r2</code>)</li>
+<li>Excludes the failing baseline test IDs</li>
+<li>Includes the new <code>-post-shutdown</code> variant test IDs</li>
+<li>Copies baseline parameter files to new <code>-&lt;phase&gt;</code> parameter files as a starting point</li>
+<li>Updates the scenario in <code>scenarios.yaml</code> to reference the new reconciled group</li>
+<li>Writes the new definitions to <code>reconciled-&lt;phase&gt;.yaml</code> (when using a directory-based test plan)</li>
 </ul>
-<p>This page explains why each archetype exists, how <code>LearningTestCase</code> relates to the archetypes, and where each archetype typically appears in a test plan. For the practical conventions that apply to every archetype - filename and class naming, module layout, class metadata, result recording, command support - see <a href="../../authoring/">Authoring Jobs</a>. For the shape and reference example specific to one archetype, follow the link to that archetype's authoring page.</p>
-<h2 id="why-these-four">Why these four<a class="headerlink" href="#why-these-four" title="Permanent link">&para;</a></h2>
-<p>Each archetype exists because of a distinct, recurring problem:</p>
-<ul>
-<li><strong>Static parameter validation</strong> covers attributes that are deterministic - interface descriptions, OSPF costs, BGP ASN configurations, device serial numbers. They either match a learned baseline or they don't.</li>
-<li><strong>Volatile parameter validation</strong> exists because some attributes change as a normal consequence of network operation. Counters increment, uptimes grow, table versions advance. Treating these as static parameters causes false failures across sequential scenarios and across repeated runs of the same plan. Volatile jobs replace "value equals baseline" with "value satisfies a comparison operator relative to the previous observation in this run."</li>
-<li><strong>Change jobs</strong> exist because validation alone does not exercise infrastructure. A meaningful test plan introduces conditions and observes how the system responds.</li>
-<li><strong>Gate jobs</strong> exist because validation runs faster than infrastructure converges. After a change is applied, post-change validation can race convergence and produce false failures. Gates poll until expected conditions are met, halting the plan until the testbed has stabilized.</li>
-</ul>
-<h2 id="inheritance-and-naming">Inheritance and naming<a class="headerlink" href="#inheritance-and-naming" title="Permanent link">&para;</a></h2>
-<p>Three of the four archetypes (static validation, change, gate) inherit from <code>LearningTestCase</code>. The fourth (volatile validation) inherits from <code>VolatileLearningTestCase</code>, which is itself a descendant of <code>LearningTestCase</code>.</p>
-<p>The name <code>LearningTestCase</code> is <strong>not an archetype label</strong>. It defines the interface contract - capture-or-compare against learned parameters - that all four archetypes need in some form:</p>
-<ul>
-<li>A static validation job <em>learns</em> the absolute expected values and <em>compares</em> current values against them.</li>
-<li>A volatile validation job <em>learns</em> the comparison operator and <em>compares</em> the current observation against the most recent prior observation.</li>
-<li>A change job <em>learns</em> which targets are valid candidates for the action (e.g., which BGP peers are currently Established and therefore eligible to be cleared). The test author reviews and edits the resulting parameters to match the intent of the job at that point in the test plan, and the job then <em>acts</em> against those parameters when executed in testing mode.</li>
-<li>A gate job <em>learns</em> the expected post-change state and <em>polls</em> until current state matches.</li>
-</ul>
-<p>In every case, "learning mode" captures parameters that "testing mode" subsequently uses. The verbs <code>gather_state</code> and <code>compare_state</code> describe the interface, not the semantic intent of the job. This is a common point of confusion for new authors.</p>
-<h2 id="how-the-framework-treats-them">How the framework treats them<a class="headerlink" href="#how-the-framework-treats-them" title="Permanent link">&para;</a></h2>
-<p>The framework does not distinguish between the four archetypes at execution time. From the framework's perspective, every job is a <code>TestCase</code> (or a subclass of one) with <code>check_command_support</code>, <code>setup</code>, <code>test</code>, and <code>cleanup</code> methods, executed inside a phase, against a target set, in either learning or testing mode.</p>
-<p>Archetype is a <strong>convention</strong> - a way of organizing how authors think about jobs and how readers find them. The four archetypes have stable shapes, naming conventions, and module layouts, documented on their respective authoring pages.</p>
-<h2 id="where-archetype-affects-test-plan-structure">Where archetype affects test plan structure<a class="headerlink" href="#where-archetype-affects-test-plan-structure" title="Permanent link">&para;</a></h2>
+<h3 id="3-re-learn-the-post-change-parameters">3. Re-learn the post-change parameters<a class="headerlink" href="#3-re-learn-the-post-change-parameters" title="Permanent link">&para;</a></h3>
+<p>The copied parameter files still contain baseline values. Run the reconciled group in learning mode so Huginn captures the actual post-change device state.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>run<span class="w"> </span>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>learning<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>--test-case-group<span class="w"> </span>post-shut-r1r2-post-shutdown
+</code></pre></div>
+<p>This overwrites the copied parameter files (e.g., <code>parameters/1.1.0-post-shutdown.json</code>) with values gathered from the devices in their post-change state.</p>
+<h3 id="4-validate">4. Validate<a class="headerlink" href="#4-validate" title="Permanent link">&para;</a></h3>
+<p>Run the scenario again in testing mode. The post-change phase should now pass.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>--scenario<span class="w"> </span>link-shutdown-r1r2
+</code></pre></div>
+<h2 id="example-reconciled-group-structure">Example: reconciled group structure<a class="headerlink" href="#example-reconciled-group-structure" title="Permanent link">&para;</a></h2>
+<p>After reconciliation, the generated group in <code>reconciled-post-shutdown.yaml</code> looks like this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">post-shut-r1r2-post-shutdown</span><span class="p">:</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">post-shut-r1r2</span><span class="w">              </span><span class="c1"># inherit from parent group</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="nt">exclude_tests</span><span class="p">:</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.1.0</span><span class="w">                       </span><span class="c1"># exclude baseline tests that fail post-change</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.6.1</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.7.0</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="c1"># ...</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.1.0-post-shutdown</span><span class="w">         </span><span class="c1"># include reconciled variants</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.6.1-post-shutdown</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.7.0-post-shutdown</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">    </span><span class="c1"># ...</span>
+</code></pre></div>
+<h2 id="cli-reference">CLI reference<a class="headerlink" href="#cli-reference" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>huginn reconcile --plan &lt;path&gt; --phase &lt;phase-name&gt; [--scenario &lt;scenario-id&gt;] [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;]
+</code></pre></div>
 <table>
 <thead>
 <tr>
-<th>Archetype</th>
-<th>Typical phase placement</th>
+<th>Option</th>
+<th>Default</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Static parameter validation</td>
-<td>Pre-change and post-change validation phases. Reused across scenarios via shared test case groups.</td>
+<td><code>--plan</code>, <code>-p</code></td>
+<td>(required)</td>
+<td>Path to test plan file or directory</td>
 </tr>
 <tr>
-<td>Volatile parameter validation</td>
-<td>Pre-change and post-change validation phases. Grouped per-scenario rather than shared, because comparison operators may need scenario-specific reconciliation. See <a href="../../design/volatile-parameters/">Volatile Parameters</a>.</td>
+<td><code>--phase</code></td>
+<td>(required)</td>
+<td>Phase name to reconcile (used as suffix for new test IDs)</td>
 </tr>
 <tr>
-<td>Change</td>
-<td>Change phase. One or more change jobs apply the scenario's intended action.</td>
+<td><code>--scenario</code></td>
+<td>all</td>
+<td>Filter to a specific scenario</td>
 </tr>
 <tr>
-<td>Gate</td>
-<td>Between change and post-change. Halts the plan until convergence completes, so post-change validation runs against a stable testbed.</td>
+<td><code>--results-dir</code></td>
+<td><code>./results/</code></td>
+<td>Directory containing test run results</td>
+</tr>
+<tr>
+<td><code>--parameters-dir</code></td>
+<td><code>./parameters/</code></td>
+<td>Directory containing parameter files</td>
 </tr>
 </tbody>
 </table>
-<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="../glossary/">Glossary</a> - formal definitions of terms used here.</li>
-<li><a href="../../design/volatile-parameters/">Volatile Parameters</a> - design rationale for the volatile archetype.</li>
-<li><a href="../../reference/test-plan/">Test Plan Specification</a> - phases, scenarios, and test case groups.</li>
-</ul>
 
 
 
