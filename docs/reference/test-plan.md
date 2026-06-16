@@ -281,7 +281,7 @@ test_cases:
     job: huginn_jobs_network.interfaces.verify_status:VerifyInterfaceStatus
 ```
 
-See [Package-Based Job References](08-package-job-references.md) for the
+See [Package-Based Job References](package-jobs.md) for the
 full discussion of packaged jobs.
 
 #### Parameters Convention
@@ -358,7 +358,7 @@ async def test(self, context: Context) -> None:
     # Validate current state against expected...
 ```
 
-See [Test Authoring](05-test-authoring.md) for detailed patterns.
+See [Test Authoring](context-api.md) for detailed patterns.
 
 ### Test Case Groups
 
@@ -909,7 +909,7 @@ The framework validates test plans on load:
 
 ## Related Documents
 
-- [Glossary](00-glossary.md): Formal term definitions
-- [Testbed Specification](03-testbed-spec.md): Device and device group definitions
-- [Test Authoring](05-test-authoring.md): Writing jobs
-- [Configuration](06-configuration.md): Default paths and settings
+- [Glossary](../concepts/glossary.md): Formal term definitions
+- [Testbed Specification](testbed.md): Device and device group definitions
+- [Test Authoring](context-api.md): Writing jobs
+- [Configuration](configuration.md): Default paths and settings

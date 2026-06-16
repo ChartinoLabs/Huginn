@@ -155,6 +155,6 @@ ______________________________________________________________________
 
 ## Related Documents
 
-- [Overview](01-overview.md): Framework philosophy and scope
-- [Test Plan Specification](04-test-plan-spec.md): Current test plan schema
-- [Testbed Specification](03-testbed-spec.md): Current testbed schema
+- [Overview](../concepts/overview.md): Framework philosophy and scope
+- [Test Plan Specification](../reference/test-plan.md): Current test plan schema
+- [Testbed Specification](../reference/testbed.md): Current testbed schema

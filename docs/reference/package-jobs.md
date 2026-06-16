@@ -291,10 +291,10 @@ The following questions will be resolved as we build the first job package:
 
 3. **Parser bundling**: Should job packages bundle their own Muninn parsers, or depend on a separate parser package?
 
-4. **Unit test conventions**: Should job packages follow the same spec-driven test harness pattern documented in the [Unit Testing Automation](08-unit-testing-automation.md) guide?
+4. **Unit test conventions**: Should job packages follow the same spec-driven test harness pattern documented in the [Unit Testing Automation](../authoring/unit-testing.md) guide?
 
 ## Related Documents
 
-- [Test Plan Specification](04-test-plan-spec.md): Test case `job` field definition
-- [Architecture](02-architecture.md): Job loading and execution flow
-- [Unit Testing Automation](08-unit-testing-automation.md): Testing patterns for jobs
+- [Test Plan Specification](test-plan.md): Test case `job` field definition
+- [Architecture](../design/architecture.md): Job loading and execution flow
+- [Unit Testing Automation](../authoring/unit-testing.md): Testing patterns for jobs

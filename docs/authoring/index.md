@@ -84,4 +84,4 @@ Data-level applicability (e.g., a specific parsed field is absent, or per-item e
 
 ## See also
 
-- [Test Authoring (legacy)](../05-test-authoring.md) - the original authoring document. Material from this page is being migrated into the per-archetype guides.
+- [Context API Reference](../reference/context-api.md) - the Context object, Connection Broker API, result recording, and async patterns.

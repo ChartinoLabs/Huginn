@@ -463,6 +463,6 @@ All brokers live in the core `huginn` package. This enables rapid iteration on t
 
 ## Related Documents
 
-- [Architecture](02-architecture.md): Connection Broker's role in the system
-- [Testbed Specification](03-testbed-spec.md): Connection configuration in testbeds
-- [Configuration](06-configuration.md): Broker configuration in pyproject.toml
+- [Architecture](../design/architecture.md): Connection Broker's role in the system
+- [Testbed Specification](../reference/testbed.md): Connection configuration in testbeds
+- [Configuration](../reference/configuration.md): Broker configuration in pyproject.toml

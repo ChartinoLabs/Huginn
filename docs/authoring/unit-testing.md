@@ -33,7 +33,7 @@ An optional advanced pattern, [Injectable Data Providers](#advanced-injectable-d
 
 ## Pattern 1: Separation of Concerns
 
-The fundamental principle: **separate data gathering from decision logic**.
+Separate data gathering from decision logic.
 
 ### The LearningTestCase Interface
 
@@ -751,5 +751,5 @@ jobs:
 
 ## Related Documents
 
-- [Test Authoring](05-test-authoring.md): Writing jobs with the TestCase pattern
-- [Architecture](02-architecture.md): Context and adapter details
+- [Test Authoring](../reference/context-api.md): Writing jobs with the TestCase pattern
+- [Architecture](../design/architecture.md): Context and adapter details

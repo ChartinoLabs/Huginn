@@ -57,31 +57,36 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
   - Concepts:
-      - Overview: 01-overview.md
-      - Glossary: 00-glossary.md
-      - Architecture: 02-architecture.md
+      - Overview: concepts/overview.md
+      - Execution Modes: concepts/execution-modes.md
+      - Test Plan Structure: concepts/test-plan-structure.md
       - Job Archetypes: concepts/archetypes.md
+      - Reconciliation: concepts/reconciliation.md
+  - Glossary: concepts/glossary.md
   - Authoring Jobs:
       - Overview: authoring/index.md
       - Static Parameter Validation: authoring/static-validation.md
       - Volatile Parameter Validation: authoring/volatile-validation.md
       - Change Jobs: authoring/change.md
       - Gate Jobs: authoring/gate.md
-  - Specifications:
-      - Testbed: 03-testbed-spec.md
-      - Test Plan: 04-test-plan-spec.md
-      - Test Authoring (legacy): 05-test-authoring.md
-      - Configuration: 06-configuration.md
-  - Design Notes:
-      - Parser Project: 07-parser-project.md
-      - Connection Broker Plugins: 08-connection-broker-plugins.md
-      - Output Logging: 08-output-logging-design.md
-      - Package Job References: 08-package-job-references.md
-      - Parameter Reconciliation: 08-parameter-reconciliation.md
-      - Pruning Non-Applicable Tests: 08-prune.md
-      - Unit Testing Automation: 08-unit-testing-automation.md
-      - Volatile Parameters: 09-volatile-parameters.md
-      - Future Considerations: 99-future-considerations.md
+      - Unit Testing Jobs: authoring/unit-testing.md
+  - Reference:
+      - Testbed Schema: reference/testbed.md
+      - Test Plan Schema: reference/test-plan.md
+      - Configuration: reference/configuration.md
+      - Context API: reference/context-api.md
+      - Package Jobs: reference/package-jobs.md
+      - CLI - reconcile: reference/reconcile.md
+      - CLI - prune: reference/prune.md
+  - Design:
+      - Architecture: design/architecture.md
+      - Connection Broker Plugins: design/connection-broker.md
+      - Output and Logging: design/output-logging.md
+      - Volatile Parameters: design/volatile-parameters.md
+      - Future Considerations: design/future.md
   - Contributing:
       - Documentation Style Guide: style.md

@@ -125,7 +125,7 @@ site = "dc1"
 status = "active"
 ```
 
-See [Architecture - Inventory Plugins](02-architecture.md#inventory-plugins) for plugin development details.
+See [Architecture - Inventory Plugins](../design/architecture.md#inventory-plugins) for plugin development details.
 
 ### Output Paths
 
@@ -433,6 +433,6 @@ Configuration error in pyproject.toml:
 
 ## Related Documents
 
-- [Architecture](02-architecture.md): How configuration is loaded and used
-- [Test Plan Specification](04-test-plan-spec.md): Test plan file format
-- [Testbed Specification](03-testbed-spec.md): Testbed file format
+- [Architecture](../design/architecture.md): How configuration is loaded and used
+- [Test Plan Specification](test-plan.md): Test plan file format
+- [Testbed Specification](testbed.md): Testbed file format

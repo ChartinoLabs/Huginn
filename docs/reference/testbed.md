@@ -529,6 +529,6 @@ Invalid testbeds produce clear error messages indicating the problem location.
 
 ## Related Documents
 
-- [Test Plan Specification](04-test-plan-spec.md): How to target devices in tests
-- [Test Authoring](05-test-authoring.md): Accessing testbed data in tests
-- [Configuration](06-configuration.md): Default connection settings
+- [Test Plan Specification](test-plan.md): How to target devices in tests
+- [Test Authoring](context-api.md): Accessing testbed data in tests
+- [Configuration](configuration.md): Default connection settings
