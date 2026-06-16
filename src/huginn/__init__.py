@@ -1,5 +1,6 @@
 """A test automation framework for infrastructure."""
 
+from huginn._version import __version__, __version_tuple__
 from huginn.cli import main
 from huginn.context import Context
 from huginn.enums import ExecutionMode, ResultStatus
@@ -17,6 +18,8 @@ from huginn.volatile import (
 )
 
 __all__ = [
+    "__version__",
+    "__version_tuple__",
     "main",
     "is_command_unsupported",
     "ExecutionMode",

@@ -40,6 +40,9 @@ build-backend = "hatchling.build"
 [tool.hatch.version]
 source = "vcs"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/huginn"]
+
 [tool.hatch.build.hooks.vcs]
 version-file = "src/huginn/_version.py"
 
