@@ -1,6 +1,6 @@
 # Pruning
 
-Pruning is a development-time command that narrows a test plan based on observed learning results. After running in learning mode, some tests return `NOT_APPLICABLE` for certain devices because the device does not support the command, or the command produces no meaningful data. These results indicate that the test plan's scope is broader than what the infrastructure actually requires. Pruning removes that excess automatically.
+Pruning is a development-time command that narrows a test plan based on observed learning results. After running in learning mode, some tests return `NOT_APPLICABLE` for certain devices because the device does not support the command, or the command produces no meaningful data. This is particularly common when mass-importing reusable test automation from a centralized repository, since not all test automation in that repository may be applicable to a given testbed or environment. Pruning removes that excess automatically.
 
 ## The problem: test plans are written broadly
 
