@@ -10,31 +10,31 @@
       
       
       
-        <link rel="canonical" href="https://chartinolabs.github.io/Huginn/authoring/">
+        <link rel="canonical" href="https://chartinolabs.github.io/Huginn/concepts/pruning/">
       
       
-        <link rel="prev" href="../concepts/glossary/">
+        <link rel="prev" href="../reconciliation/">
       
       
-        <link rel="next" href="static-validation/">
+        <link rel="next" href="../glossary/">
       
       
         
       
       
-      <link rel="icon" href="../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Overview - Huginn</title>
+        <title>Pruning - Huginn</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,7 +53,7 @@
       
     
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#authoring-jobs" class="md-skip">
+        <a href="#pruning" class="md-skip">
           Skip to content
         </a>
       
@@ -94,7 +94,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="Huginn" class="md-header__button md-logo" aria-label="Huginn" data-md-component="logo">
+    <a href="../.." title="Huginn" class="md-header__button md-logo" aria-label="Huginn" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Overview
+              Pruning
             
           </span>
         </div>
@@ -232,7 +232,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="Huginn" class="md-nav__button md-logo" aria-label="Huginn" data-md-component="logo">
+    <a href="../.." title="Huginn" class="md-nav__button md-logo" aria-label="Huginn" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -262,7 +262,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -343,7 +343,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/installation/" class="md-nav__link">
+      <a href="../../getting-started/installation/" class="md-nav__link">
         
   
   
@@ -371,7 +371,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../getting-started/quickstart/" class="md-nav__link">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
         
   
   
@@ -403,8 +403,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -415,13 +417,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
@@ -442,7 +442,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -460,7 +460,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/overview/" class="md-nav__link">
+      <a href="../overview/" class="md-nav__link">
         
   
   
@@ -488,7 +488,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/execution-modes/" class="md-nav__link">
+      <a href="../execution-modes/" class="md-nav__link">
         
   
   
@@ -516,7 +516,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/test-plan-structure/" class="md-nav__link">
+      <a href="../test-plan-structure/" class="md-nav__link">
         
   
   
@@ -544,7 +544,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/archetypes/" class="md-nav__link">
+      <a href="../archetypes/" class="md-nav__link">
         
   
   
@@ -572,7 +572,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../concepts/reconciliation/" class="md-nav__link">
+      <a href="../reconciliation/" class="md-nav__link">
         
   
   
@@ -597,122 +597,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../concepts/pruning/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Pruning
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../concepts/glossary/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Glossary
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-    
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Authoring Jobs
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_5">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Authoring Jobs
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
     
   
   
@@ -732,7 +616,7 @@
   <span class="md-ellipsis">
     
   
-    Overview
+    Pruning
   
 
     
@@ -750,7 +634,7 @@
   <span class="md-ellipsis">
     
   
-    Overview
+    Pruning
   
 
     
@@ -776,10 +660,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#pages-in-this-section" class="md-nav__link">
+  <a href="#the-problem-test-plans-are-written-broadly" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pages in this section
+        The problem: test plans are written broadly
       
     </span>
   </a>
@@ -787,85 +671,46 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#conventions-shared-across-all-archetypes" class="md-nav__link">
+  <a href="#what-pruning-does" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Conventions shared across all archetypes
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Conventions shared across all archetypes">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#one-job-per-module" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        One job per module
+        What pruning does
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#module-structure" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#when-to-prune" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Module structure
+        When to prune
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#class-metadata" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#relationship-to-reconciliation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Class metadata
+        Relationship to reconciliation
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#recording-results" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#why-not-just-remove-tests-manually" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Recording results
+        Why not just remove tests manually?
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cache-control" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cache control
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#command-support" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Command Support
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -889,6 +734,94 @@
 
               
             
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authoring Jobs
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Authoring Jobs
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
               
                 
   
@@ -896,7 +829,35 @@
   
   
     <li class="md-nav__item">
-      <a href="static-validation/" class="md-nav__link">
+      <a href="../../authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../authoring/static-validation/" class="md-nav__link">
         
   
   
@@ -924,7 +885,7 @@
   
   
     <li class="md-nav__item">
-      <a href="volatile-validation/" class="md-nav__link">
+      <a href="../../authoring/volatile-validation/" class="md-nav__link">
         
   
   
@@ -952,7 +913,7 @@
   
   
     <li class="md-nav__item">
-      <a href="change/" class="md-nav__link">
+      <a href="../../authoring/change/" class="md-nav__link">
         
   
   
@@ -980,7 +941,7 @@
   
   
     <li class="md-nav__item">
-      <a href="gate/" class="md-nav__link">
+      <a href="../../authoring/gate/" class="md-nav__link">
         
   
   
@@ -1008,7 +969,7 @@
   
   
     <li class="md-nav__item">
-      <a href="unit-testing/" class="md-nav__link">
+      <a href="../../authoring/unit-testing/" class="md-nav__link">
         
   
   
@@ -1097,7 +1058,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/testbed/" class="md-nav__link">
+      <a href="../../reference/testbed/" class="md-nav__link">
         
   
   
@@ -1125,7 +1086,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/test-plan/" class="md-nav__link">
+      <a href="../../reference/test-plan/" class="md-nav__link">
         
   
   
@@ -1153,7 +1114,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/configuration/" class="md-nav__link">
+      <a href="../../reference/configuration/" class="md-nav__link">
         
   
   
@@ -1181,7 +1142,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/context-api/" class="md-nav__link">
+      <a href="../../reference/context-api/" class="md-nav__link">
         
   
   
@@ -1209,7 +1170,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/package-jobs/" class="md-nav__link">
+      <a href="../../reference/package-jobs/" class="md-nav__link">
         
   
   
@@ -1237,7 +1198,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/reconcile/" class="md-nav__link">
+      <a href="../../reference/reconcile/" class="md-nav__link">
         
   
   
@@ -1265,7 +1226,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reference/prune/" class="md-nav__link">
+      <a href="../../reference/prune/" class="md-nav__link">
         
   
   
@@ -1354,7 +1315,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../design/architecture/" class="md-nav__link">
+      <a href="../../design/architecture/" class="md-nav__link">
         
   
   
@@ -1382,7 +1343,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../design/connection-broker/" class="md-nav__link">
+      <a href="../../design/connection-broker/" class="md-nav__link">
         
   
   
@@ -1410,7 +1371,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../design/output-logging/" class="md-nav__link">
+      <a href="../../design/output-logging/" class="md-nav__link">
         
   
   
@@ -1438,7 +1399,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../design/volatile-parameters/" class="md-nav__link">
+      <a href="../../design/volatile-parameters/" class="md-nav__link">
         
   
   
@@ -1466,7 +1427,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../design/future/" class="md-nav__link">
+      <a href="../../design/future/" class="md-nav__link">
         
   
   
@@ -1555,7 +1516,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../style/" class="md-nav__link">
+      <a href="../../style/" class="md-nav__link">
         
   
   
@@ -1610,10 +1571,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#pages-in-this-section" class="md-nav__link">
+  <a href="#the-problem-test-plans-are-written-broadly" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pages in this section
+        The problem: test plans are written broadly
       
     </span>
   </a>
@@ -1621,85 +1582,46 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#conventions-shared-across-all-archetypes" class="md-nav__link">
+  <a href="#what-pruning-does" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Conventions shared across all archetypes
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Conventions shared across all archetypes">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#one-job-per-module" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        One job per module
+        What pruning does
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#module-structure" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#when-to-prune" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Module structure
+        When to prune
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#class-metadata" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#relationship-to-reconciliation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Class metadata
+        Relationship to reconciliation
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#recording-results" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#why-not-just-remove-tests-manually" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Recording results
+        Why not just remove tests manually?
       
     </span>
   </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#cache-control" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Cache control
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#command-support" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Command Support
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1734,96 +1656,82 @@
   
 
 
-<h1 id="authoring-jobs">Authoring Jobs<a class="headerlink" href="#authoring-jobs" title="Permanent link">&para;</a></h1>
-<p>This section is the practical guide to writing Huginn jobs. It is organized by archetype because each archetype has a distinct shape, and writing one well means following that shape closely.</p>
-<p>If you have not yet read <a href="../concepts/archetypes/">Concepts › Job Archetypes</a>, do that first - it covers what the four archetypes are and why each one exists. The rest of this section assumes you understand which archetype your job belongs to.</p>
-<h2 id="pages-in-this-section">Pages in this section<a class="headerlink" href="#pages-in-this-section" title="Permanent link">&para;</a></h2>
+<h1 id="pruning">Pruning<a class="headerlink" href="#pruning" title="Permanent link">&para;</a></h1>
+<p>Pruning is a development-time command that narrows a test plan based on observed learning results. After running in learning mode, some tests return <code>NOT_APPLICABLE</code> for certain devices because the device does not support the command, or the command produces no meaningful data. This is particularly common when mass-importing reusable test automation from a centralized repository, since not all test automation in that repository may be applicable to a given testbed or environment. Pruning removes that excess automatically.</p>
+<h2 id="the-problem-test-plans-are-written-broadly">The problem: test plans are written broadly<a class="headerlink" href="#the-problem-test-plans-are-written-broadly" title="Permanent link">&para;</a></h2>
+<p>When authoring a test plan, you typically target entire device groups - "all spines", "all leafs", "the full fabric". This is the right starting point because you want comprehensive coverage. But not every test applies to every device:</p>
 <ul>
-<li><a href="static-validation/">Static Parameter Validation</a></li>
-<li><a href="volatile-validation/">Volatile Parameter Validation</a></li>
-<li><a href="change/">Change Jobs</a></li>
-<li><a href="gate/">Gate Jobs</a></li>
+<li>A spine running a minimal routing stack has no LLDP neighbors to validate.</li>
+<li>A leaf that does not participate in OSPF has no OSPF state to check.</li>
+<li>A device on an older software version may not support a particular <code>show</code> command at all.</li>
 </ul>
-<p>The remainder of this page covers conventions that apply to <em>every</em> archetype. The per-archetype pages above pick up where this one leaves off and assume you have read it.</p>
-<h2 id="conventions-shared-across-all-archetypes">Conventions shared across all archetypes<a class="headerlink" href="#conventions-shared-across-all-archetypes" title="Permanent link">&para;</a></h2>
-<p>Before reading the per-archetype pages, internalize these conventions. They apply universally and are not repeated on every page.</p>
-<h3 id="one-job-per-module">One job per module<a class="headerlink" href="#one-job-per-module" title="Permanent link">&para;</a></h3>
-<p>Every job lives in its own Python module containing exactly one job class. The filename and class name follow the archetype's prefix convention:</p>
+<p>If you leave these tests in place, every execution produces predictable N/A results. This creates noise in reports, slows down execution, and makes it harder to distinguish real failures from inapplicable tests that were never going to pass.</p>
+<h2 id="what-pruning-does">What pruning does<a class="headerlink" href="#what-pruning-does" title="Permanent link">&para;</a></h2>
+<p>The <code>huginn prune</code> command inspects the most recent learning run and modifies the test plan to reflect observed reality:</p>
+<ul>
+<li><strong>Partially applicable tests</strong> - When some devices return data but others are N/A, the non-applicable devices are added to <code>target.exclude_devices</code> on the test case definition. The test remains in the plan but skips those specific devices.</li>
+<li><strong>Fully non-applicable tests</strong> - When all devices are N/A, the test is removed from its group entirely. It will not run in any future execution against this testbed.</li>
+<li><strong>Orphaned definitions</strong> (optional) - When a fully non-applicable test is no longer referenced by any group, its test case definition can be deleted from the YAML.</li>
+</ul>
+<p>The result is a tighter test plan that only validates what the infrastructure actually supports.</p>
+<h2 id="when-to-prune">When to prune<a class="headerlink" href="#when-to-prune" title="Permanent link">&para;</a></h2>
+<p>Pruning fits into the test plan development lifecycle at a specific point: after initial learning against a new testbed, before you begin building change-validation scenarios.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>1. Author test plan (broad scope)
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>2. Run learning mode against live testbed
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>3. Prune non-applicable tests          ← here
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>4. Build change scenarios (with reconciliation)
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>5. Execute in testing mode
+</code></pre></div>
+<p>You typically prune once when onboarding a new testbed or when testbed composition changes significantly (devices added, removed, or upgraded). It is not a recurring runtime operation - once the plan is narrowed, it stays narrowed until the infrastructure changes.</p>
+<h2 id="relationship-to-reconciliation">Relationship to reconciliation<a class="headerlink" href="#relationship-to-reconciliation" title="Permanent link">&para;</a></h2>
+<p>Pruning and <a href="../reconciliation/">reconciliation</a> both reshape test scope, but for different reasons:</p>
 <table>
 <thead>
 <tr>
-<th>Archetype</th>
-<th>Filename prefix</th>
-<th>Class prefix</th>
+<th>Concern</th>
+<th>Pruning</th>
+<th>Reconciliation</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Static parameter validation</td>
-<td><code>verify_*</code></td>
-<td><code>Verify*</code></td>
+<td><strong>Trigger</strong></td>
+<td>Device does not support the test</td>
+<td>Intentional network change alters expected state</td>
 </tr>
 <tr>
-<td>Volatile parameter validation</td>
-<td><code>verify_*_increasing</code> (or similar comparison-direction suffix)</td>
-<td><code>Verify*Increasing</code></td>
+<td><strong>Direction</strong></td>
+<td>Narrows scope (removes tests/devices)</td>
+<td>Expands scope (creates post-change variants)</td>
 </tr>
 <tr>
-<td>Change</td>
-<td><code>change_*</code> (and <code>change_*_restore</code> for paired restore jobs)</td>
-<td><code>Change*</code> / <code>Change*Restore</code></td>
+<td><strong>Lifecycle</strong></td>
+<td>Before building scenarios</td>
+<td>After observing expected failures in a scenario</td>
 </tr>
 <tr>
-<td>Gate</td>
-<td><code>gate_*</code> (often <code>gate_*_present</code> or <code>gate_*_absent</code>)</td>
-<td><code>Gate*</code></td>
+<td><strong>Frequency</strong></td>
+<td>Once per testbed onboarding</td>
+<td>Once per change-validation scenario</td>
 </tr>
 </tbody>
 </table>
-<h3 id="module-structure">Module structure<a class="headerlink" href="#module-structure" title="Permanent link">&para;</a></h3>
-<p>Every job module follows the same top-to-bottom layout:</p>
-<ol>
-<li>Module docstring (one line).</li>
-<li>Standard library imports.</li>
-<li>Third-party imports (<code>muninn</code>, <code>huginn</code>).</li>
-<li>Local package imports.</li>
-<li>Module-level helper objects (typically <code>mn = muninn.Muninn(); mn.load_builtin_parsers()</code>).</li>
-<li>Module-level message constants (named in <code>SCREAMING_SNAKE_CASE</code>, with <code>{placeholder}</code> slots).</li>
-<li>Module-level tuning constants (private, <code>_LIKE_THIS</code>).</li>
-<li><code>TypedDict</code> definitions for the parameters payload.</li>
-<li>The job class.</li>
-</ol>
-<p>Volatile jobs are an exception - they do not need message constants or <code>TypedDict</code>s because the framework owns the schema. See <a href="volatile-validation/">Volatile Parameter Validation</a>.</p>
-<h3 id="class-metadata">Class metadata<a class="headerlink" href="#class-metadata" title="Permanent link">&para;</a></h3>
-<p>Every job class declares four narrative class attributes, in this order:</p>
+<p>In practice, you prune first to eliminate noise, then reconcile to handle intentional state differences. Both are development-time operations that produce a test plan ready for repeated execution.</p>
+<h2 id="why-not-just-remove-tests-manually">Why not just remove tests manually?<a class="headerlink" href="#why-not-just-remove-tests-manually" title="Permanent link">&para;</a></h2>
+<p>You could edit the YAML by hand, but the prune command provides:</p>
 <ul>
-<li><code>DESCRIPTION</code> - one or two sentences explaining what the job validates or does.</li>
-<li><code>SETUP</code> - bulleted list of preconditions assumed by the job.</li>
-<li><code>PROCEDURE</code> - bulleted list of steps the job performs. May include inlined Jinja templating to interpolate the parameters payload.</li>
-<li><code>PASS_FAIL_CRITERIA</code> - bulleted list of pass and fail conditions.</li>
+<li><strong>Accuracy</strong> - It reads actual learning results rather than relying on human judgment about which devices support which commands.</li>
+<li><strong>Idempotency</strong> - Running prune a second time against the same results is safe. Already-pruned tests are detected and skipped.</li>
+<li><strong>Validation</strong> - After applying changes, the command reloads the modified plan to confirm it is still structurally valid.</li>
+<li><strong>Auditability</strong> - The dry-run mode shows exactly what would change before any files are modified, giving you a chance to review.</li>
 </ul>
-<p>These attributes are consumed by the reporting system to generate per-test documentation.</p>
-<h3 id="recording-results">Recording results<a class="headerlink" href="#recording-results" title="Permanent link">&para;</a></h3>
-<p>Use <code>context.results.add_result(ResultStatus.X, message)</code> (positional arguments) for outcomes. Use <code>context.results.add_command_execution(...)</code> for every command executed against the testbed. Both are required for the report to render correctly.</p>
-<h3 id="cache-control">Cache control<a class="headerlink" href="#cache-control" title="Permanent link">&para;</a></h3>
-<p>Most jobs read fresh state. Pass <code>use_cache=False</code> when calling <code>context.broker.execute(...)</code> if the read must reflect a state change that just happened in the same job (post-action verification, gate poll, volatile observation).</p>
-<h3 id="command-support">Command Support<a class="headerlink" href="#command-support" title="Permanent link">&para;</a></h3>
-<p>Most jobs use <code>check_command_support</code> to skip targets where the relevant <code>show</code> command is not supported. The standard idiom:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">check_command_support</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CommandSupportResult</span><span class="p">:</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">applicable</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">not_applicable</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">broker</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">)</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="k">if</span> <span class="n">is_command_unsupported</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">output</span><span class="p">):</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>            <span class="n">not_applicable</span><span class="p">[</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">NOT_SUPPORTED_REASON</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">)</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            <span class="k">continue</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">applicable</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="k">return</span> <span class="n">CommandSupportResult</span><span class="p">(</span><span class="n">applicable</span><span class="o">=</span><span class="n">applicable</span><span class="p">,</span> <span class="n">not_applicable</span><span class="o">=</span><span class="n">not_applicable</span><span class="p">)</span>
-</code></pre></div>
-<p>Data-level applicability (e.g., a specific parsed field is absent, or per-item extraction yields nothing for a device) is handled in <code>gather_state</code>, not <code>check_command_support</code>. When <code>gather_state</code> determines a device has no meaningful data, it emits a <code>NOT_APPLICABLE</code> result via <code>context.results.add_result()</code> and omits the device from the returned parameters. See <a href="static-validation/#gather_state">Static Parameter Validation § gather_state</a> for the recommended pattern.</p>
+<p>For plans with dozens of test cases across many device groups, manual editing is error-prone. Pruning automates the mechanical work of aligning test scope to infrastructure reality.</p>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../reference/context-api/">Context API Reference</a> - the Context object, Connection Broker API, result recording, and async patterns.</li>
+<li><a href="../../reference/prune/">Reference - prune CLI</a> - command reference, flags, and detailed YAML examples.</li>
+<li><a href="../reconciliation/">Reconciliation</a> - a related concept that creates post-change test variants.</li>
+<li><a href="../execution-modes/">Execution Modes</a> - learning mode, which produces the results that prune consumes.</li>
+<li><a href="../test-plan-structure/">Test Plan Structure</a> - how test cases, groups, and scenarios relate.</li>
 </ul>
 
 
@@ -1882,10 +1790,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
