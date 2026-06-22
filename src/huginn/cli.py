@@ -43,6 +43,7 @@ from huginn.reconcile import (
     parse_failures_from_run,
     validate_after_reconcile,
 )
+from huginn.relearn import RelearnError, RelearnInput, parse_failed_test_ids
 from huginn.runner import RunExecutionError, run_test_plan
 from huginn.validation import validate_inputs
 
@@ -836,6 +837,261 @@ def reconcile(
     except (ReconcileError, ConfigurationError) as error:
         output.error(f"ERROR: {error}")
         raise typer.Exit(code=1) from error
+
+
+@app.command()
+def relearn(
+    plan: Annotated[
+        Path | None,
+        typer.Option(
+            "--plan",
+            "-p",
+            help="Path to test plan YAML file or directory of YAML files "
+            "(default: ./test_plan).",
+            exists=True,
+            file_okay=True,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_PLAN",
+        ),
+    ] = None,
+    testbed: Annotated[
+        Path | None,
+        typer.Option(
+            "--testbed",
+            "-t",
+            help="Path to testbed YAML file defining device inventory "
+            "(default: ./testbed.yaml).",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            envvar="HUGINN_TESTBED",
+        ),
+    ] = None,
+    scenario: Annotated[
+        str | None,
+        typer.Option(
+            "--scenario",
+            help="Re-learn only failures from the specified scenario.",
+            envvar="HUGINN_SCENARIO",
+        ),
+    ] = None,
+    phase: Annotated[
+        str | None,
+        typer.Option(
+            "--phase",
+            help="Re-learn only failures from the specified phase.",
+            envvar="HUGINN_PHASE",
+        ),
+    ] = None,
+    data_model: Annotated[
+        Path | None,
+        typer.Option(
+            "--data-model",
+            "-d",
+            help="Path to data model directory containing YAML files representing "
+            "intended infrastructure state.",
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_DATA_MODEL",
+        ),
+    ] = None,
+    inventory_plugin: Annotated[
+        str | None,
+        typer.Option(
+            "--inventory-plugin",
+            "-i",
+            help="Use an inventory plugin instead of a static testbed YAML file.",
+            envvar="HUGINN_INVENTORY_PLUGIN",
+        ),
+    ] = None,
+    results_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--results-dir",
+            help="Path to results directory (default: ./results/).",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_RESULTS_DIR",
+        ),
+    ] = None,
+    parameters_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--parameters-dir",
+            help="Path to parameters directory (default: ./parameters/).",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_PARAMETERS_DIR",
+        ),
+    ] = None,
+    output_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--output-dir",
+            help="Path to output directory for run artifacts "
+            "(default: <run-dir>/artifacts/).",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_OUTPUT_DIR",
+        ),
+    ] = None,
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            help="Enable DEBUG-level logging.",
+            envvar="HUGINN_DEBUG",
+        ),
+    ] = False,
+    log_level: Annotated[
+        str,
+        typer.Option(
+            "--log-level",
+            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+            envvar="HUGINN_LOG_LEVEL",
+        ),
+    ] = "INFO",
+    show_logs: Annotated[
+        bool,
+        typer.Option(
+            "--show-logs",
+            help="Stream logs to console in addition to file.",
+            envvar="HUGINN_SHOW_LOGS",
+        ),
+    ] = False,
+    log_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--log-file",
+            help="Path to log file (default: ./huginn.log).",
+            envvar="HUGINN_LOG_FILE",
+        ),
+    ] = None,
+) -> None:
+    """Re-learn parameters for failed tests from the latest testing run.
+
+    Analyzes the most recent testing run results, identifies failed and
+    errored test cases, then re-runs only those tests in learning mode to
+    refresh their baseline parameters. Automatically scopes execution to
+    only the scenarios and phases that contained failures.
+
+    Examples:
+        huginn relearn -p test_plan -t testbed.yaml
+        huginn relearn -p test_plan -t testbed.yaml --scenario link-shutdown-r1r2
+        huginn relearn -p test_plan -t testbed.yaml --phase pre-change
+    """
+    resolved_plan = _resolve_plan_option(plan)
+    resolved_results_dir = results_dir or Path.cwd() / "results"
+    resolved_parameters_dir = parameters_dir or Path.cwd() / "parameters"
+
+    testbed_path = _resolve_testbed_option(
+        testbed=testbed,
+        inventory_plugin=inventory_plugin,
+        data_model=data_model,
+    )
+
+    output = _build_output(
+        debug=debug,
+        log_level=log_level,
+        show_logs=show_logs,
+        log_file=log_file,
+    )
+    output.status("Analyzing latest testing run for failures")
+    output.log_debug_fields(
+        "CLI relearn options",
+        plan=resolved_plan,
+        testbed=testbed_path,
+        scenario=scenario,
+        phase=phase,
+        results_dir=resolved_results_dir,
+        parameters_dir=resolved_parameters_dir,
+    )
+
+    try:
+        run_json_path = find_latest_testing_results(resolved_results_dir)
+        output.status(f"Using results from {run_json_path.parent.name}")
+
+        relearn_input = parse_failed_test_ids(
+            run_json_path,
+            phase_filter=phase,
+            scenario_filter=scenario,
+        )
+
+        if not relearn_input.test_ids:
+            scope_parts = []
+            if scenario:
+                scope_parts.append(f"scenario '{scenario}'")
+            if phase:
+                scope_parts.append(f"phase '{phase}'")
+            scope = " in " + ", ".join(scope_parts) if scope_parts else ""
+            output.success(f"No failures found{scope} -- nothing to re-learn")
+            return
+
+        output.status(
+            f"Re-learning {len(relearn_input.test_ids)} failed test(s) "
+            f"in {len(relearn_input.scenario_ids)} scenario(s), "
+            f"{len(relearn_input.phase_ids)} phase(s): "
+            + ", ".join(relearn_input.test_ids)
+        )
+
+        filters = PlanFilterOptions(
+            test_ids=relearn_input.test_ids,
+            scenarios=relearn_input.scenario_ids,
+            phases=relearn_input.phase_ids,
+        )
+        plugin_registry = _load_plugin_registry(project_root=Path.cwd())
+
+        result = asyncio.run(
+            run_test_plan(
+                mode=ExecutionMode.LEARNING,
+                testbed_path=testbed_path,
+                inventory_plugin=inventory_plugin,
+                plan_path=resolved_plan,
+                filters=filters,
+                project_root=Path.cwd(),
+                parameters_dir=resolved_parameters_dir,
+                results_dir=resolved_results_dir,
+                output_dir=output_dir,
+                output=output,
+                registry=plugin_registry,
+            )
+        )
+
+        output.status(
+            f"Re-learn complete: "
+            f"total={result.summary.total} "
+            f"passed={result.summary.passed} "
+            f"failed={result.summary.failed} "
+            f"errored={result.summary.errored} "
+            f"not_applicable={result.summary.not_applicable}"
+        )
+
+        if result.summary.failed > 0 or result.summary.errored > 0:
+            output.error(
+                "Some tests failed during re-learning -- "
+                "parameters may not have been updated"
+            )
+            raise typer.Exit(code=1)
+
+        output.success(
+            f"Successfully re-learned parameters for {result.summary.passed} test(s)"
+        )
+
+    except (RelearnError, ReconcileError, ConfigurationError) as error:
+        output.error(f"ERROR: {error}")
+        raise typer.Exit(code=1) from error
+    except RunExecutionError as error:
+        output.error(f"ERROR [{error.code.value}]: {error}")
+        if error.traceback_text:
+            output.error(error.traceback_text)
+        raise typer.Exit(code=_exit_code_for_run_error(error.code)) from error
 
 
 def _display_prune_input(prune_input: PruneInput, output: Output) -> None:
