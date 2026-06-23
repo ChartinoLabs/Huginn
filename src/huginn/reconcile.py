@@ -264,6 +264,8 @@ def _serialize_test_case(
             target_dict["groups"] = list(original.target.groups)
         if original.target.os is not None:
             target_dict["os"] = list(original.target.os)
+        if original.target.exclude_devices is not None:
+            target_dict["exclude_devices"] = list(original.target.exclude_devices)
         if target_dict:
             tc_entry["target"] = target_dict
     return tc_entry
