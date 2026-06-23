@@ -104,6 +104,8 @@ Reconciliation preserves this distinction by creating separate parameter files f
 ## See also
 
 - [Test Plan Structure](test-plan-structure.md) - how scenarios, phases, and groups relate.
+- [Re-learning](relearning.md) - refreshing parameters for tests that have drifted, without creating new variants.
 - [Pruning](pruning.md) - a related concept that narrows test scope based on learning results.
 - [Reference - reconcile CLI](../reference/reconcile.md) - the command reference and full workflow.
+- [Reference - relearn CLI](../reference/relearn.md) - the relearn command reference.
 - [Reference - prune CLI](../reference/prune.md) - the prune command reference.
