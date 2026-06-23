@@ -1074,8 +1074,7 @@ def _resolve_relearn_targets(
     output.status(
         f"Re-learning {len(relearn_input.test_ids)} failed test(s) "
         f"in {len(relearn_input.scenario_ids)} scenario(s), "
-        f"{len(relearn_input.phase_ids)} phase(s): "
-        + ", ".join(relearn_input.test_ids)
+        f"{len(relearn_input.phase_ids)} phase(s): " + ", ".join(relearn_input.test_ids)
     )
     return relearn_input
 
@@ -1084,7 +1083,7 @@ def _execute_relearn(
     *,
     relearn_input: RelearnInput,
     plan_path: Path,
-    testbed_path: Path,
+    testbed_path: Path | None,
     inventory_plugin: str | None,
     parameters_dir: Path,
     results_dir: Path,

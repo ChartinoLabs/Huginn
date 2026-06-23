@@ -3,9 +3,7 @@
 import json
 from pathlib import Path
 
-import pytest
-
-from huginn.relearn import RelearnError, RelearnInput, parse_failed_test_ids
+from huginn.relearn import parse_failed_test_ids
 
 
 def _write_json(path: Path, payload: object) -> Path:
@@ -126,21 +124,25 @@ class TestParseFailedTestIds:
     """Tests for parse_failed_test_ids."""
 
     def test_extracts_all_failures(self, tmp_path: Path) -> None:
+        """Collect all failed and errored test IDs across scenarios."""
         run_json = _write_json(tmp_path / "run.json", _build_run_json())
         result = parse_failed_test_ids(run_json)
         assert result.test_ids == ["TEST-2", "TEST-3", "TEST-4", "TEST-6"]
 
     def test_returns_affected_scenarios(self, tmp_path: Path) -> None:
+        """Return scenario IDs that contain at least one failure."""
         run_json = _write_json(tmp_path / "run.json", _build_run_json())
         result = parse_failed_test_ids(run_json)
         assert result.scenario_ids == ["scenario-1", "scenario-2"]
 
     def test_returns_affected_phases(self, tmp_path: Path) -> None:
+        """Return phase IDs that contain at least one failure."""
         run_json = _write_json(tmp_path / "run.json", _build_run_json())
         result = parse_failed_test_ids(run_json)
         assert result.phase_ids == ["pre-change", "post-change"]
 
     def test_deduplicates_across_scenarios(self, tmp_path: Path) -> None:
+        """Same test ID failing in multiple scenarios appears only once."""
         payload = _build_run_json(
             scenarios=[
                 {
@@ -206,18 +208,21 @@ class TestParseFailedTestIds:
         assert result.phase_ids == ["p1"]
 
     def test_scenario_filter(self, tmp_path: Path) -> None:
+        """Only include failures from the filtered scenario."""
         run_json = _write_json(tmp_path / "run.json", _build_run_json())
         result = parse_failed_test_ids(run_json, scenario_filter="scenario-2")
         assert result.test_ids == ["TEST-6"]
         assert result.scenario_ids == ["scenario-2"]
 
     def test_phase_filter(self, tmp_path: Path) -> None:
+        """Only include failures from the filtered phase."""
         run_json = _write_json(tmp_path / "run.json", _build_run_json())
         result = parse_failed_test_ids(run_json, phase_filter="post-change")
         assert result.test_ids == ["TEST-4"]
         assert result.phase_ids == ["post-change"]
 
     def test_scenario_and_phase_filter(self, tmp_path: Path) -> None:
+        """Both filters narrow results to the intersection."""
         run_json = _write_json(tmp_path / "run.json", _build_run_json())
         result = parse_failed_test_ids(
             run_json, scenario_filter="scenario-1", phase_filter="pre-change"
@@ -227,6 +232,7 @@ class TestParseFailedTestIds:
         assert result.phase_ids == ["pre-change"]
 
     def test_no_failures_returns_empty(self, tmp_path: Path) -> None:
+        """Return empty lists when all tests passed."""
         payload = _build_run_json(
             scenarios=[
                 {
@@ -265,16 +271,19 @@ class TestParseFailedTestIds:
         assert result.phase_ids == []
 
     def test_nonexistent_scenario_filter_returns_empty(self, tmp_path: Path) -> None:
+        """Return empty when scenario filter matches nothing."""
         run_json = _write_json(tmp_path / "run.json", _build_run_json())
         result = parse_failed_test_ids(run_json, scenario_filter="nonexistent")
         assert result.test_ids == []
 
     def test_nonexistent_phase_filter_returns_empty(self, tmp_path: Path) -> None:
+        """Return empty when phase filter matches nothing."""
         run_json = _write_json(tmp_path / "run.json", _build_run_json())
         result = parse_failed_test_ids(run_json, phase_filter="nonexistent")
         assert result.test_ids == []
 
     def test_includes_errored_status(self, tmp_path: Path) -> None:
+        """Errored tests are included alongside failed ones."""
         run_json = _write_json(tmp_path / "run.json", _build_run_json())
         result = parse_failed_test_ids(
             run_json, scenario_filter="scenario-1", phase_filter="pre-change"
