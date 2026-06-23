@@ -76,7 +76,7 @@ huginn relearn -p test_plan/ -t testbed.yaml --scenario link-shutdown-r1r2 --pha
 
 The command does not simply filter by test ID. It also limits execution to the scenarios and phases that actually contained failures. This prevents a test ID that appears in 50 scenarios from being re-learned in all 50 when only one had a failure.
 
-For example, if `BGP-SUMMARY-ROUTER-ID` failed only in the `link-shutdown-r1r2` scenario's `pre-change` phase, the relearn run will execute that test only in that specific scenario and phase context — not across all scenarios that reference the same test ID.
+For example, if `BGP-SUMMARY-ROUTER-ID` failed only in the `link-shutdown-r1r2` scenario's `pre-change` phase, the relearn run will execute that test only in that specific scenario and phase context -- not across all scenarios that reference the same test ID.
 
 ## CLI reference
 
@@ -84,34 +84,34 @@ For example, if `BGP-SUMMARY-ROUTER-ID` failed only in the `link-shutdown-r1r2` 
 huginn relearn [--plan <path>] [--testbed <path>] [--scenario <id>] [--phase <id>] [--results-dir <path>] [--parameters-dir <path>]
 ```
 
-| Option               | Default         | Description                                                                           |
-| -------------------- | --------------- | ------------------------------------------------------------------------------------- |
-| `--plan`, `-p`       | `./test_plan`   | Path to test plan YAML file or directory. Also accepts `HUGINN_PLAN` env var.         |
-| `--testbed`, `-t`    | `./testbed.yaml`| Path to testbed YAML file. Also accepts `HUGINN_TESTBED` env var.                     |
-| `--scenario`         | all             | Re-learn only failures from the specified scenario.                                   |
-| `--phase`            | all             | Re-learn only failures from the specified phase.                                      |
-| `--data-model`, `-d` | none            | Path to data model directory. Also accepts `HUGINN_DATA_MODEL` env var.               |
-| `--inventory-plugin`, `-i` | none       | Use an inventory plugin instead of a static testbed. Also accepts `HUGINN_INVENTORY_PLUGIN` env var. |
-| `--results-dir`      | `./results/`    | Directory containing test run results. Also accepts `HUGINN_RESULTS_DIR` env var.     |
-| `--parameters-dir`   | `./parameters/` | Directory containing parameter files. Also accepts `HUGINN_PARAMETERS_DIR` env var.   |
-| `--output-dir`       | `<run-dir>/artifacts/` | Output directory for run artifacts. Also accepts `HUGINN_OUTPUT_DIR` env var.   |
-| `--debug`            | off             | Enable DEBUG-level logging. Also accepts `HUGINN_DEBUG` env var.                      |
-| `--log-level`        | `INFO`          | Logging level (DEBUG, INFO, WARNING, ERROR). Also accepts `HUGINN_LOG_LEVEL` env var. |
-| `--show-logs`        | off             | Stream logs to console in addition to file. Also accepts `HUGINN_SHOW_LOGS` env var.  |
-| `--log-file`         | `./huginn.log`  | Path to log file. Also accepts `HUGINN_LOG_FILE` env var.                             |
+| Option                     | Default                | Description                                                                                          |
+| -------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| `--plan`, `-p`             | `./test_plan`          | Path to test plan YAML file or directory. Also accepts `HUGINN_PLAN` env var.                        |
+| `--testbed`, `-t`          | `./testbed.yaml`       | Path to testbed YAML file. Also accepts `HUGINN_TESTBED` env var.                                    |
+| `--scenario`               | all                    | Re-learn only failures from the specified scenario.                                                  |
+| `--phase`                  | all                    | Re-learn only failures from the specified phase.                                                     |
+| `--data-model`, `-d`       | none                   | Path to data model directory. Also accepts `HUGINN_DATA_MODEL` env var.                              |
+| `--inventory-plugin`, `-i` | none                   | Use an inventory plugin instead of a static testbed. Also accepts `HUGINN_INVENTORY_PLUGIN` env var. |
+| `--results-dir`            | `./results/`           | Directory containing test run results. Also accepts `HUGINN_RESULTS_DIR` env var.                    |
+| `--parameters-dir`         | `./parameters/`        | Directory containing parameter files. Also accepts `HUGINN_PARAMETERS_DIR` env var.                  |
+| `--output-dir`             | `<run-dir>/artifacts/` | Output directory for run artifacts. Also accepts `HUGINN_OUTPUT_DIR` env var.                        |
+| `--debug`                  | off                    | Enable DEBUG-level logging. Also accepts `HUGINN_DEBUG` env var.                                     |
+| `--log-level`              | `INFO`                 | Logging level (DEBUG, INFO, WARNING, ERROR). Also accepts `HUGINN_LOG_LEVEL` env var.                |
+| `--show-logs`              | off                    | Stream logs to console in addition to file. Also accepts `HUGINN_SHOW_LOGS` env var.                 |
+| `--log-file`               | `./huginn.log`         | Path to log file. Also accepts `HUGINN_LOG_FILE` env var.                                            |
 
 ## What the command modifies
 
 The relearn command overwrites parameter files in the `--parameters-dir` directory for each test that is re-learned. For example, if `BGP-SUMMARY-ROUTER-ID` fails and is re-learned, the file `parameters/BGP-SUMMARY-ROUTER-ID.json` is overwritten with freshly gathered device state.
 
-No test plan YAML files are modified. The test plan structure remains unchanged — only the parameter values are refreshed.
+No test plan YAML files are modified. The test plan structure remains unchanged -- only the parameter values are refreshed.
 
 ## Exit codes
 
-| Code | Meaning                                                                 |
-| ---- | ----------------------------------------------------------------------- |
-| 0    | All tests re-learned successfully, or no failures found.                |
-| 1    | Some tests failed during re-learning, or a configuration error occurred.|
+| Code | Meaning                                                                  |
+| ---- | ------------------------------------------------------------------------ |
+| 0    | All tests re-learned successfully, or no failures found.                 |
+| 1    | Some tests failed during re-learning, or a configuration error occurred. |
 
 A non-zero exit during re-learning typically means the device could not be reached or a job raised an unexpected error. The parameter files for those tests will not have been updated.
 
