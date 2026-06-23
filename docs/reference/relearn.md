@@ -2,7 +2,7 @@
 
 ## Overview
 
-When a testing run produces failures due to parameter drift (counters incrementing, table versions changing, file system sizes shifting), the `huginn relearn` command refreshes only the affected parameters. It parses the latest testing results, identifies failed and errored test cases, and re-runs them in learning mode to overwrite their parameter files with current device state.
+When a testing run produces failures because learned parameters no longer reflect the current state of the environment, the `huginn relearn` command refreshes only the affected parameters. It parses the latest testing results, identifies failed and errored test cases, and re-runs only those tests in learning mode to capture current device state as the new expected parameters -- without re-learning tests that are already passing.
 
 The command automatically scopes execution to only the scenarios and phases that contained failures, avoiding redundant device connections when the same test ID appears across many scenarios.
 
@@ -20,7 +20,7 @@ Failures are recorded in `results/<timestamp>-testing/run.json`.
 
 ### 2. Inspect the failures
 
-Before re-learning, confirm that failures are due to drift (stale parameters) rather than real problems. The HTML report at `reports/latest/` provides detailed diffs between expected and actual values.
+Before re-learning, confirm that the failures reflect expected drift (stale parameters from an earlier learning pass) rather than real problems. The HTML report at `reports/latest/` provides detailed diffs between expected and actual values.
 
 ### 3. Re-learn failed tests
 
