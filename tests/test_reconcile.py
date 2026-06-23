@@ -462,6 +462,23 @@ class TestComputeReconcilePlan:
             "groups": ["spine"]
         }
 
+    def test_preserves_target_exclude_devices(self) -> None:
+        """Carry over exclude_devices from the original test case."""
+        test_plan = _build_test_plan()
+        test_plan.test_cases["2.0.0"] = TestCaseDefinition(
+            test_id="2.0.0",
+            title="Verify OSPF neighbors",
+            job="tests/verify_ospf.py",
+            tags=["ospf"],
+            target=TargetDefinition(exclude_devices=["TAC-R1"]),
+        )
+
+        plan = compute_reconcile_plan(self._default_input(), test_plan, "post-change")
+
+        assert plan.new_test_cases["2.0.0-post-change"]["target"] == {
+            "exclude_devices": ["TAC-R1"]
+        }
+
     def test_creates_new_groups(self) -> None:
         """Generate new groups that inherit from parent and exclude failing IDs."""
         plan = compute_reconcile_plan(
