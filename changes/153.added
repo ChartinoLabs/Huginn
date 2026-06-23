@@ -1,0 +1,1 @@
+Added `huginn relearn` command to selectively re-learn parameters for failed tests from the latest testing run.
