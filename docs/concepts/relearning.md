@@ -51,12 +51,6 @@ Re-learning and [reconciliation](reconciliation.md) both address test failures, 
 
 The key distinction: re-learning refreshes the *same* parameter file because the test's expected behavior hasn't changed -- only the specific values have drifted. Reconciliation creates *new* test variants because the post-change state is structurally different from baseline and both sets of expected values must coexist in the plan.
 
-## Relationship to volatile parameters
-
-Huginn's [volatile parameter](../design/volatile-parameters.md) archetype handles values that are *inherently unstable* -- counters that always increment, timers that always change. Volatile jobs use comparison strategies (e.g., "value increased") rather than exact-match assertions, so they do not fail due to natural change.
-
-Re-learning addresses a different category: values that are *stable in steady state* but have drifted because the environment itself has changed. These are tests using static parameter validation (exact-match) where the expected value was correct at learning time but is no longer correct because the infrastructure evolved.
-
 ## When NOT to use relearn
 
 - **Failures indicate a real problem.** If BGP neighbors are unexpectedly down, re-learning would capture the broken state as the new baseline, masking the issue.
@@ -68,5 +62,4 @@ Re-learning addresses a different category: values that are *stable in steady st
 - [Reconciliation](reconciliation.md) - creating post-change test variants when expected state differs.
 - [Pruning](pruning.md) - removing tests that are not applicable to the current testbed.
 - [Execution Modes](execution-modes.md) - learning mode, which relearn invokes under the hood.
-- [Volatile Parameters](../design/volatile-parameters.md) - a different approach for values that are inherently unstable.
 - [Reference - relearn CLI](../reference/relearn.md) - the command reference with full option details.
