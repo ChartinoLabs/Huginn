@@ -1015,73 +1015,21 @@ def relearn(
     )
 
     try:
-        run_json_path = find_latest_testing_results(resolved_results_dir)
-        output.status(f"Using results from {run_json_path.parent.name}")
-
-        relearn_input = parse_failed_test_ids(
-            run_json_path,
-            phase_filter=phase,
-            scenario_filter=scenario,
+        relearn_input = _resolve_relearn_targets(
+            resolved_results_dir, phase, scenario, output
         )
-
-        if not relearn_input.test_ids:
-            scope_parts = []
-            if scenario:
-                scope_parts.append(f"scenario '{scenario}'")
-            if phase:
-                scope_parts.append(f"phase '{phase}'")
-            scope = " in " + ", ".join(scope_parts) if scope_parts else ""
-            output.success(f"No failures found{scope} -- nothing to re-learn")
+        if relearn_input is None:
             return
 
-        output.status(
-            f"Re-learning {len(relearn_input.test_ids)} failed test(s) "
-            f"in {len(relearn_input.scenario_ids)} scenario(s), "
-            f"{len(relearn_input.phase_ids)} phase(s): "
-            + ", ".join(relearn_input.test_ids)
-        )
-
-        filters = PlanFilterOptions(
-            test_ids=relearn_input.test_ids,
-            scenarios=relearn_input.scenario_ids,
-            phases=relearn_input.phase_ids,
-        )
-        plugin_registry = _load_plugin_registry(project_root=Path.cwd())
-
-        result = asyncio.run(
-            run_test_plan(
-                mode=ExecutionMode.LEARNING,
-                testbed_path=testbed_path,
-                inventory_plugin=inventory_plugin,
-                plan_path=resolved_plan,
-                filters=filters,
-                project_root=Path.cwd(),
-                parameters_dir=resolved_parameters_dir,
-                results_dir=resolved_results_dir,
-                output_dir=output_dir,
-                output=output,
-                registry=plugin_registry,
-            )
-        )
-
-        output.status(
-            f"Re-learn complete: "
-            f"total={result.summary.total} "
-            f"passed={result.summary.passed} "
-            f"failed={result.summary.failed} "
-            f"errored={result.summary.errored} "
-            f"not_applicable={result.summary.not_applicable}"
-        )
-
-        if result.summary.failed > 0 or result.summary.errored > 0:
-            output.error(
-                "Some tests failed during re-learning -- "
-                "parameters may not have been updated"
-            )
-            raise typer.Exit(code=1)
-
-        output.success(
-            f"Successfully re-learned parameters for {result.summary.passed} test(s)"
+        _execute_relearn(
+            relearn_input=relearn_input,
+            plan_path=resolved_plan,
+            testbed_path=testbed_path,
+            inventory_plugin=inventory_plugin,
+            parameters_dir=resolved_parameters_dir,
+            results_dir=resolved_results_dir,
+            output_dir=output_dir,
+            output=output,
         )
 
     except (RelearnError, ReconcileError, ConfigurationError) as error:
@@ -1092,6 +1040,100 @@ def relearn(
         if error.traceback_text:
             output.error(error.traceback_text)
         raise typer.Exit(code=_exit_code_for_run_error(error.code)) from error
+
+
+def _resolve_relearn_targets(
+    results_dir: Path,
+    phase_filter: str | None,
+    scenario_filter: str | None,
+    output: Output,
+) -> RelearnInput | None:
+    """Find the latest testing run and parse failed test IDs.
+
+    Returns None if no failures are found (and logs a success message).
+    """
+    run_json_path = find_latest_testing_results(results_dir)
+    output.status(f"Using results from {run_json_path.parent.name}")
+
+    relearn_input = parse_failed_test_ids(
+        run_json_path,
+        phase_filter=phase_filter,
+        scenario_filter=scenario_filter,
+    )
+
+    if not relearn_input.test_ids:
+        scope_parts = []
+        if scenario_filter:
+            scope_parts.append(f"scenario '{scenario_filter}'")
+        if phase_filter:
+            scope_parts.append(f"phase '{phase_filter}'")
+        scope = " in " + ", ".join(scope_parts) if scope_parts else ""
+        output.success(f"No failures found{scope} -- nothing to re-learn")
+        return None
+
+    output.status(
+        f"Re-learning {len(relearn_input.test_ids)} failed test(s) "
+        f"in {len(relearn_input.scenario_ids)} scenario(s), "
+        f"{len(relearn_input.phase_ids)} phase(s): "
+        + ", ".join(relearn_input.test_ids)
+    )
+    return relearn_input
+
+
+def _execute_relearn(
+    *,
+    relearn_input: RelearnInput,
+    plan_path: Path,
+    testbed_path: Path,
+    inventory_plugin: str | None,
+    parameters_dir: Path,
+    results_dir: Path,
+    output_dir: Path | None,
+    output: Output,
+) -> None:
+    """Run the failed tests in learning mode and report results."""
+    filters = PlanFilterOptions(
+        test_ids=relearn_input.test_ids,
+        scenarios=relearn_input.scenario_ids,
+        phases=relearn_input.phase_ids,
+    )
+    plugin_registry = _load_plugin_registry(project_root=Path.cwd())
+
+    result = asyncio.run(
+        run_test_plan(
+            mode=ExecutionMode.LEARNING,
+            testbed_path=testbed_path,
+            inventory_plugin=inventory_plugin,
+            plan_path=plan_path,
+            filters=filters,
+            project_root=Path.cwd(),
+            parameters_dir=parameters_dir,
+            results_dir=results_dir,
+            output_dir=output_dir,
+            output=output,
+            registry=plugin_registry,
+        )
+    )
+
+    output.status(
+        f"Re-learn complete: "
+        f"total={result.summary.total} "
+        f"passed={result.summary.passed} "
+        f"failed={result.summary.failed} "
+        f"errored={result.summary.errored} "
+        f"not_applicable={result.summary.not_applicable}"
+    )
+
+    if result.summary.failed > 0 or result.summary.errored > 0:
+        output.error(
+            "Some tests failed during re-learning -- "
+            "parameters may not have been updated"
+        )
+        raise typer.Exit(code=1)
+
+    output.success(
+        f"Successfully re-learned parameters for {result.summary.passed} test(s)"
+    )
 
 
 def _display_prune_input(prune_input: PruneInput, output: Output) -> None:
