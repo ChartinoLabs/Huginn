@@ -676,8 +676,8 @@ def reconcile(
         str,
         typer.Option(
             "--phase",
-            help="Phase whose failures to reconcile. Also used as suffix for "
-            "new test case IDs and group names.",
+            help="Phase whose failures to reconcile. Combined with the scenario "
+            "name to form the suffix for new test case IDs and group names.",
             envvar="HUGINN_PHASE",
         ),
     ],
@@ -790,13 +790,23 @@ def reconcile(
             )
             return
 
+        if len(reconcile_input.scenarios_with_phase) > 1 and scenario is None:
+            raise ReconcileError(
+                f"Multiple scenarios contain phase '{phase}': "
+                f"{reconcile_input.scenarios_with_phase}. "
+                "Use --scenario to specify which one to reconcile."
+            )
+        scenario_name = reconcile_input.scenarios_with_phase[0]
+
         output.status(
             f"Found {len(reconcile_input.failing_tests)} failing test case(s) "
             f"across {len(reconcile_input.affected_group_ids)} group(s)"
         )
 
         test_plan = load_test_plan(plan)
-        plan_result = compute_reconcile_plan(reconcile_input, test_plan, phase)
+        plan_result = compute_reconcile_plan(
+            reconcile_input, test_plan, phase, scenario_name
+        )
 
         if not plan_result.new_test_cases and not plan_result.new_groups:
             output.success("Reconciliation already applied -- no changes needed")
