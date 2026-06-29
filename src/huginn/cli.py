@@ -657,6 +657,80 @@ def _build_output(
     )
 
 
+def _run_reconcile(
+    plan: Path,
+    phase: str,
+    scenario: str | None,
+    results_dir: Path,
+    parameters_dir: Path,
+    output: "Output",
+) -> None:
+    run_json_path = find_latest_testing_results(results_dir)
+    output.status(f"Using results from {run_json_path.parent.name}")
+
+    reconcile_input = parse_failures_from_run(
+        run_json_path, phase, scenario_filter=scenario
+    )
+
+    if not reconcile_input.failing_tests:
+        output.success(f"No failures found in phase '{phase}' -- nothing to reconcile")
+        return
+
+    if len(reconcile_input.scenarios_with_phase) > 1 and scenario is None:
+        raise ReconcileError(
+            f"Multiple scenarios contain phase '{phase}': "
+            f"{reconcile_input.scenarios_with_phase}. "
+            "Use --scenario to specify which one to reconcile."
+        )
+    scenario_name = reconcile_input.scenarios_with_phase[0]
+
+    output.status(
+        f"Found {len(reconcile_input.failing_tests)} failing test case(s) "
+        f"across {len(reconcile_input.affected_group_ids)} group(s)"
+    )
+
+    test_plan = load_test_plan(plan)
+    plan_result = compute_reconcile_plan(
+        reconcile_input, test_plan, phase, scenario_name
+    )
+
+    if not plan_result.new_test_cases and not plan_result.new_groups:
+        output.success("Reconciliation already applied -- no changes needed")
+        if plan_result.skipped_existing:
+            output.warning(
+                f"Skipped {len(plan_result.skipped_existing)} existing "
+                "ID(s) (already reconciled)"
+            )
+        return
+
+    apply_reconcile_plan(
+        plan_path=plan,
+        reconcile_plan=plan_result,
+        phase_name=phase,
+        output=output,
+    )
+
+    copied = copy_parameter_files(
+        parameters_dir=parameters_dir,
+        copies=plan_result.parameter_copies,
+        output=output,
+    )
+
+    validate_after_reconcile(plan)
+
+    output.success(
+        f"Reconciliation complete: "
+        f"{len(plan_result.new_test_cases)} new test case(s), "
+        f"{len(plan_result.new_groups)} new group(s), "
+        f"{copied} parameter file(s) copied"
+    )
+    if plan_result.skipped_existing:
+        output.warning(
+            f"Skipped {len(plan_result.skipped_existing)} existing "
+            "ID(s) (already reconciled)"
+        )
+
+
 @app.command()
 def reconcile(
     plan: Annotated[
@@ -777,73 +851,9 @@ def reconcile(
     )
 
     try:
-        run_json_path = find_latest_testing_results(resolved_results_dir)
-        output.status(f"Using results from {run_json_path.parent.name}")
-
-        reconcile_input = parse_failures_from_run(
-            run_json_path, phase, scenario_filter=scenario
+        _run_reconcile(
+            plan, phase, scenario, resolved_results_dir, resolved_parameters_dir, output
         )
-
-        if not reconcile_input.failing_tests:
-            output.success(
-                f"No failures found in phase '{phase}' -- nothing to reconcile"
-            )
-            return
-
-        if len(reconcile_input.scenarios_with_phase) > 1 and scenario is None:
-            raise ReconcileError(
-                f"Multiple scenarios contain phase '{phase}': "
-                f"{reconcile_input.scenarios_with_phase}. "
-                "Use --scenario to specify which one to reconcile."
-            )
-        scenario_name = reconcile_input.scenarios_with_phase[0]
-
-        output.status(
-            f"Found {len(reconcile_input.failing_tests)} failing test case(s) "
-            f"across {len(reconcile_input.affected_group_ids)} group(s)"
-        )
-
-        test_plan = load_test_plan(plan)
-        plan_result = compute_reconcile_plan(
-            reconcile_input, test_plan, phase, scenario_name
-        )
-
-        if not plan_result.new_test_cases and not plan_result.new_groups:
-            output.success("Reconciliation already applied -- no changes needed")
-            if plan_result.skipped_existing:
-                output.warning(
-                    f"Skipped {len(plan_result.skipped_existing)} existing "
-                    "ID(s) (already reconciled)"
-                )
-            return
-
-        apply_reconcile_plan(
-            plan_path=plan,
-            reconcile_plan=plan_result,
-            phase_name=phase,
-            output=output,
-        )
-
-        copied = copy_parameter_files(
-            parameters_dir=resolved_parameters_dir,
-            copies=plan_result.parameter_copies,
-            output=output,
-        )
-
-        validate_after_reconcile(plan)
-
-        output.success(
-            f"Reconciliation complete: "
-            f"{len(plan_result.new_test_cases)} new test case(s), "
-            f"{len(plan_result.new_groups)} new group(s), "
-            f"{copied} parameter file(s) copied"
-        )
-        if plan_result.skipped_existing:
-            output.warning(
-                f"Skipped {len(plan_result.skipped_existing)} existing "
-                "ID(s) (already reconciled)"
-            )
-
     except (ReconcileError, ConfigurationError) as error:
         output.error(f"ERROR: {error}")
         raise typer.Exit(code=1) from error

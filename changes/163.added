@@ -1,0 +1,1 @@
+Reconciled test case and group IDs now include the scenario name as a suffix for disambiguation across scenarios.

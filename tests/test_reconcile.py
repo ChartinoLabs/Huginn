@@ -437,7 +437,10 @@ class TestComputeReconcilePlan:
 
         assert "2.0.0-scenario-1-post-change" in plan.new_test_cases
         assert "3.0.0-scenario-1-post-change" in plan.new_test_cases
-        assert plan.new_test_cases["2.0.0-scenario-1-post-change"]["job"] == "tests/verify_ospf.py"
+        assert (
+            plan.new_test_cases["2.0.0-scenario-1-post-change"]["job"]
+            == "tests/verify_ospf.py"
+        )
         assert plan.new_test_cases["2.0.0-scenario-1-post-change"]["title"] == (
             "Verify OSPF neighbors (scenario-1 post-change)"
         )
@@ -473,7 +476,9 @@ class TestComputeReconcilePlan:
             target=TargetDefinition(exclude_devices=["TAC-R1"]),
         )
 
-        plan = compute_reconcile_plan(self._default_input(), test_plan, "post-change", "scenario-1")
+        plan = compute_reconcile_plan(
+            self._default_input(), test_plan, "post-change", "scenario-1"
+        )
 
         assert plan.new_test_cases["2.0.0-scenario-1-post-change"]["target"] == {
             "exclude_devices": ["TAC-R1"]
@@ -489,7 +494,10 @@ class TestComputeReconcilePlan:
         spec = plan.new_groups["connectivity-scenario-1-post-change"]
         assert spec.parent_group == "connectivity"
         assert set(spec.exclude_tests) == {"2.0.0", "3.0.0"}
-        assert set(spec.tests) == {"2.0.0-scenario-1-post-change", "3.0.0-scenario-1-post-change"}
+        assert set(spec.tests) == {
+            "2.0.0-scenario-1-post-change",
+            "3.0.0-scenario-1-post-change",
+        }
 
     def test_creates_phase_group_replacements(self) -> None:
         """Map old group references to new ones per scenario."""
@@ -520,7 +528,9 @@ class TestComputeReconcilePlan:
             job="tests/verify_ospf.py",
         )
 
-        plan = compute_reconcile_plan(self._default_input(), test_plan, "post-change", "scenario-1")
+        plan = compute_reconcile_plan(
+            self._default_input(), test_plan, "post-change", "scenario-1"
+        )
 
         assert "2.0.0-scenario-1-post-change" not in plan.new_test_cases
         assert "2.0.0-scenario-1-post-change" in plan.skipped_existing
@@ -528,12 +538,16 @@ class TestComputeReconcilePlan:
     def test_skips_existing_group_ids(self) -> None:
         """Skip new group IDs that already exist in the test plan."""
         test_plan = _build_test_plan()
-        test_plan.test_case_groups["connectivity-scenario-1-post-change"] = TestCaseGroup(
-            identifier="connectivity-scenario-1-post-change",
-            tests=["1.0.0"],
+        test_plan.test_case_groups["connectivity-scenario-1-post-change"] = (
+            TestCaseGroup(
+                identifier="connectivity-scenario-1-post-change",
+                tests=["1.0.0"],
+            )
         )
 
-        plan = compute_reconcile_plan(self._default_input(), test_plan, "post-change", "scenario-1")
+        plan = compute_reconcile_plan(
+            self._default_input(), test_plan, "post-change", "scenario-1"
+        )
 
         assert "connectivity-scenario-1-post-change" not in plan.new_groups
         assert "connectivity-scenario-1-post-change" in plan.skipped_existing
@@ -562,7 +576,9 @@ class TestComputeReconcilePlan:
             test_case_groups=["group-a", "group-b"],
         )
 
-        plan = compute_reconcile_plan(reconcile_input, test_plan, "post-change", "scenario-1")
+        plan = compute_reconcile_plan(
+            reconcile_input, test_plan, "post-change", "scenario-1"
+        )
 
         assert len(plan.parameter_copies) == 1
 
@@ -577,7 +593,9 @@ class TestComputeReconcilePlan:
         )
 
         with pytest.raises(ReconcileError, match="Phase 'nonexistent' not found"):
-            compute_reconcile_plan(reconcile_input, _build_test_plan(), "nonexistent", "scenario-1")
+            compute_reconcile_plan(
+                reconcile_input, _build_test_plan(), "nonexistent", "scenario-1"
+            )
 
     def test_deduplicates_id_when_original_equals_phase(self) -> None:
         """Avoid redundant repetition when original_id matches phase_name."""
@@ -605,7 +623,9 @@ class TestComputeReconcilePlan:
             scenarios_with_phase=["scenario-1"],
         )
 
-        plan = compute_reconcile_plan(reconcile_input, test_plan, "post-change", "scenario-1")
+        plan = compute_reconcile_plan(
+            reconcile_input, test_plan, "post-change", "scenario-1"
+        )
 
         assert "scenario-1-post-change" in plan.new_test_cases
         assert "scenario-1-post-change" in plan.new_groups
@@ -914,7 +934,9 @@ class TestCopyParameterFiles:
         """Skip copy when destination file already exists."""
         params_dir = tmp_path / "parameters"
         _write_json(params_dir / "2.0.0.json", {"original": True})
-        _write_json(params_dir / "2.0.0-scenario-1-post-change.json", {"existing": True})
+        _write_json(
+            params_dir / "2.0.0-scenario-1-post-change.json", {"existing": True}
+        )
 
         copied = copy_parameter_files(
             parameters_dir=params_dir,
@@ -923,7 +945,9 @@ class TestCopyParameterFiles:
         )
 
         assert copied == 0
-        existing = json.loads((params_dir / "2.0.0-scenario-1-post-change.json").read_text())
+        existing = json.loads(
+            (params_dir / "2.0.0-scenario-1-post-change.json").read_text()
+        )
         assert existing == {"existing": True}
 
     def test_handles_multiple_copies(self, tmp_path: Path, output: Output) -> None:

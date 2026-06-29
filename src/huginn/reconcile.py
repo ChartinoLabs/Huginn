@@ -180,9 +180,7 @@ def _collect_phase_results(
                     passing_by_group[group_id].append(tid)
 
 
-def _reconciled_id(
-    original_id: str, scenario_name: str, phase_name: str
-) -> str:
+def _reconciled_id(original_id: str, scenario_name: str, phase_name: str) -> str:
     """Build a reconciled ID that is unique per scenario and phase.
 
     When ``original_id`` equals ``phase_name``, the original is redundant and
