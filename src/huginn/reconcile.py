@@ -180,28 +180,42 @@ def _collect_phase_results(
                     passing_by_group[group_id].append(tid)
 
 
+def _reconciled_id(original_id: str, scenario_name: str, phase_name: str) -> str:
+    """Build a reconciled ID that is unique per scenario and phase.
+
+    When ``original_id`` equals ``phase_name``, the original is redundant and
+    the result is simply ``{scenario_name}-{phase_name}``.  Otherwise the full
+    form ``{original_id}-{scenario_name}-{phase_name}`` is used.
+    """
+    if original_id == phase_name:
+        return f"{scenario_name}-{phase_name}"
+    return f"{original_id}-{scenario_name}-{phase_name}"
+
+
 def compute_reconcile_plan(
     reconcile_input: ReconcileInput,
     test_plan: TestPlan,
     phase_name: str,
+    scenario_name: str,
 ) -> ReconcilePlan:
     """Compute all changes needed without performing I/O."""
     _validate_phase_exists_in_plan(test_plan, phase_name, reconcile_input)
 
     skipped_existing: list[str] = []
     new_test_cases, parameter_copies, seen_failing_ids = _build_new_test_cases(
-        reconcile_input, test_plan, phase_name, skipped_existing
+        reconcile_input, test_plan, phase_name, scenario_name, skipped_existing
     )
     new_groups = _build_new_groups(
         reconcile_input,
         test_plan,
         phase_name,
+        scenario_name,
         new_test_cases,
         seen_failing_ids,
         skipped_existing,
     )
     phase_group_replacements = _build_phase_replacements(
-        reconcile_input, new_groups, phase_name
+        reconcile_input, new_groups, phase_name, scenario_name
     )
 
     return ReconcilePlan(
@@ -217,6 +231,7 @@ def _build_new_test_cases(
     reconcile_input: ReconcileInput,
     test_plan: TestPlan,
     phase_name: str,
+    scenario_name: str,
     skipped_existing: list[str],
 ) -> tuple[dict[str, dict[str, object]], list[tuple[str, str]], set[str]]:
     """Create new test case definitions for each unique failing test."""
@@ -229,7 +244,7 @@ def _build_new_test_cases(
             continue
         seen_failing_ids.add(failure.test_id)
 
-        new_id = f"{failure.test_id}-{phase_name}"
+        new_id = _reconciled_id(failure.test_id, scenario_name, phase_name)
         if new_id in test_plan.test_cases:
             skipped_existing.append(new_id)
             continue
@@ -238,7 +253,7 @@ def _build_new_test_cases(
         if original is None:
             continue
 
-        tc_entry = _serialize_test_case(original, phase_name)
+        tc_entry = _serialize_test_case(original, scenario_name, phase_name)
         new_test_cases[new_id] = tc_entry
         parameter_copies.append((failure.test_id, new_id))
 
@@ -247,11 +262,12 @@ def _build_new_test_cases(
 
 def _serialize_test_case(
     original: TestCaseDefinition,
+    scenario_name: str,
     phase_name: str,
 ) -> dict[str, object]:
     """Build a raw test case entry from an existing definition."""
     tc_entry: dict[str, object] = {
-        "title": f"{original.title} ({phase_name})",
+        "title": f"{original.title} ({scenario_name} {phase_name})",
         "job": original.job,
     }
     if original.tags:
@@ -275,6 +291,7 @@ def _build_new_groups(
     reconcile_input: ReconcileInput,
     test_plan: TestPlan,
     phase_name: str,
+    scenario_name: str,
     new_test_cases: dict[str, dict[str, object]],
     seen_failing_ids: set[str],
     skipped_existing: list[str],
@@ -282,7 +299,7 @@ def _build_new_groups(
     """Create new group specs for each affected group."""
     new_groups: dict[str, NewGroupSpec] = {}
     for group_id in reconcile_input.affected_group_ids:
-        new_group_id = f"{group_id}-{phase_name}"
+        new_group_id = _reconciled_id(group_id, scenario_name, phase_name)
         if new_group_id in test_plan.test_case_groups:
             skipped_existing.append(new_group_id)
             continue
@@ -296,7 +313,7 @@ def _build_new_groups(
         for tid in seen_failing_ids:
             if tid not in original_group.tests:
                 continue
-            candidate = f"{tid}-{phase_name}"
+            candidate = _reconciled_id(tid, scenario_name, phase_name)
             if candidate in new_test_cases or candidate in test_plan.test_cases:
                 excluded.append(tid)
                 reconciled_tests.append(candidate)
@@ -313,13 +330,14 @@ def _build_phase_replacements(
     reconcile_input: ReconcileInput,
     new_groups: dict[str, NewGroupSpec],
     phase_name: str,
+    scenario_name: str,
 ) -> dict[str, dict[str, str]]:
     """Map old group references to new ones per scenario."""
     phase_group_replacements: dict[str, dict[str, str]] = {}
     for scenario_id in reconcile_input.scenarios_with_phase:
         replacements: dict[str, str] = {}
         for group_id in reconcile_input.affected_group_ids:
-            new_group_id = f"{group_id}-{phase_name}"
+            new_group_id = _reconciled_id(group_id, scenario_name, phase_name)
             if new_group_id in new_groups:
                 replacements[group_id] = new_group_id
         if replacements:
