@@ -55,7 +55,7 @@ dev = [
     "pytest-cov==7.1.0",
     "ruff==0.15.20",
     "towncrier==25.8.0",
-    "ty==0.0.54",
+    "ty==0.0.56",
     "xenon==0.9.3",
 ]
 docs = [
