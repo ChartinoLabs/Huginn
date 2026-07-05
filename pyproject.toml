@@ -11,13 +11,14 @@ requires-python = ">=3.11"
 dependencies = [
     "typer>=0.9.0,<1.0.0",
     "aiohttp>=3.10.5,<4.0.0",
-    "jinja2>=3.1.0,<4.0.0",
-    "markdown>=3.4.0,<4.0.0",
     "pyyaml>=6.0.2,<7.0.0",
     "ruamel.yaml>=0.17.32,<1.0.0",
     "scrapli-netconf[asyncssh]>=2025.1.30",
     "scrapli[asyncssh]>=2025.1.30",
 ]
+
+[project.optional-dependencies]
+default = ["huginn-plugin-default-html-reporter>=0.1.0"]
 
 [project.scripts]
 huginn = "huginn:main"
@@ -29,9 +30,6 @@ netconf = "huginn.brokers.netconf:NETCONFBroker"
 
 [project.entry-points."huginn.inventory"]
 file = "huginn.inventory_plugins:FileInventoryPlugin"
-
-[project.entry-points."huginn.reporters"]
-html = "huginn.reporting.html:HTMLReporterPlugin"
 
 [build-system]
 requires = ["hatchling", "hatch-vcs"]
@@ -89,6 +87,9 @@ select = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.uv.sources]
+huginn-plugin-default-html-reporter = { path = "../huginn-plugin-default-html-reporter", editable = true }
 
 [tool.ruff.lint.isort]
 combine-as-imports = true

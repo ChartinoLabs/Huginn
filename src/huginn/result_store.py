@@ -133,7 +133,7 @@ def _write_test_case_results(*, result: RunResult, run_dir: Path) -> dict[str, s
                     )
                     relative_path = Path("test-cases") / directory_name / "result.json"
                     _write_json(run_dir / relative_path, asdict(test_case))
-                    written_paths[_test_case_execution_key(test_case)] = (
+                    written_paths[test_case_execution_key(test_case)] = (
                         relative_path.as_posix()
                     )
 
@@ -164,7 +164,7 @@ def _unique_test_case_directory_name(
     return candidate
 
 
-def _test_case_execution_key(test_case: ExecutedTestCase) -> str:
+def test_case_execution_key(test_case: ExecutedTestCase) -> str:
     """Build a stable key for one executed test case occurrence."""
     return "::".join(
         [
@@ -261,7 +261,7 @@ def _build_test_case_summary_payload(
         "test_id": test_case.test_id,
         "title": test_case.title,
         "status": test_case.status,
-        "result_path": test_case_paths[_test_case_execution_key(test_case)],
+        "result_path": test_case_paths[test_case_execution_key(test_case)],
     }
     if test_case.error is not None:
         payload["error"] = test_case.error
