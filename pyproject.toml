@@ -17,8 +17,6 @@ dependencies = [
     "scrapli[asyncssh]>=2025.1.30",
 ]
 
-[project.optional-dependencies]
-default = ["huginn-plugin-default-html-reporter>=0.1.0"]
 
 [project.scripts]
 huginn = "huginn:main"
@@ -87,9 +85,6 @@ select = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
-
-[tool.uv.sources]
-huginn-plugin-default-html-reporter = { path = "../huginn-plugin-default-html-reporter", editable = true }
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
