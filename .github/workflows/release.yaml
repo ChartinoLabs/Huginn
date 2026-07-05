@@ -90,7 +90,11 @@ jobs:
   publish:
     needs: [build, release]
     runs-on: ubuntu-latest
-    environment: pypi
+    environment:
+      name: pypi
+      url: https://pypi.org/p/huginn-framework
+    permissions:
+      id-token: write
     steps:
       - name: Download distribution artifacts
         uses: actions/download-artifact@v8
@@ -99,5 +103,3 @@ jobs:
           path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
