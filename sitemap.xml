@@ -2,126 +2,126 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://chartinolabs.github.io/Huginn/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/style/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/authoring/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/authoring/change/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/authoring/gate/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/authoring/static-validation/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/authoring/unit-testing/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/authoring/volatile-validation/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/concepts/archetypes/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/concepts/execution-modes/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/concepts/glossary/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/concepts/overview/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/concepts/pruning/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/concepts/reconciliation/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/concepts/relearning/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/concepts/test-plan-structure/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/design/architecture/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/design/connection-broker/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/design/future/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/design/output-logging/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/design/volatile-parameters/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/getting-started/installation/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/getting-started/quickstart/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/reference/configuration/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/reference/context-api/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/reference/package-jobs/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/reference/prune/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/reference/reconcile/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/reference/relearn/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/reference/test-plan/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
     <url>
          <loc>https://chartinolabs.github.io/Huginn/reference/testbed/</loc>
-         <lastmod>2026-07-15</lastmod>
+         <lastmod>2026-08-15</lastmod>
     </url>
 </urlset>
