@@ -44,11 +44,11 @@ def test_run_learning_mode_persists_parameters(
     }
 
 
-def test_run_learning_mode_writes_html_report(
+def test_run_learning_mode_succeeds_without_reporter_plugin(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Learning mode writes the standard HTML report alongside run results."""
+    """Learning mode succeeds when no reporter plugin is installed."""
     stage_runner_fixture(tmp_path, "learning_testing_parameters")
     monkeypatch.chdir(tmp_path)
 
@@ -68,8 +68,7 @@ def test_run_learning_mode_writes_html_report(
     )
 
     assert result.exit_code == 0
-    assert (tmp_path / "reports" / "latest" / "index.html").exists()
-    assert "Run report written to reports/latest/" in result.stdout
+    assert not (tmp_path / "reports" / "latest").exists()
 
 
 def test_run_learning_mode_deduplicates_reused_test_ids(

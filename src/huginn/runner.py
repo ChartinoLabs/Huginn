@@ -40,7 +40,7 @@ from huginn.output import Output
 from huginn.parameters import ParameterManager
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
 from huginn.plugin_registry import PluginRegistry
-from huginn.reporting.html import ReportRenderError, write_standard_html_report
+from huginn.reporting.protocol import ReportRenderError
 from huginn.result_store import ResultWriteError, create_run_dir, write_run_result
 from huginn.results import ResultCollector
 from huginn.runtime_broker import (
@@ -296,32 +296,24 @@ async def _run_reporters(
     if registry is not None:
         reporters = registry.resolve_reporters()
     else:
-        reporters = None
+        reporters = []
 
-    if reporters is not None and len(reporters) == 0:
+    if not reporters:
         return None
 
-    if reporters is not None:
-        primary_path: Path | None = None
-        for reporter in reporters:
-            config = registry.get_plugin_config(reporter.name) if registry else {}
-            report_path = await reporter.generate_report(
-                result=result,
-                run_dir=run_dir,
-                reports_dir=reports_dir,
-                test_case_result_paths=test_case_result_paths,
-                config=config,
-            )
-            if primary_path is None and report_path is not None:
-                primary_path = report_path
-        return primary_path
-
-    return write_standard_html_report(
-        result=result,
-        reports_dir=reports_dir,
-        results_run_dir=run_dir,
-        test_case_result_paths=test_case_result_paths,
-    )
+    primary_path: Path | None = None
+    for reporter in reporters:
+        config = registry.get_plugin_config(reporter.name) if registry else {}
+        report_path = await reporter.generate_report(
+            result=result,
+            run_dir=run_dir,
+            reports_dir=reports_dir,
+            test_case_result_paths=test_case_result_paths,
+            config=config,
+        )
+        if primary_path is None and report_path is not None:
+            primary_path = report_path
+    return primary_path
 
 
 async def _execute_scenarios(

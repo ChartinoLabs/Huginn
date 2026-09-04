@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.11"
 
 [[package]]
@@ -708,8 +708,6 @@ name = "huginn-framework"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
-    { name = "jinja2" },
-    { name = "markdown" },
     { name = "pyyaml" },
     { name = "ruamel-yaml" },
     { name = "scrapli", extra = ["asyncssh"] },
@@ -738,8 +736,6 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.10.5,<4.0.0" },
-    { name = "jinja2", specifier = ">=3.1.0,<4.0.0" },
-    { name = "markdown", specifier = ">=3.4.0,<4.0.0" },
     { name = "pyyaml", specifier = ">=6.0.2,<7.0.0" },
     { name = "ruamel-yaml", specifier = ">=0.17.32,<1.0.0" },
     { name = "scrapli", extras = ["asyncssh"], specifier = ">=2025.1.30" },
