@@ -1,0 +1,1 @@
+Added public `resolve_targets()` and `TargetResolutionError` to `huginn.runner` for resolving test case target devices without executing tests.
