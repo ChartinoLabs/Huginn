@@ -9,7 +9,10 @@ from huginn.jobs import (
     JobLoadError,
     _is_module_path,
     _split_job,
+    extract_test_case_metadata,
     load_test_case_class,
+    read_job_source,
+    resolve_job_file_path,
 )
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "jobs"
@@ -137,3 +140,67 @@ def test_load_test_case_class_module_path_missing_class_raises(
             job="fake_job_package.verify_thing:Nope",
             project_root=Path("/nonexistent"),
         )
+
+
+# --- Read-only introspection helpers ---
+
+
+def test_resolve_job_file_path_returns_path_for_file_reference() -> None:
+    """File-based job references resolve to the file's Path."""
+    result = resolve_job_file_path("test_verify_single.py", FIXTURES)
+    assert result == FIXTURES / "test_verify_single.py"
+
+
+def test_resolve_job_file_path_returns_path_with_explicit_class() -> None:
+    """Explicit class suffix is stripped before resolving the file path."""
+    result = resolve_job_file_path("test_verify_single.py:VerifySomething", FIXTURES)
+    assert result == FIXTURES / "test_verify_single.py"
+
+
+def test_resolve_job_file_path_returns_none_for_module_path() -> None:
+    """Module paths have no single local file."""
+    assert resolve_job_file_path("huginn_jobs.bgp.verify", Path("/any")) is None
+
+
+def test_resolve_job_file_path_returns_none_for_missing_file() -> None:
+    """Non-existent file paths return None."""
+    assert resolve_job_file_path("nonexistent.py", FIXTURES) is None
+
+
+def test_read_job_source_returns_file_content() -> None:
+    """read_job_source returns the source code of a job file."""
+    source = read_job_source("test_verify_single.py", FIXTURES)
+    assert source is not None
+    assert "class VerifySomething" in source
+
+
+def test_read_job_source_returns_none_for_module_path() -> None:
+    """Module paths return None since there is no local file."""
+    assert read_job_source("huginn_jobs.bgp.verify", Path("/any")) is None
+
+
+def test_read_job_source_returns_none_for_missing_file() -> None:
+    """Missing files return None."""
+    assert read_job_source("nonexistent.py", FIXTURES) is None
+
+
+def test_extract_test_case_metadata_reads_class_attributes() -> None:
+    """extract_test_case_metadata returns all four documentation attributes."""
+    meta = extract_test_case_metadata("test_verify_with_metadata.py", FIXTURES)
+    assert meta == {
+        "description": "Verify BGP neighbor adjacency",
+        "setup": "Ensure BGP is configured on both peers",
+        "procedure": "Check neighbor state via show commands",
+        "pass_fail_criteria": "Neighbor must be in Established state",
+    }
+
+
+def test_extract_test_case_metadata_returns_none_for_missing_attributes() -> None:
+    """Classes without metadata attributes return None values."""
+    meta = extract_test_case_metadata("test_verify_single.py", FIXTURES)
+    assert meta == {
+        "description": None,
+        "setup": None,
+        "procedure": None,
+        "pass_fail_criteria": None,
+    }
