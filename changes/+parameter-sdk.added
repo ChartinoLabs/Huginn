@@ -1,0 +1,1 @@
+Added `load_test_case_parameters()` and `list_available_parameters()` synchronous helpers to `huginn.parameters` for reading learned parameters without the async execution engine.
