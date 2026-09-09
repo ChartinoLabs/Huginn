@@ -67,6 +67,11 @@ class TestCaseDefinition:
     job: str
     tags: list[str] = field(default_factory=list)
     target: TargetDefinition | None = None
+    description: str | None = None
+    priority: str | None = None
+    category: str | None = None
+    is_automated: bool = True
+    metadata: dict[str, object] | None = None
 
 
 @dataclass

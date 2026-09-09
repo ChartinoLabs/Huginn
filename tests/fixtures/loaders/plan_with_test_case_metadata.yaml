@@ -1,0 +1,30 @@
+test_cases:
+  1.0.0:
+    title: Verify BGP neighbor adjacency
+    job: jobs/verify_bgp.py
+    description: Confirm BGP neighbor reaches Established state
+    priority: high
+    category: routing
+    is_automated: true
+    metadata:
+      jira_ticket: NET-1234
+      owner: network-team
+  2.0.0:
+    title: Manual cable check
+    job: jobs/manual_cable.py
+    is_automated: false
+  3.0.0:
+    title: Minimal test case
+    job: jobs/minimal.py
+test_case_groups:
+  group-1:
+    tests:
+    - 1.0.0
+    - 2.0.0
+    - 3.0.0
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - group-1

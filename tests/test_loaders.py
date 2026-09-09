@@ -116,6 +116,43 @@ def test_load_test_plan_parses_test_case_tags() -> None:
     assert test_plan.test_cases["1.0.0"].tags == ["ospf", "routing"]
 
 
+def test_load_test_plan_parses_test_case_metadata_fields() -> None:
+    """Parse optional test case metadata fields."""
+    path = FIXTURES / "plan_with_test_case_metadata.yaml"
+
+    test_plan = load_test_plan(path)
+
+    tc = test_plan.test_cases["1.0.0"]
+    assert tc.description == "Confirm BGP neighbor reaches Established state"
+    assert tc.priority == "high"
+    assert tc.category == "routing"
+    assert tc.is_automated is True
+    assert tc.metadata == {"jira_ticket": "NET-1234", "owner": "network-team"}
+
+
+def test_load_test_plan_parses_is_automated_false() -> None:
+    """is_automated=false is preserved on test cases."""
+    path = FIXTURES / "plan_with_test_case_metadata.yaml"
+
+    test_plan = load_test_plan(path)
+
+    assert test_plan.test_cases["2.0.0"].is_automated is False
+
+
+def test_load_test_plan_defaults_metadata_fields() -> None:
+    """Metadata fields default to None/True when absent."""
+    path = FIXTURES / "plan_with_test_case_metadata.yaml"
+
+    test_plan = load_test_plan(path)
+
+    tc = test_plan.test_cases["3.0.0"]
+    assert tc.description is None
+    assert tc.priority is None
+    assert tc.category is None
+    assert tc.is_automated is True
+    assert tc.metadata is None
+
+
 def test_load_test_plan_parses_test_case_group_tags() -> None:
     """Parse optional test case group tags list."""
     path = FIXTURES / "plan_with_group_tags.yaml"
