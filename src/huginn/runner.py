@@ -1807,6 +1807,35 @@ def _format_elapsed(started_at: float) -> str:
     return f"{perf_counter() - started_at:.3f}s"
 
 
+def resolve_targets(
+    *,
+    testbed: Testbed,
+    phase: Phase,
+    group: TestCaseGroup,
+    test_case: TestCaseDefinition,
+) -> list[Device]:
+    """Resolve the target device list for a test case.
+
+    Applies the Phase -> TestCaseGroup -> TestCaseDefinition target
+    selector intersection to narrow the testbed's device set.  Raises
+    ``TargetResolutionError`` when a selector references an unknown
+    device or the intersection is otherwise invalid.
+    """
+    devices, error = _resolve_targets(
+        testbed=testbed,
+        phase=phase,
+        group=group,
+        test_case=test_case,
+    )
+    if error is not None:
+        raise TargetResolutionError(error)
+    return devices
+
+
+class TargetResolutionError(ValueError):
+    """Raised when target device resolution fails."""
+
+
 def _resolve_targets(
     *,
     testbed: Testbed,
