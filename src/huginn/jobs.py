@@ -121,3 +121,52 @@ def _load_first_test_case_class(module: ModuleType, raw_job: str) -> type[TestCa
     if not candidates:
         raise JobLoadError(f"No TestCase subclass found in '{raw_job}'")
     return candidates[0]
+
+
+# ---------------------------------------------------------------------------
+# Read-only introspection helpers
+# ---------------------------------------------------------------------------
+
+
+def resolve_job_file_path(job: str, project_root: Path) -> Path | None:
+    """Resolve a job reference to its filesystem path, or ``None``.
+
+    Returns the resolved ``Path`` for file-based job references
+    (``path/to/file.py`` or ``path/to/file.py:ClassName``).  Returns
+    ``None`` for importable module paths (``package.module``) since
+    those have no single local file.
+    """
+    reference, _ = _split_job(job)
+    if _is_module_path(reference):
+        return None
+    resolved = (project_root / reference).resolve()
+    return resolved if resolved.exists() else None
+
+
+def read_job_source(job: str, project_root: Path) -> str | None:
+    """Read the source code of a job file, or ``None`` if unresolvable.
+
+    Returns ``None`` for importable module paths or when the file does
+    not exist on disk.
+    """
+    path = resolve_job_file_path(job, project_root)
+    if path is None:
+        return None
+    return path.read_text(encoding="utf-8")
+
+
+_METADATA_ATTRIBUTES = ("DESCRIPTION", "SETUP", "PROCEDURE", "PASS_FAIL_CRITERIA")
+
+
+def extract_test_case_metadata(
+    job: str,
+    project_root: Path,
+) -> dict[str, str | None]:
+    """Load a job class and extract its documentation attributes.
+
+    Returns a dict with keys ``description``, ``setup``, ``procedure``,
+    and ``pass_fail_criteria`` — each ``None`` when not defined on the
+    class.  The job module is imported but no test is executed.
+    """
+    cls = load_test_case_class(job, project_root)
+    return {attr.lower(): getattr(cls, attr, None) for attr in _METADATA_ATTRIBUTES}

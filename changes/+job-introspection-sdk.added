@@ -1,0 +1,1 @@
+Added `resolve_job_file_path()`, `read_job_source()`, and `extract_test_case_metadata()` to `huginn.jobs` for inspecting job files and class metadata without executing tests.
