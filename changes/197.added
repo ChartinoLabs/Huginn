@@ -1,0 +1,1 @@
+Added optional `description`, `priority`, `category`, `is_automated`, and `metadata` fields to `TestCaseDefinition` for richer test case declarations and external tooling integration.

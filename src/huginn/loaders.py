@@ -575,6 +575,59 @@ def _load_test_plan_directory(directory: Path) -> TestPlan:
     )
 
 
+class _TestCaseMetadata:
+    """Validated optional metadata fields for a test case definition."""
+
+    __slots__ = ("description", "priority", "category", "is_automated", "metadata")
+
+    def __init__(
+        self,
+        description: str | None,
+        priority: str | None,
+        category: str | None,
+        is_automated: bool,
+        metadata: dict[str, object] | None,
+    ) -> None:
+        self.description = description
+        self.priority = priority
+        self.category = category
+        self.is_automated = is_automated
+        self.metadata = metadata
+
+
+def _load_test_case_metadata_fields(
+    mapping: dict[str, object],
+    test_id: str,
+) -> _TestCaseMetadata:
+    """Extract optional metadata fields from a test case mapping."""
+    description = mapping.get("description")
+    if description is not None and not isinstance(description, str):
+        raise ConfigurationError(
+            f"Test case '{test_id}' 'description' must be a string"
+        )
+    priority = mapping.get("priority")
+    if priority is not None and not isinstance(priority, str):
+        raise ConfigurationError(f"Test case '{test_id}' 'priority' must be a string")
+    category = mapping.get("category")
+    if category is not None and not isinstance(category, str):
+        raise ConfigurationError(f"Test case '{test_id}' 'category' must be a string")
+    is_automated = mapping.get("is_automated", True)
+    if not isinstance(is_automated, bool):
+        raise ConfigurationError(
+            f"Test case '{test_id}' 'is_automated' must be a boolean"
+        )
+    raw_metadata = mapping.get("metadata")
+    if raw_metadata is not None and not isinstance(raw_metadata, dict):
+        raise ConfigurationError(f"Test case '{test_id}' 'metadata' must be a mapping")
+    return _TestCaseMetadata(
+        description=description,
+        priority=priority,
+        category=category,
+        is_automated=is_automated,
+        metadata=raw_metadata,
+    )
+
+
 def _load_test_cases(data: dict[str, object]) -> dict[str, TestCaseDefinition]:
     raw_test_cases = _require_mapping(
         data.get("test_cases"),
@@ -612,12 +665,19 @@ def _load_test_cases(data: dict[str, object]) -> dict[str, TestCaseDefinition]:
                 f"Test case '{test_id}' must include non-empty 'job'"
             )
 
+        meta = _load_test_case_metadata_fields(test_case_mapping, test_id)
+
         test_cases[test_id] = TestCaseDefinition(
             test_id=test_id,
             title=title,
             job=job,
             tags=tags,
             target=target,
+            description=meta.description,
+            priority=meta.priority,
+            category=meta.category,
+            is_automated=meta.is_automated,
+            metadata=meta.metadata,
         )
     return test_cases
 
