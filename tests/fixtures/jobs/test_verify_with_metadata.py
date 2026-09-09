@@ -1,6 +1,6 @@
 """Fixture module with documentation metadata attributes."""
 
-from huginn import LearningTestCase
+from huginn import Context, LearningTestCase
 
 
 class VerifyWithMetadata(LearningTestCase):
@@ -11,13 +11,15 @@ class VerifyWithMetadata(LearningTestCase):
     PROCEDURE = "Check neighbor state via show commands"
     PASS_FAIL_CRITERIA = "Neighbor must be in Established state"
 
-    async def gather_state(self, context: object) -> dict[str, object]:
+    async def gather_state(self, context: Context) -> dict[str, object]:
+        """Return empty state for fixture."""
         return {}
 
     async def compare_state(
         self,
-        context: object,
-        learned: dict[str, object],
+        *,
+        expected: dict[str, object],
         current: dict[str, object],
+        context: Context,
     ) -> None:
-        return None
+        """No-op comparison for fixture."""
