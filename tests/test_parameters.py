@@ -83,7 +83,7 @@ def test_load_test_case_parameters_raises_on_invalid_json(tmp_path: Path) -> Non
     params_dir.mkdir()
     (params_dir / "bad.json").write_text("{not valid", encoding="utf-8")
 
-    with pytest.raises(ParameterStoreError, match="Unable to read"):
+    with pytest.raises(ParameterStoreError, match="Invalid learned parameters JSON"):
         load_test_case_parameters(params_dir, "bad")
 
 
