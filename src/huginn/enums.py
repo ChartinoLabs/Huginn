@@ -4,7 +4,19 @@ This module defines the fundamental enums used throughout the framework
 for execution modes and result statuses.
 """
 
-from enum import StrEnum
+import sys
+from enum import Enum
+
+if sys.version_info >= (3, 11):
+    from enum import StrEnum
+else:
+
+    class StrEnum(str, Enum):
+        """Backport of StrEnum for Python 3.10."""
+
+        def __str__(self) -> str:
+            """Return the string value of the enum member."""
+            return self.value
 
 
 class ExecutionMode(StrEnum):

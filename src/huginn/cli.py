@@ -5,8 +5,13 @@ against infrastructure testbeds.
 """
 
 import asyncio
-import tomllib
+import sys
 from importlib.metadata import version as get_version
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib  # type: ignore[no-redef]  # noqa: F811  # ty: ignore[unresolved-import]
 from pathlib import Path
 from typing import Annotated
 
