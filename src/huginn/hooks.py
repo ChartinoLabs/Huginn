@@ -1,8 +1,9 @@
 """Lifecycle hook protocol and event dispatch for Huginn."""
 
 import logging
-from enum import StrEnum
 from typing import Any, Protocol, runtime_checkable
+
+from huginn.enums import StrEnum
 
 logger = logging.getLogger(__name__)
 

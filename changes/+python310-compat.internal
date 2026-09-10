@@ -1,0 +1,1 @@
+Lower minimum Python version from 3.11 to 3.10 by replacing ``StrEnum`` with ``str, Enum`` base classes.
