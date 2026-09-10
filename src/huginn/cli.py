@@ -11,7 +11,7 @@ from importlib.metadata import version as get_version
 if sys.version_info >= (3, 11):
     import tomllib
 else:
-    import tomli as tomllib  # type: ignore[no-redef]
+    import tomli as tomllib  # type: ignore[no-redef,unresolved-import]
 from pathlib import Path
 from typing import Annotated
 
