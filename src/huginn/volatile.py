@@ -53,7 +53,7 @@ import re
 from abc import abstractmethod
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, ClassVar, Generic, TypedDict, TypeVar
 
@@ -151,7 +151,7 @@ def write_observations(
 
 
 def _now_iso() -> str:
-    return datetime.now(UTC).isoformat(timespec="seconds")
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def _build_observation_metadata(context: Context) -> dict[str, Any]:
