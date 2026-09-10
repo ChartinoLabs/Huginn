@@ -21,6 +21,4 @@ runs:
         enable-cache: true
     - name: Install all dependencies
       shell: bash
-      env:
-        UV_PYTHON_PREFERENCE: only-system
-      run: uv sync --group dev
+      run: uv sync --group dev --python ${{ inputs.python-version }}
