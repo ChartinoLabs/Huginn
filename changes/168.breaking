@@ -1,0 +1,1 @@
+Extracted the built-in HTML reporter into the standalone `huginn-plugin-default-html-reporter` package. Install it separately or use `pip install huginn-framework[default]` once published.
