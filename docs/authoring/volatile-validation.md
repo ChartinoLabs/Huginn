@@ -73,15 +73,20 @@ class VerifyBgpNeighborKeepalivesSentIncreasing(OperatorVolatileLearningTestCase
     command = "show ip bgp neighbors"
 
     async def gather_observations(
-        self, context: Context,
+        self,
+        context: Context,
     ) -> Iterable[Observation]:
         observations: list[Observation] = []
         for device in context.targets:
             result = await context.broker.execute(
-                device, self.command, use_cache=False,
+                device,
+                self.command,
+                use_cache=False,
             )
             parsed = mn.parse(
-                os=device.os, command=self.command, output=result.output,
+                os=device.os,
+                command=self.command,
+                output=result.output,
             )
             context.results.add_command_execution(
                 device=device.name,
@@ -94,13 +99,15 @@ class VerifyBgpNeighborKeepalivesSentIncreasing(OperatorVolatileLearningTestCase
                 value = stats.get("keepalives_sent")
                 if value is None:
                     continue
-                observations.append(Observation(
-                    device=device.name,
-                    series_key=neighbor,
-                    value=int(value),
-                    raw=str(value),
-                    extra={"neighbor": neighbor},
-                ))
+                observations.append(
+                    Observation(
+                        device=device.name,
+                        series_key=neighbor,
+                        value=int(value),
+                        raw=str(value),
+                        extra={"neighbor": neighbor},
+                    )
+                )
         return observations
 ```
 

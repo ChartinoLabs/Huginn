@@ -269,9 +269,11 @@ Example hook implementation:
 ```python
 # myproject/hooks.py
 
+
 def before_run(config, test_plan, testbed):
     """Called before test execution begins."""
     print(f"Starting test run with {len(testbed.devices)} devices")
+
 
 def notify_failure(test_id, context, failure_info):
     """Called when a test fails."""

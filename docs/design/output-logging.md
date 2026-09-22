@@ -192,13 +192,14 @@ class Output:
 The following methods from the original design are not yet implemented:
 
 ```python
-    def progress(self, description: str, total: int) -> ProgressContext:
-        """Create a progress bar context."""
-        ...
+def progress(self, description: str, total: int) -> ProgressContext:
+    """Create a progress bar context."""
+    ...
 
-    def result(self, data: Any) -> None:
-        """Display program output/results."""
-        ...
+
+def result(self, data: Any) -> None:
+    """Display program output/results."""
+    ...
 ```
 
 ## Instance Management
@@ -228,6 +229,7 @@ context = Context(
     # ... other context fields
 )
 
+
 # Tests access output through context
 class MyTest(TestCase):
     async def test(self, context: Context) -> None:
@@ -243,7 +245,9 @@ Test automation typically creates loggers using the standard pattern:
 
 ```python
 import logging
+
 logger = logging.getLogger(__name__)  # e.g., "huginn.tests.verify_ospf"
+
 
 class VerifyOspfNeighbors(TestCase):
     async def test(self, context: Context) -> None:
@@ -266,14 +270,15 @@ class Output:
 
         # Always add file handler
         file_handler = logging.FileHandler(self.log_file, encoding="utf-8")
-        file_handler.setFormatter(logging.Formatter(
-            "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
-        ))
+        file_handler.setFormatter(
+            logging.Formatter("%(asctime)s %(levelname)-8s %(name)s: %(message)s")
+        )
         self.logger.addHandler(file_handler)
 
         # Conditionally add Rich console handler
         if show_logs:
             from rich.logging import RichHandler
+
             console_handler = RichHandler(
                 console=Console(stderr=True),
                 show_time=True,
@@ -303,7 +308,9 @@ Test authors don't need to know about `Output` internals. They use standard Pyth
 
 ```python
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 class VerifyBgpPeers(TestCase):
     async def test(self, context: Context) -> None:

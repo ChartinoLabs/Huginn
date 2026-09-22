@@ -7,14 +7,14 @@ The `Context` object is passed to every test method and provides access to frame
 ```python
 class Context:
     # Identification
-    test_id: str              # "1.0.0"
-    test_title: str           # "Verify OSPF Neighbor State"
+    test_id: str  # "1.0.0"
+    test_title: str  # "Verify OSPF Neighbor State"
 
     # Execution mode
-    mode: ExecutionMode       # ExecutionMode.LEARNING or ExecutionMode.TESTING
+    mode: ExecutionMode  # ExecutionMode.LEARNING or ExecutionMode.TESTING
 
     # Infrastructure access
-    testbed: TestbedAdapter   # Full testbed metadata
+    testbed: TestbedAdapter  # Full testbed metadata
     targets: list[DeviceAdapter]  # Devices this test targets
 
     # Connection broker (primary interface for command execution)
@@ -27,10 +27,10 @@ class Context:
     parameters: ParameterManager  # Save/load learned parameters
 
     # Data model (external source of truth)
-    data_model: dict | None   # Merged data model, or None if not configured
+    data_model: dict | None  # Merged data model, or None if not configured
 
     # Configuration
-    config: FrameworkConfig   # Framework settings
+    config: FrameworkConfig  # Framework settings
 ```
 
 ## Accessing target devices
@@ -56,11 +56,11 @@ async def test(self, context: Context) -> None:
 The `DeviceAdapter` provides device metadata (but not command execution):
 
 ```python
-device.name        # "spine-01"
-device.hostname    # "spine-01.lab.local"
-device.os          # "nxos"
-device.groups      # ["spine", "datacenter-1"]
-device.metadata    # {"vendor": "cisco", "model": "N9K-C9336C"}
+device.name  # "spine-01"
+device.hostname  # "spine-01.lab.local"
+device.os  # "nxos"
+device.groups  # ["spine", "datacenter-1"]
+device.metadata  # {"vendor": "cisco", "model": "N9K-C9336C"}
 ```
 
 ## Recording results
@@ -68,23 +68,22 @@ device.metadata    # {"vendor": "cisco", "model": "N9K-C9336C"}
 ```python
 from huginn import ResultStatus
 
+
 async def test(self, context: Context) -> None:
     # Record a passing check
     context.results.add_result(
-        status=ResultStatus.PASSED,
-        message="OSPF neighbor 10.1.1.1 is in FULL state"
+        status=ResultStatus.PASSED, message="OSPF neighbor 10.1.1.1 is in FULL state"
     )
 
     # Record a failing check
     context.results.add_result(
         status=ResultStatus.FAILED,
-        message="OSPF neighbor 10.1.1.2 is in INIT state, expected FULL"
+        message="OSPF neighbor 10.1.1.2 is in INIT state, expected FULL",
     )
 
     # Record informational message (doesn't affect pass/fail)
     context.results.add_result(
-        status=ResultStatus.INFO,
-        message="Found 5 OSPF neighbors on device spine-01"
+        status=ResultStatus.INFO, message="Found 5 OSPF neighbors on device spine-01"
     )
 
     # Execute command through broker and record for reporting
@@ -93,7 +92,7 @@ async def test(self, context: Context) -> None:
         device=device.name,
         command="show ip ospf neighbor",
         output=output,
-        parsed=parsed_data  # Optional: structured data
+        parsed=parsed_data,  # Optional: structured data
     )
 ```
 
@@ -123,10 +122,9 @@ output = await context.broker.execute(device, "show ip route")
 output = await context.broker.execute(device, "show clock", use_cache=False)
 
 # Execute configuration commands (never cached)
-await context.broker.configure(device, [
-    "interface loopback0",
-    "ip address 10.0.0.1 255.255.255.255"
-])
+await context.broker.configure(
+    device, ["interface loopback0", "ip address 10.0.0.1 255.255.255.255"]
+)
 ```
 
 ### REST API operations
@@ -167,13 +165,13 @@ Capture current infrastructure state as the expected baseline:
 ```python
 from huginn import ExecutionMode, ResultStatus
 
+
 async def test(self, context: Context) -> None:
     if context.mode == ExecutionMode.LEARNING:
         state = await self.gather_state(context)
         await context.parameters.save(state)
         context.results.add_result(
-            status=ResultStatus.PASSED,
-            message="Learned parameters saved successfully"
+            status=ResultStatus.PASSED, message="Learned parameters saved successfully"
         )
 ```
 
@@ -183,6 +181,7 @@ Compare current state against previously learned parameters:
 
 ```python
 from huginn import ExecutionMode
+
 
 async def test(self, context: Context) -> None:
     if context.mode == ExecutionMode.TESTING:
@@ -244,6 +243,7 @@ A robust pattern that handles both modes and optional data model:
 ```python
 from huginn import TestCase, Context, ExecutionMode, ResultStatus
 
+
 class VerifyBGPNeighbors(TestCase):
     """Verify BGP neighbors match expected state."""
 
@@ -259,7 +259,7 @@ class VerifyBGPNeighbors(TestCase):
             await context.parameters.save(current_state)
             context.results.add_result(
                 status=ResultStatus.PASSED,
-                message=f"Learned BGP state for {len(current_state)} devices"
+                message=f"Learned BGP state for {len(current_state)} devices",
             )
         elif context.data_model is not None:
             expected = self.derive_expected_bgp_state(context.data_model)
@@ -284,6 +284,7 @@ The `check_command_support()` method provides a structured way for tests to intr
 ```python
 from dataclasses import dataclass, field
 from huginn import DeviceAdapter
+
 
 @dataclass
 class CommandSupportResult:
@@ -319,16 +320,14 @@ All test methods are async, enabling efficient parallel operations.
 ```python
 import asyncio
 
+
 async def gather_state(self, context: Context) -> dict:
     async def get_device_state(device):
         output = await context.broker.execute(device, "show version")
         return device.name, output
 
     async with asyncio.TaskGroup() as tg:
-        tasks = [
-            tg.create_task(get_device_state(device))
-            for device in context.targets
-        ]
+        tasks = [tg.create_task(get_device_state(device)) for device in context.targets]
 
     return {name: output for name, output in [t.result() for t in tasks]}
 ```
@@ -345,10 +344,7 @@ async def gather_state_rate_limited(self, context: Context) -> dict:
             return device.name, output
 
     async with asyncio.TaskGroup() as tg:
-        tasks = [
-            tg.create_task(get_device_state(device))
-            for device in context.targets
-        ]
+        tasks = [tg.create_task(get_device_state(device)) for device in context.targets]
 
     return dict(t.result() for t in tasks)
 ```
@@ -367,8 +363,7 @@ async def test(self, context: Context) -> None:
             context.results.add_result(status=ResultStatus.PASSED, message="...")
         except Exception as e:
             context.results.add_result(
-                status=ResultStatus.ERRORED,
-                message=f"{device.name}: {e}"
+                status=ResultStatus.ERRORED, message=f"{device.name}: {e}"
             )
 ```
 
@@ -379,8 +374,7 @@ Raise exceptions to abort the test entirely:
 ```python
 async def setup(self, context: Context) -> None:
     disconnected = [
-        d.name for d in context.targets
-        if not context.broker.is_connected(d.name)
+        d.name for d in context.targets if not context.broker.is_connected(d.name)
     ]
     if disconnected:
         raise RuntimeError(f"Devices not connected: {disconnected}")

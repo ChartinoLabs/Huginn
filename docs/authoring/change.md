@@ -33,9 +33,7 @@ mn = muninn.Muninn()
 mn.load_builtin_parsers()
 
 NOT_SUPPORTED_REASON = "Device does not support '{command}'"
-MISSING_LEARNED_PARAMETERS = (
-    "{device} is missing learned BGP peer parameters"
-)
+MISSING_LEARNED_PARAMETERS = "{device} is missing learned BGP peer parameters"
 MISSING_CURRENT_STATE = "{device} is missing current BGP peer state"
 PRECONDITION_FAILED = (
     "{device}'s BGP neighbor {neighbor} is not in Established state "
@@ -49,9 +47,7 @@ CLEAR_FAILED = (
     "{device}'s BGP neighbor {neighbor} state duration did not reset after "
     "clear (before='{before}', after='{after}')"
 )
-MISSING_NEIGHBOR = (
-    "{device}'s BGP neighbor {neighbor} is missing from current state"
-)
+MISSING_NEIGHBOR = "{device}'s BGP neighbor {neighbor} is missing from current state"
 NEIGHBOR_DOWN_AFTER_CLEAR = (
     "{device}'s BGP neighbor {neighbor} is in '{state}' state after clear - "
     "session has not yet re-established"
@@ -108,10 +104,14 @@ class ChangeClearBgpPeer(LearningTestCase[ClearBgpPeerParameters]):
         devices: dict[str, ClearBgpPeerDeviceParameters] = {}
         for device in context.targets:
             result = await context.broker.execute(
-                device, self.command, use_cache=False,
+                device,
+                self.command,
+                use_cache=False,
             )
             parsed = mn.parse(
-                os=device.os, command=self.command, output=result.output,
+                os=device.os,
+                command=self.command,
+                output=result.output,
             )
             context.results.add_command_execution(
                 device=device.name,
@@ -167,7 +167,8 @@ class ChangeClearBgpPeer(LearningTestCase[ClearBgpPeerParameters]):
                     context.results.add_result(
                         ResultStatus.FAILED,
                         MISSING_NEIGHBOR.format(
-                            device=device.name, neighbor=neighbor,
+                            device=device.name,
+                            neighbor=neighbor,
                         ),
                     )
                     preconditions_met = False
@@ -179,7 +180,9 @@ class ChangeClearBgpPeer(LearningTestCase[ClearBgpPeerParameters]):
             # Step 2: apply the action.
             for neighbor in target_neighbors:
                 await context.broker.execute(
-                    device, f"clear ip bgp {neighbor}", use_cache=False,
+                    device,
+                    f"clear ip bgp {neighbor}",
+                    use_cache=False,
                 )
 
             # Step 3: wait for the action to settle.
@@ -187,10 +190,13 @@ class ChangeClearBgpPeer(LearningTestCase[ClearBgpPeerParameters]):
 
             # Step 4: verify the action took effect.
             verify_result = await context.broker.execute(
-                device, self.command, use_cache=False,
+                device,
+                self.command,
+                use_cache=False,
             )
             verify_parsed = mn.parse(
-                os=device.os, command=self.command,
+                os=device.os,
+                command=self.command,
                 output=verify_result.output,
             )
             context.results.add_command_execution(
@@ -206,7 +212,8 @@ class ChangeClearBgpPeer(LearningTestCase[ClearBgpPeerParameters]):
                     context.results.add_result(
                         ResultStatus.FAILED,
                         MISSING_NEIGHBOR.format(
-                            device=device.name, neighbor=neighbor,
+                            device=device.name,
+                            neighbor=neighbor,
                         ),
                     )
                     continue

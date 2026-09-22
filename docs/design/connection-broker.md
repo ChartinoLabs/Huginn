@@ -81,6 +81,7 @@ from enum import Enum
 
 class ConnectionState(Enum):
     """Connection lifecycle states."""
+
     DISCONNECTED = "disconnected"
     CONNECTING = "connecting"
     CONNECTED = "connected"
@@ -90,6 +91,7 @@ class ConnectionState(Enum):
 @dataclass
 class ConnectionHandle:
     """Opaque handle representing an active connection."""
+
     broker_id: str
     device_name: str
     connection_type: str
@@ -100,15 +102,17 @@ class ConnectionHandle:
 @dataclass
 class CommandResult:
     """Result of a command execution."""
-    output: str                              # Raw output string
-    structured: dict[str, Any] | None = None # Structured/parsed data
-    elapsed_ms: float = 0.0                  # Execution time in milliseconds
-    cached: bool = False                     # Whether result came from cache
+
+    output: str  # Raw output string
+    structured: dict[str, Any] | None = None  # Structured/parsed data
+    elapsed_ms: float = 0.0  # Execution time in milliseconds
+    cached: bool = False  # Whether result came from cache
 
 
 @dataclass
 class ConnectionConfig:
     """Connection configuration passed to broker."""
+
     device_name: str
     host: str
     port: int
@@ -171,25 +175,37 @@ class ConnectionBrokerProtocolV1(Protocol):
     # ─── Operations ───────────────────────────────────────────────
 
     async def execute(
-        self, handle: ConnectionHandle, command: str, **kwargs: Any,
+        self,
+        handle: ConnectionHandle,
+        command: str,
+        **kwargs: Any,
     ) -> CommandResult:
         """Execute a command on the device."""
         ...
 
     async def configure(
-        self, handle: ConnectionHandle, commands: list[str], **kwargs: Any,
+        self,
+        handle: ConnectionHandle,
+        commands: list[str],
+        **kwargs: Any,
     ) -> CommandResult:
         """Apply configuration commands to the device."""
         ...
 
     async def get(
-        self, handle: ConnectionHandle, path: str, **kwargs: Any,
+        self,
+        handle: ConnectionHandle,
+        path: str,
+        **kwargs: Any,
     ) -> CommandResult:
         """Perform a GET operation (REST endpoint or NETCONF get)."""
         ...
 
     async def edit(
-        self, handle: ConnectionHandle, config: str, **kwargs: Any,
+        self,
+        handle: ConnectionHandle,
+        config: str,
+        **kwargs: Any,
     ) -> CommandResult:
         """Perform an edit operation (REST POST/PUT or NETCONF edit-config)."""
         ...
@@ -203,14 +219,31 @@ Brokers must raise exceptions from a standardized hierarchy:
 class BrokerError(Exception):
     """Base exception for all broker errors."""
 
+
 class ConnectionError(BrokerError): ...
+
+
 class AuthenticationError(BrokerError): ...
+
+
 class TimeoutError(BrokerError): ...
+
+
 class NotConnectedError(BrokerError): ...
+
+
 class InvalidHandleError(BrokerError): ...
+
+
 class CommandError(BrokerError): ...
+
+
 class ConfigurationError(BrokerError): ...
+
+
 class OperationError(BrokerError): ...
+
+
 class CapabilityError(BrokerError): ...
 ```
 
@@ -277,7 +310,10 @@ class RuntimeBroker:
         ...
 
     async def execute(
-        self, target: Device, command: str, *,
+        self,
+        target: Device,
+        command: str,
+        *,
         broker: BrokerType | None = None,
         use_cache: bool = True,
         bust_cache: bool = False,
@@ -286,7 +322,10 @@ class RuntimeBroker:
         ...
 
     async def get(
-        self, target: Device, path: str, *,
+        self,
+        target: Device,
+        path: str,
+        *,
         broker: BrokerType | None = None,
         use_cache: bool = True,
         bust_cache: bool = False,
@@ -295,7 +334,10 @@ class RuntimeBroker:
         ...
 
     async def edit(
-        self, target: Device, config: str, *,
+        self,
+        target: Device,
+        config: str,
+        *,
         broker: BrokerType | None = None,
     ) -> CommandResult:
         """Perform edit operation (never cached)."""
@@ -359,9 +401,11 @@ class SSHBroker:
     def capabilities(self) -> set[str]:
         return {"execute", "configure", "get", "edit"}
 
+
 class HTTPBroker:
     def capabilities(self) -> set[str]:
         return {"get", "edit"}
+
 
 class NETCONFBroker:
     def capabilities(self) -> set[str]:
@@ -391,6 +435,7 @@ The framework will discover all installed brokers at startup:
 
 ```python
 from importlib.metadata import entry_points
+
 
 def discover_brokers() -> dict[str, type]:
     """Discover all installed connection brokers."""
