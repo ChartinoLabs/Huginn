@@ -34,9 +34,7 @@ NOT_SUPPORTED_REASON = "Device does not support '{command}'"
 MISSING_LEARNED_BASELINE = (
     "{device} is missing learned BGP neighbor session state baseline parameters"
 )
-MISSING_CURRENT_STATE = (
-    "{device} is missing current BGP neighbor session state state"
-)
+MISSING_CURRENT_STATE = "{device} is missing current BGP neighbor session state state"
 MISSING_NEIGHBOR = (
     "{device}'s learned BGP neighbor '{neighbor}' is missing from current state."
 )
@@ -92,7 +90,9 @@ class VerifyBgpNeighborState(LearningTestCase[BgpNeighborStateParameters]):
                 )
                 continue
             applicable.append(device)
-        return CommandSupportResult(applicable=applicable, not_applicable=not_applicable)
+        return CommandSupportResult(
+            applicable=applicable, not_applicable=not_applicable
+        )
 
     async def gather_state(self, context: Context) -> BgpNeighborStateParameters:
         devices: dict[str, BgpNeighborStateDeviceParameters] = {}
@@ -144,7 +144,8 @@ class VerifyBgpNeighborState(LearningTestCase[BgpNeighborStateParameters]):
                     context.results.add_result(
                         ResultStatus.FAILED,
                         MISSING_NEIGHBOR.format(
-                            device=device.name, neighbor=neighbor,
+                            device=device.name,
+                            neighbor=neighbor,
                         ),
                     )
                     has_failures = True
@@ -227,7 +228,10 @@ async def gather_state(self, context: Context) -> SomeParameters:
         result = await context.broker.execute(device, self.command)
         parsed = mn.parse(os=device.os, command=self.command, output=result.output)
         context.results.add_command_execution(
-            device=device.name, command=self.command, output=result, parsed=parsed,
+            device=device.name,
+            command=self.command,
+            output=result,
+            parsed=parsed,
         )
         values: dict[str, str] = {}
         for item_key, data in parsed["items"].items():
@@ -273,6 +277,7 @@ The reference example above uses the **single-keyed dict** shape. The other shap
 class IosVersionDeviceParameters(TypedDict):
     value: str
 
+
 class IosVersionParameters(TypedDict):
     devices: dict[str, IosVersionDeviceParameters]
 ```
@@ -283,7 +288,8 @@ class IosVersionParameters(TypedDict):
 
 ```python
 class LldpCapabilitiesDeviceParameters(TypedDict):
-    capabilities: dict[str, dict[str, str]]   # interface -> neighbor -> value
+    capabilities: dict[str, dict[str, str]]  # interface -> neighbor -> value
+
 
 class LldpCapabilitiesParameters(TypedDict):
     devices: dict[str, LldpCapabilitiesDeviceParameters]
@@ -295,7 +301,8 @@ class LldpCapabilitiesParameters(TypedDict):
 
 ```python
 class RouteExistenceDeviceParameters(TypedDict):
-    prefixes: dict[str, str]   # prefix -> "__exists__"
+    prefixes: dict[str, str]  # prefix -> "__exists__"
+
 
 class RouteExistenceParameters(TypedDict):
     devices: dict[str, RouteExistenceDeviceParameters]
@@ -315,7 +322,7 @@ For double-keyed existence checks (e.g., OSPF neighbor adjacencies keyed by inte
 
 ```python
 class OspfNeighborExistenceDeviceParameters(TypedDict):
-    adjacencies: dict[str, dict[str, str]]   # interface -> neighbor_id -> "__exists__"
+    adjacencies: dict[str, dict[str, str]]  # interface -> neighbor_id -> "__exists__"
 ```
 
 ## Common pitfalls

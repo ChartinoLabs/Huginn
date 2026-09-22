@@ -99,10 +99,14 @@ class GateBgpPeeringStatus(LearningTestCase[BgpPeeringGateParameters]):
         devices: dict[str, BgpPeeringGateDeviceParameters] = {}
         for device in context.targets:
             result = await context.broker.execute(
-                device, self.command, use_cache=False,
+                device,
+                self.command,
+                use_cache=False,
             )
             parsed = mn.parse(
-                os=device.os, command=self.command, output=result.output,
+                os=device.os,
+                command=self.command,
+                output=result.output,
             )
             context.results.add_command_execution(
                 device=device.name,

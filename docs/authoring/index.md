@@ -74,7 +74,9 @@ async def check_command_support(self, context: Context) -> CommandSupportResult:
     for device in context.targets:
         result = await context.broker.execute(device, self.command)
         if is_command_unsupported(result.output):
-            not_applicable[device.name] = NOT_SUPPORTED_REASON.format(command=self.command)
+            not_applicable[device.name] = NOT_SUPPORTED_REASON.format(
+                command=self.command
+            )
             continue
         applicable.append(device)
     return CommandSupportResult(applicable=applicable, not_applicable=not_applicable)

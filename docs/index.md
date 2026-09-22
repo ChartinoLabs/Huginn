@@ -38,7 +38,9 @@ class VerifyIosVersion(LearningTestCase):
             if expected["devices"][device.name] == current["devices"][device.name]:
                 context.results.add_result(ResultStatus.PASSED, f"{device.name}: ok")
             else:
-                context.results.add_result(ResultStatus.FAILED, f"{device.name}: drifted")
+                context.results.add_result(
+                    ResultStatus.FAILED, f"{device.name}: drifted"
+                )
 ```
 
 ```bash

@@ -125,7 +125,9 @@ class VerifyCallHomeRateLimit(LearningTestCase[CallHomeRateLimitParameters]):
                 )
                 continue
             applicable.append(device)
-        return CommandSupportResult(applicable=applicable, not_applicable=not_applicable)
+        return CommandSupportResult(
+            applicable=applicable, not_applicable=not_applicable
+        )
 
     async def gather_state(self, context: Context) -> CallHomeRateLimitParameters:
         devices: dict[str, CallHomeRateLimitDeviceParameters] = {}
@@ -133,7 +135,10 @@ class VerifyCallHomeRateLimit(LearningTestCase[CallHomeRateLimitParameters]):
             result = await context.broker.execute(device, self.command)
             parsed = mn.parse(os=device.os, command=self.command, output=result.output)
             context.results.add_command_execution(
-                device=device.name, command=self.command, output=result, parsed=parsed,
+                device=device.name,
+                command=self.command,
+                output=result,
+                parsed=parsed,
             )
             value: Any = parsed["settings"]["rate_limit"]
             devices[device.name] = {"value": str(value)}
@@ -216,23 +221,43 @@ def _build_value_results(
     try:
         expected_value = expected["devices"][device_name]["value"]
     except KeyError:
-        return [_ResultRecord(ResultStatus.FAILED, MISSING_LEARNED_BASELINE.format(device=device_name))]
+        return [
+            _ResultRecord(
+                ResultStatus.FAILED, MISSING_LEARNED_BASELINE.format(device=device_name)
+            )
+        ]
 
     try:
         current_value = current["devices"][device_name]["value"]
     except KeyError:
-        return [_ResultRecord(ResultStatus.FAILED, MISSING_CURRENT_STATE.format(device=device_name))]
+        return [
+            _ResultRecord(
+                ResultStatus.FAILED, MISSING_CURRENT_STATE.format(device=device_name)
+            )
+        ]
 
     if current_value != expected_value:
-        return [_ResultRecord(
-            ResultStatus.FAILED,
-            VALUE_MISMATCH.format(device=device_name, expected_value=expected_value, current_value=current_value),
-        )]
+        return [
+            _ResultRecord(
+                ResultStatus.FAILED,
+                VALUE_MISMATCH.format(
+                    device=device_name,
+                    expected_value=expected_value,
+                    current_value=current_value,
+                ),
+            )
+        ]
 
-    return [_ResultRecord(
-        ResultStatus.PASSED,
-        VALUE_MATCH.format(device=device_name, current_value=current_value, expected_value=expected_value),
-    )]
+    return [
+        _ResultRecord(
+            ResultStatus.PASSED,
+            VALUE_MATCH.format(
+                device=device_name,
+                current_value=current_value,
+                expected_value=expected_value,
+            ),
+        )
+    ]
 ```
 
 The `compare_state` method then becomes thin orchestration:
@@ -241,7 +266,9 @@ The `compare_state` method then becomes thin orchestration:
 async def compare_state(self, *, expected, current, context) -> None:
     for device in context.targets:
         for record in _build_value_results(
-            device_name=device.name, expected=expected, current=current,
+            device_name=device.name,
+            expected=expected,
+            current=current,
         ):
             context.results.add_result(record.status, record.message)
 ```
@@ -265,10 +292,11 @@ from typing import Any
 @dataclass(frozen=True)
 class ValueJobSpec:
     """Spec for jobs that compare a single parsed value per device."""
+
     module_name: str
     class_name: str
     parsed_payload: dict[str, Any]  # What the parser returns
-    expected_value: str             # The value extracted from parsed output
+    expected_value: str  # The value extracted from parsed output
 ```
 
 Different job families get different spec types:
@@ -277,6 +305,7 @@ Different job families get different spec types:
 @dataclass(frozen=True)
 class InventoryComponentJobSpec:
     """Spec for jobs that compare per-component inventory fields."""
+
     module_name: str
     class_name: str
     state_key: str
@@ -287,6 +316,7 @@ class InventoryComponentJobSpec:
 @dataclass(frozen=True)
 class InventoryCountJobSpec:
     """Spec for jobs that compare inventory component counts."""
+
     module_name: str
     class_name: str
     parsed_payload: dict[str, Any]
@@ -421,7 +451,10 @@ def test_build_results() -> None:
 
 
 def test_check_command_support(
-    make_device, make_context, supported_output, unsupported_output,
+    make_device,
+    make_context,
+    supported_output,
+    unsupported_output,
 ) -> None:
     assert_value_job_command_support(
         SPEC,
@@ -433,7 +466,11 @@ def test_check_command_support(
 
 
 def test_gather_state(
-    make_device, make_context, fake_command_result_cls, monkeypatch, supported_output,
+    make_device,
+    make_context,
+    fake_command_result_cls,
+    monkeypatch,
+    supported_output,
 ) -> None:
     assert_value_job_gather_state(
         SPEC,
@@ -519,6 +556,7 @@ class FakeContext:
 ```python
 # tests/jobs/conftest.py (continued)
 
+
 @pytest.fixture
 def supported_output() -> str:
     return "Current call home settings:"
@@ -533,15 +571,19 @@ def unsupported_output() -> str:
 def make_device():
     def _make_device(name: str, os: str = "ios") -> FakeDevice:
         return FakeDevice(name=name, os=os)
+
     return _make_device
 
 
 @pytest.fixture
 def make_context():
     def _make_context(
-        *, targets: list[FakeDevice], outputs: dict[tuple[str, str], str],
+        *,
+        targets: list[FakeDevice],
+        outputs: dict[tuple[str, str], str],
     ) -> FakeContext:
         return FakeContext(targets=targets, broker=FakeBroker(outputs=outputs))
+
     return _make_context
 ```
 
@@ -559,6 +601,7 @@ When testing `gather_state()`, replace the Muninn parser with a function that re
 ```python
 def fake_parse(*, os: str, command: str, output: str) -> dict[str, Any]:
     return spec.parsed_payload
+
 
 monkeypatch.setattr(module.mn, "parse", fake_parse)
 ```
@@ -666,13 +709,19 @@ Unit tests should focus on your command support and validation logic, not on tes
 # Good: tests pure validation function
 def test_build_results_mismatch():
     results = module._build_value_results(
-        device_name="edge-01", expected=expected, current=current,
+        device_name="edge-01",
+        expected=expected,
+        current=current,
     )
     assert results[0].status == ResultStatus.FAILED
 
+
 # Good: tests compare_state via FakeContext
 def test_compare_state_mismatch(make_device, make_context):
-    assert_value_job_compare_state(SPEC, make_device=make_device, make_context=make_context)
+    assert_value_job_compare_state(
+        SPEC, make_device=make_device, make_context=make_context
+    )
+
 
 # Avoid: testing framework behavior
 async def test_context_saves_parameters(fake_context):
@@ -701,12 +750,15 @@ def test_1():
 Use pytest parametrization for variations of the same test:
 
 ```python
-@pytest.mark.parametrize("current_state,expected_status", [
-    ("FULL", ResultStatus.PASSED),
-    ("INIT", ResultStatus.FAILED),
-    ("DOWN", ResultStatus.FAILED),
-    ("2WAY", ResultStatus.FAILED),
-])
+@pytest.mark.parametrize(
+    "current_state,expected_status",
+    [
+        ("FULL", ResultStatus.PASSED),
+        ("INIT", ResultStatus.FAILED),
+        ("DOWN", ResultStatus.FAILED),
+        ("2WAY", ResultStatus.FAILED),
+    ],
+)
 def test_neighbor_state_validation(job, current_state, expected_status):
     expected = {"spine-01": {"10.1.1.1": {"state": "FULL"}}}
     current = {"spine-01": {"10.1.1.1": {"state": current_state}}}

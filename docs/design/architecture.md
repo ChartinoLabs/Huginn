@@ -388,28 +388,28 @@ The `Context` object is the central hub passed to every test method. It provides
 ```python
 class Context:
     # Execution metadata
-    test_id: str                    # e.g., "1.0.0"
-    test_title: str                 # e.g., "Verify OSPF Neighbor State"
-    mode: ExecutionMode             # LEARNING or TESTING
+    test_id: str  # e.g., "1.0.0"
+    test_title: str  # e.g., "Verify OSPF Neighbor State"
+    mode: ExecutionMode  # LEARNING or TESTING
 
     # Target infrastructure
-    testbed: TestbedAdapter         # Full testbed metadata
-    targets: list[DeviceAdapter]    # Devices this test targets (filtered)
+    testbed: TestbedAdapter  # Full testbed metadata
+    targets: list[DeviceAdapter]  # Devices this test targets (filtered)
 
     # Connection broker (primary interface for command execution)
-    broker: ConnectionBroker        # Execute commands, access cache
+    broker: ConnectionBroker  # Execute commands, access cache
 
     # Results
-    results: ResultCollector        # Add granular pass/fail results
+    results: ResultCollector  # Add granular pass/fail results
 
     # Parameters (learning/testing state)
-    parameters: ParameterManager    # Save/load learned parameters
+    parameters: ParameterManager  # Save/load learned parameters
 
     # Data model (external source of truth)
-    data_model: dict | None         # Merged data model, or None if not configured
+    data_model: dict | None  # Merged data model, or None if not configured
 
     # Configuration
-    config: FrameworkConfig         # Access to framework settings
+    config: FrameworkConfig  # Access to framework settings
 ```
 
 ### TestbedAdapter
@@ -433,7 +433,7 @@ Represents a device with its metadata and connection status. Command execution g
 ```python
 class DeviceAdapter:
     # Device identification and metadata
-    name: str                            # Device key from testbed
+    name: str  # Device key from testbed
     os: str
     groups: list[str]
     metadata: dict[str, Any]
@@ -629,6 +629,7 @@ Inventory plugins enable loading testbed data from external sources instead of (
 from huginn.plugins import InventoryPlugin
 from huginn.models import Testbed, Device
 
+
 class NetBoxInventory(InventoryPlugin):
     """Load testbed from NetBox DCIM."""
 
@@ -644,14 +645,16 @@ class NetBoxInventory(InventoryPlugin):
         devices = []
         # Query NetBox API...
         for nb_device in self.query_netbox(config["url"], config["token"]):
-            devices.append(Device(
-                name=nb_device["name"],
-                hostname=nb_device["primary_ip"]["address"],
-                os=self.map_platform(nb_device["platform"]),
-                groups=self.extract_groups(nb_device),
-                connections=self.build_connections(nb_device),
-                metadata=nb_device.get("custom_fields", {})
-            ))
+            devices.append(
+                Device(
+                    name=nb_device["name"],
+                    hostname=nb_device["primary_ip"]["address"],
+                    os=self.map_platform(nb_device["platform"]),
+                    groups=self.extract_groups(nb_device),
+                    connections=self.build_connections(nb_device),
+                    metadata=nb_device.get("custom_fields", {}),
+                )
+            )
         return Testbed(devices=devices)
 ```
 
@@ -760,9 +763,7 @@ async def gather_state(self, context: Context) -> dict:
     # Execute commands across all targets in parallel through the broker
     async with asyncio.TaskGroup() as tg:
         tasks = {
-            device.name: tg.create_task(
-                context.broker.execute(device, "show version")
-            )
+            device.name: tg.create_task(context.broker.execute(device, "show version"))
             for device in context.targets
         }
 
