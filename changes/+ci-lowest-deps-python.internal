@@ -1,0 +1,1 @@
+Run the lowest-dependency and per-version CI jobs on their matrix Python instead of the `.python-version` interpreter.
