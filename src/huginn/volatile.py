@@ -6,7 +6,7 @@ storing absolute captured values, these jobs chain observations across
 phases via JSONL log files in the run's ``context.output_dir`` and defer
 the comparison decision to job-defined logic.
 
-See ``docs/09-volatile-parameters.md`` for the full design rationale.
+See ``docs/design/volatile-parameters.md`` for the full design rationale.
 
 ## Usage
 
@@ -505,6 +505,39 @@ class OperatorVolatileLearningTestCase(
         )
 
 
+_COMPACT_UNIT_SECONDS = {
+    "y": 365 * 86400,
+    "w": 604800,
+    "d": 86400,
+    "h": 3600,
+    "m": 60,
+    "s": 1,
+}
+
+# ``[Ny][Nw][Nd][Nh][Nm][Ns]`` in order, optionally followed by ``H:MM:SS``.
+_COMPACT_DURATION_RE = re.compile(
+    r"(?:(?P<y>\d+)y)?(?:(?P<w>\d+)w)?(?:(?P<d>\d+)d)?"
+    r"(?:(?P<h>\d+)h)?(?:(?P<m>\d+)m)?(?:(?P<s>\d+)s)?"
+    r"\s*(?:(?P<hh>\d+):(?P<mm>\d+):(?P<ss>\d+))?"
+)
+
+
+def _parse_compact_duration(duration: str) -> int:
+    """Parse a compact duration, returning ``0`` unless the whole string matches."""
+    match = _COMPACT_DURATION_RE.fullmatch(duration.strip())
+    if match is None:
+        return 0
+    parts = match.groupdict()
+    total = sum(
+        int(parts[unit]) * seconds
+        for unit, seconds in _COMPACT_UNIT_SECONDS.items()
+        if parts[unit] is not None
+    )
+    if parts["hh"] is not None:
+        total += int(parts["hh"]) * 3600 + int(parts["mm"]) * 60 + int(parts["ss"])
+    return total
+
+
 def parse_duration_seconds(duration: str) -> int:
     """Parse a Cisco-style duration string to total seconds.
 
@@ -512,7 +545,13 @@ def parse_duration_seconds(duration: str) -> int:
     commands:
 
     - Verbose: ``"5 weeks, 2 days, 13 hours, 30 minutes, 45 seconds"``
-    - Compact: ``"1w2d"``, optionally followed by ``"HH:MM:SS"``
+    - Compact: ``[Ny][Nw][Nd][Nh][Nm][Ns]`` in that order with every part
+      optional (``"1d02h"``, ``"2w3d"``, ``"1y2w"``, ``"33m"``), optionally
+      followed by ``"HH:MM:SS"`` (``"2d03:04:05"``, ``"29w5d 22:42:36"``)
+    - Clock: ``"HH:MM:SS"``
+
+    Years count as 365 days. A compact string must match the grammar in
+    full, so trailing or unknown content is never partially parsed.
 
     Unknown formats return ``0`` rather than raising, consistent with how
     the function is typically used for monotonic comparison values where
@@ -536,13 +575,4 @@ def parse_duration_seconds(duration: str) -> int:
             total += count
     if total:
         return total
-    weeks = re.search(r"(\d+)w", duration)
-    if weeks:
-        total += int(weeks.group(1)) * 604800
-    days = re.search(r"(\d+)d", duration)
-    if days:
-        total += int(days.group(1)) * 86400
-    hms = re.search(r"(\d+):(\d+):(\d+)", duration)
-    if hms:
-        total += int(hms.group(1)) * 3600 + int(hms.group(2)) * 60 + int(hms.group(3))
-    return total
+    return _parse_compact_duration(duration)

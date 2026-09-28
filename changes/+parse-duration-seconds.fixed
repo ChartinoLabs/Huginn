@@ -1,0 +1,1 @@
+`parse_duration_seconds` now parses every component of compact durations such as `1d02h` and `2y3w` instead of silently dropping hours, minutes, seconds, and years.
