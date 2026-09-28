@@ -72,6 +72,37 @@ def test_validate_reports_errors_for_invalid_target_reference(
     )
 
 
+def test_validate_reports_planning_error_for_job_import_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A job that raises while being imported is reported, not raised."""
+    _stage_runner_fixture(tmp_path, "job_import_error")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "validate",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 3
+    report = _load_validate_report(tmp_path)
+    assert report["valid"] is False
+    assert [error["code"] for error in report["errors"]] == ["planning_error"]
+    message = report["errors"][0]["message"]
+    assert message.startswith("1.0.0: Error importing job file")
+    assert "broken_import.py" in message
+    assert "ModuleNotFoundError: No module named 'not_installed_pkg'" in message
+
+
 def test_validate_filters_test_cases_by_tags(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

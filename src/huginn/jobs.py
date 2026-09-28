@@ -72,7 +72,15 @@ def _load_module_from_path(path: Path) -> ModuleType:
         raise JobLoadError(f"Unable to load job module from path: {path}")
 
     module = module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Catch Exception, not BaseException, so KeyboardInterrupt and SystemExit
+    # still propagate. The module is never added to sys.modules here, so a
+    # failed import leaves nothing behind to clean up.
+    try:
+        spec.loader.exec_module(module)
+    except Exception as exc:
+        raise JobLoadError(
+            f"Error importing job file {path}: {_describe_exception(exc)}"
+        ) from exc
     return module
 
 
@@ -87,6 +95,17 @@ def _load_module_from_import(dotted_path: str, raw_job: str) -> ModuleType:
         raise JobLoadError(
             f"Invalid job module path '{dotted_path}' in '{raw_job}': {exc}"
         ) from exc
+    except Exception as exc:
+        # The import system removes a module that fails mid-import from
+        # sys.modules, so only the error needs translating here.
+        raise JobLoadError(
+            f"Error importing job module '{dotted_path}' from '{raw_job}': "
+            f"{_describe_exception(exc)}"
+        ) from exc
+
+
+def _describe_exception(exc: Exception) -> str:
+    return f"{type(exc).__name__}: {exc}"
 
 
 def _load_explicit_class(

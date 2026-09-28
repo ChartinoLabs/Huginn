@@ -1,0 +1,18 @@
+test_cases:
+  1.0.0:
+    title: Verify Broken Import
+    job: jobs/broken_import.py
+  2.0.0:
+    title: Verify Something
+    job: jobs/test_verify_import_error_sibling.py
+test_case_groups:
+  group-1:
+    tests:
+    - 1.0.0
+    - 2.0.0
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - group-1

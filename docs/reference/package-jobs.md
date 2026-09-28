@@ -213,7 +213,7 @@ test_cases:
 
 ### Validation
 
-Both forms are resolved the same way: the module is imported and a concrete `TestCase` subclass is selected. A reference fails to resolve when the file does not exist, the module cannot be imported, or no matching class is found.
+Both forms are resolved the same way: the module is imported and a concrete `TestCase` subclass is selected. A reference fails to resolve when the file does not exist, the module cannot be found, the module raises an exception while it is being imported, or no matching class is found. The import case covers a job that imports a dependency that is not installed, contains a syntax error, or raises an exception at the top level.
 
 `huginn validate` resolves every job reference in the plan and reports each failure as a `planning_error` before any test runs:
 

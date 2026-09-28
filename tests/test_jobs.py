@@ -131,6 +131,54 @@ def test_load_test_case_class_module_path_import_error_raises() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    "source, expected",
+    [
+        ("import not_installed_pkg\n", "ModuleNotFoundError: No module named"),
+        ('raise RuntimeError("boom")\n', "RuntimeError: boom"),
+        ("def broken(:\n", "SyntaxError"),
+    ],
+)
+def test_load_test_case_class_file_path_import_time_error_raises(
+    tmp_path: Path,
+    source: str,
+    expected: str,
+) -> None:
+    """Errors raised while importing a job file become job load errors."""
+    (tmp_path / "broken.py").write_text(source, encoding="utf-8")
+    with pytest.raises(JobLoadError, match="Error importing job file") as exc_info:
+        load_test_case_class(job="broken.py", project_root=tmp_path)
+    assert str(tmp_path / "broken.py") in str(exc_info.value)
+    assert expected in str(exc_info.value)
+    assert exc_info.value.__cause__ is not None
+    assert "huginn_user_job_broken" not in sys.modules
+
+
+def test_load_test_case_class_file_path_does_not_swallow_system_exit(
+    tmp_path: Path,
+) -> None:
+    """SystemExit raised by a job file propagates unchanged."""
+    (tmp_path / "exits.py").write_text("raise SystemExit(7)\n", encoding="utf-8")
+    with pytest.raises(SystemExit):
+        load_test_case_class(job="exits.py", project_root=tmp_path)
+
+
+def test_load_test_case_class_module_path_import_time_error_raises(
+    importable_fake_package: None,
+) -> None:
+    """Non-ImportError failures while importing a module path become load errors."""
+    with pytest.raises(JobLoadError, match="Error importing job module") as exc_info:
+        load_test_case_class(
+            job="fake_job_package.raises_on_import",
+            project_root=Path("/nonexistent"),
+        )
+    message = str(exc_info.value)
+    assert "fake_job_package.raises_on_import" in message
+    assert "RuntimeError: fixture module failed at import time" in message
+    assert isinstance(exc_info.value.__cause__, RuntimeError)
+    assert "fake_job_package.raises_on_import" not in sys.modules
+
+
 def test_load_test_case_class_module_path_missing_class_raises(
     importable_fake_package: None,
 ) -> None:
