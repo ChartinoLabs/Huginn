@@ -1,11 +1,13 @@
 """Unit tests for test plan tag filtering behavior."""
 
 from dataclasses import MISSING, fields, replace
+from pathlib import Path
 from typing import TypeAlias
 
 import pytest
 
 import huginn.models as models
+from huginn.loaders import load_test_plan
 from huginn.plan_filtering import (
     PlanFilterOptions,
     filter_test_plan,
@@ -344,6 +346,84 @@ def test_filter_by_test_contexts_keeps_dependency_on_selected_phase() -> None:
     assert filtered.scenarios["scenario-1"].phases["post"].depends_on == ["pre"]
 
 
+NESTED_PLAN = (
+    Path(__file__).resolve().parent
+    / "fixtures"
+    / "loaders"
+    / "plan_with_nested_group_inheritance.yaml"
+)
+
+
+def _parent_tests(filters: PlanFilterOptions) -> list[str]:
+    """Filter the nested-inheritance plan and return the parent's kept tests."""
+    filtered = filter_test_plan(load_test_plan(NESTED_PLAN), filters)
+    if "scenario-1" not in filtered.scenarios:
+        return []
+    assert filtered.scenarios["scenario-1"].phases["phase-1"].test_case_groups == [
+        "parent"
+    ]
+    return filtered.test_case_groups["parent"].tests
+
+
+def test_filter_by_test_case_group_selects_nested_child_tests() -> None:
+    """Naming a nested child selects its tests in every group that includes it."""
+    assert _parent_tests(PlanFilterOptions(test_case_groups=["child"])) == ["2.0.0"]
+    assert _parent_tests(PlanFilterOptions(test_case_groups=["grandchild"])) == [
+        "2.0.0"
+    ]
+
+
+def test_filter_by_test_case_group_keeps_only_the_selected_diamond_path() -> None:
+    """Selecting one child of a diamond keeps only that path's target and tags."""
+    filtered = filter_test_plan(
+        load_test_plan(NESTED_PLAN),
+        PlanFilterOptions(test_case_groups=["leaf-only"]),
+    )
+    parent = filtered.test_case_groups["parent"]
+
+    assert parent.tests == ["3.0.0"]
+    assert [path.groups for path in parent.paths_for("3.0.0")] == [("leaf-only",)]
+
+
+def test_filter_by_tags_uses_nested_child_tags() -> None:
+    """Tags from every group on the inclusion path count toward --tags."""
+    assert _parent_tests(PlanFilterOptions(tags=["grandchild-tag"])) == ["2.0.0"]
+    assert _parent_tests(PlanFilterOptions(tags=["child-tag", "case"])) == ["2.0.0"]
+    assert _parent_tests(PlanFilterOptions(tags=["parent-tag"])) == [
+        "1.0.0",
+        "2.0.0",
+        "3.0.0",
+    ]
+
+
+def test_filter_by_exclude_tags_uses_nested_child_tags() -> None:
+    """--exclude-tags drops a test only on the paths that carry the tag."""
+    assert _parent_tests(PlanFilterOptions(exclude_tags=["child-tag"])) == [
+        "1.0.0",
+        "3.0.0",
+    ]
+    filtered = filter_test_plan(
+        load_test_plan(NESTED_PLAN), PlanFilterOptions(exclude_tags=["nxos-tag"])
+    )
+    parent = filtered.test_case_groups["parent"]
+    assert [path.groups for path in parent.paths_for("3.0.0")] == [("leaf-only",)]
+
+
+def test_filter_by_nested_group_combines_with_test_contexts() -> None:
+    """Exact test contexts keep the inclusion paths of the tests they select."""
+    filtered = filter_test_plan(
+        load_test_plan(NESTED_PLAN),
+        PlanFilterOptions(
+            test_case_groups=["child", "nxos-only"],
+            test_contexts=[("scenario-1", "phase-1", "3.0.0")],
+        ),
+    )
+    parent = filtered.test_case_groups["parent"]
+
+    assert parent.tests == ["3.0.0"]
+    assert [path.groups for path in parent.paths_for("3.0.0")] == [("nxos-only",)]
+
+
 def test_filter_by_tags_requires_all_requested_tags() -> None:
     """Include tags require full subset match against effective tags."""
     test_plan = models.TestPlan(
@@ -528,6 +608,13 @@ def _fully_populated_plan() -> models.TestPlan:
                 target=target,
                 strategy=models.ExecutionStrategy(mode="parallel", maximum=2),
                 exclude_tests=["3.0.0"],
+                inclusion_paths={
+                    "2.0.0": (
+                        models.InclusionPath(
+                            groups=("bgp",), targets=(target,), tags=("bgp-group",)
+                        ),
+                    )
+                },
             )
         },
         test_cases={
@@ -640,9 +727,15 @@ def test_filter_preserves_all_non_collection_fields(
                 skip={"test_case_groups"},
             )
     for group_name, group in filtered.test_case_groups.items():
+        original_group = test_plan.test_case_groups[group_name]
         _assert_fields_preserved(
-            test_plan.test_case_groups[group_name], group, skip={"tests"}
+            original_group, group, skip={"tests", "inclusion_paths"}
         )
+        assert group.inclusion_paths == {
+            test_id: paths
+            for test_id, paths in original_group.inclusion_paths.items()
+            if test_id in group.tests
+        }
     for test_id, test_case in filtered.test_cases.items():
         _assert_fields_preserved(test_plan.test_cases[test_id], test_case, skip=set())
     assert "1.0.0" in filtered.test_cases

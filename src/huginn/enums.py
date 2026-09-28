@@ -45,7 +45,8 @@ class ResultStatus(StrEnum):
     - ERRORED: An exception occurred during execution.
     - NOT_APPLICABLE: Check was out of scope for the target at runtime.
     - SKIPPED: The test case did not execute because it was intentionally skipped.
-    - BLOCKED: The test case could not run because a dependency (phase or group) failed.
+    - BLOCKED: The test case could not run because a phase it depends on failed or
+      errored.
 
     Test cases filtered out before execution (e.g., by tags) do not appear in
     results at all.

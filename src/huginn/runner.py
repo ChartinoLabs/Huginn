@@ -387,7 +387,12 @@ async def _execute_scenario(
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> ExecutedScenario:
-    """Execute one scenario and halt on the first non-passing phase."""
+    """Execute one scenario's phases one at a time in dependency order.
+
+    A phase that ends FAILED or ERRORED blocks only the phases that depend on
+    it, directly or through a chain of ``depends_on``. Independent phases
+    still run.
+    """
     log_debug(
         output,
         "Executing scenario phases",
@@ -395,6 +400,7 @@ async def _execute_scenario(
         phase_count=len(scenario.phases),
     )
     phase_results: dict[str, ExecutedPhase] = {}
+    block_reasons: dict[str, str] = {}
     pending = set(scenario.phases.keys())
 
     while pending:
@@ -408,7 +414,12 @@ async def _execute_scenario(
             )
 
         phase = scenario.phases[phase_name]
-        if not phase.preserve_cache:
+        block_reason = _dependency_block_reason(
+            scenario, phase, phase_results, block_reasons
+        )
+        if block_reason is not None:
+            block_reasons[phase_name] = block_reason
+        elif not phase.preserve_cache:
             broker.clear_cache()
         phase_started = perf_counter()
         executed_phase = await _execute_ready_phase(
@@ -424,7 +435,7 @@ async def _execute_scenario(
             data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
-            phase_results=phase_results,
+            block_reason=block_reason,
         )
         phase_elapsed = perf_counter() - phase_started
         _record_phase_result(
@@ -436,16 +447,6 @@ async def _execute_scenario(
             output=output,
             elapsed=phase_elapsed,
         )
-
-        if _should_halt_scenario_after_phase(executed_phase):
-            _block_remaining_phases(
-                scenario=scenario,
-                failed_phase=phase,
-                pending=pending,
-                phase_results=phase_results,
-                test_plan=test_plan,
-            )
-            break
 
     executed_phases = [phase_results[name] for name in scenario.phases]
     return ExecutedScenario(
@@ -484,14 +485,15 @@ async def _execute_ready_phase(
     data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
-    phase_results: dict[str, ExecutedPhase],
+    block_reason: str | None,
 ) -> ExecutedPhase:
-    """Execute or block one dependency-ready phase."""
-    if _is_blocked_by_dependencies(phase, phase_results):
+    """Execute one dependency-ready phase, or block it when a reason is given."""
+    if block_reason is not None:
         return _build_dependency_blocked_phase(
             scenario_name=scenario_name,
             phase=phase,
             test_plan=test_plan,
+            reason=block_reason,
             output=output,
         )
 
@@ -525,9 +527,10 @@ def _build_dependency_blocked_phase(
     scenario_name: str,
     phase: Phase,
     test_plan: TestPlan,
+    reason: str,
     output: Output | None,
 ) -> ExecutedPhase:
-    """Build a blocked phase after a failed dependency."""
+    """Build a blocked phase after a failed, errored or blocked dependency."""
     _emit_status(
         output,
         f"Skipping phase: {phase.identifier} (blocked by dependencies)",
@@ -538,12 +541,13 @@ def _build_dependency_blocked_phase(
         scenario=scenario_name,
         phase=phase.identifier,
         depends_on=phase.depends_on,
+        reason=reason,
     )
     return _build_blocked_phase(
         scenario_name=scenario_name,
         phase=phase,
         test_plan=test_plan,
-        reason="Blocked by failed phase dependency",
+        reason=reason,
     )
 
 
@@ -563,28 +567,6 @@ def _record_phase_result(
     pending.remove(phase_name)
 
 
-def _block_remaining_phases(
-    *,
-    scenario: Scenario,
-    failed_phase: Phase,
-    pending: set[str],
-    phase_results: dict[str, ExecutedPhase],
-    test_plan: TestPlan,
-) -> None:
-    """Mark all remaining phases as blocked after a failure halt."""
-    for remaining_phase_name in scenario.phases:
-        if remaining_phase_name not in pending:
-            continue
-        remaining_phase = scenario.phases[remaining_phase_name]
-        phase_results[remaining_phase_name] = _build_blocked_phase(
-            scenario_name=scenario.identifier,
-            phase=remaining_phase,
-            test_plan=test_plan,
-            reason=f"Blocked because phase '{failed_phase.identifier}' failed",
-        )
-    pending.clear()
-
-
 def _raise_unresolved_scenario_dependencies(
     scenario_name: str,
     pending: set[str],
@@ -600,20 +582,27 @@ def _raise_unresolved_scenario_dependencies(
     )
 
 
-def _is_blocked_by_dependencies(
+def _dependency_block_reason(
+    scenario: Scenario,
     phase: Phase,
     phase_results: dict[str, ExecutedPhase],
-) -> bool:
-    """Return True when any dependency phase did not pass."""
-    blocking_statuses = {
-        ResultStatus.FAILED.value,
-        ResultStatus.ERRORED.value,
-        ResultStatus.BLOCKED.value,
-    }
-    return any(
-        phase_results[dependency].status in blocking_statuses
-        for dependency in phase.depends_on
-    )
+    block_reasons: dict[str, str],
+) -> str | None:
+    """Return why a phase is blocked by its dependencies, or None to run it.
+
+    A FAILED or ERRORED dependency blocks the phase. A BLOCKED dependency
+    passes on its own reason, so the reason always names the phase that
+    failed or errored. NOT_APPLICABLE and SKIPPED dependencies do not block.
+    """
+    failing_statuses = {ResultStatus.FAILED.value, ResultStatus.ERRORED.value}
+    for dependency in phase.depends_on:
+        status = phase_results[dependency].status
+        if status in failing_statuses:
+            identifier = scenario.phases[dependency].identifier
+            return f"Blocked because phase '{identifier}' {status}"
+        if dependency in block_reasons:
+            return block_reasons[dependency]
+    return None
 
 
 async def _execute_phase(
@@ -1882,14 +1871,40 @@ def _resolve_targets(
     group: TestCaseGroup,
     test_case: TestCaseDefinition,
 ) -> tuple[list[Device], str | None]:
-    """Resolve targets with phase -> group -> test-case selector intersection."""
-    devices = list(testbed.devices.values())
+    """Resolve targets with phase -> group -> test-case selector intersection.
 
-    for scope_name, target in (
-        (f"Phase '{phase.identifier}'", phase.target),
-        (f"Test case group '{group.identifier}'", group.target),
-        (f"Test case '{test_case.test_id}'", test_case.target),
-    ):
+    A test inherited through nested groups is also narrowed by the ``target``
+    of every group on its inclusion path. When several paths include the same
+    test, the result is the union of the devices each path selects.
+    """
+    devices: dict[str, Device] = {}
+    for path in group.paths_for(test_case.test_id):
+        path_devices, error = _resolve_path_targets(
+            testbed=testbed,
+            scopes=[
+                (f"Phase '{phase.identifier}'", phase.target),
+                (f"Test case group '{group.identifier}'", group.target),
+                *(
+                    (f"Test case group '{name}'", target)
+                    for name, target in zip(path.groups, path.targets, strict=True)
+                ),
+                (f"Test case '{test_case.test_id}'", test_case.target),
+            ],
+        )
+        if error is not None:
+            return [], error
+        devices.update((device.name, device) for device in path_devices)
+    return list(devices.values()), None
+
+
+def _resolve_path_targets(
+    *,
+    testbed: Testbed,
+    scopes: list[tuple[str, TargetDefinition | None]],
+) -> tuple[list[Device], str | None]:
+    """Intersect the testbed's devices with each target scope in turn."""
+    devices = list(testbed.devices.values())
+    for scope_name, target in scopes:
         devices, error = _apply_target_scope(
             devices=devices,
             testbed=testbed,
@@ -1898,7 +1913,6 @@ def _resolve_targets(
         )
         if error is not None:
             return [], error
-
     return devices, None
 
 
@@ -2031,8 +2045,3 @@ def _collect_test_case_statuses(scenarios: list[ExecutedScenario]) -> list[str]:
 def _derive_scenario_status(phases: list[ExecutedPhase]) -> ResultStatus:
     """Derive one scenario status from its executed phases."""
     return _derive_status_from_values([phase.status for phase in phases])
-
-
-def _should_halt_scenario_after_phase(phase: ExecutedPhase) -> bool:
-    """Return True when a scenario should stop after this phase."""
-    return phase.status != ResultStatus.PASSED.value

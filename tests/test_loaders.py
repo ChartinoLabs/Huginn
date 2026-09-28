@@ -6,6 +6,7 @@ import pytest
 
 from huginn.enums import ConnectionProtocol
 from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
+from huginn.models import ExecutionStrategy, InclusionPath, TargetDefinition
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "loaders"
 
@@ -323,6 +324,48 @@ def test_load_test_plan_parses_nested_groups() -> None:
         "3.1.0",
         "4.0.0",
     ]
+
+
+def test_load_test_plan_records_nested_group_inclusion_paths() -> None:
+    """Flattening records each nested child's target and tags for its tests."""
+    test_plan = load_test_plan(FIXTURES / "plan_with_nested_group_inheritance.yaml")
+    parent = test_plan.test_case_groups["parent"]
+
+    assert parent.tests == ["1.0.0", "2.0.0", "3.0.0"]
+    assert parent.tags == ["parent-tag"]
+    assert parent.target is None
+    assert parent.strategy == ExecutionStrategy(mode="parallel")
+    assert parent.paths_for("1.0.0") == (InclusionPath(),)
+    assert parent.paths_for("2.0.0") == (
+        InclusionPath(
+            groups=("child", "grandchild"),
+            targets=(
+                TargetDefinition(groups=["spine"]),
+                TargetDefinition(os=["nxos"]),
+            ),
+            tags=("child-tag", "grandchild-tag"),
+        ),
+    )
+
+
+def test_load_test_plan_keeps_every_path_to_a_diamond_test() -> None:
+    """A test reached through two child groups keeps one path per child."""
+    test_plan = load_test_plan(FIXTURES / "plan_with_nested_group_inheritance.yaml")
+    parent = test_plan.test_case_groups["parent"]
+
+    assert parent.tests.count("3.0.0") == 1
+    assert parent.paths_for("3.0.0") == (
+        InclusionPath(
+            groups=("nxos-only",),
+            targets=(TargetDefinition(os=["nxos"]),),
+            tags=("nxos-tag",),
+        ),
+        InclusionPath(
+            groups=("leaf-only",),
+            targets=(TargetDefinition(groups=["leaf"]),),
+            tags=("leaf-tag",),
+        ),
+    )
 
 
 def test_load_test_plan_rejects_nested_group_with_unknown_group() -> None:

@@ -110,10 +110,10 @@ No test plan YAML files are modified. The test plan structure remains unchanged 
 
 ## Exit codes
 
-| Code | Meaning                                                                  |
-| ---- | ------------------------------------------------------------------------ |
-| 0    | All tests re-learned successfully, or no failures found.                 |
-| 1    | Some tests failed during re-learning, or a configuration error occurred. |
+| Code | Meaning                                                                                        |
+| ---- | ---------------------------------------------------------------------------------------------- |
+| 0    | No failures found, or no re-learned test case is `failed`, `errored` or `blocked`.             |
+| 1    | A re-learned test case is `failed`, `errored` or `blocked`, or a configuration error occurred. |
 
 A non-zero exit during re-learning typically means the device could not be reached or a job raised an unexpected error. The parameter files for those tests will not have been updated.
 

@@ -74,6 +74,25 @@ class TestCaseDefinition:
     metadata: dict[str, object] | None = None
 
 
+@dataclass(frozen=True)
+class InclusionPath:
+    """One nested-group path through which a flattened group includes a test.
+
+    ``groups`` lists the included groups, from the one the parent names in its
+    ``groups`` down to the group that lists the test in ``tests``. ``targets``
+    holds each of those groups' ``target`` in the same order (``None`` where a
+    group has none), and ``tags`` holds the union of their ``tags``. An empty
+    path means the parent group lists the test in its own ``tests``.
+    """
+
+    groups: tuple[str, ...] = ()
+    targets: tuple[TargetDefinition | None, ...] = ()
+    tags: tuple[str, ...] = ()
+
+
+DIRECT_INCLUSION = InclusionPath()
+
+
 @dataclass
 class TestCaseGroup:
     """A group of test case identifiers from a test plan."""
@@ -87,6 +106,9 @@ class TestCaseGroup:
         default_factory=lambda: ExecutionStrategy(mode="parallel")
     )
     exclude_tests: list[str] = field(default_factory=list)
+    # Tests included through nested ``groups``, mapped to every path that
+    # includes them. Tests the group lists only in ``tests`` are absent.
+    inclusion_paths: dict[str, tuple[InclusionPath, ...]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Normalize identifier/name fallbacks for in-memory construction."""
@@ -99,6 +121,10 @@ class TestCaseGroup:
     def display_name(self) -> str:
         """Return the configured display name or fall back to the identifier."""
         return self.name or self.identifier
+
+    def paths_for(self, test_id: str) -> tuple[InclusionPath, ...]:
+        """Return the inclusion paths for a test, direct inclusion by default."""
+        return self.inclusion_paths.get(test_id, (DIRECT_INCLUSION,))
 
 
 @dataclass

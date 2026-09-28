@@ -152,6 +152,7 @@ def test_phase_with_failed_dependency_is_marked_blocked(
 
     blocked_case = phase_2["test_case_groups"][0]["test_cases"][0]
     assert blocked_case["status"] == "blocked"
+    assert blocked_case["error"] == "Blocked because phase 'phase-1' failed"
 
 
 def test_runner_plans_brokers_from_job_declarations(

@@ -20,6 +20,7 @@ from huginn.execute import (
 )
 from huginn.inject import InjectPlan
 from huginn.loaders import ConfigurationError, load_test_plan
+from huginn.models import RunSummary
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
 from huginn.plugin_registry import PluginRegistry
@@ -426,7 +427,7 @@ def run(
         output.warning("No test cases were selected for execution")
     output.status("Run artifacts written to results/")
     output.status("Run report written to reports/latest/")
-    if result.summary.status != "passed":
+    if _summary_has_failures(result.summary):
         raise typer.Exit(code=1)
 
 
@@ -643,6 +644,14 @@ def validate(
 
     for warning in result.warnings:
         output.warning(f"WARNING [{warning.code}]: {warning.message}")
+
+
+def _summary_has_failures(summary: RunSummary) -> bool:
+    """Return True when a run has failed, errored or blocked test cases.
+
+    NOT_APPLICABLE and SKIPPED results do not make a run fail.
+    """
+    return summary.failed > 0 or summary.errored > 0 or summary.blocked > 0
 
 
 def _exit_code_for_run_error(code: ErrorCode) -> int:
@@ -1245,7 +1254,7 @@ def _execute_relearn(
         f"not_applicable={result.summary.not_applicable}"
     )
 
-    if result.summary.failed > 0 or result.summary.errored > 0:
+    if _summary_has_failures(result.summary):
         output.error(
             "Some tests failed during re-learning -- "
             "parameters may not have been updated"

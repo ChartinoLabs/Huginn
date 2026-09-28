@@ -64,7 +64,7 @@ A logical grouping of test cases and/or other test case groups within a phase. T
 
 **Nesting**: Test case groups can be nested to create reusable, feature-specific groupings. For example, an "ospf-tests" group containing OSPF-related test cases can be included in both "pre-change-validation" and "post-change-validation" groups. This promotes reuse and keeps feature-specific tests organized together.
 
-When a phase references a parent group, the child groups' test cases are flattened into it and only the parent's `target`, `tags`, and `strategy` apply. The child's own `target` and `tags` are currently ignored for tests included this way. Carrying the child's `target` (intersected with the parent's) and `tags` (added to the parent's) through the parent is planned in [#218](https://github.com/ChartinoLabs/Huginn/issues/218).
+When a phase references a parent group, the child groups' test cases are flattened into it and reported under the parent group. Tests included from a child keep the child's `target`, intersected with the parent's so it can only narrow the device set, and the child's `tags`, added to the parent's. This applies through every level of nesting. The child's `strategy` is ignored: only the `strategy` of the group a phase references applies.
 
 ### Scenario
 
@@ -78,9 +78,9 @@ A high-level organizational unit within a scenario representing a stage of test 
 - **Change**: Apply configuration or operational changes
 - **Post-change**: Validate state after changes
 
-Phases provide structure for reporting (collapse/expand, filtering) and establish execution order through dependencies. Phases within a scenario run one at a time; the test case groups within a phase run in parallel by default, subject to the phase's `strategy`.
+Phases provide structure for reporting (collapse/expand, filtering) and establish execution order through dependencies. Phases within a scenario run one at a time in dependency order, never concurrently. Concurrency lives inside a phase: its test case groups run in parallel by default, subject to the phase's `strategy`, and so do the tests within each group, subject to the group's `strategy`.
 
-If a phase finishes with any status other than PASSED, every phase that has not yet run in that scenario is recorded as BLOCKED, whether or not it depends on the phase that did not pass. Changing this so that only a FAILED or ERRORED phase blocks, and only the phases that depend on it, is planned in [#218](https://github.com/ChartinoLabs/Huginn/issues/218).
+A phase that finishes FAILED or ERRORED blocks the phases that depend on it, directly or through a chain of `depends_on`. Each blocked phase is recorded as BLOCKED with a reason that names the phase that failed, for example `Blocked because phase 'change' failed`. Phases that do not depend on it still run. A phase that finishes NOT_APPLICABLE or SKIPPED does not block anything.
 
 ### Test Plan
 
@@ -144,7 +144,7 @@ The outcome of a test case execution. Every test case that runs, or is prevented
 | `ERRORED`        | An exception or planning error prevented the test case from completing.                                                                                                   |
 | `NOT_APPLICABLE` | The test case was in scope but determined at runtime to be not applicable to its targets.                                                                                 |
 | `SKIPPED`        | The test case did not execute, for example because no devices matched its target, or because the run is in learning mode and the job does not inherit `LearningTestCase`. |
-| `BLOCKED`        | The test case could not run because an earlier phase in its scenario did not pass.                                                                                        |
+| `BLOCKED`        | The test case could not run because a phase it depends on, directly or transitively, failed or errored.                                                                   |
 
 A test case's status is derived from its individual checks in this order:
 

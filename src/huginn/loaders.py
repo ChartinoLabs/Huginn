@@ -10,11 +10,13 @@ import yaml
 
 from huginn.enums import ConnectionProtocol
 from huginn.models import (
+    DIRECT_INCLUSION,
     ConnectionDefinition,
     CredentialFields,
     CredentialMap,
     Device,
     ExecutionStrategy,
+    InclusionPath,
     Phase,
     Scenario,
     TargetDefinition,
@@ -974,40 +976,87 @@ def _flatten_nested_test_case_groups(
     groups: dict[str, TestCaseGroup],
     group_includes: dict[str, list[str]],
 ) -> dict[str, TestCaseGroup]:
-    """Expand nested group includes into flattened test id lists."""
-    cache: dict[str, list[str]] = {}
+    """Expand nested group includes into flattened test id lists.
 
-    def flatten(group_name: str) -> list[str]:
-        if group_name in cache:
-            return cache[group_name]
+    Each flattened group also records, for every test it inherits, the
+    nested-group paths that include the test, so the child groups' ``target``
+    and ``tags`` still apply to it.
+    """
+    cache: dict[str, _FlattenedGroup] = {}
 
-        group = groups[group_name]
-        excluded = set(group.exclude_tests)
-
-        flattened = list(group.tests)
-        seen = set(flattened)
-        for include in group_includes[group_name]:
-            for test_id in flatten(include):
-                if test_id in seen or test_id in excluded:
-                    continue
-                seen.add(test_id)
-                flattened.append(test_id)
-
-        cache[group_name] = flattened
-        return flattened
+    def flatten(group_name: str) -> "_FlattenedGroup":
+        if group_name not in cache:
+            included = [
+                (include, flatten(include)) for include in group_includes[group_name]
+            ]
+            cache[group_name] = _flatten_group(groups, groups[group_name], included)
+        return cache[group_name]
 
     resolved: dict[str, TestCaseGroup] = {}
     for group_name, group in groups.items():
+        flattened = flatten(group_name)
         resolved[group_name] = TestCaseGroup(
             identifier=group.identifier,
-            tests=flatten(group_name),
+            tests=flattened.tests,
             name=group.name,
             tags=group.tags,
             target=group.target,
             strategy=group.strategy,
             exclude_tests=group.exclude_tests,
+            inclusion_paths={
+                test_id: paths
+                for test_id, paths in flattened.paths.items()
+                if paths != (DIRECT_INCLUSION,)
+            },
         )
     return resolved
+
+
+class _FlattenedGroup:
+    """A group's flattened test IDs and the inclusion paths for each test."""
+
+    def __init__(self) -> None:
+        self.tests: list[str] = []
+        self.paths: dict[str, tuple[InclusionPath, ...]] = {}
+
+    def add(self, test_id: str, path: InclusionPath) -> None:
+        """Record one path to a test, keeping first-seen test order."""
+        existing = self.paths.get(test_id)
+        if existing is None:
+            self.tests.append(test_id)
+            self.paths[test_id] = (path,)
+        elif path not in existing:
+            self.paths[test_id] = (*existing, path)
+
+
+def _flatten_group(
+    groups: dict[str, TestCaseGroup],
+    group: TestCaseGroup,
+    included: list[tuple[str, _FlattenedGroup]],
+) -> _FlattenedGroup:
+    """Flatten one group from its direct tests and already-flattened includes."""
+    flattened = _FlattenedGroup()
+    for test_id in group.tests:
+        flattened.add(test_id, DIRECT_INCLUSION)
+
+    excluded = set(group.exclude_tests)
+    for include, child in included:
+        child_group = groups[include]
+        for test_id in child.tests:
+            if test_id in excluded:
+                continue
+            for child_path in child.paths[test_id]:
+                flattened.add(
+                    test_id,
+                    InclusionPath(
+                        groups=(include, *child_path.groups),
+                        targets=(child_group.target, *child_path.targets),
+                        tags=tuple(
+                            dict.fromkeys((*child_group.tags, *child_path.tags))
+                        ),
+                    ),
+                )
+    return flattened
 
 
 def _load_scenarios(data: dict[str, object]) -> dict[str, Scenario]:

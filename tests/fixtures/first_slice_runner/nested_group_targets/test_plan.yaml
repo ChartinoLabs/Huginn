@@ -1,0 +1,45 @@
+test_cases:
+  1.0.0:
+    title: Inherits nested child targets
+    job: jobs/test_verify_nested_targets.py
+  2.0.0:
+    title: Reached through two child groups
+    job: jobs/test_verify_nested_targets.py
+test_case_groups:
+  nxos-checks:
+    tests:
+    - 1.0.0
+    target:
+      os:
+      - nxos
+    tags:
+    - nxos
+  leaf-checks:
+    groups:
+    - nxos-checks
+    target:
+      groups:
+      - leaf
+  spine-diamond:
+    tests:
+    - 2.0.0
+    target:
+      groups:
+      - spine
+  eos-diamond:
+    tests:
+    - 2.0.0
+    target:
+      os:
+      - eos
+  fabric:
+    groups:
+    - leaf-checks
+    - spine-diamond
+    - eos-diamond
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - fabric

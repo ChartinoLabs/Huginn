@@ -137,7 +137,7 @@ def test_run_learning_mode_skips_non_learning_testcases(
         catch_exceptions=False,
     )
 
-    assert result.exit_code == 1
+    assert result.exit_code == 0
     report_data = load_report(tmp_path)
     test_case = first_test_case(report_data)
     assert test_case["status"] == "skipped"

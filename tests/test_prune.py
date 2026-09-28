@@ -10,9 +10,11 @@ from typer.testing import CliRunner
 from huginn.cli import app
 from huginn.loaders import load_test_plan
 from huginn.models import (
+    Device,
     Phase,
     Scenario,
     TargetDefinition,
+    Testbed,
     TestCaseDefinition,
     TestCaseGroup,
     TestPlan,
@@ -28,6 +30,7 @@ from huginn.prune import (
     find_latest_learning_results,
     parse_applicability_from_run,
 )
+from huginn.runner import resolve_targets
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -969,3 +972,76 @@ class TestPruneRemoveOrphansCli:
 
         assert "1 test case definition(s) removed" in output
         assert set(load_test_plan(plan_path).test_cases) == {"3.0.0"}
+
+
+_NESTED_TARGET_PLAN_YAML = """\
+test_cases:
+  "5.0.0":
+    title: Check interfaces
+    job: jobs/interfaces.py
+test_case_groups:
+  nxos-checks:
+    tests: ["5.0.0"]
+    target:
+      os: [nxos]
+  fabric:
+    groups: [nxos-checks]
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups: [fabric]
+"""
+
+
+def test_prune_keeps_nested_group_target_for_partially_na_test(
+    tmp_path: Path,
+) -> None:
+    """exclude_devices on a nested test combines with the child group's target."""
+    plan_path = tmp_path / "test_plan.yaml"
+    plan_path.write_text(_NESTED_TARGET_PLAN_YAML, encoding="utf-8")
+    run_dir = tmp_path / "results" / "2026-Apr-30-14-22-01-learning"
+    _write_json(
+        run_dir / "test-cases" / "5.0.0" / "result.json",
+        {
+            "command_executions": [
+                {"device": "nx-01", "command": "show interface"},
+                {"device": "nx-02", "command": "show interface"},
+            ],
+            "not_applicable_devices": {"nx-02": "No interfaces configured"},
+        },
+    )
+    groups = [
+        {
+            "id": "fabric",
+            "test_cases": [
+                {"test_id": "5.0.0", "result_path": "test-cases/5.0.0/result.json"}
+            ],
+        },
+    ]
+    _write_json(run_dir / "run.json", _build_run_json(groups=groups))
+
+    _invoke_prune(tmp_path, plan_path)
+
+    plan = load_test_plan(plan_path)
+    test_case = plan.test_cases["5.0.0"]
+    assert test_case.target == TargetDefinition(exclude_devices=["nx-02"])
+    fabric = plan.test_case_groups["fabric"]
+    assert fabric.tests == ["5.0.0"]
+    testbed = Testbed(
+        devices={
+            name: Device(name=name, os=os_name)
+            for name, os_name in (
+                ("nx-01", "nxos"),
+                ("nx-02", "nxos"),
+                ("xe-01", "iosxe"),
+            )
+        }
+    )
+    targets = resolve_targets(
+        testbed=testbed,
+        phase=plan.scenarios["scenario-1"].phases["phase-1"],
+        group=fabric,
+        test_case=test_case,
+    )
+    assert [device.name for device in targets] == ["nx-01"]
