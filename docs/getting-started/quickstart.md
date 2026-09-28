@@ -28,7 +28,7 @@ devices:
         auth_strict_key: false
 ```
 
-Each device needs an OS identifier, at least one connection, and credentials. Environment variables (like `${DEVICE_PASSWORD}`) are resolved at runtime.
+Each device needs an OS identifier, at least one connection, and credentials. Environment variable references (like `${DEVICE_PASSWORD}`) are expanded when the testbed is loaded, so export `DEVICE_PASSWORD` before running Huginn. Loading fails with an error naming the variable if it is not set. See [Testbed Schema - Environment Variable Substitution](../reference/testbed.md#environment-variable-substitution) for defaults, escaping, and where references are expanded.
 
 ## Write a test job
 

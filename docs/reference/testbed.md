@@ -210,12 +210,12 @@ devices:
 
 Every connection accepts four common fields. Any other key is passed to the broker as a connection option.
 
-| Field        | Type    | Required | Description                                                  |
-| ------------ | ------- | -------- | ------------------------------------------------------------ |
-| `protocol`   | string  | Yes      | One of `ssh`, `netconf`, `http`, `https`, or `rest`          |
-| `host`       | string  | Yes      | IP address or hostname. Required for every protocol          |
-| `port`       | integer | No       | Default: `22` for every protocol (see each connection below) |
-| `credential` | string  | No       | Named credential reference. Default: `default`               |
+| Field        | Type    | Required | Description                                                                                       |
+| ------------ | ------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `protocol`   | string  | Yes      | One of `ssh`, `netconf`, `http`, `https`, or `rest`                                               |
+| `host`       | string  | Yes      | IP address or hostname. Required for every protocol                                               |
+| `port`       | integer | No       | Default: `22` for every protocol (see each connection below). A string of digits is also accepted |
+| `credential` | string  | No       | Named credential reference. Default: `default`                                                    |
 
 The protocol selects the broker that uses the connection:
 
@@ -534,16 +534,73 @@ devices:
 
 ## Environment Variable Substitution
 
-Credentials can reference environment variables to avoid storing secrets in files:
+Testbed values can reference environment variables, so secrets and per-environment values stay out of the file:
 
 ```yaml
 credentials:
   default:
-    username: "${HUGINN_USERNAME}"
+    username: "${HUGINN_USERNAME:-admin}"
     password: "${HUGINN_PASSWORD}"
+devices:
+  rtr-01:
+    os: iosxe
+    connections:
+      ssh:
+        protocol: ssh
+        host: "${RTR_01_HOST}"
+        port: "${RTR_01_PORT:-22}"
 ```
 
-The framework expands `${VAR_NAME}` syntax at load time.
+References are expanded once, when the testbed file is loaded and before it is validated. Loading fails if a referenced variable is missing, so a run never starts with a literal `${HUGINN_PASSWORD}` as a password.
+
+### Syntax
+
+| Form               | Result                                                              |
+| ------------------ | ------------------------------------------------------------------- |
+| `${VAR}`           | The value of `VAR`. Loading fails if `VAR` is not set               |
+| `${VAR:-default}`  | The value of `VAR`, or `default` if `VAR` is not set or is empty    |
+| `$${`              | A literal `${`. For example, `$${HOME}` loads as the text `${HOME}` |
+| `$VAR`, `$5`, `$$` | Unchanged. Only the braced `${...}` form is a reference             |
+
+`VAR` must start with a letter or underscore, followed by letters, digits, or underscores (`[A-Za-z_][A-Za-z0-9_]*`). A value can contain several references and surrounding text, such as `"https://${API_HOST}:${API_PORT:-443}/"`.
+
+`${VAR:-default}` follows the POSIX shell `:-` rule: a variable that is set to the empty string uses the default. `${VAR}` with `VAR` set to the empty string expands to the empty string, which a required field such as `host` then rejects.
+
+The default is everything between `:-` and the next `}`, taken literally. It cannot contain `}` or another `${...}` reference. Other shell forms such as `${VAR-default}`, `${VAR:=default}`, and `${VAR:?message}` are not supported.
+
+Quote values that start with `${`. YAML reads an unquoted `${VAR}` as a plain string, but quoting avoids surprises when a default contains YAML syntax such as `: ` or ` #`.
+
+### Where references are expanded
+
+Every string value in the testbed file is expanded, including credential fields, `os`, `groups`, `metadata`, connection `host`, `credential`, and connection options. Mapping keys, such as device, credential, and connection names, are not expanded. Numbers, booleans, and `null` are not changed.
+
+Each value is expanded once. If a variable's value contains `${`, that text is kept as-is and is not expanded again.
+
+A reference always expands to a string. A connection `port` therefore accepts a string of digits, such as `"830"` or `"${RTR_01_PORT}"`, as well as an integer. Other fields with a non-string type, such as a boolean connection option like `auth_strict_key`, receive the expanded string, so write those values directly in the file.
+
+### Errors
+
+Loading stops with a `ConfigurationError` when:
+
+- A referenced variable is not set and has no default
+- A `${` has no closing `}`
+- The text inside `${...}` is not a valid name, optionally followed by `:-default`, for example `${}`, `${1X}`, or `${VAR-default}`
+- A default contains `${`
+
+The message names the testbed file and the dotted key path of the value, and for an unset variable, the variable name. It never includes the value of a variable, a default, or the rest of the string:
+
+```text
+Environment variable 'DEVICE_PASSWORD' referenced at 'devices.rtr-01.credentials.default.password' in testbed.yaml is not set and has no default
+```
+
+Expanded values are not logged.
+
+### Scope
+
+Expansion applies only to testbed files loaded with `--testbed`, or through the built-in `file` inventory plugin. It does not apply to:
+
+- Inventory plugins other than `file`, which build `Testbed` objects directly without reading a testbed file. A plugin that needs environment variables must read them itself
+- Test plans and `pyproject.toml` settings, including `[tool.huginn.plugins.*]` sections
 
 ## Operating System Identifiers
 
@@ -571,12 +628,13 @@ Checks happen at three points.
 Commands that read a testbed, such as `huginn run`, `huginn validate`, and `huginn execute`, load it first and stop with a `ConfigurationError` naming the device or connection when:
 
 - The file is not valid YAML, or its root is not a mapping
+- An environment variable reference is malformed, or names a variable that is not set and has no default (see [Environment Variable Substitution](#environment-variable-substitution))
 - `devices` is missing or empty
 - A device does not define a non-empty `os`
 - `groups` is present but is not a non-empty list of non-empty strings
 - `credentials` (global or device) is not a mapping of names to mappings, or a credential field value is not a string
 - A connection does not define `protocol` or `host`, or `protocol` is not one of `ssh`, `netconf`, `http`, `https`, or `rest`
-- A connection `port` is not an integer, or `credential` is not a string
+- A connection `port` is not an integer or a string of digits, or `credential` is not a string
 
 The loader does not check which options a connection sets, whether a named credential exists, or whether `os` is supported by a broker. Duplicate device keys are not detected: the YAML parser keeps the last entry.
 
