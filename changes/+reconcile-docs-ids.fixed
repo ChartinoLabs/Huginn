@@ -1,0 +1,1 @@
+Corrected the reconcile docs to use the real `<id>-<scenario>-<phase>` naming, select reconciled variants by test ID when re-learning, and document side effects, logging options, and exit codes.
