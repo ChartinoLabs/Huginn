@@ -34,15 +34,9 @@ from huginn.brokers.protocol import (
 
 PROTOCOL_VERSION = 1
 
-# Mapping from testbed OS identifiers to scrapli_netconf platform strings.
-# NETCONF implementations vary by vendor, requiring platform-specific handling.
-OS_TO_NETCONF_PLATFORM: dict[str, str] = {
-    "ios": "cisco_iosxe",
-    "iosxe": "cisco_iosxe",
-    "nxos": "cisco_nxos",
-    "iosxr": "cisco_iosxr",
-    "junos": "juniper_junos",
-}
+# Testbed OS identifiers the NETCONF broker accepts. scrapli_netconf's driver
+# takes no platform argument, so the OS is validated but not passed through.
+SUPPORTED_OS: frozenset[str] = frozenset({"ios", "iosxe", "iosxr", "junos", "nxos"})
 
 
 class NETCONFBroker:
@@ -52,12 +46,8 @@ class NETCONFBroker:
     scrapli_netconf's AsyncNetconfDriver. It supports get and edit-config
     operations following the NETCONF protocol (RFC 6241).
 
-    The broker maps testbed OS identifiers to scrapli_netconf platform strings:
-    - ios → cisco_iosxe
-    - iosxe → cisco_iosxe
-    - nxos → cisco_nxos
-    - iosxr → cisco_iosxr
-    - junos → juniper_junos
+    The broker accepts the testbed OS identifiers ios, iosxe, iosxr, junos
+    and nxos, and rejects any other value.
 
     Attributes:
         PROTOCOL_VERSION: The protocol version this broker implements.
@@ -112,14 +102,11 @@ class NETCONFBroker:
             return kwargs.get("filter") or kwargs.get("path")
         return None
 
-    def _get_netconf_platform(self, os: str | None) -> str:
-        """Map testbed OS identifier to scrapli_netconf platform string.
+    def _validate_os(self, os: str | None) -> None:
+        """Check that the testbed OS identifier is supported for NETCONF.
 
         Args:
             os: The testbed OS identifier (e.g., "nxos", "iosxe").
-
-        Returns:
-            The scrapli_netconf platform string (e.g., "cisco_nxos").
 
         Raises:
             ConnectionError: If the OS is not provided or not supported.
@@ -127,11 +114,9 @@ class NETCONFBroker:
         if os is None:
             raise ConnectionError("OS must be specified in connection config")
 
-        platform = OS_TO_NETCONF_PLATFORM.get(os)
-        if platform is None:
-            supported = ", ".join(sorted(OS_TO_NETCONF_PLATFORM.keys()))
+        if os not in SUPPORTED_OS:
+            supported = ", ".join(sorted(SUPPORTED_OS))
             raise ConnectionError(f"Unsupported OS '{os}'. Supported: {supported}")
-        return platform
 
     async def connect(self, config: ConnectionConfig) -> ConnectionHandle:
         """Establish a NETCONF connection to a device.
@@ -146,7 +131,7 @@ class NETCONFBroker:
             ConnectionError: If connection cannot be established or OS unsupported.
             AuthenticationError: If authentication fails.
         """
-        platform = self._get_netconf_platform(config.os)
+        self._validate_os(config.os)
 
         # Default NETCONF port is 830
         port = config.port if config.port != 22 else 830
@@ -154,7 +139,6 @@ class NETCONFBroker:
         driver_kwargs: dict[str, Any] = {
             "host": config.host,
             "port": port,
-            "platform": platform,
             "transport": "asyncssh",
         }
 
