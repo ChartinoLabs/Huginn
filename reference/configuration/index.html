@@ -2073,13 +2073,21 @@
 <p>For example, a leftover <code>mode</code> key fails with:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>ERROR: Unknown key(s) in [tool.huginn]: mode
 </code></pre></div>
-<p>The keys inside <code>[tool.huginn.plugins]</code> are not validated. An unrecognized key there is ignored.</p>
+<p><code>[tool.huginn.plugins]</code> is validated in the same way. The command also fails if:</p>
+<ul>
+<li>the plugins table has a key other than <code>brokers</code>, <code>reporters</code>, <code>hooks</code> or <code>config</code></li>
+<li><code>brokers</code>, <code>reporters</code> or <code>hooks</code> is not a list of non-empty strings</li>
+<li><code>config</code> is not a table, or a value inside it is not a table</li>
+</ul>
+<p>An <code>enabled</code> key, from older documentation, fails with a hint to use the current keys:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ERROR: Unknown key(s) in [tool.huginn.plugins]: enabled. Use &#39;brokers&#39;, &#39;reporters&#39; or &#39;hooks&#39; instead of &#39;enabled&#39;.
+</code></pre></div>
 <h2 id="plugins-in-toolhuginnplugins">Plugins in <code>[tool.huginn.plugins]</code><a class="headerlink" href="#plugins-in-toolhuginnplugins" title="Permanent link">&para;</a></h2>
 <p>Huginn discovers plugins through Python entry points. <code>[tool.huginn.plugins]</code> limits which discovered plugins are active and passes options to them:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[tool.huginn.plugins]</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">brokers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;ssh&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;netconf&quot;</span><span class="p">]</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">reporters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;html&quot;</span><span class="p">]</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">hooks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[tool.huginn.plugins]</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">brokers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;ssh&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;netconf&quot;</span><span class="p">]</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">reporters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;html&quot;</span><span class="p">]</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">hooks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
 </code></pre></div>
 <table>
 <thead>
@@ -2159,23 +2167,23 @@
 <p>An installed package adds plugins by registering entry points in the same groups. See <a href="../../design/connection-broker/#plugin-discovery">Connection Broker - Plugin Discovery</a> for how brokers are resolved.</p>
 <h3 id="plugin-options">Plugin options<a class="headerlink" href="#plugin-options" title="Permanent link">&para;</a></h3>
 <p><code>config.&lt;name&gt;</code> holds options for the plugin whose entry point is <code>&lt;name&gt;</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[tool.huginn.plugins.config.html]</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;DC1 lab&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[tool.huginn.plugins.config.html]</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;DC1 lab&quot;</span>
 </code></pre></div>
 <p>Huginn passes the table to the plugin unchanged. A reporter receives it as the <code>config</code> argument of <code>generate_report()</code>. Hook plugins are not loaded yet; see <a href="#hooks">Hooks</a>. The plugin decides which options it reads. The built-in <code>html</code> reporter reads no options, so a <code>config.html</code> table is accepted but has no effect today.</p>
 <p>Inventory plugins do not read <code>config.&lt;name&gt;</code>. They take their configuration from the text after the colon in <code>--inventory-plugin</code> or <code>inventory_plugin</code>.</p>
 <h2 id="hooks">Hooks<a class="headerlink" href="#hooks" title="Permanent link">&para;</a></h2>
 <p>A hook plugin is a class that implements the <code>HookPlugin</code> protocol from <code>huginn.hooks</code>: a <code>name</code>, a <code>subscriptions()</code> method that returns the lifecycle events it listens to, and an async <code>on_event(event, context)</code> method. Hook plugins are registered in the <code>huginn.hooks</code> entry point group:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># pyproject.toml of the package that provides the hook</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;huginn.hooks&quot;</span><span class="k">]</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">change-window</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;acme_hooks.change_window:ChangeWindowHook&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># pyproject.toml of the package that provides the hook</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;huginn.hooks&quot;</span><span class="k">]</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">change-window</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;acme_hooks.change_window:ChangeWindowHook&quot;</span>
 </code></pre></div>
 <p>A project selects hook plugins with <code>hooks</code> under <code>[tool.huginn.plugins]</code> and passes them options with <code>config.&lt;name&gt;</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[tool.huginn.plugins]</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">hooks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;change-window&quot;</span><span class="p">]</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">[tool.huginn.plugins.config.change-window]</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">calendar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;network-changes&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">[tool.huginn.plugins]</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">hooks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;change-window&quot;</span><span class="p">]</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">[tool.huginn.plugins.config.change-window]</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">calendar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;network-changes&quot;</span>
 </code></pre></div>
 <p>The runner does not load or dispatch hook plugins yet, so an installed hook plugin is never called during a run, whatever <code>hooks</code> lists. Wiring hooks into the runner is tracked in <a href="https://github.com/ChartinoLabs/Huginn/issues/210">#210</a>.</p>
 <h2 id="environment-variables">Environment variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h2>
@@ -2289,47 +2297,47 @@
 <p>See <a href="../cli/#environment-variables">CLI Reference - Environment variables</a> for how boolean and repeatable values are written.</p>
 <h2 id="cli-overrides">CLI overrides<a class="headerlink" href="#cli-overrides" title="Permanent link">&para;</a></h2>
 <p>Any flag overrides the environment and <code>[tool.huginn]</code> for one invocation. With the <a href="#complete-example">Complete Example</a> below in place:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Run a different plan against the staging testbed</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-p<span class="w"> </span>plans/smoke/<span class="w"> </span>-t<span class="w"> </span>inventory/staging.yaml
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Load the testbed through the file inventory plugin instead of the testbed key</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-i<span class="w"> </span>file:inventory/staging.yaml
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="c1"># Log at DEBUG for one learning run</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>learning<span class="w"> </span>--log-level<span class="w"> </span>DEBUG
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="c1"># Use a different data model directory than the plan&#39;s data_model.path</span>
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-d<span class="w"> </span>nac/staging/
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>
-<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="c1"># Keep this run&#39;s results apart from the configured results_dir</span>
-<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="nv">HUGINN_RESULTS_DIR</span><span class="o">=</span>/var/tmp/huginn-results<span class="w"> </span>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing
-<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>
-<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="c1"># Validate the plan against the staging testbed before a run</span>
-<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>huginn<span class="w"> </span>validate<span class="w"> </span>-t<span class="w"> </span>inventory/staging.yaml
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Run a different plan against the staging testbed</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-p<span class="w"> </span>plans/smoke/<span class="w"> </span>-t<span class="w"> </span>inventory/staging.yaml
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Load the testbed through the file inventory plugin instead of the testbed key</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-i<span class="w"> </span>file:inventory/staging.yaml
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># Log at DEBUG for one learning run</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>learning<span class="w"> </span>--log-level<span class="w"> </span>DEBUG
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="c1"># Use a different data model directory than the plan&#39;s data_model.path</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-d<span class="w"> </span>nac/staging/
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="c1"># Keep this run&#39;s results apart from the configured results_dir</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="nv">HUGINN_RESULTS_DIR</span><span class="o">=</span>/var/tmp/huginn-results<span class="w"> </span>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="c1"># Validate the plan against the staging testbed before a run</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>huginn<span class="w"> </span>validate<span class="w"> </span>-t<span class="w"> </span>inventory/staging.yaml
 </code></pre></div>
 <h2 id="complete-example">Complete Example<a class="headerlink" href="#complete-example" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># pyproject.toml</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">[project]</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;dc1-network-tests&quot;</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">requires-python</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&gt;=3.10&quot;</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="n">dependencies</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="s2">&quot;huginn-framework&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="p">]</span>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="k">[tool.huginn]</span>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="n">test_plan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;plans/full-validation/&quot;</span>
-<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="n">testbed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;inventory/production.yaml&quot;</span>
-<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="n">parameters_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;state/parameters&quot;</span>
-<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="n">results_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;state/results&quot;</span>
-<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="n">output_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;state/artifacts&quot;</span>
-<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="n">log_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;logs/huginn.log&quot;</span>
-<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span>
-<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>
-<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="k">[tool.huginn.plugins]</span>
-<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="n">brokers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;ssh&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;netconf&quot;</span><span class="p">]</span>
-<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="n">reporters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;html&quot;</span><span class="p">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># pyproject.toml</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="k">[project]</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;dc1-network-tests&quot;</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="n">requires-python</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&gt;=3.10&quot;</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="n">dependencies</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">    </span><span class="s2">&quot;huginn-framework&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="p">]</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="k">[tool.huginn]</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="n">test_plan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;plans/full-validation/&quot;</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="n">testbed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;inventory/production.yaml&quot;</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="n">parameters_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;state/parameters&quot;</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="n">results_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;state/results&quot;</span>
+<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="n">output_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;state/artifacts&quot;</span>
+<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="n">log_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;logs/huginn.log&quot;</span>
+<a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span>
+<a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>
+<a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="k">[tool.huginn.plugins]</span>
+<a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="n">brokers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;ssh&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;netconf&quot;</span><span class="p">]</span>
+<a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="n">reporters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;html&quot;</span><span class="p">]</span>
 </code></pre></div>
 <p>From the project root, <code>huginn run -m testing</code> then runs <code>plans/full-validation/</code> against <code>inventory/production.yaml</code>, reads parameters from <code>state/parameters/</code>, writes results under <code>state/results/</code>, and logs to <code>logs/huginn.log</code>. Only the SSH and NETCONF brokers are available, and the HTML report is written under <code>reports/</code>.</p>
 <h2 id="related-documents">Related Documents<a class="headerlink" href="#related-documents" title="Permanent link">&para;</a></h2>
