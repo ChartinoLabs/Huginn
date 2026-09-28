@@ -1859,7 +1859,7 @@
 <h1 id="selective-re-learning">Selective Re-learning<a class="headerlink" href="#selective-re-learning" title="Permanent link">&para;</a></h1>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>When a testing run produces failures because learned parameters no longer reflect the current state of the environment, the <code>huginn relearn</code> command refreshes only the affected parameters. It parses the latest testing results, identifies failed and errored test cases, and re-runs only those tests in learning mode to capture current device state as the new expected parameters -- without re-learning tests that are already passing.</p>
-<p>The command automatically scopes execution to only the scenarios and phases that contained failures, avoiding redundant device connections when the same test ID appears across many scenarios.</p>
+<p>The command re-runs each failed test only in the exact scenario and phase where it failed, avoiding redundant device connections when the same test ID appears across many scenarios.</p>
 <h2 id="workflow">Workflow<a class="headerlink" href="#workflow" title="Permanent link">&para;</a></h2>
 <h3 id="1-run-in-testing-mode">1. Run in testing mode<a class="headerlink" href="#1-run-in-testing-mode" title="Permanent link">&para;</a></h3>
 <p>Execute the test plan against the live testbed. Some tests may fail due to parameter drift.</p>
@@ -1875,7 +1875,7 @@
 <p>Example output:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Analyzing latest testing run for failures
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Using results from 2026-Jun-22-17-52-44-testing
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Re-learning 9 failed test(s) in 1 scenario(s), 1 phase(s): BGP-SUMMARY-NEIGHBOR-EXISTENCE, BGP-SUMMARY-NEIGHBOR-TABLE-VERSION, ...
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Re-learning 9 failed test context(s) (9 test(s) in 1 scenario(s), 1 phase(s)): link-shutdown-r1r2/pre-change/BGP-SUMMARY-NEIGHBOR-EXISTENCE, link-shutdown-r1r2/pre-change/BGP-SUMMARY-NEIGHBOR-TABLE-VERSION, ...
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Starting run in learning mode
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>Primed runtime connections in 2.846s
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>Re-learn complete: total=9 passed=9 failed=0 errored=0 not_applicable=0
@@ -1897,8 +1897,9 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>huginn<span class="w"> </span>relearn<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>--scenario<span class="w"> </span>link-shutdown-r1r2<span class="w"> </span>--phase<span class="w"> </span>pre-change
 </code></pre></div>
 <h2 id="automatic-scoping">Automatic scoping<a class="headerlink" href="#automatic-scoping" title="Permanent link">&para;</a></h2>
-<p>The command does not simply filter by test ID. It also limits execution to the scenarios and phases that actually contained failures. This prevents a test ID that appears in 50 scenarios from being re-learned in all 50 when only one had a failure.</p>
-<p>For example, if <code>BGP-SUMMARY-ROUTER-ID</code> failed only in the <code>link-shutdown-r1r2</code> scenario's <code>pre-change</code> phase, the relearn run will execute that test only in that specific scenario and phase context -- not across all scenarios that reference the same test ID.</p>
+<p>The command does not simply filter by test ID. It records each failure as a scenario, phase, and test ID context, and re-runs each test only in the contexts where it failed. This prevents a test ID that appears in 50 scenarios from being re-learned in all 50 when only one had a failure.</p>
+<p>For example, if <code>BGP-SUMMARY-ROUTER-ID</code> failed only in the <code>link-shutdown-r1r2</code> scenario's <code>pre-change</code> phase, the relearn run will execute that test only in that specific scenario and phase context -- not across all scenarios that reference the same test ID. If another test failed only in a different scenario's <code>post-change</code> phase, <code>BGP-SUMMARY-ROUTER-ID</code> is not re-run there either. The summary line lists each context as <code>&lt;scenario&gt;/&lt;phase&gt;/&lt;test ID&gt;</code>.</p>
+<p>Phases that contain no failures are not run. When a phase with failures depends on a phase without failures, the dependency is dropped and the phase runs on its own. When both phases contain failures, the dependency is kept, so the dependent phase is blocked if re-learning fails in the earlier phase.</p>
 <h2 id="cli-reference">CLI reference<a class="headerlink" href="#cli-reference" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>huginn relearn [--plan &lt;path&gt;] [--testbed &lt;path&gt;] [--scenario &lt;id&gt;] [--phase &lt;id&gt;] [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;]
 </code></pre></div>
