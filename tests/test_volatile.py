@@ -678,13 +678,44 @@ def test_parse_duration_verbose_forms(duration: str, expected: int) -> None:
     assert parse_duration_seconds(duration) == expected
 
 
+_DAY = 86400
+_WEEK = 7 * _DAY
+_YEAR = 365 * _DAY
+
+
 @pytest.mark.parametrize(
     "duration, expected",
     [
-        ("1w2d", 604800 + 2 * 86400),
-        ("2d03:04:05", 2 * 86400 + 3 * 3600 + 4 * 60 + 5),
+        # Single units
+        ("5y", 5 * _YEAR),
+        ("3w", 3 * _WEEK),
+        ("4d", 4 * _DAY),
+        ("7h", 7 * 3600),
+        ("33m", 33 * 60),
+        ("45s", 45),
+        # Two-unit forms emitted by IOS-XE, NX-OS, and IOS-XR parsers
+        ("1w2d", _WEEK + 2 * _DAY),
+        ("02w00d", 2 * _WEEK),
+        ("1d02h", _DAY + 2 * 3600),
+        ("0d04h", 4 * 3600),
+        ("118d18h", 118 * _DAY + 18 * 3600),
+        ("1y03w", _YEAR + 3 * _WEEK),
+        ("2y3w", 2 * _YEAR + 3 * _WEEK),
+        # Longer forms, including non-adjacent units
+        ("25d10h18m", 25 * _DAY + 10 * 3600 + 18 * 60),
+        ("1y2d", _YEAR + 2 * _DAY),
+        ("1h30s", 3600 + 30),
+        (
+            "1y2w3d4h5m6s",
+            _YEAR + 2 * _WEEK + 3 * _DAY + 4 * 3600 + 5 * 60 + 6,
+        ),
+        # Clock form, alone or after a compact prefix
         ("00:05:00", 5 * 60),
         ("01:00:00", 3600),
+        ("01:02:03", 3723),
+        ("2d03:04:05", 2 * _DAY + 3 * 3600 + 4 * 60 + 5),
+        ("29w5d 22:42:36", 29 * _WEEK + 5 * _DAY + 22 * 3600 + 42 * 60 + 36),
+        ("  3d12h  ", 3 * _DAY + 12 * 3600),
     ],
 )
 def test_parse_duration_compact_forms(duration: str, expected: int) -> None:
@@ -694,8 +725,26 @@ def test_parse_duration_compact_forms(duration: str, expected: int) -> None:
     assert parse_duration_seconds(duration) == expected
 
 
-def test_parse_duration_unknown_returns_zero() -> None:
-    """Unparseable durations return zero rather than raising."""
+@pytest.mark.parametrize(
+    "duration",
+    [
+        "never",
+        "Never",
+        "",
+        "N/A",
+        # Units out of order
+        "2h1d",
+        "3d2w",
+        # Unknown unit or trailing garbage must not be partially parsed
+        "1d02x",
+        "1d02h foo",
+        "00:01:04 (3d10h ago)",
+        # Incomplete clock
+        "12:34",
+    ],
+)
+def test_parse_duration_unknown_returns_zero(duration: str) -> None:
+    """Unparseable durations return zero rather than raising or truncating."""
     from huginn import parse_duration_seconds
 
-    assert parse_duration_seconds("never") == 0
+    assert parse_duration_seconds(duration) == 0

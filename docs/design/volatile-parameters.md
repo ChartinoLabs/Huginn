@@ -223,8 +223,12 @@ Two volatile base classes are exported from `huginn`:
   prescribe a parser library).
 
 The helper `parse_duration_seconds` is also exported for jobs that
-parse Cisco-style uptime strings (`"5 weeks, 2 days, 13 hours"`,
-`"1w2d"`, `"HH:MM:SS"`) into a monotonic integer value.
+parse Cisco-style uptime strings into a monotonic integer value. It
+accepts verbose strings (`"5 weeks, 2 days, 13 hours"`), compact
+strings of the form `[Ny][Nw][Nd][Nh][Nm][Ns]` in that order
+(`"1d02h"`, `"2w3d"`, `"1y2w"`), and `"HH:MM:SS"`, alone or after a
+compact prefix (`"2d03:04:05"`). Years count as 365 days. Strings it
+cannot parse in full, such as `"never"`, return `0`.
 
 The `"any"` operator is useful at phase boundaries where the impact on
 individual series is heterogeneous - for example, an OSPF restart
