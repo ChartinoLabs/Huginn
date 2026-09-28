@@ -1546,6 +1546,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#job-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job Packages
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1810,6 +1821,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#job-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Job Packages
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1988,6 +2010,14 @@ Keep the framework simple; handle device correlation externally via:</p>
 <li>Merge granularity (device-level? field-level?)</li>
 <li>Credential merging behavior</li>
 <li>Group membership merging (union? intersection?)</li>
+</ul>
+<h3 id="job-packages">Job Packages<a class="headerlink" href="#job-packages" title="Permanent link">&para;</a></h3>
+<p>Test cases can reference jobs in installed Python packages by module path (see <a href="../../reference/package-jobs/">Package-Based Job References</a>). These questions will be resolved as the first job package is built:</p>
+<ul>
+<li><strong>Formal package interface</strong>: Does the framework need a registration mechanism (e.g., entry points) for job packages, or is any importable module with <code>LearningTestCase</code> subclasses sufficient?</li>
+<li><strong>Job discovery / browsing</strong>: Should the framework provide tooling to list available jobs from installed packages (e.g., <code>huginn jobs list --package huginn-jobs-network</code>)?</li>
+<li><strong>Parser bundling</strong>: Should job packages bundle their own Muninn parsers, or depend on a separate parser package?</li>
+<li><strong>Unit test conventions</strong>: Should job packages follow the same spec-driven test harness pattern documented in the <a href="../../authoring/unit-testing/">Unit Testing Automation</a> guide?</li>
 </ul>
 <hr />
 <h2 id="related-documents">Related Documents<a class="headerlink" href="#related-documents" title="Permanent link">&para;</a></h2>
