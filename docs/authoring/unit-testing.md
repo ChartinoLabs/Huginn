@@ -783,7 +783,7 @@ class VerifyOSPFState(LearningTestCase[OSPFStateParameters]):
 
 ## Best Practices
 
-### 1. Test Decision Logic, Not the Framework
+### Test Decision Logic, Not the Framework
 
 Unit tests should focus on your command support and validation logic, not on testing that Huginn's `Context` or broker work correctly.
 
@@ -811,7 +811,7 @@ async def test_context_saves_parameters(fake_context):
     assert await fake_context.parameters.load() == {"key": "value"}
 ```
 
-### 2. Name Tests Descriptively
+### Name Tests Descriptively
 
 Test names should describe the scenario and expected outcome:
 
@@ -827,36 +827,96 @@ def test_ospf():
 def test_1():
 ```
 
-### 3. Use Parametrize for Variations
+### Use Parametrize for Variations
 
-Use pytest parametrization for variations of the same test. This example drives the pure `_build_value_results` function from the example job:
+Use pytest parametrization to run the same check against several inputs. Parametrization pays off most for small, pure decision functions like the one below, which checks OSPF adjacencies using the `neighbors[interface][neighbor_id]` shape that Muninn returns for `show ip ospf neighbor`:
 
 ```python
-# tests/jobs/test_call_home_rate_limit_comparison.py
+# jobs/verify_ospf_neighbors.py
+from typing import NamedTuple
+
+from huginn import ResultStatus
+
+
+class NeighborResult(NamedTuple):
+    status: ResultStatus
+    message: str
+
+
+def validate_ospf_neighbor_state(
+    *, device_name: str, expected: dict, current: dict
+) -> list[NeighborResult]:
+    """Return one result per learned OSPF neighbor."""
+    results: list[NeighborResult] = []
+    for interface, neighbors in expected["neighbors"].items():
+        for neighbor_id, learned in neighbors.items():
+            label = f"{device_name}: neighbor {neighbor_id} on {interface}"
+            observed = current["neighbors"].get(interface, {}).get(neighbor_id)
+            if observed is None:
+                message = f"{label} is missing"
+                results.append(NeighborResult(ResultStatus.FAILED, message))
+            elif observed["state"] != learned["state"]:
+                message = f"{label} is {observed['state']}, expected {learned['state']}"
+                results.append(NeighborResult(ResultStatus.FAILED, message))
+            else:
+                message = f"{label} is {observed['state']}"
+                results.append(NeighborResult(ResultStatus.PASSED, message))
+    return results
+```
+
+One parametrized test then covers each adjacency state a neighbor can be stuck in:
+
+```python
+# tests/jobs/test_verify_ospf_neighbors.py
 import pytest
 from huginn import ResultStatus
 
-from jobs.verify_call_home_rate_limit import _build_value_results
+from jobs.verify_ospf_neighbors import validate_ospf_neighbor_state
+
+INTERFACE = "GigabitEthernet0/0/1"
+NEIGHBOR_ID = "10.255.0.2"
+
+
+def ospf_state(state: str) -> dict:
+    """Build parsed `show ip ospf neighbor` output with one neighbor."""
+    neighbor = {
+        "priority": 1,
+        "state": state,
+        "dead_time": "00:00:34",
+        "address": "10.1.12.2",
+    }
+    return {"neighbors": {INTERFACE: {NEIGHBOR_ID: neighbor}}}
 
 
 @pytest.mark.parametrize(
-    ("current_value", "expected_status"),
+    ("current_state", "expected_status"),
     [
-        ("10", ResultStatus.PASSED),
-        ("20", ResultStatus.FAILED),
-        ("0", ResultStatus.FAILED),
+        ("FULL", ResultStatus.PASSED),
+        ("INIT", ResultStatus.FAILED),
+        ("EXSTART", ResultStatus.FAILED),
+        ("2WAY", ResultStatus.FAILED),
     ],
 )
-def test_rate_limit_comparison(current_value, expected_status) -> None:
-    results = _build_value_results(
-        device_name="edge-01",
-        expected={"devices": {"edge-01": {"value": "10"}}},
-        current={"devices": {"edge-01": {"value": current_value}}},
+def test_neighbor_state(current_state, expected_status) -> None:
+    results = validate_ospf_neighbor_state(
+        device_name="spine-01",
+        expected=ospf_state("FULL"),
+        current=ospf_state(current_state),
     )
-    assert results[0].status == expected_status
+    assert [result.status for result in results] == [expected_status]
+
+
+def test_missing_neighbor_fails() -> None:
+    results = validate_ospf_neighbor_state(
+        device_name="spine-01",
+        expected=ospf_state("FULL"),
+        current={"neighbors": {}},
+    )
+    assert results[0].status == ResultStatus.FAILED
+    assert "is missing" in results[0].message
 ```
 
-### 4. Use Realistic Test Data
+### Use Realistic Test Data
 
 Spec payloads should represent real parser output, including edge cases:
 
@@ -864,7 +924,7 @@ Spec payloads should represent real parser output, including edge cases:
 - Partial data (some devices unreachable)
 - Missing keys (different software versions)
 
-### 5. Keep Specs Close to Tests
+### Keep Specs Close to Tests
 
 Define specs inline in the test file rather than in separate fixture files. This keeps test data visible alongside test logic and gets full IDE support (type checking, autocomplete, refactoring).
 
