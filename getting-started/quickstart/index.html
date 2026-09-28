@@ -1765,67 +1765,73 @@
 <blockquote>
 <p><strong>Note:</strong> Muninn is not required. You can use regular expressions, TextFSM templates, or pyATS Genie parsers to extract structured data from CLI output. Muninn is recommended because it provides type-hinted return values and integrates cleanly with Huginn's async patterns.</p>
 </blockquote>
+<p>Muninn is not a Huginn dependency, so install it alongside Huginn before running this job. The package is published as <code>muninn-parsers</code> and imported as <code>muninn</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span>muninn-parsers
+</code></pre></div>
+<p>Or using <a href="https://docs.astral.sh/uv/">uv</a>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>add<span class="w"> </span>muninn-parsers
+</code></pre></div>
 <p>Create <code>jobs/verify_ios_version.py</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypedDict</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">muninn</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">LearningTestCase</span><span class="p">,</span> <span class="n">ResultStatus</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">mn</span> <span class="o">=</span> <span class="n">muninn</span><span class="o">.</span><span class="n">Muninn</span><span class="p">()</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">mn</span><span class="o">.</span><span class="n">load_builtin_parsers</span><span class="p">()</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="k">class</span><span class="w"> </span><span class="nc">VersionDeviceParameters</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="n">value</span><span class="p">:</span> <span class="nb">str</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="k">class</span><span class="w"> </span><span class="nc">VersionParameters</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>    <span class="n">devices</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">VersionDeviceParameters</span><span class="p">]</span>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="k">class</span><span class="w"> </span><span class="nc">VerifyIosVersion</span><span class="p">(</span><span class="n">LearningTestCase</span><span class="p">[</span><span class="n">VersionParameters</span><span class="p">]):</span>
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Learn and verify the IOS-XE software version.&quot;&quot;&quot;</span>
-<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>
-<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>    <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;show version&quot;</span>
-<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>
-<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VersionParameters</span><span class="p">:</span>
-<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Collect current IOS version from each target device.&quot;&quot;&quot;</span>
-<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>        <span class="n">devices</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">VersionDeviceParameters</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>        <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
-<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">broker</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">)</span>
-<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>            <span class="n">parsed</span> <span class="o">=</span> <span class="n">mn</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">os</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">os</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
-<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>            <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_command_execution</span><span class="p">(</span>
-<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>                <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">,</span>
-<a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>                <span class="n">output</span><span class="o">=</span><span class="n">result</span><span class="p">,</span>
-<a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>                <span class="n">parsed</span><span class="o">=</span><span class="n">parsed</span><span class="p">,</span>
-<a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>            <span class="p">)</span>
-<a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>            <span class="n">devices</span><span class="p">[</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">parsed</span><span class="p">[</span><span class="s2">&quot;version&quot;</span><span class="p">])}</span>
-<a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;devices&quot;</span><span class="p">:</span> <span class="n">devices</span><span class="p">}</span>
-<a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a>
-<a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">compare_state</span><span class="p">(</span>
-<a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a>        <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a>        <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a>        <span class="n">expected</span><span class="p">:</span> <span class="n">VersionParameters</span><span class="p">,</span>
-<a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a>        <span class="n">current</span><span class="p">:</span> <span class="n">VersionParameters</span><span class="p">,</span>
-<a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a>        <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span>
-<a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compare learned IOS version against current state.&quot;&quot;&quot;</span>
-<a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a>        <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
-<a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a>            <span class="n">expected_version</span> <span class="o">=</span> <span class="n">expected</span><span class="p">[</span><span class="s2">&quot;devices&quot;</span><span class="p">][</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
-<a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a>            <span class="n">current_version</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="s2">&quot;devices&quot;</span><span class="p">][</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
-<a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a>            <span class="k">if</span> <span class="n">current_version</span> <span class="o">==</span> <span class="n">expected_version</span><span class="p">:</span>
-<a id="__codelineno-1-51" name="__codelineno-1-51" href="#__codelineno-1-51"></a>                <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span>
-<a id="__codelineno-1-52" name="__codelineno-1-52" href="#__codelineno-1-52"></a>                    <span class="n">ResultStatus</span><span class="o">.</span><span class="n">PASSED</span><span class="p">,</span>
-<a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a>                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: IOS version &#39;</span><span class="si">{</span><span class="n">current_version</span><span class="si">}</span><span class="s2">&#39; matches baseline&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-54" name="__codelineno-1-54" href="#__codelineno-1-54"></a>                <span class="p">)</span>
-<a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a>            <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a>                <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span>
-<a id="__codelineno-1-57" name="__codelineno-1-57" href="#__codelineno-1-57"></a>                    <span class="n">ResultStatus</span><span class="o">.</span><span class="n">FAILED</span><span class="p">,</span>
-<a id="__codelineno-1-58" name="__codelineno-1-58" href="#__codelineno-1-58"></a>                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: IOS version drifted from &#39;</span><span class="si">{</span><span class="n">expected_version</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
-<a id="__codelineno-1-59" name="__codelineno-1-59" href="#__codelineno-1-59"></a>                    <span class="sa">f</span><span class="s2">&quot;to &#39;</span><span class="si">{</span><span class="n">current_version</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-60" name="__codelineno-1-60" href="#__codelineno-1-60"></a>                <span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypedDict</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">muninn</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">LearningTestCase</span><span class="p">,</span> <span class="n">ResultStatus</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">mn</span> <span class="o">=</span> <span class="n">muninn</span><span class="o">.</span><span class="n">Muninn</span><span class="p">()</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">mn</span><span class="o">.</span><span class="n">load_builtin_parsers</span><span class="p">()</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="k">class</span><span class="w"> </span><span class="nc">VersionDeviceParameters</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="n">value</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="k">class</span><span class="w"> </span><span class="nc">VersionParameters</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>    <span class="n">devices</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">VersionDeviceParameters</span><span class="p">]</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="k">class</span><span class="w"> </span><span class="nc">VerifyIosVersion</span><span class="p">(</span><span class="n">LearningTestCase</span><span class="p">[</span><span class="n">VersionParameters</span><span class="p">]):</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Learn and verify the IOS-XE software version.&quot;&quot;&quot;</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>    <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;show version&quot;</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">VersionParameters</span><span class="p">:</span>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Collect current IOS version from each target device.&quot;&quot;&quot;</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>        <span class="n">devices</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">VersionDeviceParameters</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>        <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">broker</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">)</span>
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>            <span class="n">parsed</span> <span class="o">=</span> <span class="n">mn</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">os</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">os</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>            <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_command_execution</span><span class="p">(</span>
+<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a>                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a>                <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">,</span>
+<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a>                <span class="n">output</span><span class="o">=</span><span class="n">result</span><span class="p">,</span>
+<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a>                <span class="n">parsed</span><span class="o">=</span><span class="n">parsed</span><span class="p">,</span>
+<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a>            <span class="p">)</span>
+<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a>            <span class="n">devices</span><span class="p">[</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">parsed</span><span class="p">[</span><span class="s2">&quot;version&quot;</span><span class="p">])}</span>
+<a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;devices&quot;</span><span class="p">:</span> <span class="n">devices</span><span class="p">}</span>
+<a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a>
+<a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">compare_state</span><span class="p">(</span>
+<a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a>        <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a>        <span class="n">expected</span><span class="p">:</span> <span class="n">VersionParameters</span><span class="p">,</span>
+<a id="__codelineno-3-43" name="__codelineno-3-43" href="#__codelineno-3-43"></a>        <span class="n">current</span><span class="p">:</span> <span class="n">VersionParameters</span><span class="p">,</span>
+<a id="__codelineno-3-44" name="__codelineno-3-44" href="#__codelineno-3-44"></a>        <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span>
+<a id="__codelineno-3-45" name="__codelineno-3-45" href="#__codelineno-3-45"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-3-46" name="__codelineno-3-46" href="#__codelineno-3-46"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compare learned IOS version against current state.&quot;&quot;&quot;</span>
+<a id="__codelineno-3-47" name="__codelineno-3-47" href="#__codelineno-3-47"></a>        <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+<a id="__codelineno-3-48" name="__codelineno-3-48" href="#__codelineno-3-48"></a>            <span class="n">expected_version</span> <span class="o">=</span> <span class="n">expected</span><span class="p">[</span><span class="s2">&quot;devices&quot;</span><span class="p">][</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
+<a id="__codelineno-3-49" name="__codelineno-3-49" href="#__codelineno-3-49"></a>            <span class="n">current_version</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="s2">&quot;devices&quot;</span><span class="p">][</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
+<a id="__codelineno-3-50" name="__codelineno-3-50" href="#__codelineno-3-50"></a>            <span class="k">if</span> <span class="n">current_version</span> <span class="o">==</span> <span class="n">expected_version</span><span class="p">:</span>
+<a id="__codelineno-3-51" name="__codelineno-3-51" href="#__codelineno-3-51"></a>                <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span>
+<a id="__codelineno-3-52" name="__codelineno-3-52" href="#__codelineno-3-52"></a>                    <span class="n">ResultStatus</span><span class="o">.</span><span class="n">PASSED</span><span class="p">,</span>
+<a id="__codelineno-3-53" name="__codelineno-3-53" href="#__codelineno-3-53"></a>                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: IOS version &#39;</span><span class="si">{</span><span class="n">current_version</span><span class="si">}</span><span class="s2">&#39; matches baseline&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-54" name="__codelineno-3-54" href="#__codelineno-3-54"></a>                <span class="p">)</span>
+<a id="__codelineno-3-55" name="__codelineno-3-55" href="#__codelineno-3-55"></a>            <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-3-56" name="__codelineno-3-56" href="#__codelineno-3-56"></a>                <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span>
+<a id="__codelineno-3-57" name="__codelineno-3-57" href="#__codelineno-3-57"></a>                    <span class="n">ResultStatus</span><span class="o">.</span><span class="n">FAILED</span><span class="p">,</span>
+<a id="__codelineno-3-58" name="__codelineno-3-58" href="#__codelineno-3-58"></a>                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: IOS version drifted from &#39;</span><span class="si">{</span><span class="n">expected_version</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
+<a id="__codelineno-3-59" name="__codelineno-3-59" href="#__codelineno-3-59"></a>                    <span class="sa">f</span><span class="s2">&quot;to &#39;</span><span class="si">{</span><span class="n">current_version</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-60" name="__codelineno-3-60" href="#__codelineno-3-60"></a>                <span class="p">)</span>
 </code></pre></div>
 <p>A job containing a class that inherits from <code>LearningTestCase</code> implements two methods:</p>
 <ul>
@@ -1834,66 +1840,72 @@
 </ul>
 <p>When the job is executed in learning mode, Huginn saves the output of <code>gather_state</code> as parameters in a JSON file, typically in a directory named <code>parameters</code>. When the job is executed in testing mode, it loads those saved parameters and passes them to <code>compare_state</code> to compare those saved parameters against the current device state.</p>
 <h2 id="create-a-test-plan">Create a test plan<a class="headerlink" href="#create-a-test-plan" title="Permanent link">&para;</a></h2>
-<p>Next, we need to create a test plan that defines defines how test cases will be executed. The hierarchy of objects in a test plan are:</p>
+<p>Next, we need to create a test plan that defines how test cases will be executed. The hierarchy of objects in a test plan are:</p>
 <ul>
 <li><strong>Scenario</strong>: An organizational unit in a test plan representing a stage of test execution. Scenarios contain one or more phases.</li>
 <li><strong>Phase</strong>: An organizational unit in a test plan representing a stage of test execution. Phases contain one or more test case groups and can have dependencies on other phases in the same scenario.</li>
 <li><strong>Test Case Group</strong>: A logical grouping of test cases. Test case groups reference test cases by ID and can include other groups by name, enabling hierarchical organization. Groups can specify targets that apply to all contained test cases, and the framework executes test cases within a group in parallel.</li>
-<li><strong>Test Case</strong>: A first-class entity defining what to test. A test case references a job and, and the test case identifier drives the name of the JSON file where parameters are stored.</li>
+<li><strong>Test Case</strong>: A first-class entity defining what to test. A test case references a job, and the test case identifier drives the name of the JSON file where parameters are stored.</li>
 </ul>
 <p>Create <code>test_plan.yaml</code> referencing your job:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">test_cases</span><span class="p">:</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">VERSION-IOS-VERSION</span><span class="p">:</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IOS version matches learned baseline</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jobs/verify_ios_version.py</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">version</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="nt">test_case_groups</span><span class="p">:</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">  </span><span class="nt">version-baseline</span><span class="p">:</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">VERSION-IOS-VERSION</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="nt">scenarios</span><span class="p">:</span>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">  </span><span class="nt">validation</span><span class="p">:</span>
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="nt">phases</span><span class="p">:</span>
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">      </span><span class="nt">pre-change</span><span class="p">:</span>
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span>
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">version-baseline</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">test_cases</span><span class="p">:</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">VERSION-IOS-VERSION</span><span class="p">:</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IOS version matches learned baseline</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jobs/verify_ios_version.py</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">version</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span><span class="nt">version-baseline</span><span class="p">:</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">VERSION-IOS-VERSION</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="nt">scenarios</span><span class="p">:</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">  </span><span class="nt">validation</span><span class="p">:</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">    </span><span class="nt">phases</span><span class="p">:</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">      </span><span class="nt">pre-change</span><span class="p">:</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">version-baseline</span>
 </code></pre></div>
 <p>The test plan organizes test cases into groups, which are arranged into phases within scenarios.</p>
 <h2 id="run-in-learning-mode">Run in learning mode<a class="headerlink" href="#run-in-learning-mode" title="Permanent link">&para;</a></h2>
 <p>Learning mode captures the current device state as the expected parameters to be used for comparison against when the test plan is executed in testing mode.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>learning<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan.yaml
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>learning<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan.yaml
 </code></pre></div>
 <p>This connects to each device, executes <code>gather_state</code>, and saves the results as learned parameters. You should see a JSON file in the <code>parameters</code> directory with the name <code>VERSION-IOS-VERSION.json</code> containing the learned parameters that look something like this:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;devices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">&quot;rtr-01&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">      </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;17.18.02&quot;</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">&quot;devices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="nt">&quot;rtr-01&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">      </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;17.18.02&quot;</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">}</span>
 </code></pre></div>
 <h2 id="run-in-testing-mode">Run in testing mode<a class="headerlink" href="#run-in-testing-mode" title="Permanent link">&para;</a></h2>
 <p>Testing mode compares current state against the learned parameters. This is typically when you want to validate that the device state matches the expected parameters before or after a change has been made.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan.yaml
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan.yaml
 </code></pre></div>
-<p>If the device state matches the learned parameters, the test passes. If state has drifted, the test fails with a diff showing what changed.</p>
+<p>If the device state matches the learned parameters, the test passes. If state has drifted, the test fails with the message the job passed to <code>add_result</code> in <code>compare_state</code>. In this job, that message names the learned and current versions.</p>
 <h2 id="review-the-html-report">Review the HTML report<a class="headerlink" href="#review-the-html-report" title="Permanent link">&para;</a></h2>
 <p>After each run, Huginn generates an HTML report in the <code>reports/</code> directory. The report includes a dashboard with pass/fail statistics and a detail page for each test case showing the commands executed, parsed output, and comparison results.</p>
-<p>The report is written to <code>reports/&lt;run-timestamp&gt;/html/index.html</code>. A <code>latest</code> symlink always points to the most recent run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>reports/
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>  latest -&gt; 2026-06-05T10-30-00/html
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>  2026-06-05T10-30-00/
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    html/
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>      index.html          # dashboard
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>      styles.css
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>      test-cases/
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        VERSION-IOS-VERSION.html
+<p>The report is written to <code>reports/&lt;run-timestamp&gt;-&lt;mode&gt;/html/index.html</code>, and each test case detail page is named <code>&lt;scenario&gt;-&lt;phase&gt;-&lt;test-case-id&gt;.html</code>. A <code>latest</code> symlink always points to the most recent run. After the learning and testing runs above, the directory looks like this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>reports/
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>  latest -&gt; 2026-Sep-28-13-10-49-testing/html
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>  2026-Sep-28-13-10-38-learning/
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    html/
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>      index.html          # dashboard
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>      styles.css
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>      test-cases/
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>        validation-pre-change-VERSION-IOS-VERSION.html
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>  2026-Sep-28-13-10-49-testing/
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    html/
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>      index.html          # dashboard
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>      styles.css
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>      test-cases/
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>        validation-pre-change-VERSION-IOS-VERSION.html
 </code></pre></div>
 <p>To view the report locally, start a simple HTTP server from the report directory:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python<span class="w"> </span>-m<span class="w"> </span>http.server<span class="w"> </span><span class="m">8000</span><span class="w"> </span>--directory<span class="w"> </span>reports/latest
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>python<span class="w"> </span>-m<span class="w"> </span>http.server<span class="w"> </span><span class="m">8000</span><span class="w"> </span>--directory<span class="w"> </span>reports/latest
 </code></pre></div>
 <p>Then open <code>http://localhost:8000</code> in your browser. The dashboard shows a summary of all test cases with their status, and you can click into any test case to see the full execution details - including the raw CLI output, parsed data, and pass/fail checks.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
