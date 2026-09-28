@@ -1,0 +1,3074 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Python-native, async-first test automation framework for network infrastructure.">
+      
+      
+      
+        <link rel="canonical" href="https://chartinolabs.github.io/Huginn/reference/cli/">
+      
+      
+        <link rel="prev" href="../package-jobs/">
+      
+      
+        <link rel="next" href="../reconcile/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>CLI Reference - Huginn</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cli-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Huginn" class="md-header__button md-logo" aria-label="Huginn" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Huginn
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              CLI Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ChartinoLabs/Huginn" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ChartinoLabs/Huginn
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Huginn" class="md-nav__button md-logo" aria-label="Huginn" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Huginn
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ChartinoLabs/Huginn" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ChartinoLabs/Huginn
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/execution-modes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution Modes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/test-plan-structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Test Plan Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/archetypes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Job Archetypes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/relearning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Re-learning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/pruning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pruning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authoring Jobs
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Authoring Jobs
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../authoring/static-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Static Parameter Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../authoring/volatile-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volatile Parameter Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../authoring/change/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Jobs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../authoring/gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gate Jobs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../authoring/unit-testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unit Testing Jobs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testbed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testbed Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../test-plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Test Plan Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../context-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Context API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../package-jobs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Package Jobs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#repeatable-and-comma-separated-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Repeatable and comma-separated values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#default-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logging-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#usage-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="run">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        validate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="validate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exit-codes_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        execute
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="execute">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#batch-file-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch file format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exit-codes_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inject-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        inject new
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="inject new">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-ids-and-names-are-derived" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How IDs and names are derived
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exit-codes_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inject-into" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        inject into
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="inject into">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exit-codes_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reconcile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reconcile
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#relearn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        relearn
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prune" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        prune
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        version
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completion
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reconcile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI - reconcile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../relearn/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI - relearn
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../prune/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI - prune
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/connection-broker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connection Broker Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/output-logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Output and Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/volatile-parameters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volatile Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/future/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Future Considerations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../style/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation Style Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#repeatable-and-comma-separated-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Repeatable and comma-separated values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#default-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logging-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logging options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#usage-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="run">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        validate
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="validate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exit-codes_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        execute
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="execute">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#batch-file-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch file format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exit-codes_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inject-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        inject new
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="inject new">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-ids-and-names-are-derived" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How IDs and names are derived
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exit-codes_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inject-into" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        inject into
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="inject into">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exit-codes_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reconcile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reconcile
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#relearn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        relearn
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prune" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        prune
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        version
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completion
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="cli-reference">CLI Reference<a class="headerlink" href="#cli-reference" title="Permanent link">&para;</a></h1>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>The <code>huginn</code> command groups every Huginn operation under one entry point. Run <code>huginn --help</code>, or <code>huginn &lt;command&gt; --help</code>, to print the same options from the installed version.</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#run"><code>run</code></a></td>
+<td>Execute a test plan against a testbed in learning or testing mode.</td>
+</tr>
+<tr>
+<td><a href="#validate"><code>validate</code></a></td>
+<td>Validate the testbed and test plan without connecting to devices.</td>
+</tr>
+<tr>
+<td><a href="#execute"><code>execute</code></a></td>
+<td>Run ad-hoc commands on testbed devices.</td>
+</tr>
+<tr>
+<td><a href="#inject-new"><code>inject new</code></a></td>
+<td>Create a new test case group from job files.</td>
+</tr>
+<tr>
+<td><a href="#inject-into"><code>inject into</code></a></td>
+<td>Add job files to an existing test case group.</td>
+</tr>
+<tr>
+<td><a href="#reconcile"><code>reconcile</code></a></td>
+<td>Create post-change variants of test cases that failed in a phase.</td>
+</tr>
+<tr>
+<td><a href="#relearn"><code>relearn</code></a></td>
+<td>Re-learn parameters for the tests that failed in the latest testing run.</td>
+</tr>
+<tr>
+<td><a href="#prune"><code>prune</code></a></td>
+<td>Remove non-applicable tests and devices from the test plan.</td>
+</tr>
+<tr>
+<td><a href="#version"><code>version</code></a></td>
+<td>Print the installed Huginn version.</td>
+</tr>
+<tr>
+<td><a href="#completion">Shell completion</a></td>
+<td>Install or print a completion script for the current shell.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="conventions">Conventions<a class="headerlink" href="#conventions" title="Permanent link">&para;</a></h2>
+<h3 id="environment-variables">Environment variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h3>
+<p>Most options can also be set through an environment variable, listed in the Env var column of each table. An option given on the command line takes precedence over its environment variable. Options with an empty Env var column can only be set on the command line.</p>
+<p>Boolean flags such as <code>--debug</code> accept <code>1</code>, <code>true</code>, <code>yes</code> or <code>on</code> (and their negative forms) when set through the environment:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">HUGINN_TESTBED</span><span class="o">=</span>testbed.yaml
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">HUGINN_DEBUG</span><span class="o">=</span><span class="nb">true</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-p<span class="w"> </span>test_plan/
+</code></pre></div>
+<h3 id="repeatable-and-comma-separated-values">Repeatable and comma-separated values<a class="headerlink" href="#repeatable-and-comma-separated-values" title="Permanent link">&para;</a></h3>
+<p>Options marked as repeatable can be given more than once, and each value can also hold a comma-separated list. These two commands select the same test cases:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>--test-id<span class="w"> </span>BGP-SUMMARY-ROUTER-ID<span class="w"> </span>--test-id<span class="w"> </span>OSPF-NEIGHBOR-STATE
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>--test-id<span class="w"> </span>BGP-SUMMARY-ROUTER-ID,OSPF-NEIGHBOR-STATE
+</code></pre></div>
+<p>Whitespace around each item is stripped and duplicates are dropped. When a repeatable option is set through its environment variable, separate the values with spaces or commas, for example <code>HUGINN_TAGS="ospf,critical"</code>.</p>
+<h3 id="default-paths">Default paths<a class="headerlink" href="#default-paths" title="Permanent link">&para;</a></h3>
+<p>Paths default to locations relative to the current working directory, such as <code>./test_plan</code> and <code>./testbed.yaml</code>. When a default path is required and does not exist, the command stops with a usage error.</p>
+<h3 id="logging-options">Logging options<a class="headerlink" href="#logging-options" title="Permanent link">&para;</a></h3>
+<p>Every command except <code>inject</code>, <code>version</code> and shell completion accepts the same logging options. They are listed here once and referred to as the logging options in the tables below.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Short</th>
+<th>Env var</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--debug</code></td>
+<td></td>
+<td><code>HUGINN_DEBUG</code></td>
+<td>off</td>
+<td>Enable DEBUG-level logging. Overrides <code>--log-level</code>.</td>
+</tr>
+<tr>
+<td><code>--log-level</code></td>
+<td></td>
+<td><code>HUGINN_LOG_LEVEL</code></td>
+<td><code>INFO</code></td>
+<td>Logging level (<code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>).</td>
+</tr>
+<tr>
+<td><code>--show-logs</code></td>
+<td></td>
+<td><code>HUGINN_SHOW_LOGS</code></td>
+<td>off</td>
+<td>Stream logs to the console in addition to the log file.</td>
+</tr>
+<tr>
+<td><code>--log-file</code></td>
+<td></td>
+<td><code>HUGINN_LOG_FILE</code></td>
+<td><code>./huginn.log</code></td>
+<td>Path to the log file.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="usage-errors">Usage errors<a class="headerlink" href="#usage-errors" title="Permanent link">&para;</a></h3>
+<p>A missing required option, an invalid value, or a conflicting combination of options is reported as a usage error with exit code 2 before any work starts. This applies to every command, so the exit code tables below list code 2 only where a command also uses it for other failures.</p>
+<h2 id="run">run<a class="headerlink" href="#run" title="Permanent link">&para;</a></h2>
+<p>Execute a test plan against infrastructure. In learning mode, current device state is captured as baseline parameters. In testing mode, current state is compared against the learned parameters.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>huginn run --mode &lt;learning|testing&gt; [--plan &lt;path&gt;] [--testbed &lt;path&gt; | --inventory-plugin &lt;name&gt;]
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>           [--tags &lt;tags&gt;] [--exclude-tags &lt;tags&gt;] [--scenario &lt;ids&gt;] [--phase &lt;ids&gt;]
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>           [--test-case-group &lt;ids&gt;] [--test-id &lt;ids&gt;] [--test-id-pattern &lt;regex&gt;]
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>           [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;] [--output-dir &lt;path&gt;]
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>           [logging options]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Short</th>
+<th>Env var</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--mode</code></td>
+<td><code>-m</code></td>
+<td><code>HUGINN_MODE</code></td>
+<td>(required)</td>
+<td>Execution mode. One of <code>learning</code> or <code>testing</code>.</td>
+</tr>
+<tr>
+<td><code>--plan</code></td>
+<td><code>-p</code></td>
+<td><code>HUGINN_PLAN</code></td>
+<td><code>./test_plan</code></td>
+<td>Path to test plan YAML file or directory of YAML files.</td>
+</tr>
+<tr>
+<td><code>--testbed</code></td>
+<td><code>-t</code></td>
+<td><code>HUGINN_TESTBED</code></td>
+<td><code>./testbed.yaml</code></td>
+<td>Path to testbed YAML file defining device inventory. Mutually exclusive with <code>--inventory-plugin</code>.</td>
+</tr>
+<tr>
+<td><code>--inventory-plugin</code></td>
+<td><code>-i</code></td>
+<td><code>HUGINN_INVENTORY_PLUGIN</code></td>
+<td>none</td>
+<td>Use an inventory plugin instead of a static testbed YAML file. Mutually exclusive with <code>--testbed</code>.</td>
+</tr>
+<tr>
+<td><code>--tags</code></td>
+<td></td>
+<td><code>HUGINN_TAGS</code></td>
+<td>none</td>
+<td>Run only test cases that have every listed tag. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--exclude-tags</code></td>
+<td></td>
+<td><code>HUGINN_EXCLUDE_TAGS</code></td>
+<td>none</td>
+<td>Skip test cases that have any listed tag. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--scenario</code></td>
+<td></td>
+<td><code>HUGINN_SCENARIO</code></td>
+<td>none</td>
+<td>Run only the listed scenarios. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--phase</code></td>
+<td></td>
+<td><code>HUGINN_PHASE</code></td>
+<td>none</td>
+<td>Run only the listed phases. Requires <code>--scenario</code>. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--test-case-group</code></td>
+<td></td>
+<td><code>HUGINN_TEST_CASE_GROUP</code></td>
+<td>none</td>
+<td>Run only the listed test case groups. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--test-id</code></td>
+<td></td>
+<td><code>HUGINN_TEST_ID</code></td>
+<td>none</td>
+<td>Run only the listed test case IDs. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--test-id-pattern</code></td>
+<td></td>
+<td><code>HUGINN_TEST_ID_PATTERN</code></td>
+<td>none</td>
+<td>Python regular expression matched anywhere in the test case ID, for example <code>'-post-shutdown$'</code>.</td>
+</tr>
+<tr>
+<td><code>--data-model</code></td>
+<td><code>-d</code></td>
+<td><code>HUGINN_DATA_MODEL</code></td>
+<td>none</td>
+<td>Not yet implemented. Any value is rejected with a usage error. Planned in <a href="https://github.com/ChartinoLabs/Huginn/issues/255">#255</a>.</td>
+</tr>
+<tr>
+<td><code>--results-dir</code></td>
+<td></td>
+<td><code>HUGINN_RESULTS_DIR</code></td>
+<td><code>./results/</code></td>
+<td>Directory where run results are written.</td>
+</tr>
+<tr>
+<td><code>--parameters-dir</code></td>
+<td></td>
+<td><code>HUGINN_PARAMETERS_DIR</code></td>
+<td><code>./parameters/</code></td>
+<td>Directory where learned parameters are written in learning mode and read in testing mode.</td>
+</tr>
+<tr>
+<td><code>--output-dir</code></td>
+<td></td>
+<td><code>HUGINN_OUTPUT_DIR</code></td>
+<td><code>&lt;run-dir&gt;/artifacts/</code></td>
+<td>Directory for run artifacts.</td>
+</tr>
+<tr>
+<td>logging options</td>
+<td></td>
+<td></td>
+<td></td>
+<td>See <a href="#logging-options">Logging options</a>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="filtering">Filtering<a class="headerlink" href="#filtering" title="Permanent link">&para;</a></h3>
+<p>Filters narrow the test plan before it is validated and executed. All filters combine, so a test case must pass every filter that is given. <code>--scenario</code>, <code>--phase</code>, <code>--test-case-group</code> and <code>--test-id</code> match any listed value, <code>--tags</code> requires every listed tag, and <code>--exclude-tags</code> drops a test case that has any listed tag.</p>
+<p><code>--phase</code> is rejected with <code>--phase requires --scenario to be specified.</code> unless <code>--scenario</code> is also given, because phase names are scoped to a scenario.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>--scenario<span class="w"> </span>ospf-area-change<span class="w"> </span>--phase<span class="w"> </span>post-change
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>--tags<span class="w"> </span>ospf,critical<span class="w"> </span>--exclude-tags<span class="w"> </span>slow
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>learning<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>--test-id-pattern<span class="w"> </span><span class="s1">&#39;-post-shutdown$&#39;</span>
+</code></pre></div>
+<p>See <a href="../test-plan/#cli-filtering">Test Plan Specification - CLI Filtering</a> for how filters interact with groups and phases. A filter that matches nothing is not an error: the run completes with <code>No test cases were selected for execution</code> and exits 0.</p>
+<h3 id="exit-codes">Exit codes<a class="headerlink" href="#exit-codes" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>The overall run status is <code>passed</code>, or no test cases were selected.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>The overall run status is <code>failed</code>, <code>errored</code>, <code>not_applicable</code> or <code>skipped</code>; the testbed or test plan could not be loaded; or a broker error occurred.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Usage error; inventory plugin failure; phase dependencies in a scenario could not be resolved; or results or reports could not be written.</td>
+</tr>
+</tbody>
+</table>
+<p>An invalid <code>--test-id-pattern</code> regular expression currently ends the run with a Python traceback and exit code 1.</p>
+<h2 id="validate">validate<a class="headerlink" href="#validate" title="Permanent link">&para;</a></h2>
+<p>Validate the testbed and test plan without executing tests. Validation loads both inputs, applies the filters, resolves phase order, and checks that every test case can be loaded and targeted. No devices are contacted.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>huginn validate --plan &lt;path&gt; [--testbed &lt;path&gt; | --inventory-plugin &lt;name&gt;]
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>                [--tags &lt;tags&gt;] [--exclude-tags &lt;tags&gt;] [--scenario &lt;ids&gt;] [--phase &lt;ids&gt;]
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>                [--test-case-group &lt;ids&gt;] [--test-id &lt;ids&gt;] [--test-id-pattern &lt;regex&gt;]
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>                [logging options]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Short</th>
+<th>Env var</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--plan</code></td>
+<td><code>-p</code></td>
+<td><code>HUGINN_PLAN</code></td>
+<td>(required)</td>
+<td>Path to test plan YAML file or directory of YAML files to validate.</td>
+</tr>
+<tr>
+<td><code>--testbed</code></td>
+<td><code>-t</code></td>
+<td><code>HUGINN_TESTBED</code></td>
+<td><code>./testbed.yaml</code></td>
+<td>Path to testbed YAML file defining device inventory. Mutually exclusive with <code>--inventory-plugin</code>.</td>
+</tr>
+<tr>
+<td><code>--inventory-plugin</code></td>
+<td><code>-i</code></td>
+<td><code>HUGINN_INVENTORY_PLUGIN</code></td>
+<td>none</td>
+<td>Use an inventory plugin instead of a static testbed YAML file. Mutually exclusive with <code>--testbed</code>.</td>
+</tr>
+<tr>
+<td><code>--tags</code></td>
+<td></td>
+<td><code>HUGINN_TAGS</code></td>
+<td>none</td>
+<td>Validate only test cases that have every listed tag. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--exclude-tags</code></td>
+<td></td>
+<td><code>HUGINN_EXCLUDE_TAGS</code></td>
+<td>none</td>
+<td>Skip test cases that have any listed tag. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--scenario</code></td>
+<td></td>
+<td><code>HUGINN_SCENARIO</code></td>
+<td>none</td>
+<td>Validate only the listed scenarios. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--phase</code></td>
+<td></td>
+<td><code>HUGINN_PHASE</code></td>
+<td>none</td>
+<td>Validate only the listed phases. Requires <code>--scenario</code>. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--test-case-group</code></td>
+<td></td>
+<td><code>HUGINN_TEST_CASE_GROUP</code></td>
+<td>none</td>
+<td>Validate only the listed test case groups. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--test-id</code></td>
+<td></td>
+<td><code>HUGINN_TEST_ID</code></td>
+<td>none</td>
+<td>Validate only the listed test case IDs. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--test-id-pattern</code></td>
+<td></td>
+<td><code>HUGINN_TEST_ID_PATTERN</code></td>
+<td>none</td>
+<td>Python regular expression matched anywhere in the test case ID.</td>
+</tr>
+<tr>
+<td><code>--data-model</code></td>
+<td><code>-d</code></td>
+<td><code>HUGINN_DATA_MODEL</code></td>
+<td>none</td>
+<td>Not yet implemented. Any value is rejected with a usage error. Planned in <a href="https://github.com/ChartinoLabs/Huginn/issues/255">#255</a>.</td>
+</tr>
+<tr>
+<td>logging options</td>
+<td></td>
+<td></td>
+<td></td>
+<td>See <a href="#logging-options">Logging options</a>.</td>
+</tr>
+</tbody>
+</table>
+<p>The filters behave exactly as they do for <a href="#filtering"><code>run</code></a>, including the rule that <code>--phase</code> requires <code>--scenario</code>. The validation result is written under <code>./results/</code>; <code>validate</code> has no <code>--results-dir</code> option.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>huginn<span class="w"> </span>validate<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>-t<span class="w"> </span>testbed.yaml
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>huginn<span class="w"> </span>validate<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>--scenario<span class="w"> </span>link-shutdown-r1r2<span class="w"> </span>--phase<span class="w"> </span>pre-change
+</code></pre></div>
+<h3 id="exit-codes_1">Exit codes<a class="headerlink" href="#exit-codes_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Validation passed. Warnings, if any, are printed but do not change the exit code.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Validation failed, including when the testbed, inventory plugin or test plan could not be loaded.</td>
+</tr>
+</tbody>
+</table>
+<p>An invalid <code>--test-id-pattern</code> regular expression currently ends validation with a Python traceback and exit code 1.</p>
+<h2 id="execute">execute<a class="headerlink" href="#execute" title="Permanent link">&para;</a></h2>
+<p>Run ad-hoc commands on testbed devices and print the raw output. Single-command mode takes <code>--device</code> and <code>--command</code> together. Batch mode takes <code>--commands</code> with a YAML file and cannot be combined with <code>--device</code> or <code>--command</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>huginn execute --testbed &lt;path&gt; --device &lt;name&gt; --command &lt;command&gt; [--broker &lt;ssh|http|netconf&gt;] [--no-prompt] [logging options]
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>huginn execute --testbed &lt;path&gt; --commands &lt;path&gt; [--no-prompt] [logging options]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Short</th>
+<th>Env var</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--testbed</code></td>
+<td><code>-t</code></td>
+<td><code>HUGINN_TESTBED</code></td>
+<td>(required)</td>
+<td>Path to testbed YAML file defining device inventory.</td>
+</tr>
+<tr>
+<td><code>--device</code></td>
+<td></td>
+<td></td>
+<td>none</td>
+<td>Device name from the testbed. Requires <code>--command</code>.</td>
+</tr>
+<tr>
+<td><code>--command</code></td>
+<td><code>-c</code></td>
+<td></td>
+<td>none</td>
+<td>Command string or API path to execute on the device. Requires <code>--device</code>.</td>
+</tr>
+<tr>
+<td><code>--commands</code></td>
+<td></td>
+<td></td>
+<td>none</td>
+<td>Path to a YAML file defining batch command executions.</td>
+</tr>
+<tr>
+<td><code>--broker</code></td>
+<td><code>-b</code></td>
+<td></td>
+<td><code>ssh</code></td>
+<td>Broker type for single-command mode: <code>ssh</code>, <code>http</code> or <code>netconf</code>.</td>
+</tr>
+<tr>
+<td><code>--no-prompt</code></td>
+<td></td>
+<td></td>
+<td>off</td>
+<td>Hide the simulated device prompt line above command output.</td>
+</tr>
+<tr>
+<td>logging options</td>
+<td></td>
+<td></td>
+<td></td>
+<td>See <a href="#logging-options">Logging options</a>.</td>
+</tr>
+</tbody>
+</table>
+<p><code>execute</code> requires a static testbed file; it does not accept <code>--inventory-plugin</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>huginn<span class="w"> </span>execute<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>--device<span class="w"> </span>spine-01<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;show version&quot;</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>huginn<span class="w"> </span>execute<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>--device<span class="w"> </span>ctrl-01<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;/api/v1/status&quot;</span><span class="w"> </span>-b<span class="w"> </span>http
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>huginn<span class="w"> </span>execute<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>--commands<span class="w"> </span>commands.yaml
+</code></pre></div>
+<h3 id="batch-file-format">Batch file format<a class="headerlink" href="#batch-file-format" title="Permanent link">&para;</a></h3>
+<p>The <code>--commands</code> file is a YAML list. Each entry needs <code>device</code> and either <code>command</code> or <code>path</code> (an alias that reads better for HTTP and NETCONF). <code>broker</code> is optional and defaults to <code>ssh</code>; <code>--broker</code> does not apply in batch mode.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">device</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spine-01</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">show version</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">device</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spine-01</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">show ip bgp summary</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">device</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ctrl-01</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/api/v1/status</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span><span class="nt">broker</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http</span>
+</code></pre></div>
+<h3 id="exit-codes_2">Exit codes<a class="headerlink" href="#exit-codes_2" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Every command succeeded.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>At least one command returned an error, or the testbed or batch file could not be loaded.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Usage error, such as <code>--device</code> without <code>--command</code> or <code>--commands</code> combined with <code>--device</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="inject-new">inject new<a class="headerlink" href="#inject-new" title="Permanent link">&para;</a></h2>
+<p>Create a new test case group from job files. <code>inject new</code> discovers the job files in <code>PATH</code>, adds a test case for each one with an allocated ID, creates a group containing them, and wires the group into the plan through <code>--phase</code>, <code>--parent-group</code>, or both. At least one of the two is required.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>huginn inject new &lt;PATH&gt; (--phase &lt;ids&gt; | --parent-group &lt;id&gt;) [--plan &lt;dir&gt;] [--group &lt;id&gt;]
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>                  [--target-groups &lt;groups&gt;] [--tags &lt;tags&gt;] [--id-style &lt;style&gt;] [--dry-run]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PATH</code></td>
+<td>Directory of job files or a single <code>.py</code> file.</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Short</th>
+<th>Env var</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--phase</code></td>
+<td></td>
+<td></td>
+<td>none</td>
+<td>Phase(s) to add the new group to, in every scenario that has a phase with that name. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--parent-group</code></td>
+<td></td>
+<td></td>
+<td>none</td>
+<td>Existing composite group to nest the new group under, through its <code>groups</code> list.</td>
+</tr>
+<tr>
+<td><code>--plan</code></td>
+<td><code>-p</code></td>
+<td><code>HUGINN_PLAN</code></td>
+<td><code>./test_plan</code></td>
+<td>Path to the test plan directory. Must be a directory.</td>
+</tr>
+<tr>
+<td><code>--group</code></td>
+<td></td>
+<td></td>
+<td>derived from path</td>
+<td>Explicit group identifier.</td>
+</tr>
+<tr>
+<td><code>--target-groups</code></td>
+<td></td>
+<td></td>
+<td>none</td>
+<td>Device groups to set as <code>target.groups</code> on each new test case. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--tags</code></td>
+<td></td>
+<td></td>
+<td>none</td>
+<td>Tags to set on each new test case. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--id-style</code></td>
+<td></td>
+<td></td>
+<td><code>prefix-counter</code></td>
+<td>ID generation style. <code>prefix-counter</code> is the only style implemented; other values are accepted but ignored.</td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td></td>
+<td></td>
+<td>off</td>
+<td>Print the planned changes without writing any files.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="how-ids-and-names-are-derived">How IDs and names are derived<a class="headerlink" href="#how-ids-and-names-are-derived" title="Permanent link">&para;</a></h3>
+<p>Paths are resolved relative to the parent directory of the test plan directory. The ID prefix comes from the job directory path with a leading <code>jobs/</code> removed, upper-cased, and with <code>_</code> and <code>/</code> turned into <code>-</code>. For <code>jobs/iosxe/cdp_global/</code>, the prefix is <code>IOSXE-CDP-GLOBAL</code>, new test cases are numbered <code>IOSXE-CDP-GLOBAL-1</code>, <code>IOSXE-CDP-GLOBAL-2</code> and so on after the highest existing counter, and the default group ID is <code>iosxe-cdp-global</code>.</p>
+<p>When <code>PATH</code> is a directory, every <code>.py</code> file directly inside it is a job, except files whose names start with <code>_</code>. Jobs whose path is already referenced by a test case in the plan are skipped.</p>
+<p>The command writes test cases to <code>test_cases/&lt;group&gt;.yaml</code>, the group to <code>groups/&lt;group&gt;.yaml</code>, and phase references to <code>scenarios.yaml</code> under the plan directory.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>huginn<span class="w"> </span>inject<span class="w"> </span>new<span class="w"> </span>jobs/iosxe/cdp_global/<span class="w"> </span>--phase<span class="w"> </span>pre-change
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>huginn<span class="w"> </span>inject<span class="w"> </span>new<span class="w"> </span>jobs/iosxe/vrf/<span class="w"> </span>--parent-group<span class="w"> </span>state-baseline<span class="w"> </span>--target-groups<span class="w"> </span>core,edge
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>huginn<span class="w"> </span>inject<span class="w"> </span>new<span class="w"> </span>jobs/iosxe/bgp/<span class="w"> </span>--parent-group<span class="w"> </span>state-baseline<span class="w"> </span>--dry-run
+</code></pre></div>
+<h3 id="exit-codes_3">Exit codes<a class="headerlink" href="#exit-codes_3" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Test cases were injected, the dry run completed, or every job was already in the plan.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Neither <code>--phase</code> nor <code>--parent-group</code> was given; the test plan could not be loaded; no job files were found; a job could not be loaded; or the parent group or scenarios file was not found.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="inject-into">inject into<a class="headerlink" href="#inject-into" title="Permanent link">&para;</a></h2>
+<p>Add job files to an existing test case group. <code>inject into</code> discovers the job files in <code>PATH</code>, adds a test case for each one with an allocated ID, and appends the new IDs to the <code>tests</code> list of <code>GROUP</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>huginn inject into &lt;GROUP&gt; &lt;PATH&gt; [--plan &lt;dir&gt;] [--target-groups &lt;groups&gt;] [--tags &lt;tags&gt;] [--id-style &lt;style&gt;] [--dry-run]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GROUP</code></td>
+<td>Existing group identifier to inject into.</td>
+</tr>
+<tr>
+<td><code>PATH</code></td>
+<td>Directory of job files or a single <code>.py</code> file.</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Short</th>
+<th>Env var</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--plan</code></td>
+<td><code>-p</code></td>
+<td><code>HUGINN_PLAN</code></td>
+<td><code>./test_plan</code></td>
+<td>Path to the test plan directory. Must be a directory.</td>
+</tr>
+<tr>
+<td><code>--target-groups</code></td>
+<td></td>
+<td></td>
+<td>none</td>
+<td>Device groups to set as <code>target.groups</code> on each new test case. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--tags</code></td>
+<td></td>
+<td></td>
+<td>none</td>
+<td>Tags to set on each new test case. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--id-style</code></td>
+<td></td>
+<td></td>
+<td><code>prefix-counter</code></td>
+<td>ID generation style. <code>prefix-counter</code> is the only style implemented; other values are accepted but ignored.</td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td></td>
+<td></td>
+<td>off</td>
+<td>Print the planned changes without writing any files.</td>
+</tr>
+</tbody>
+</table>
+<p>IDs are derived from <code>PATH</code> as described for <a href="#how-ids-and-names-are-derived"><code>inject new</code></a>. The group must be defined in a file under the plan's <code>groups/</code> directory.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>huginn<span class="w"> </span>inject<span class="w"> </span>into<span class="w"> </span>cdp-global-baseline<span class="w"> </span>jobs/iosxe/cdp_global/
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>huginn<span class="w"> </span>inject<span class="w"> </span>into<span class="w"> </span>iosxe-vrf-detail<span class="w"> </span>jobs/iosxe/vrf_detail/verify_vrf_route_targets.py
+</code></pre></div>
+<h3 id="exit-codes_4">Exit codes<a class="headerlink" href="#exit-codes_4" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Test cases were injected, the dry run completed, or every job was already in the plan.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>The test plan could not be loaded, <code>GROUP</code> was not found, no job files were found, or a job could not be loaded.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="reconcile">reconcile<a class="headerlink" href="#reconcile" title="Permanent link">&para;</a></h2>
+<p>Create post-change variants of the test cases that failed in a phase of the latest testing run.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>huginn reconcile --plan &lt;path&gt; --phase &lt;phase-name&gt; [--scenario &lt;scenario-id&gt;] [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;] [logging options]
+</code></pre></div>
+<p><code>--plan</code>/<code>-p</code> and <code>--phase</code> are required. <code>--plan</code> reads <code>HUGINN_PLAN</code>, <code>--phase</code> reads <code>HUGINN_PHASE</code>, <code>--scenario</code> reads <code>HUGINN_SCENARIO</code>, <code>--results-dir</code> reads <code>HUGINN_RESULTS_DIR</code>, and <code>--parameters-dir</code> reads <code>HUGINN_PARAMETERS_DIR</code>. Unlike <code>run</code>, <code>--phase</code> and <code>--scenario</code> take a single value each. The command exits 0 on success or when there is nothing to reconcile, and 1 when reconciliation cannot proceed.</p>
+<p>See <a href="../reconcile/">Parameter Reconciliation</a> for the full option table, exit codes and workflow.</p>
+<h2 id="relearn">relearn<a class="headerlink" href="#relearn" title="Permanent link">&para;</a></h2>
+<p>Re-learn parameters for the tests that failed or errored in the latest testing run, in the exact scenario and phase where each one failed.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>huginn relearn [--plan &lt;path&gt;] [--testbed &lt;path&gt; | --inventory-plugin &lt;name&gt;] [--scenario &lt;id&gt;] [--phase &lt;id&gt;]
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>               [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;] [--output-dir &lt;path&gt;] [logging options]
+</code></pre></div>
+<p>The options match those of <code>run</code> with the same names and environment variables, including the <code>./test_plan</code> and <code>./testbed.yaml</code> defaults. <code>--scenario</code> and <code>--phase</code> take a single value each and filter the failures to re-learn; <code>--phase</code> does not require <code>--scenario</code>. <code>--data-model</code>/<code>-d</code> is not yet implemented and any value is rejected with a usage error, as for <code>run</code>. The command exits 0 when every test is re-learned or there are no failures, 1 when a test fails during re-learning, and 2 in the same run-level error cases as <code>run</code>.</p>
+<p>See <a href="../relearn/">Selective Re-learning</a> for the full option table, exit codes and workflow.</p>
+<h2 id="prune">prune<a class="headerlink" href="#prune" title="Permanent link">&para;</a></h2>
+<p>Remove non-applicable tests and device targets from the test plan, based on the latest learning run.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>huginn prune --plan &lt;path&gt; [--results-dir &lt;path&gt;] [--dry-run] [--remove-orphans] [logging options]
+</code></pre></div>
+<p><code>--plan</code>/<code>-p</code> is required and reads <code>HUGINN_PLAN</code>; <code>--results-dir</code> reads <code>HUGINN_RESULTS_DIR</code>. <code>--dry-run</code> and <code>--remove-orphans</code> have no environment variable. The command exits 0 on success or when there is nothing to prune, and 1 when the results or test plan cannot be read or the pruned plan fails validation.</p>
+<p>See <a href="../prune/">Pruning Non-Applicable Tests</a> for the full option table and the changes each option makes.</p>
+<h2 id="version">version<a class="headerlink" href="#version" title="Permanent link">&para;</a></h2>
+<p>Print the installed Huginn version and exit 0. <code>version</code> takes no options.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>huginn<span class="w"> </span>version
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>huginn v0.2.0
+</code></pre></div>
+<h2 id="completion">Completion<a class="headerlink" href="#completion" title="Permanent link">&para;</a></h2>
+<p>The top-level <code>huginn</code> command has two options for shell completion. Both detect the current shell.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Short</th>
+<th>Env var</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--install-completion</code></td>
+<td></td>
+<td></td>
+<td>off</td>
+<td>Install completion for the current shell.</td>
+</tr>
+<tr>
+<td><code>--show-completion</code></td>
+<td></td>
+<td></td>
+<td>off</td>
+<td>Print the completion script for the current shell, to copy or customize it.</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>huginn<span class="w"> </span>--install-completion
+</code></pre></div>
+<p>Restart the shell after installing for completion to take effect.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
