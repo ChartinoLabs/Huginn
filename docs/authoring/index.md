@@ -46,14 +46,14 @@ Volatile jobs are an exception - they do not need message constants or `TypedDic
 
 ### Class metadata
 
-Every job class declares four narrative class attributes, in this order:
+Every job class that inherits from `LearningTestCase` (all four archetypes do) declares four narrative class attributes, in this order:
 
 - `DESCRIPTION` - one or two sentences explaining what the job validates or does.
 - `SETUP` - bulleted list of preconditions assumed by the job.
-- `PROCEDURE` - bulleted list of steps the job performs. May include inlined Jinja templating to interpolate the parameters payload.
+- `PROCEDURE` - bulleted list of steps the job performs.
 - `PASS_FAIL_CRITERIA` - bulleted list of pass and fail conditions.
 
-These attributes are consumed by the reporting system to generate per-test documentation.
+The attributes are defined on `LearningTestCase`, not on the plain `TestCase` base. In testing mode, the framework renders each one as a Jinja template, with the loaded parameters payload available as `parameters`, and adds the result to the report as a per-test documentation section. Use `{{ parameters.timeout }}`, not `{timeout}`, to interpolate a value: Python format placeholders print literally. Learning mode does not render them.
 
 ### Recording results
 
@@ -61,7 +61,7 @@ Use `context.results.add_result(ResultStatus.X, message)` (positional arguments)
 
 ### Cache control
 
-Most jobs read fresh state. Pass `use_cache=False` when calling `context.broker.execute(...)` if the read must reflect a state change that just happened in the same job (post-action verification, gate poll, volatile observation).
+`context.broker.execute(...)` is cached by default: a repeat of the same command against the same device returns the earlier output. The cache is cleared at the start of each phase, unless the phase sets `preserve_cache: true` (see [Test Plan Specification - Phase Fields](../reference/test-plan.md#phase-fields)), so the first read in a phase reflects the current state. Pass `use_cache=False` if the read must reflect a state change that just happened in the same job or phase (post-action verification, gate poll, volatile observation).
 
 ### Command Support
 

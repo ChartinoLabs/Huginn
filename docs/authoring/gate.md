@@ -82,7 +82,8 @@ class GateBgpPeeringStatus(LearningTestCase[BgpPeeringGateParameters]):
     PROCEDURE = (
         "- Poll `show ip bgp summary` on each applicable device.\n"
         "- Parse output and compare peer states against expected state.\n"
-        "- Repeat every {interval}s until all peers match or {timeout}s elapses."
+        "- Repeat every {{ parameters.interval }}s until all peers match or "
+        "{{ parameters.timeout }}s elapses."
     )
     PASS_FAIL_CRITERIA = (
         "- Pass when all BGP peer states match expected state.\n"
@@ -92,8 +93,19 @@ class GateBgpPeeringStatus(LearningTestCase[BgpPeeringGateParameters]):
     command = "show ip bgp summary"
 
     async def check_command_support(self, context: Context) -> CommandSupportResult:
-        # Standard idiom - see authoring overview.
-        ...
+        applicable = []
+        not_applicable: dict[str, str] = {}
+        for device in context.targets:
+            result = await context.broker.execute(device, self.command)
+            if is_command_unsupported(result.output):
+                not_applicable[device.name] = NOT_SUPPORTED_REASON.format(
+                    command=self.command,
+                )
+                continue
+            applicable.append(device)
+        return CommandSupportResult(
+            applicable=applicable, not_applicable=not_applicable
+        )
 
     async def gather_state(self, context: Context) -> BgpPeeringGateParameters:
         devices: dict[str, BgpPeeringGateDeviceParameters] = {}
@@ -253,7 +265,7 @@ Gate jobs use a slightly different constant set than the other archetypes:
 | One or more per-target issue messages | E.g., `PEER_NOT_ESTABLISHED`, `PEER_STATE_MISMATCH`. Composed into the per-device issues list. |
 | `GATE_PASSED`, `GATE_TIMEOUT`         | Final per-device results.                                                                      |
 
-Notably, gates do **not** use `MISSING_LEARNED_BASELINE`. A gate's parameters describe an expected post-change state, not a baseline; if the parameters are missing entirely the test plan is misconfigured and the framework will surface that earlier.
+Notably, gates do **not** use `MISSING_LEARNED_BASELINE`. A gate's parameters describe an expected post-change state, not a baseline; if the parameter file is missing entirely, nothing checks for it ahead of time. The test ERRORs when it runs in testing mode, with a `ParameterStoreError` reporting that no learned parameters were found.
 
 ## Present vs absent variants
 
@@ -277,7 +289,7 @@ If a particular test plan needs different values than your defaults, the author 
 
 - **Don't call the broker without `use_cache=False`.** Each poll must reflect fresh state. Using cached output would compare the same observation against itself across iterations and either pass on the first poll (incorrect) or hang indefinitely.
 - **Don't busy-poll.** Always `await asyncio.sleep(...)` between iterations. The `min(interval, remaining)` clamp prevents the last sleep from overshooting the deadline.
-- **Don't write per-target convergence loops.** One gate, one polling loop, all targets in parallel. This is what makes a gate scalable to many devices - each iteration reads all targets in one pass.
+- **Don't write per-target convergence loops.** One gate, one polling loop covering all targets. Each iteration re-reads every target in one pass and evaluates the whole testbed against one shared deadline, so adding devices does not multiply the wait time.
 - **Don't return early from `_check_convergence`.** The helper must compute the full issue set, even if it knows the result will be non-empty. The reported issues are how operators understand *why* a gate timed out.
 - **Don't conflate gate semantics with validation semantics.** A gate proves the testbed reached an expected state; it does not prove the *correctness* of that state. Pair the gate with static or volatile validation jobs in the post-change phase to assert correctness.
 - **Don't extend the gate's responsibilities.** Gates are deliberately small. If you find yourself adding action steps inside a gate, you are writing a [change](change.md) job. If you find yourself recording per-attribute values for later comparison, you are writing a [validation](static-validation.md) job. Keep the archetypes distinct.
