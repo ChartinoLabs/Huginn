@@ -963,6 +963,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="gather_observations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#targets-with-no-observations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Targets with no observations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -993,10 +1010,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-the-framework-bypasses-the-broker-cache" class="md-nav__link">
+  <a href="#bypassing-the-broker-cache" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why the framework bypasses the broker cache
+        Bypassing the broker cache
       
     </span>
   </a>
@@ -1008,6 +1025,17 @@
     <span class="md-ellipsis">
       
         Common pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-comparison-schemes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom comparison schemes
       
     </span>
   </a>
@@ -1858,6 +1886,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="gather_observations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#targets-with-no-observations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Targets with no observations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1888,10 +1933,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-the-framework-bypasses-the-broker-cache" class="md-nav__link">
+  <a href="#bypassing-the-broker-cache" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why the framework bypasses the broker cache
+        Bypassing the broker cache
       
     </span>
   </a>
@@ -1903,6 +1948,17 @@
     <span class="md-ellipsis">
       
         Common pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom-comparison-schemes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom comparison schemes
       
     </span>
   </a>
@@ -1962,88 +2018,90 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="sd">&quot;&quot;&quot;Volatile BGP neighbor test: keepalives sent observation chain.&quot;&quot;&quot;</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">muninn</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">Context</span><span class="p">,</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">Observation</span><span class="p">,</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">OperatorVolatileLearningTestCase</span><span class="p">,</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">mn</span> <span class="o">=</span> <span class="n">muninn</span><span class="o">.</span><span class="n">Muninn</span><span class="p">()</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="n">mn</span><span class="o">.</span><span class="n">load_builtin_parsers</span><span class="p">()</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">muninn</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">Context</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">Observation</span><span class="p">,</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">OperatorVolatileLearningTestCase</span><span class="p">,</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">mn</span> <span class="o">=</span> <span class="n">muninn</span><span class="o">.</span><span class="n">Muninn</span><span class="p">()</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">mn</span><span class="o">.</span><span class="n">load_builtin_parsers</span><span class="p">()</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
 <a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="k">class</span><span class="w"> </span><span class="nc">VerifyBgpNeighborKeepalivesSentIncreasing</span><span class="p">(</span><span class="n">OperatorVolatileLearningTestCase</span><span class="p">):</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Observation chain for BGP neighbor keepalives sent.&quot;&quot;&quot;</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="n">DESCRIPTION</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>        <span class="s2">&quot;Validate that each BGP neighbor&#39;s keepalives sent count satisfies the &quot;</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>        <span class="s2">&quot;expected comparison operator relative to the most recent prior &quot;</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>        <span class="s2">&quot;observation within this run.&quot;</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>    <span class="p">)</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    <span class="n">SETUP</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>        <span class="s2">&quot;- Devices are reachable over SSH.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>        <span class="s2">&quot;- The `show ip bgp neighbors` command is supported on applicable targets.&quot;</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    <span class="p">)</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>    <span class="n">PROCEDURE</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>        <span class="s2">&quot;- Execute `show ip bgp neighbors` on each applicable device.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>        <span class="s2">&quot;- Parse and extract `neighbors.*.message_stats.keepalives_sent`.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>        <span class="s2">&quot;- Write observations to the run&#39;s observation log and compare against &quot;</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>        <span class="s2">&quot;the most recent prior observation using operator &quot;</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>        <span class="s2">&quot;&#39;{{ parameters.operator }}&#39;.&quot;</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>    <span class="p">)</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>    <span class="n">PASS_FAIL_CRITERIA</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>        <span class="s2">&quot;- Pass when each neighbor&#39;s keepalives sent count satisfies the &quot;</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>        <span class="s2">&quot;comparison operator relative to the prior observation.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>        <span class="s2">&quot;- Skip comparison when this is the first observation in the run.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>        <span class="s2">&quot;- Fail if any count violates the comparison operator.&quot;</span>
-<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>    <span class="p">)</span>
-<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>
-<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>    <span class="n">SERIES_PREFIX</span> <span class="o">=</span> <span class="s2">&quot;bgp-neighbor-keepalives-sent&quot;</span>
-<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>    <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;show ip bgp neighbors&quot;</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>
-<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_observations</span><span class="p">(</span>
-<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>        <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a>        <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Observation</span><span class="p">]:</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a>        <span class="n">observations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Observation</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a>        <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
-<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a>            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">broker</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-<a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a>                <span class="n">device</span><span class="p">,</span>
-<a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">,</span>
-<a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a>                <span class="n">use_cache</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a>            <span class="p">)</span>
-<a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a>            <span class="n">parsed</span> <span class="o">=</span> <span class="n">mn</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span>
-<a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a>                <span class="n">os</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">os</span><span class="p">,</span>
-<a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a>                <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">,</span>
-<a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a>                <span class="n">output</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
-<a id="__codelineno-0-62" name="__codelineno-0-62" href="#__codelineno-0-62"></a>            <span class="p">)</span>
-<a id="__codelineno-0-63" name="__codelineno-0-63" href="#__codelineno-0-63"></a>            <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_command_execution</span><span class="p">(</span>
-<a id="__codelineno-0-64" name="__codelineno-0-64" href="#__codelineno-0-64"></a>                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-<a id="__codelineno-0-65" name="__codelineno-0-65" href="#__codelineno-0-65"></a>                <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">,</span>
-<a id="__codelineno-0-66" name="__codelineno-0-66" href="#__codelineno-0-66"></a>                <span class="n">output</span><span class="o">=</span><span class="n">result</span><span class="p">,</span>
-<a id="__codelineno-0-67" name="__codelineno-0-67" href="#__codelineno-0-67"></a>                <span class="n">parsed</span><span class="o">=</span><span class="n">parsed</span><span class="p">,</span>
-<a id="__codelineno-0-68" name="__codelineno-0-68" href="#__codelineno-0-68"></a>            <span class="p">)</span>
-<a id="__codelineno-0-69" name="__codelineno-0-69" href="#__codelineno-0-69"></a>            <span class="k">for</span> <span class="n">neighbor</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">parsed</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;neighbors&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-<a id="__codelineno-0-70" name="__codelineno-0-70" href="#__codelineno-0-70"></a>                <span class="n">stats</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;message_stats&quot;</span><span class="p">,</span> <span class="p">{})</span>
-<a id="__codelineno-0-71" name="__codelineno-0-71" href="#__codelineno-0-71"></a>                <span class="n">value</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;keepalives_sent&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-72" name="__codelineno-0-72" href="#__codelineno-0-72"></a>                <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-73" name="__codelineno-0-73" href="#__codelineno-0-73"></a>                    <span class="k">continue</span>
-<a id="__codelineno-0-74" name="__codelineno-0-74" href="#__codelineno-0-74"></a>                <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-<a id="__codelineno-0-75" name="__codelineno-0-75" href="#__codelineno-0-75"></a>                    <span class="n">Observation</span><span class="p">(</span>
-<a id="__codelineno-0-76" name="__codelineno-0-76" href="#__codelineno-0-76"></a>                        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-<a id="__codelineno-0-77" name="__codelineno-0-77" href="#__codelineno-0-77"></a>                        <span class="n">series_key</span><span class="o">=</span><span class="n">neighbor</span><span class="p">,</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78" href="#__codelineno-0-78"></a>                        <span class="n">value</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
-<a id="__codelineno-0-79" name="__codelineno-0-79" href="#__codelineno-0-79"></a>                        <span class="n">raw</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
-<a id="__codelineno-0-80" name="__codelineno-0-80" href="#__codelineno-0-80"></a>                        <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;neighbor&quot;</span><span class="p">:</span> <span class="n">neighbor</span><span class="p">},</span>
-<a id="__codelineno-0-81" name="__codelineno-0-81" href="#__codelineno-0-81"></a>                    <span class="p">)</span>
-<a id="__codelineno-0-82" name="__codelineno-0-82" href="#__codelineno-0-82"></a>                <span class="p">)</span>
-<a id="__codelineno-0-83" name="__codelineno-0-83" href="#__codelineno-0-83"></a>        <span class="k">return</span> <span class="n">observations</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="k">class</span><span class="w"> </span><span class="nc">VerifyBgpNeighborKeepalivesSentIncreasing</span><span class="p">(</span><span class="n">OperatorVolatileLearningTestCase</span><span class="p">):</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Observation chain for BGP neighbor keepalives sent.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">DESCRIPTION</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>        <span class="s2">&quot;Validate that each BGP neighbor&#39;s keepalives sent count satisfies the &quot;</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>        <span class="s2">&quot;expected comparison operator relative to the most recent prior &quot;</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>        <span class="s2">&quot;observation within this run.&quot;</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    <span class="p">)</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>    <span class="n">SETUP</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>        <span class="s2">&quot;- Devices are reachable over SSH.</span><span class="se">\n</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>        <span class="s2">&quot;- The `show ip bgp neighbors` command is supported on applicable targets.&quot;</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    <span class="p">)</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    <span class="n">PROCEDURE</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>        <span class="s2">&quot;- Execute `show ip bgp neighbors` on each applicable device.</span><span class="se">\n</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>        <span class="s2">&quot;- Parse and extract `neighbors.*.message_stats.keepalives_sent`.</span><span class="se">\n</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>        <span class="s2">&quot;- Write observations to the run&#39;s observation log and compare against &quot;</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>        <span class="s2">&quot;the most recent prior observation using each device&#39;s operator:</span><span class="se">\n</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>        <span class="s2">&quot;{</span><span class="si">% f</span><span class="s2">or device, params in parameters.devices.items() %}&quot;</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>        <span class="s2">&quot;  - {{ device }}: `{{ params.operator }}`</span><span class="se">\n</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>        <span class="s2">&quot;{</span><span class="si">% e</span><span class="s2">ndfor %}&quot;</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>    <span class="p">)</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>    <span class="n">PASS_FAIL_CRITERIA</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>        <span class="s2">&quot;- Pass when each neighbor&#39;s keepalives sent count satisfies the &quot;</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>        <span class="s2">&quot;comparison operator relative to the prior observation.</span><span class="se">\n</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>        <span class="s2">&quot;- Pass without comparing when this is the first observation in the run.</span><span class="se">\n</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>        <span class="s2">&quot;- Fail if any count violates the comparison operator.&quot;</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>    <span class="p">)</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>
+<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>    <span class="n">SERIES_PREFIX</span> <span class="o">=</span> <span class="s2">&quot;bgp-neighbor-keepalives-sent&quot;</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>    <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;show ip bgp neighbors&quot;</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>
+<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_observations</span><span class="p">(</span>
+<a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a>        <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Observation</span><span class="p">]:</span>
+<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a>        <span class="n">observations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Observation</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a>        <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+<a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a>            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">broker</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a>                <span class="n">device</span><span class="p">,</span>
+<a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">,</span>
+<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a>                <span class="n">use_cache</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a>            <span class="p">)</span>
+<a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a>            <span class="n">parsed</span> <span class="o">=</span> <span class="n">mn</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span>
+<a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a>                <span class="n">os</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">os</span><span class="p">,</span>
+<a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a>                <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">,</span>
+<a id="__codelineno-0-62" name="__codelineno-0-62" href="#__codelineno-0-62"></a>                <span class="n">output</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+<a id="__codelineno-0-63" name="__codelineno-0-63" href="#__codelineno-0-63"></a>            <span class="p">)</span>
+<a id="__codelineno-0-64" name="__codelineno-0-64" href="#__codelineno-0-64"></a>            <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_command_execution</span><span class="p">(</span>
+<a id="__codelineno-0-65" name="__codelineno-0-65" href="#__codelineno-0-65"></a>                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+<a id="__codelineno-0-66" name="__codelineno-0-66" href="#__codelineno-0-66"></a>                <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">,</span>
+<a id="__codelineno-0-67" name="__codelineno-0-67" href="#__codelineno-0-67"></a>                <span class="n">output</span><span class="o">=</span><span class="n">result</span><span class="p">,</span>
+<a id="__codelineno-0-68" name="__codelineno-0-68" href="#__codelineno-0-68"></a>                <span class="n">parsed</span><span class="o">=</span><span class="n">parsed</span><span class="p">,</span>
+<a id="__codelineno-0-69" name="__codelineno-0-69" href="#__codelineno-0-69"></a>            <span class="p">)</span>
+<a id="__codelineno-0-70" name="__codelineno-0-70" href="#__codelineno-0-70"></a>            <span class="k">for</span> <span class="n">neighbor</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">parsed</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;neighbors&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-0-71" name="__codelineno-0-71" href="#__codelineno-0-71"></a>                <span class="n">stats</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;message_stats&quot;</span><span class="p">,</span> <span class="p">{})</span>
+<a id="__codelineno-0-72" name="__codelineno-0-72" href="#__codelineno-0-72"></a>                <span class="n">value</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;keepalives_sent&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-73" name="__codelineno-0-73" href="#__codelineno-0-73"></a>                <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-74" name="__codelineno-0-74" href="#__codelineno-0-74"></a>                    <span class="k">continue</span>
+<a id="__codelineno-0-75" name="__codelineno-0-75" href="#__codelineno-0-75"></a>                <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+<a id="__codelineno-0-76" name="__codelineno-0-76" href="#__codelineno-0-76"></a>                    <span class="n">Observation</span><span class="p">(</span>
+<a id="__codelineno-0-77" name="__codelineno-0-77" href="#__codelineno-0-77"></a>                        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78" href="#__codelineno-0-78"></a>                        <span class="n">series_key</span><span class="o">=</span><span class="n">neighbor</span><span class="p">,</span>
+<a id="__codelineno-0-79" name="__codelineno-0-79" href="#__codelineno-0-79"></a>                        <span class="n">value</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
+<a id="__codelineno-0-80" name="__codelineno-0-80" href="#__codelineno-0-80"></a>                        <span class="n">raw</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81" href="#__codelineno-0-81"></a>                        <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;neighbor&quot;</span><span class="p">:</span> <span class="n">neighbor</span><span class="p">},</span>
+<a id="__codelineno-0-82" name="__codelineno-0-82" href="#__codelineno-0-82"></a>                    <span class="p">)</span>
+<a id="__codelineno-0-83" name="__codelineno-0-83" href="#__codelineno-0-83"></a>                <span class="p">)</span>
+<a id="__codelineno-0-84" name="__codelineno-0-84" href="#__codelineno-0-84"></a>        <span class="k">return</span> <span class="n">observations</span>
 </code></pre></div>
 <p>That is the entire job. There are no message constants, no <code>TypedDict</code>s, no <code>check_command_support</code>, no <code>gather_state</code>, and no <code>compare_state</code>. The base class provides all of them.</p>
+<p>Running it in learning mode saves only the per-device operator, for example <code>{"devices": {"r1": {"operator": "gte"}}}</code>. The first execution in a testing run passes with "r1: observations for bgp-neighbor-keepalives-sent recorded (first in this run, no prior to compare against)". A later execution in the same run fails if a neighbor's count drops.</p>
 <h3 id="sharing-boilerplate-across-volatile-jobs">Sharing boilerplate across volatile jobs<a class="headerlink" href="#sharing-boilerplate-across-volatile-jobs" title="Permanent link">&para;</a></h3>
 <p>The example above repeats the <code>muninn</code> parse pipeline inside <code>gather_observations</code>. If your job package contains many volatile jobs that all use the same parsing pipeline, factor that boilerplate into a package-local intermediate base class that overrides <code>gather_observations</code> once and exposes a smaller <code>extract_observations(device_name, parsed)</code> hook for subclasses. Volatile jobs in that package then inherit from your intermediate base and only need to declare <code>SERIES_PREFIX</code>, <code>command</code>, and <code>extract_observations</code>.</p>
 <p>This is a job-package convention, not a framework requirement. The framework only knows about <code>OperatorVolatileLearningTestCase</code> and its <code>gather_observations</code> hook.</p>
@@ -2051,15 +2109,14 @@
 <h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
 <p>A volatile job that uses the framework class directly imports:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">muninn</span>  <span class="c1"># or whichever parser library you use</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">Observation</span><span class="p">,</span> <span class="n">OperatorVolatileLearningTestCase</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">muninn</span>  <span class="c1"># or whichever parser library you use</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">Observation</span><span class="p">,</span> <span class="n">OperatorVolatileLearningTestCase</span>
 </code></pre></div>
 <p>If your job package provides its own intermediate base class (see <a href="#sharing-boilerplate-across-volatile-jobs">Sharing boilerplate</a> above), import that instead and skip the parser imports.</p>
 <h3 id="class-metadata">Class metadata<a class="headerlink" href="#class-metadata" title="Permanent link">&para;</a></h3>
-<p>Same four narrative class attributes as every other archetype: <code>DESCRIPTION</code>, <code>SETUP</code>, <code>PROCEDURE</code>, <code>PASS_FAIL_CRITERIA</code>. The <code>PROCEDURE</code> attribute may interpolate the active comparison operator via Jinja: <code>{{ parameters.operator }}</code>.</p>
+<p>Same four narrative class attributes as every other archetype: <code>DESCRIPTION</code>, <code>SETUP</code>, <code>PROCEDURE</code>, <code>PASS_FAIL_CRITERIA</code>. The <code>PROCEDURE</code> attribute may interpolate the active comparison operators via Jinja. The operator is stored per device, so loop over <code>parameters.devices</code>, as the reference example does. A bare <code>{{ parameters.operator }}</code> renders as an empty string.</p>
 <h3 id="series_prefix"><code>SERIES_PREFIX</code><a class="headerlink" href="#series_prefix" title="Permanent link">&para;</a></h3>
 <p>A string identifying this observation stream. The framework composes the full series identity by combining <code>SERIES_PREFIX</code> with the per-observation <code>series_key</code> (and the device). This identity must remain stable across every execution that should participate in the same comparison stream - including reconciled post-change variants of the same job.</p>
 <p>The convention is <code>&lt;category&gt;-&lt;subject&gt;-&lt;aspect&gt;</code>, lowercase and hyphenated:</p>
@@ -2099,36 +2156,146 @@
 <li><code>series_key</code> - the per-object identity within this device's contribution to the series. For BGP, this is typically the neighbor address. For OSPF, the LSA ID. For per-device scalars, use the device name or an empty string.</li>
 <li><code>value</code> - the comparable scalar. <strong>Must be an <code>int</code></strong> for operator-based comparisons (<code>gte</code>, <code>lt</code>, etc.). For duration strings, parse to seconds with <code>huginn.parse_duration_seconds(...)</code>.</li>
 <li><code>raw</code> - the human-readable form of the value, recorded in the observation log alongside the comparable scalar. Useful for debugging.</li>
-<li><code>extra</code> - optional dict of additional context attached to the observation in the log.</li>
+<li><code>extra</code> - optional dict of additional context attached to the observation in the log. Its keys are merged over <code>series</code>, <code>value</code>, <code>raw</code>, and <code>device</code> in the record, so do not reuse those names (see <a href="#common-pitfalls">Common pitfalls</a>).</li>
 </ul>
+<p>Pass <code>use_cache=False</code> to <code>context.broker.execute(...)</code> in <code>gather_observations</code> (see <a href="#bypassing-the-broker-cache">Bypassing the broker cache</a>).</p>
 <p>Skip an observation if the underlying parsed value is missing rather than yielding an <code>Observation</code> with a sentinel value.</p>
+<h4 id="targets-with-no-observations">Targets with no observations<a class="headerlink" href="#targets-with-no-observations" title="Permanent link">&para;</a></h4>
+<p>The base class only reports on devices that produced at least one observation. A device that yields none records no result at all, and if no device yields anything, the test PASSES with no checks. If an empty result means the job does not apply, or that something is wrong, record it yourself in <code>gather_observations</code>. Start the message with the device name:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResultStatus</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">NO_OBSERVATIONS_REASON</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{device}</span><span class="s2">: no BGP neighbors reported keepalive counters&quot;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># Inside gather_observations, after the per-neighbor loop for a device:</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">if</span> <span class="ow">not</span> <span class="n">device_observations</span><span class="p">:</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="n">ResultStatus</span><span class="o">.</span><span class="n">NOT_APPLICABLE</span><span class="p">,</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="n">NO_OBSERVATIONS_REASON</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="p">)</span>
+</code></pre></div>
+<p>Use <code>ResultStatus.FAILED</code> instead when the observed objects are expected to exist. <code>gather_observations</code> runs only in testing mode, so this does not affect learning.</p>
 <h2 id="choosing-a-comparison-operator">Choosing a comparison operator<a class="headerlink" href="#choosing-a-comparison-operator" title="Permanent link">&para;</a></h2>
-<p>The operator is part of the <em>learned</em> parameter set, not a class attribute. In learning mode, the framework persists the operator alongside the series identity. In testing mode, it loads the operator and applies it to each comparison.</p>
-<p>The default operator for most volatile attributes is <code>gte</code> (greater than or equal to) - counters increment, uptimes grow, table versions advance.</p>
-<p>The operator can be overridden per-scenario via parameter reconciliation. For example, a scenario that resets BGP sessions can reconcile the post-change comparison to use <code>lt</code> (the post-change uptime is <em>less than</em> the pre-change uptime). See <a href="../../reference/reconcile/">Parameter Reconciliation</a>.</p>
+<p>The operator lives in the parameter file, one per device:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;devices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">&quot;r1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gte&quot;</span><span class="p">},</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="nt">&quot;r2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gte&quot;</span><span class="p">}</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>In learning mode, the base class writes the class attribute <code>DEFAULT_OPERATOR</code> (<code>"gte"</code> unless the job overrides it) for every applicable device. Learning does not call <code>gather_observations</code>, so it records no observations and no series identity. In testing mode, the base class loads the file and applies each device's operator to that device's observations.</p>
+<p>The default operator for most volatile attributes is <code>gte</code> (greater than or equal to) - counters increment, uptimes grow, table versions advance. Override <code>DEFAULT_OPERATOR</code> on the job class only when a different direction is the normal case for the attribute.</p>
+<p>The supported operators are:</p>
+<table>
+<thead>
+<tr>
+<th>Operator</th>
+<th>Passes when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gte</code></td>
+<td><code>current &gt;= prior</code></td>
+</tr>
+<tr>
+<td><code>gt</code></td>
+<td><code>current &gt; prior</code></td>
+</tr>
+<tr>
+<td><code>lt</code></td>
+<td><code>current &lt; prior</code></td>
+</tr>
+<tr>
+<td><code>lte</code></td>
+<td><code>current &lt;= prior</code></td>
+</tr>
+<tr>
+<td><code>any</code></td>
+<td>always (the observation is still recorded)</td>
+</tr>
+</tbody>
+</table>
+<p>A device that is missing from the parameter file always passes. Any other operator value raises <code>ValueError</code>, and the test ERRORs.</p>
+<p>To use a different operator for one phase boundary, create a post-change variant with <a href="../../reference/reconcile/">Parameter Reconciliation</a>, then hand-edit <code>devices.&lt;device&gt;.operator</code> in the variant's copied parameter file. For example, a scenario that resets BGP sessions on <code>r1</code> sets <code>r1</code> to <code>lt</code> (the post-change uptime is <em>less than</em> the pre-change uptime). Do not re-learn the variant: re-learning overwrites every device's operator with <code>DEFAULT_OPERATOR</code> again.</p>
 <p>The <code>"any"</code> operator is special - observations are still recorded in the chain, but comparisons always pass. Use <code>"any"</code> at phase boundaries where the impact on individual series is heterogeneous (e.g., a disruption that resets some sessions but not others).</p>
 <h2 id="series-identity-discipline">Series identity discipline<a class="headerlink" href="#series-identity-discipline" title="Permanent link">&para;</a></h2>
 <p>Volatile observations are chained by series identity. If you change <code>SERIES_PREFIX</code> or the <code>series_key</code> shape between executions, the framework will not recognize a continuation and will treat the new identity as the start of a fresh chain. This means:</p>
 <ul>
-<li><strong>Don't change <code>SERIES_PREFIX</code> lightly.</strong> Renaming it breaks parameter files for every test plan that uses the job.</li>
+<li><strong>Don't change <code>SERIES_PREFIX</code> lightly.</strong> The prefix is not stored in parameter files. It names the run's observation log, <code>&lt;output_dir&gt;/&lt;SERIES_PREFIX&gt;.jsonl</code>, so a baseline job and its reconciled variants chain together only while they share it. Renaming it within one variant starts a separate chain for that variant.</li>
 <li><strong>Compose <code>series_key</code> from stable identifiers.</strong> Use neighbor addresses, LSA IDs, interface names - not transient identifiers like TCP ports or session IDs.</li>
 <li><strong>For per-device scalars, use a stable string.</strong> A common convention is the empty string, since the device dimension is already provided.</li>
 </ul>
-<h2 id="why-the-framework-bypasses-the-broker-cache">Why the framework bypasses the broker cache<a class="headerlink" href="#why-the-framework-bypasses-the-broker-cache" title="Permanent link">&para;</a></h2>
-<p>Volatile jobs always read fresh state. The base class issues commands without using the broker's cache - reusing cached output from an earlier phase would compare a stale value against a newer one and defeat the purpose of the volatile comparison.</p>
-<p>You do not need to opt into this behavior. The base class handles it. Do not add <code>use_cache=False</code> calls of your own; let the base class own the cache discipline.</p>
+<h2 id="bypassing-the-broker-cache">Bypassing the broker cache<a class="headerlink" href="#bypassing-the-broker-cache" title="Permanent link">&para;</a></h2>
+<p>Volatile observations must reflect fresh state. Reusing cached output would compare a stale value against a newer one and defeat the purpose of the volatile comparison.</p>
+<p>The base class does not bypass the cache for you. <code>gather_observations</code> issues its own commands, so pass <code>use_cache=False</code> on every <code>context.broker.execute(...)</code> call there, as the reference example does. The base <code>check_command_support</code> runs the same command with the cache enabled, so without <code>use_cache=False</code> the observation would reuse that output, or output cached earlier in the phase.</p>
 <h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Don't add <code>check_command_support</code>, <code>gather_state</code>, or <code>compare_state</code> overrides</strong> unless you have a genuinely custom comparison scheme. The base class' implementations are correct for almost every case. If you do need a custom scheme that does not fit the single-operator model, inherit from the framework's <code>VolatileLearningTestCase</code> directly and study <a href="../../design/volatile-parameters/">Volatile Parameters</a> first.</li>
+<li><strong>Don't add <code>check_command_support</code>, <code>gather_state</code>, or <code>compare_state</code> overrides</strong> unless you have a genuinely custom comparison scheme. The base class' implementations are correct for almost every case. If you do need a custom scheme that does not fit the single-operator model, see <a href="#custom-comparison-schemes">Custom comparison schemes</a>.</li>
+<li><strong>Don't use <code>series</code>, <code>value</code>, <code>raw</code>, or <code>device</code> as <code>extra</code> keys.</strong> <code>extra</code> is merged over those fields in the observation record, so <code>extra={"value": ...}</code> replaces the value that later comparisons read. The run metadata fields (<code>timestamp</code>, <code>test_id</code>, <code>scenario</code>, <code>phase</code>, <code>test_case_group</code>) are written last and override <code>extra</code>.</li>
 <li><strong>Don't yield observations whose <code>value</code> is not directly comparable with <code>gte</code> / <code>lt</code>.</strong> If the underlying value is a duration string, parse it to seconds first. If it's a string with no ordinal relationship, this archetype is not the right fit.</li>
 <li><strong>Don't compose <code>series_key</code> from values that change as a side effect of the job's own execution.</strong> The series identity must survive across phase boundaries unchanged.</li>
-<li><strong>Don't expect the first observation in a run to compare against anything.</strong> It establishes the baseline for the chain. The framework records it but does not compare. Subsequent observations in the same run compare against the most recent prior observation.</li>
+<li><strong>Don't expect the first observation in a run to compare against anything.</strong> It establishes the baseline for the chain. The framework records it and reports PASSED without comparing. Subsequent observations in the same run compare against the most recent prior observation.</li>
 </ul>
+<h2 id="custom-comparison-schemes">Custom comparison schemes<a class="headerlink" href="#custom-comparison-schemes" title="Permanent link">&para;</a></h2>
+<p><code>OperatorVolatileLearningTestCase</code> and its parameter types, <code>OperatorVolatileParameters</code> and <code>OperatorVolatileDeviceParameters</code>, cover the single-operator model. For anything else, such as tolerance bands or per-series operators, inherit from <code>VolatileLearningTestCase[&lt;YourParameters&gt;]</code> directly. It owns the observation log and <code>compare_state</code>, and leaves the rest to you:</p>
+<table>
+<thead>
+<tr>
+<th>Hook</th>
+<th>Required</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SERIES_PREFIX</code></td>
+<td>Yes</td>
+<td>Names the observation log. Class definition fails with <code>TypeError</code> if it is empty.</td>
+</tr>
+<tr>
+<td><code>gather_state(context)</code></td>
+<td>Yes</td>
+<td>Returns the parameters to persist in learning mode, in your own schema.</td>
+</tr>
+<tr>
+<td><code>gather_observations(context)</code></td>
+<td>Yes</td>
+<td>Returns the current <code>Observation</code> objects.</td>
+</tr>
+<tr>
+<td><code>passes_comparison(*, parameters, observation, prior, context)</code></td>
+<td>Yes</td>
+<td>Returns <code>True</code> if <code>observation</code> is acceptable given the <code>prior</code> record (a dict).</td>
+</tr>
+<tr>
+<td><code>check_command_support(context)</code></td>
+<td>No</td>
+<td>Defaults to treating every target as applicable.</td>
+</tr>
+<tr>
+<td><code>build_first_observation_message(device_name)</code></td>
+<td>No</td>
+<td>Message for a device's PASSED result when it has no prior observation in the run.</td>
+</tr>
+<tr>
+<td><code>build_success_message(device_name)</code></td>
+<td>No</td>
+<td>Message for a device's PASSED result when all its observations pass.</td>
+</tr>
+<tr>
+<td><code>build_failure_message(*, device_name, series_key, prior, current)</code></td>
+<td>No</td>
+<td>Message for each FAILED observation.</td>
+</tr>
+</tbody>
+</table>
+<p>Read <a href="../../design/volatile-parameters/">Volatile Parameters</a> before designing a custom scheme.</p>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../../design/volatile-parameters/">Volatile Parameters</a> - design rationale, alternatives considered, and the operator-transition worked example.</li>
 <li><a href="../static-validation/">Static Parameter Validation</a> - for attributes whose expected value is deterministic.</li>
-<li><a href="../../reference/reconcile/">Parameter Reconciliation</a> - how scenarios override parameters (including operators) for specific phases.</li>
+<li><a href="../../reference/reconcile/">Parameter Reconciliation</a> - how to create the post-change variants whose operators you then edit.</li>
 </ul>
 
 
