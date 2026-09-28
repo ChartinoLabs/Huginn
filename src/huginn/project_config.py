@@ -32,6 +32,7 @@ _PATH_KEYS = (
 _STRING_KEYS = ("inventory_plugin", "log_level")
 _RESERVED_TABLES = ("plugins",)
 _ALLOWED_KEYS = frozenset(_PATH_KEYS + _STRING_KEYS + _RESERVED_TABLES)
+_PLUGIN_KEYS = frozenset(("brokers", "reporters", "hooks", "config"))
 
 # Keys whose CLI parameter name differs from the pyproject key.
 _CLI_PARAMETER_NAMES = {"test_plan": "plan"}
@@ -82,7 +83,8 @@ def load_project_config(project_root: Path) -> ProjectConfig:
     Raises:
         ConfigurationError: If the file is not valid TOML, the table holds an
             unknown key or a value of the wrong type, ``log_level`` is not a
-            supported level, or both ``testbed`` and ``inventory_plugin`` are set.
+            supported level, both ``testbed`` and ``inventory_plugin`` are set,
+            or ``[tool.huginn.plugins]`` holds an unknown key or a bad value.
     """
     table = _read_huginn_table(project_root / "pyproject.toml")
     unknown = sorted(set(table) - _ALLOWED_KEYS)
@@ -150,11 +152,49 @@ def _plugin_config(plugins_section: object) -> PluginConfig:
     """Build plugin configuration from ``[tool.huginn.plugins]``."""
     if not isinstance(plugins_section, dict):
         raise ConfigurationError("[tool.huginn.plugins] must be a table.")
-    if not plugins_section:
-        return PluginConfig()
+    unknown = sorted(set(plugins_section) - _PLUGIN_KEYS)
+    if unknown:
+        hint = (
+            ". Use 'brokers', 'reporters' or 'hooks' instead of 'enabled'."
+            if "enabled" in unknown
+            else ""
+        )
+        raise ConfigurationError(
+            f"Unknown key(s) in [tool.huginn.plugins]: {', '.join(unknown)}{hint}"
+        )
     return PluginConfig(
-        brokers=plugins_section.get("brokers"),
-        reporters=plugins_section.get("reporters"),
-        hooks=plugins_section.get("hooks"),
-        plugin_options=plugins_section.get("config", {}),
+        brokers=_plugin_names(plugins_section, "brokers"),
+        reporters=_plugin_names(plugins_section, "reporters"),
+        hooks=_plugin_names(plugins_section, "hooks"),
+        plugin_options=_plugin_options(plugins_section.get("config", {})),
     )
+
+
+def _plugin_names(plugins_section: dict[str, Any], key: str) -> list[str] | None:
+    """Return a list of plugin names from ``plugins_section`` or raise."""
+    value = plugins_section.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, list) or not all(
+        isinstance(name, str) and name for name in value
+    ):
+        raise ConfigurationError(
+            f"[tool.huginn.plugins] key '{key}' must be a list of non-empty "
+            f"strings, got {value!r}."
+        )
+    return value
+
+
+def _plugin_options(config: object) -> dict[str, dict[str, Any]]:
+    """Return per-plugin options from ``[tool.huginn.plugins.config]`` or raise."""
+    if not isinstance(config, dict):
+        raise ConfigurationError(
+            f"[tool.huginn.plugins] key 'config' must be a table, got {config!r}."
+        )
+    for name, options in config.items():
+        if not isinstance(options, dict):
+            raise ConfigurationError(
+                f"[tool.huginn.plugins.config] key '{name}' must be a table, "
+                f"got {options!r}."
+            )
+    return config
