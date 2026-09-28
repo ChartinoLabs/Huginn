@@ -14,7 +14,7 @@ from typing import Any
 if sys.version_info >= (3, 11):
     import tomllib
 else:
-    import tomli as tomllib  # type: ignore[no-redef]  # noqa: F811  # ty: ignore[unresolved-import]
+    import tomli as tomllib  # type: ignore[no-redef]  # noqa: F811
 
 from huginn.loaders import ConfigurationError
 from huginn.plugin_registry import PluginConfig

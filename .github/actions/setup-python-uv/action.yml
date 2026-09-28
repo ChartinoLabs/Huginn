@@ -19,6 +19,11 @@ runs:
       with:
         version: "latest"
         enable-cache: true
+    # Export UV_PYTHON so later `uv run` steps keep this interpreter instead
+    # of re-syncing the environment to the version in .python-version.
+    - name: Pin uv to Python ${{ inputs.python-version }}
+      shell: bash
+      run: echo "UV_PYTHON=${{ inputs.python-version }}" >> "$GITHUB_ENV"
     - name: Install all dependencies
       shell: bash
-      run: uv sync --group dev --python ${{ inputs.python-version }}
+      run: uv sync --group dev
