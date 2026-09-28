@@ -23,6 +23,7 @@ import muninn
 from huginn import (
     CommandSupportResult,
     Context,
+    ExecutionMode,
     LearningTestCase,
     ResultStatus,
     parse_duration_seconds,
@@ -97,8 +98,19 @@ class ChangeClearBgpPeer(LearningTestCase[ClearBgpPeerParameters]):
     command = "show ip bgp neighbors"
 
     async def check_command_support(self, context: Context) -> CommandSupportResult:
-        # Standard idiom - see authoring overview.
-        ...
+        applicable = []
+        not_applicable: dict[str, str] = {}
+        for device in context.targets:
+            result = await context.broker.execute(device, self.command)
+            if is_command_unsupported(result.output):
+                not_applicable[device.name] = NOT_SUPPORTED_REASON.format(
+                    command=self.command,
+                )
+                continue
+            applicable.append(device)
+        return CommandSupportResult(
+            applicable=applicable, not_applicable=not_applicable
+        )
 
     async def gather_state(self, context: Context) -> ClearBgpPeerParameters:
         devices: dict[str, ClearBgpPeerDeviceParameters] = {}
@@ -119,10 +131,15 @@ class ChangeClearBgpPeer(LearningTestCase[ClearBgpPeerParameters]):
                 output=result,
                 parsed=parsed,
             )
-            # Collect Established neighbors as candidates for the action.
+            # Learning captures Established neighbors as candidates for the
+            # action. Testing keeps every neighbor so the precondition step
+            # can report a candidate that is no longer Established.
             neighbors: dict[str, BgpPeerCandidate] = {}
             for neighbor, data in parsed["neighbors"].items():
-                if data["bgp_state"] == "Established":
+                if (
+                    context.mode == ExecutionMode.TESTING
+                    or data["bgp_state"] == "Established"
+                ):
                     neighbors[neighbor] = {
                         "remote_as": data["remote_as"],
                         "bgp_state": data["bgp_state"],
@@ -169,6 +186,17 @@ class ChangeClearBgpPeer(LearningTestCase[ClearBgpPeerParameters]):
                         MISSING_NEIGHBOR.format(
                             device=device.name,
                             neighbor=neighbor,
+                        ),
+                    )
+                    preconditions_met = False
+                    continue
+                if current_nbr["bgp_state"] != "Established":
+                    context.results.add_result(
+                        ResultStatus.FAILED,
+                        PRECONDITION_FAILED.format(
+                            device=device.name,
+                            neighbor=neighbor,
+                            state=current_nbr["bgp_state"],
                         ),
                     )
                     preconditions_met = False
@@ -270,6 +298,8 @@ The verbs `gather_state` and `compare_state` describe the interface contract, no
 
 This overload is intentional. Treat the verb names as fixed by the framework's interface, not as descriptions of what your job does. Use the docstring and message constants to communicate intent.
 
+In learning mode, `LearningTestCase.test()` saves the `gather_state` result and returns without calling `compare_state`, so **the action never runs during learning**. A learning run leaves the testbed unchanged, so jobs in post-change phases learn their parameters from the pre-change state. [Reconciliation](../concepts/reconciliation.md) describes how to build post-change variants whose parameters reflect the changed testbed.
+
 ## The four-step skeleton inside `compare_state`
 
 Every change job's `compare_state` follows the same four-step skeleton:
@@ -310,8 +340,9 @@ Some changes target controllers, REST APIs, or out-of-band orchestration systems
 
 Non-CLI change jobs follow the same four-step skeleton, but step 3 (apply the action) uses HTTP requests, SDK calls, or other mechanisms instead of `broker.execute(...)`. A few additional patterns apply:
 
-- **Read controller credentials from the testbed.** The controller is itself a `Device` in the testbed YAML, with a connection definition and credentials. Pull them via `context.testbed.devices[<name>]` and `context.testbed.credentials[<name>]`.
-- **Wrap blocking I/O in `asyncio.to_thread(...)`.** Synchronous client libraries (e.g., `urllib`, `requests`) must not be called directly inside an async function.
+- **Prefer the HTTP broker for REST APIs.** Declare `required_brokers = {BrokerType.HTTP}` on the job class (or `{BrokerType.SSH, BrokerType.HTTP}` if it also uses the CLI), give the controller an `http` connection in the testbed, and call `context.broker.get(device, path, broker=BrokerType.HTTP)` and `context.broker.edit(device, body, broker=BrokerType.HTTP, path=path, method="PUT")`. The `broker` argument is required only when the device has more than one connected broker. The broker handles connections, authentication and caching of `get` calls. `BrokerType` is imported from `huginn.enums`.
+- **Read controller credentials from the testbed** when you do need them directly. The controller is itself a `Device` in the testbed YAML, with a connection definition and credentials. Look up the device with `context.testbed.devices["cml-controller"]`, then resolve the credential its connection references: `device.credentials[device.connections["http"].credential or "default"]`, since a connection without a `credential` uses `default`. `Testbed.credentials` is keyed by credential name, not by device name, and `device.credentials` already includes the global credentials merged with device-local overrides.
+- **Wrap blocking I/O in `asyncio.to_thread(...)`.** If you use a synchronous client library (e.g., `urllib`, `requests`, a vendor SDK) instead of the broker, do not call it directly inside an async function.
 - **Verify via the controller, not the device CLI.** The action's effect is most reliably observed at the controller that performed it, since the device side may take additional time to react.
 
 Otherwise, the structure (TypedDicts, message constants, four-step skeleton in `compare_state`) is identical.
@@ -329,4 +360,4 @@ Otherwise, the structure (TypedDicts, message constants, four-step skeleton in `
 
 - [Gate Jobs](gate.md) - for halting the test plan until convergence completes after a change.
 - [Volatile Parameter Validation](volatile-validation.md) - for tracking attributes that the change job's effect will modify.
-- [Test Plan Specification](../reference/test-plan.md) - phases, scenarios, and how change jobs slot into the change phase.
+- [Test Plan Structure](../concepts/test-plan-structure.md) - scenarios, phases, and how change jobs slot into a change-validation plan.

@@ -20,7 +20,7 @@ A complete reference example follows. The job validates that each BGP neighbor's
 ```python
 """Atomic BGP neighbor test: session state should match baseline."""
 
-from typing import Any, TypedDict
+from typing import TypedDict
 
 import muninn
 
@@ -34,7 +34,7 @@ NOT_SUPPORTED_REASON = "Device does not support '{command}'"
 MISSING_LEARNED_BASELINE = (
     "{device} is missing learned BGP neighbor session state baseline parameters"
 )
-MISSING_CURRENT_STATE = "{device} is missing current BGP neighbor session state state"
+MISSING_CURRENT_STATE = "{device} is missing current BGP neighbor session state"
 MISSING_NEIGHBOR = (
     "{device}'s learned BGP neighbor '{neighbor}' is missing from current state."
 )
@@ -207,7 +207,7 @@ For each target:
 1. Execute the show command through the broker.
 2. Parse with `mn.parse(os=device.os, command=self.command, output=result.output)`.
 3. Record the execution with `context.results.add_command_execution(...)` so the report includes the raw and parsed output.
-4. Extract the values you care about into the inner TypedDict shape. **Omit entries where the value is `None` or empty string** - only include items that have meaningful data.
+4. Extract the values you care about into the inner TypedDict shape. When a field is optional in the parser's schema, **omit entries where the value is `None` or empty string** - only include items that have meaningful data. The reference example reads `bgp_state` without a check because the parser always emits it.
 5. Stuff the per-device record into `devices[device.name]`.
 
 Return `{"devices": devices}`.
@@ -218,9 +218,14 @@ In **learning mode**, the framework persists this return value to a parameter fi
 
 When `gather_state` produces an empty result for a device - an empty `values: {}` dict, an empty `"__exists__"` dict, or an empty scalar `value: ""` - it means the device has no data for the attribute this job validates. In learning mode, saving these empty parameters is misleading: the parameter file exists and looks healthy, but contains nothing to compare against during testing.
 
-The correct behavior is to mark the device as **not applicable** rather than saving empty parameters. The recommended pattern is to check for empty state after extraction and emit a `NOT_APPLICABLE` result for that device:
+The correct behavior is to mark the device as **not applicable** rather than saving empty parameters. The recommended pattern is to check for empty state after extraction, emit a `NOT_APPLICABLE` result for that device, and drop it from `context.targets`:
 
 ```python
+from huginn.models import Device
+
+NO_DATA_REASON = "{device}: '{command}' returned no data for this test"
+
+
 async def gather_state(self, context: Context) -> SomeParameters:
     devices: dict[str, SomeDeviceParameters] = {}
     remaining_targets: list[Device] = []
@@ -254,7 +259,10 @@ This ensures that:
 
 - Devices with no data are recorded as `NOT_APPLICABLE` in the run results.
 - The parameter file only contains devices that have meaningful data.
+- `compare_state` does not report the dropped devices as missing a learned baseline, because it only walks the remaining `context.targets`.
 - Downstream tooling (such as a prune command) can mechanically identify tests with no applicable targets and remove them from the test plan.
+
+Start the `NOT_APPLICABLE` message with the device name, as `NO_DATA_REASON` does. The framework records each omitted device's reason in the run results, which [Pruning Non-Applicable Tests](../reference/prune.md) reads. It takes the reason from the text after the device name, and falls back to the generic "No applicable data for this test" when the message does not start with the device name.
 
 ### `compare_state`
 
@@ -331,7 +339,7 @@ class OspfNeighborExistenceDeviceParameters(TypedDict):
 - **Don't skip `add_command_execution`.** The reporting layer relies on it to render raw and parsed output for debugging.
 - **Don't put `command` at module scope.** It belongs as a class attribute (`self.command`). Module-level `command = "..."` makes the show command invisible to subclasses and harder to override per-job.
 - **Don't catch `muninn` parser errors silently.** If parsing fails, let the exception propagate or emit `ResultStatus.ERRORED` explicitly with context. Silent failure makes the job look healthy when it isn't.
-- **Don't mutate `context.targets`.** The framework owns target filtering via `check_command_support`. Inside `gather_state` and `compare_state`, treat the targets as read-only.
+- **Don't mutate `context.targets` beyond the empty-state pattern.** The framework owns target filtering via `check_command_support`. The only change `gather_state` should make is dropping devices it marked `NOT_APPLICABLE`, as shown in [Handling empty gathered state](#handling-empty-gathered-state). Otherwise, treat the targets as read-only.
 - **Don't override `setup` or `cleanup`** unless you genuinely need to. The defaults provided by `LearningTestCase` are correct for the vast majority of jobs.
 
 ## See also
