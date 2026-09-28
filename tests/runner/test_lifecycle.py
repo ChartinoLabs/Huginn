@@ -105,3 +105,40 @@ def test_cleanup_runs_when_test_errors(
     errored_case = first_test_case(report_data)
     assert errored_case["error_traceback"] is not None
     assert "Traceback (most recent call last)" in errored_case["error_traceback"]
+
+
+def test_run_marks_job_import_failure_as_planning_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A job that raises while being imported errors only its own test case."""
+    stage_runner_fixture(tmp_path, "job_import_error")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 1
+    report_data = load_report(tmp_path)
+    assert report_data["summary"]["errored"] == 1
+    assert report_data["summary"]["passed"] == 1
+    broken_case, passed_case = report_data["scenarios"][0]["phases"][0][
+        "test_case_groups"
+    ][0]["test_cases"]
+    assert broken_case["status"] == "errored"
+    assert broken_case["error_code"] == "planning_error"
+    assert "Error importing job file" in broken_case["error"]
+    assert "No module named 'not_installed_pkg'" in broken_case["error"]
+    assert passed_case["status"] == "passed"
