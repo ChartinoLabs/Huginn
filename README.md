@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/ChartinoLabs/Huginn/actions/workflows/ci.yml/badge.svg)](https://github.com/ChartinoLabs/Huginn/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/huginn-framework?logo=pypi&logoColor=white)](https://pypi.org/project/huginn-framework/)
-[![Python](https://img.shields.io/badge/python-%3E%3D3.11-blue?logo=python&logoColor=white)](https://www.python.org)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue?logo=python&logoColor=white)](https://www.python.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 A Python-native, async-first test automation framework for network infrastructure, servers, and applications.
@@ -23,7 +23,7 @@ Or using [uv](https://docs.astral.sh/uv/):
 uv add huginn-framework
 ```
 
-Requires Python 3.11 or later. See the [documentation](https://chartinolabs.github.io/Huginn/) for a full quickstart guide.
+Requires Python 3.10 or later. See the [documentation](https://chartinolabs.github.io/Huginn/) for a full quickstart guide.
 
 ## License
 

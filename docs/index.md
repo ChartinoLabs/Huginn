@@ -69,4 +69,4 @@ If you are extending the framework itself or trying to understand a specific des
 
 ## Status
 
-Huginn is under active development and is not yet open-source. This documentation is a work in progress, being migrated out of the original PRD-style design dump into a structure aimed at readers learning the framework.
+Huginn is open-source under the Apache License 2.0, published on PyPI as `huginn-framework`, and under active development. This documentation is a work in progress, being migrated out of the original PRD-style design dump into a structure aimed at readers learning the framework.
