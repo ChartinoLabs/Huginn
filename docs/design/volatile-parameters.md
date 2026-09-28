@@ -89,7 +89,7 @@ Each runtime observation also carries run-scoped ordering metadata so the framew
 
 Crucially, observations are chained by a stable **observation series identity** defined by the volatile job itself, not by the Huginn test case identifier. This identity must remain constant across every execution that is intended to participate in the same comparison stream, including reconciled test case variants created for specific phases. A reconciled post-change test case may change the comparison operator for a boundary, but it must still append its runtime artifact to the same logical observation series as the corresponding baseline test. For jobs that track multiple logical objects, the series identity may need to be composed from both a job-level metric identity and an object identity within the gathered state (for example, device plus BGP neighbor).
 
-Because volatile comparisons depend on the latest live device state, volatile jobs should gather observations by explicitly bypassing broker cache. Reusing cached command output would risk comparing a fresh observation against stale data from an earlier execution boundary in the same run, which would defeat the purpose of treating the parameter as volatile.
+Because volatile comparisons depend on the latest live device state, volatile jobs should gather observations by explicitly bypassing broker cache. The base classes do not do this for the job: each job's `gather_observations` issues its own commands and must pass `use_cache=False`. Reusing cached command output would risk comparing a fresh observation against stale data from an earlier execution boundary in the same run, which would defeat the purpose of treating the parameter as volatile.
 
 ### Runtime observation chain
 
@@ -146,7 +146,7 @@ In the `volatile-baseline` group, BGP uptime uses operator `gte`. In `volatile-p
 
 When a scenario runs in isolation, the volatile parameter test executes once in pre-change (observation 1, no comparison) and once in post-change (observation 2, compared against observation 1). The comparison reflects only the effect of that scenario's change, with no dependency on prior scenarios.
 
-If a volatile phase is executed without any earlier observation in the same run - for example, by running only a post-change phase or by filtering execution down to an individual volatile test case group - then the volatile comparison has no predecessor to evaluate against. In that situation, the observation is still recorded as a runtime artifact, but the comparison should be reported as skipped for that execution because there is no valid reference point.
+If a volatile phase is executed without any earlier observation in the same run - for example, by running only a post-change phase or by filtering execution down to an individual volatile test case group - then the volatile comparison has no predecessor to evaluate against. In that situation, the observation is still recorded as a runtime artifact, and the device is reported as PASSED with a message saying the observations were recorded with no prior to compare against. No comparison runs, because there is no valid reference point.
 
 ### Full plan repeatability
 
@@ -158,7 +158,7 @@ A common concern is what happens when the comparison operator changes mid-plan -
 
 ```
 Scenario 1 (link flap R1-R2):
-  pre-change:   obs 1 = 2w3d    no prior observation, comparison skipped
+  pre-change:   obs 1 = 2w3d    no prior observation, recorded and passed
   post-change:  obs 2 = 2w3d    operator gte: obs 2 >= obs 1? yes - pass
 
 Scenario 2 (link flap R1-R3):
@@ -214,8 +214,10 @@ Two volatile base classes are exported from `huginn`:
   a job needs a custom comparison scheme (tolerance bands, per-series
   operators, or anything beyond a single operator key).
 - **`OperatorVolatileLearningTestCase`** - intermediate base for the
-  common single-operator pattern. Fixes the parameter schema to
-  `{"operator": str}`, provides command-based applicability checking,
+  common single-operator pattern. Fixes the parameter schema to a
+  per-device operator, `{"devices": {<device>: {"operator": str}}}`
+  (`OperatorVolatileParameters`), learns `DEFAULT_OPERATOR` (`"gte"`)
+  for each device, provides command-based applicability checking,
   operator comparison via `apply_operator`, and an `"any"` operator
   that records observations in the chain but always passes. Subclasses
   declare `SERIES_PREFIX` and `command`, then implement

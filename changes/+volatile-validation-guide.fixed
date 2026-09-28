@@ -1,0 +1,1 @@
+Corrected the volatile validation guide on broker caching, the per-device operator schema and how to change operators, and documented the supported operators, custom-scheme hooks, and the silent pass when nothing is observed.
