@@ -1719,7 +1719,7 @@
 </ul>
 <p>In every case, "learning mode" captures parameters that "testing mode" subsequently uses. The verbs <code>gather_state</code> and <code>compare_state</code> describe the interface, not the semantic intent of the job. This is a common point of confusion for new authors.</p>
 <h2 id="how-the-framework-treats-them">How the framework treats them<a class="headerlink" href="#how-the-framework-treats-them" title="Permanent link">&para;</a></h2>
-<p>The framework does not distinguish between the four archetypes at execution time. From the framework's perspective, every job is a <code>TestCase</code> (or a subclass of one) with <code>check_command_support</code>, <code>setup</code>, <code>test</code>, and <code>cleanup</code> methods, executed inside a phase, against a target set, in either learning or testing mode.</p>
+<p>The framework does not distinguish between the four archetypes at execution time. From the framework's perspective, every job is a <code>TestCase</code> (or a subclass of one) with <code>setup</code>, <code>test</code>, and <code>cleanup</code> methods, executed inside a phase, against a target set, in either learning or testing mode.</p>
 <p>Archetype is a <strong>convention</strong> - a way of organizing how authors think about jobs and how readers find them. The four archetypes have stable shapes, naming conventions, and module layouts, documented on their respective authoring pages.</p>
 <h2 id="where-archetype-affects-test-plan-structure">Where archetype affects test plan structure<a class="headerlink" href="#where-archetype-affects-test-plan-structure" title="Permanent link">&para;</a></h2>
 <table>

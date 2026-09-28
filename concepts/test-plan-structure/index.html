@@ -1777,9 +1777,9 @@
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>              └── Test Case
 </code></pre></div>
 <p><strong>Scenarios</strong> define a complete end-to-end validation workflow - for example, shutting down a link and verifying the network converges correctly.</p>
-<p><strong>Phases</strong> are the ordered steps within a scenario. Each phase has dependencies on prior phases and references one or more test case groups to execute.</p>
+<p><strong>Phases</strong> are the ordered steps within a scenario. Each phase references one or more test case groups to execute and can optionally declare dependencies on other phases with <code>depends_on</code>. Phases within a scenario run one at a time.</p>
 <p><strong>Test case groups</strong> are named collections of test cases. They are defined once and reused across phases - the same group of validation tests can run in both pre-change and post-change phases.</p>
-<p><strong>Test cases</strong> are the atomic unit of validation. Each test case has an identifier, a title, and a reference to the job (Python module) that implements it.</p>
+<p><strong>Test cases</strong> are the atomic unit of validation. Each test case has an identifier, a title, and a reference to the job (Python class) that implements it.</p>
 <h2 id="a-real-example">A real example<a class="headerlink" href="#a-real-example" title="Permanent link">&para;</a></h2>
 <p>This is the test plan structure from a change-validation project that shuts down a link between two routers and verifies convergence:</p>
 <h3 id="scenario">Scenario<a class="headerlink" href="#scenario" title="Permanent link">&para;</a></h3>
@@ -1826,7 +1826,7 @@
 <a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ospf-neighbor-baseline</span>
 <a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a><span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">interface-baseline</span>
 </code></pre></div>
-<p>The phases form a dependency chain: <code>pre-change</code> -&gt; <code>shutdown</code> -&gt; <code>gate-post-shutdown</code> -&gt; <code>post-shutdown</code> -&gt; <code>normalize</code> -&gt; <code>post-normalize</code>. Each phase waits for its dependencies to complete before executing.</p>
+<p>The phases form a dependency chain: <code>pre-change</code> -&gt; <code>shutdown</code> -&gt; <code>gate-post-shutdown</code> -&gt; <code>post-shutdown</code> -&gt; <code>normalize</code> -&gt; <code>post-normalize</code>. Each phase waits for its dependencies to complete before executing. If any phase finishes with a status other than passed, the remaining phases in the scenario are marked blocked (see <a href="../glossary/#phase">Phase</a> in the glossary).</p>
 <p>Notice that <code>version-baseline</code>, <code>bgp-summary-baseline</code>, <code>ospf-neighbor-baseline</code>, and <code>interface-baseline</code> appear in three different phases. The test case groups and their test cases are defined once and reused wherever needed.</p>
 <h3 id="test-case-groups">Test case groups<a class="headerlink" href="#test-case-groups" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
@@ -1904,7 +1904,7 @@
 <p>Each test case maps an identifier to:</p>
 <ul>
 <li><strong>title</strong> - human-readable description of what the test validates</li>
-<li><strong>job</strong> - path to the Python module that implements the test logic</li>
+<li><strong>job</strong> - the Python file path (as above) or dotted module path (<code>acme_jobs.ospf.verify_neighbor_state</code>) of the job that implements the test logic, optionally followed by <code>:ClassName</code></li>
 <li><strong>tags</strong> - optional labels for filtering and reporting</li>
 </ul>
 <h2 id="file-organization">File organization<a class="headerlink" href="#file-organization" title="Permanent link">&para;</a></h2>
@@ -1929,7 +1929,7 @@
 <ul>
 <li><strong>Reuse</strong> - The same validation groups run in pre-change, post-change, and post-normalize phases without duplicating test case definitions.</li>
 <li><strong>Sequencing</strong> - Phase dependencies guarantee that changes happen after baselines are captured, and verification happens after changes complete.</li>
-<li><strong>Gating</strong> - Gate phases can block subsequent phases if convergence criteria aren't met, preventing validation from running against an infrastructure that hasn't stabilized.</li>
+<li><strong>Gating</strong> - A gate phase that fails because convergence criteria aren't met blocks the rest of the scenario, preventing validation from running against an infrastructure that hasn't stabilized. This is not specific to gates: today any phase that doesn't pass blocks every remaining phase in its scenario. Blocking only the phases that depend on a failed or errored phase is planned in <a href="https://github.com/ChartinoLabs/Huginn/issues/218">#218</a>.</li>
 <li><strong>Reconciliation</strong> - After a planned change, only the affected parameters need updating. The test plan structure makes it clear which phases use which groups, so reconciliation can target just the post-change variants.</li>
 <li><strong>Scale</strong> - A test plan with hundreds of test cases stays organized because the hierarchy provides natural grouping boundaries.</li>
 </ul>

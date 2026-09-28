@@ -2104,7 +2104,7 @@
 <h3 id="test-plan-organization">Test Plan Organization<a class="headerlink" href="#test-plan-organization" title="Permanent link">&para;</a></h3>
 <p>Tests are organized into a four-tier hierarchy of scenarios, phases, test case groups, and test cases. This structure enables powerful patterns like change validation, where the same test cases run in both pre-change and post-change phases to verify state consistency. See <a href="../test-plan-structure/">Test Plan Structure</a> for the full explanation.</p>
 <h3 id="parallel-test-execution">Parallel Test Execution<a class="headerlink" href="#parallel-test-execution" title="Permanent link">&para;</a></h3>
-<p>The framework can execute multiple tests in parallel within a test case group. Individual tests control their own parallelism when interacting with multiple target devices - the framework provides the targets and connection broker, but tests decide whether to execute commands serially or in parallel across their targets.</p>
+<p>The framework executes the test case groups within a phase in parallel, and the tests within each test case group in parallel, by default. Each phase and group can set a <code>strategy</code> to run serially or cap concurrency. Phases themselves run one at a time in dependency order. Individual tests control their own parallelism when interacting with multiple target devices - the framework provides the targets and connection broker, but tests decide whether to execute commands serially or in parallel across their targets.</p>
 <h3 id="comprehensive-reporting">Comprehensive Reporting<a class="headerlink" href="#comprehensive-reporting" title="Permanent link">&para;</a></h3>
 <p>Huginn generates structured JSON artifacts for both validation and execution:</p>
 <ul>
