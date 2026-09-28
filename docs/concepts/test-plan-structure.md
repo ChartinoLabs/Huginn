@@ -13,11 +13,11 @@ Scenario
 
 **Scenarios** define a complete end-to-end validation workflow - for example, shutting down a link and verifying the network converges correctly.
 
-**Phases** are the ordered steps within a scenario. Each phase has dependencies on prior phases and references one or more test case groups to execute.
+**Phases** are the ordered steps within a scenario. Each phase references one or more test case groups to execute and can optionally declare dependencies on other phases with `depends_on`. Phases within a scenario run one at a time.
 
 **Test case groups** are named collections of test cases. They are defined once and reused across phases - the same group of validation tests can run in both pre-change and post-change phases.
 
-**Test cases** are the atomic unit of validation. Each test case has an identifier, a title, and a reference to the job (Python module) that implements it.
+**Test cases** are the atomic unit of validation. Each test case has an identifier, a title, and a reference to the job (Python class) that implements it.
 
 ## A real example
 
@@ -70,7 +70,7 @@ scenarios:
           - interface-baseline
 ```
 
-The phases form a dependency chain: `pre-change` -> `shutdown` -> `gate-post-shutdown` -> `post-shutdown` -> `normalize` -> `post-normalize`. Each phase waits for its dependencies to complete before executing.
+The phases form a dependency chain: `pre-change` -> `shutdown` -> `gate-post-shutdown` -> `post-shutdown` -> `normalize` -> `post-normalize`. Each phase waits for its dependencies to complete before executing. If any phase finishes with a status other than passed, the remaining phases in the scenario are marked blocked (see [Phase](glossary.md#phase) in the glossary).
 
 Notice that `version-baseline`, `bgp-summary-baseline`, `ospf-neighbor-baseline`, and `interface-baseline` appear in three different phases. The test case groups and their test cases are defined once and reused wherever needed.
 
@@ -160,7 +160,7 @@ test_cases:
 Each test case maps an identifier to:
 
 - **title** - human-readable description of what the test validates
-- **job** - path to the Python module that implements the test logic
+- **job** - the Python file path (as above) or dotted module path (`acme_jobs.ospf.verify_neighbor_state`) of the job that implements the test logic, optionally followed by `:ClassName`
 - **tags** - optional labels for filtering and reporting
 
 ## File organization
@@ -191,7 +191,7 @@ The hierarchy enables several patterns that a flat list of tests cannot:
 
 - **Reuse** - The same validation groups run in pre-change, post-change, and post-normalize phases without duplicating test case definitions.
 - **Sequencing** - Phase dependencies guarantee that changes happen after baselines are captured, and verification happens after changes complete.
-- **Gating** - Gate phases can block subsequent phases if convergence criteria aren't met, preventing validation from running against an infrastructure that hasn't stabilized.
+- **Gating** - A gate phase that fails because convergence criteria aren't met blocks the rest of the scenario, preventing validation from running against an infrastructure that hasn't stabilized. This is not specific to gates: today any phase that doesn't pass blocks every remaining phase in its scenario. Blocking only the phases that depend on a failed or errored phase is planned in [#218](https://github.com/ChartinoLabs/Huginn/issues/218).
 - **Reconciliation** - After a planned change, only the affected parameters need updating. The test plan structure makes it clear which phases use which groups, so reconciliation can target just the post-change variants.
 - **Scale** - A test plan with hundreds of test cases stays organized because the hierarchy provides natural grouping boundaries.
 
