@@ -5,13 +5,14 @@ against infrastructure testbeds.
 """
 
 import asyncio
+import re
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
 from huginn._version import __version__
-from huginn.enums import ErrorCode, ExecutionMode
+from huginn.enums import ErrorCode, ExecutionMode, IdStyle
 from huginn.execute import (
     ExecuteCommandResult,
     ExecuteCommandSpec,
@@ -243,7 +244,8 @@ def run(
             "-d",
             help="Path to data model directory containing YAML files representing "
             "intended infrastructure state. Overrides data_model.path in the "
-            "test plan.",
+            "test plan. A relative path resolves against the current working "
+            "directory.",
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
@@ -522,7 +524,8 @@ def validate(
             "-d",
             help="Path to data model directory containing YAML files representing "
             "intended infrastructure state. Overrides data_model.path in the "
-            "test plan.",
+            "test plan. A relative path resolves against the current working "
+            "directory.",
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
@@ -705,6 +708,7 @@ def _build_plan_filters(
     normalized_phases = _split_csv_option_values(phases)
     if normalized_phases and not normalized_scenarios:
         raise typer.BadParameter("--phase requires --scenario to be specified.")
+    _validate_test_id_pattern(test_id_pattern)
 
     return PlanFilterOptions(
         tags=_split_csv_option_values(tags),
@@ -715,6 +719,19 @@ def _build_plan_filters(
         test_ids=_split_csv_option_values(test_ids),
         test_id_pattern=test_id_pattern,
     )
+
+
+def _validate_test_id_pattern(pattern: str | None) -> None:
+    """Reject a --test-id-pattern value that is not a valid regular expression."""
+    if pattern is None:
+        return
+    try:
+        re.compile(pattern)
+    except re.error as error:
+        raise typer.BadParameter(
+            f"Invalid regular expression {pattern!r}: {error}",
+            param_hint="'--test-id-pattern'",
+        ) from error
 
 
 def _split_csv_option_values(values: list[str] | None) -> list[str] | None:
@@ -1006,7 +1023,8 @@ def relearn(
             "-d",
             help="Path to data model directory containing YAML files representing "
             "intended infrastructure state. Overrides data_model.path in the "
-            "test plan.",
+            "test plan. A relative path resolves against the current working "
+            "directory.",
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
@@ -1790,12 +1808,12 @@ def inject_new(
         ),
     ] = None,
     id_style: Annotated[
-        str,
+        IdStyle,
         typer.Option(
             "--id-style",
-            help="ID generation style.",
+            help="ID generation style. Only 'prefix-counter' is implemented.",
         ),
-    ] = "prefix-counter",
+    ] = IdStyle.PREFIX_COUNTER,
     target_groups: Annotated[
         list[str] | None,
         typer.Option(
@@ -1926,12 +1944,12 @@ def inject_into(
         ),
     ] = None,
     id_style: Annotated[
-        str,
+        IdStyle,
         typer.Option(
             "--id-style",
-            help="ID generation style.",
+            help="ID generation style. Only 'prefix-counter' is implemented.",
         ),
-    ] = "prefix-counter",
+    ] = IdStyle.PREFIX_COUNTER,
     target_groups: Annotated[
         list[str] | None,
         typer.Option(

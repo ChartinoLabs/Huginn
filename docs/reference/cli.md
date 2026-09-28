@@ -75,24 +75,24 @@ huginn run --mode <learning|testing> [--plan <path>] [--testbed <path> | --inven
            [logging options]
 ```
 
-| Option               | Short | Env var                   | Default                | Description                                                                                                                |
-| -------------------- | ----- | ------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `--mode`             | `-m`  | `HUGINN_MODE`             | (required)             | Execution mode. One of `learning` or `testing`.                                                                            |
-| `--plan`             | `-p`  | `HUGINN_PLAN`             | `./test_plan`          | Path to test plan YAML file or directory of YAML files.                                                                    |
-| `--testbed`          | `-t`  | `HUGINN_TESTBED`          | `./testbed.yaml`       | Path to testbed YAML file defining device inventory. Mutually exclusive with `--inventory-plugin`.                         |
-| `--inventory-plugin` | `-i`  | `HUGINN_INVENTORY_PLUGIN` | none                   | Use an inventory plugin instead of a static testbed YAML file. Mutually exclusive with `--testbed`.                        |
-| `--tags`             |       | `HUGINN_TAGS`             | none                   | Run only test cases that have every listed tag. Repeatable, comma-separated.                                               |
-| `--exclude-tags`     |       | `HUGINN_EXCLUDE_TAGS`     | none                   | Skip test cases that have any listed tag. Repeatable, comma-separated.                                                     |
-| `--scenario`         |       | `HUGINN_SCENARIO`         | none                   | Run only the listed scenarios. Repeatable, comma-separated.                                                                |
-| `--phase`            |       | `HUGINN_PHASE`            | none                   | Run only the listed phases. Requires `--scenario`. Repeatable, comma-separated.                                            |
-| `--test-case-group`  |       | `HUGINN_TEST_CASE_GROUP`  | none                   | Run only the listed test case groups. Repeatable, comma-separated.                                                         |
-| `--test-id`          |       | `HUGINN_TEST_ID`          | none                   | Run only the listed test case IDs. Repeatable, comma-separated.                                                            |
-| `--test-id-pattern`  |       | `HUGINN_TEST_ID_PATTERN`  | none                   | Python regular expression matched anywhere in the test case ID, for example `'-post-shutdown$'`.                           |
-| `--data-model`       | `-d`  | `HUGINN_DATA_MODEL`       | none                   | Data model directory. Overrides the test plan's `data_model.path`. A relative path resolves against the working directory. |
-| `--results-dir`      |       | `HUGINN_RESULTS_DIR`      | `./results/`           | Directory where run results are written.                                                                                   |
-| `--parameters-dir`   |       | `HUGINN_PARAMETERS_DIR`   | `./parameters/`        | Directory where learned parameters are written in learning mode and read in testing mode.                                  |
-| `--output-dir`       |       | `HUGINN_OUTPUT_DIR`       | `<run-dir>/artifacts/` | Directory for run artifacts.                                                                                               |
-| logging options      |       |                           |                        | See [Logging options](#logging-options).                                                                                   |
+| Option               | Short | Env var                   | Default                | Description                                                                                                                        |
+| -------------------- | ----- | ------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `--mode`             | `-m`  | `HUGINN_MODE`             | (required)             | Execution mode. One of `learning` or `testing`.                                                                                    |
+| `--plan`             | `-p`  | `HUGINN_PLAN`             | `./test_plan`          | Path to test plan YAML file or directory of YAML files.                                                                            |
+| `--testbed`          | `-t`  | `HUGINN_TESTBED`          | `./testbed.yaml`       | Path to testbed YAML file defining device inventory. Mutually exclusive with `--inventory-plugin`.                                 |
+| `--inventory-plugin` | `-i`  | `HUGINN_INVENTORY_PLUGIN` | none                   | Use an inventory plugin instead of a static testbed YAML file. Mutually exclusive with `--testbed`.                                |
+| `--tags`             |       | `HUGINN_TAGS`             | none                   | Run only test cases that have every listed tag. Repeatable, comma-separated.                                                       |
+| `--exclude-tags`     |       | `HUGINN_EXCLUDE_TAGS`     | none                   | Skip test cases that have any listed tag. Repeatable, comma-separated.                                                             |
+| `--scenario`         |       | `HUGINN_SCENARIO`         | none                   | Run only the listed scenarios. Repeatable, comma-separated.                                                                        |
+| `--phase`            |       | `HUGINN_PHASE`            | none                   | Run only the listed phases. Requires `--scenario`. Repeatable, comma-separated.                                                    |
+| `--test-case-group`  |       | `HUGINN_TEST_CASE_GROUP`  | none                   | Run only the listed test case groups. Repeatable, comma-separated.                                                                 |
+| `--test-id`          |       | `HUGINN_TEST_ID`          | none                   | Run only the listed test case IDs. Repeatable, comma-separated.                                                                    |
+| `--test-id-pattern`  |       | `HUGINN_TEST_ID_PATTERN`  | none                   | Python regular expression matched anywhere in the test case ID, for example `'-post-shutdown$'`.                                   |
+| `--data-model`       | `-d`  | `HUGINN_DATA_MODEL`       | none                   | Data model directory. Overrides the test plan's `data_model.path`. A relative path resolves against the current working directory. |
+| `--results-dir`      |       | `HUGINN_RESULTS_DIR`      | `./results/`           | Directory where run results are written.                                                                                           |
+| `--parameters-dir`   |       | `HUGINN_PARAMETERS_DIR`   | `./parameters/`        | Directory where learned parameters are written in learning mode and read in testing mode.                                          |
+| `--output-dir`       |       | `HUGINN_OUTPUT_DIR`       | `<run-dir>/artifacts/` | Directory for run artifacts.                                                                                                       |
+| logging options      |       |                           |                        | See [Logging options](#logging-options).                                                                                           |
 
 ### Filtering
 
@@ -116,7 +116,7 @@ See [Test Plan Specification - CLI Filtering](test-plan.md#cli-filtering) for ho
 | 1    | The overall run status is `failed`, `errored`, `not_applicable` or `skipped`; the testbed or test plan could not be loaded; or a broker error occurred. |
 | 2    | Usage error; inventory plugin failure; phase dependencies in a scenario could not be resolved; or results or reports could not be written.              |
 
-An invalid `--test-id-pattern` regular expression currently ends the run with a Python traceback and exit code 1.
+An invalid `--test-id-pattern` regular expression is a [usage error](#usage-errors): the run does not start and the command exits 2.
 
 ## validate
 
@@ -129,20 +129,20 @@ huginn validate --plan <path> [--testbed <path> | --inventory-plugin <name>]
                 [logging options]
 ```
 
-| Option               | Short | Env var                   | Default          | Description                                                                                                                |
-| -------------------- | ----- | ------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `--plan`             | `-p`  | `HUGINN_PLAN`             | (required)       | Path to test plan YAML file or directory of YAML files to validate.                                                        |
-| `--testbed`          | `-t`  | `HUGINN_TESTBED`          | `./testbed.yaml` | Path to testbed YAML file defining device inventory. Mutually exclusive with `--inventory-plugin`.                         |
-| `--inventory-plugin` | `-i`  | `HUGINN_INVENTORY_PLUGIN` | none             | Use an inventory plugin instead of a static testbed YAML file. Mutually exclusive with `--testbed`.                        |
-| `--tags`             |       | `HUGINN_TAGS`             | none             | Validate only test cases that have every listed tag. Repeatable, comma-separated.                                          |
-| `--exclude-tags`     |       | `HUGINN_EXCLUDE_TAGS`     | none             | Skip test cases that have any listed tag. Repeatable, comma-separated.                                                     |
-| `--scenario`         |       | `HUGINN_SCENARIO`         | none             | Validate only the listed scenarios. Repeatable, comma-separated.                                                           |
-| `--phase`            |       | `HUGINN_PHASE`            | none             | Validate only the listed phases. Requires `--scenario`. Repeatable, comma-separated.                                       |
-| `--test-case-group`  |       | `HUGINN_TEST_CASE_GROUP`  | none             | Validate only the listed test case groups. Repeatable, comma-separated.                                                    |
-| `--test-id`          |       | `HUGINN_TEST_ID`          | none             | Validate only the listed test case IDs. Repeatable, comma-separated.                                                       |
-| `--test-id-pattern`  |       | `HUGINN_TEST_ID_PATTERN`  | none             | Python regular expression matched anywhere in the test case ID.                                                            |
-| `--data-model`       | `-d`  | `HUGINN_DATA_MODEL`       | none             | Data model directory. Overrides the test plan's `data_model.path`. A relative path resolves against the working directory. |
-| logging options      |       |                           |                  | See [Logging options](#logging-options).                                                                                   |
+| Option               | Short | Env var                   | Default          | Description                                                                                                                        |
+| -------------------- | ----- | ------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `--plan`             | `-p`  | `HUGINN_PLAN`             | (required)       | Path to test plan YAML file or directory of YAML files to validate.                                                                |
+| `--testbed`          | `-t`  | `HUGINN_TESTBED`          | `./testbed.yaml` | Path to testbed YAML file defining device inventory. Mutually exclusive with `--inventory-plugin`.                                 |
+| `--inventory-plugin` | `-i`  | `HUGINN_INVENTORY_PLUGIN` | none             | Use an inventory plugin instead of a static testbed YAML file. Mutually exclusive with `--testbed`.                                |
+| `--tags`             |       | `HUGINN_TAGS`             | none             | Validate only test cases that have every listed tag. Repeatable, comma-separated.                                                  |
+| `--exclude-tags`     |       | `HUGINN_EXCLUDE_TAGS`     | none             | Skip test cases that have any listed tag. Repeatable, comma-separated.                                                             |
+| `--scenario`         |       | `HUGINN_SCENARIO`         | none             | Validate only the listed scenarios. Repeatable, comma-separated.                                                                   |
+| `--phase`            |       | `HUGINN_PHASE`            | none             | Validate only the listed phases. Requires `--scenario`. Repeatable, comma-separated.                                               |
+| `--test-case-group`  |       | `HUGINN_TEST_CASE_GROUP`  | none             | Validate only the listed test case groups. Repeatable, comma-separated.                                                            |
+| `--test-id`          |       | `HUGINN_TEST_ID`          | none             | Validate only the listed test case IDs. Repeatable, comma-separated.                                                               |
+| `--test-id-pattern`  |       | `HUGINN_TEST_ID_PATTERN`  | none             | Python regular expression matched anywhere in the test case ID.                                                                    |
+| `--data-model`       | `-d`  | `HUGINN_DATA_MODEL`       | none             | Data model directory. Overrides the test plan's `data_model.path`. A relative path resolves against the current working directory. |
+| logging options      |       |                           |                  | See [Logging options](#logging-options).                                                                                           |
 
 The filters behave exactly as they do for [`run`](#filtering), including the rule that `--phase` requires `--scenario`. The validation result is written under `./results/`; `validate` has no `--results-dir` option.
 
@@ -158,7 +158,7 @@ huginn validate -p test_plan/ -t testbed.yaml --scenario link-shutdown-r1r2 --ph
 | 0    | Validation passed. Warnings, if any, are printed but do not change the exit code.                 |
 | 3    | Validation failed, including when the testbed, inventory plugin or test plan could not be loaded. |
 
-An invalid `--test-id-pattern` regular expression currently ends validation with a Python traceback and exit code 1.
+An invalid `--test-id-pattern` regular expression is a [usage error](#usage-errors): validation does not start and the command exits 2.
 
 ## execute
 
@@ -230,7 +230,7 @@ huginn inject new <PATH> (--phase <ids> | --parent-group <id>) [--plan <dir>] [-
 | `--group`         |       |               | derived from path | Explicit group identifier.                                                                                        |
 | `--target-groups` |       |               | none              | Device groups to set as `target.groups` on each new test case. Repeatable, comma-separated.                       |
 | `--tags`          |       |               | none              | Tags to set on each new test case. Repeatable, comma-separated.                                                   |
-| `--id-style`      |       |               | `prefix-counter`  | ID generation style. `prefix-counter` is the only style implemented; other values are accepted but ignored.       |
+| `--id-style`      |       |               | `prefix-counter`  | ID generation style. `prefix-counter` is the only style implemented; any other value is a usage error.            |
 | `--dry-run`       |       |               | off               | Print the planned changes without writing any files.                                                              |
 
 ### How IDs and names are derived
@@ -267,13 +267,13 @@ huginn inject into <GROUP> <PATH> [--plan <dir>] [--target-groups <groups>] [--t
 | `GROUP`  | Existing group identifier to inject into.      |
 | `PATH`   | Directory of job files or a single `.py` file. |
 
-| Option            | Short | Env var       | Default          | Description                                                                                                 |
-| ----------------- | ----- | ------------- | ---------------- | ----------------------------------------------------------------------------------------------------------- |
-| `--plan`          | `-p`  | `HUGINN_PLAN` | `./test_plan`    | Path to the test plan directory. Must be a directory.                                                       |
-| `--target-groups` |       |               | none             | Device groups to set as `target.groups` on each new test case. Repeatable, comma-separated.                 |
-| `--tags`          |       |               | none             | Tags to set on each new test case. Repeatable, comma-separated.                                             |
-| `--id-style`      |       |               | `prefix-counter` | ID generation style. `prefix-counter` is the only style implemented; other values are accepted but ignored. |
-| `--dry-run`       |       |               | off              | Print the planned changes without writing any files.                                                        |
+| Option            | Short | Env var       | Default          | Description                                                                                            |
+| ----------------- | ----- | ------------- | ---------------- | ------------------------------------------------------------------------------------------------------ |
+| `--plan`          | `-p`  | `HUGINN_PLAN` | `./test_plan`    | Path to the test plan directory. Must be a directory.                                                  |
+| `--target-groups` |       |               | none             | Device groups to set as `target.groups` on each new test case. Repeatable, comma-separated.            |
+| `--tags`          |       |               | none             | Tags to set on each new test case. Repeatable, comma-separated.                                        |
+| `--id-style`      |       |               | `prefix-counter` | ID generation style. `prefix-counter` is the only style implemented; any other value is a usage error. |
+| `--dry-run`       |       |               | off              | Print the planned changes without writing any files.                                                   |
 
 IDs are derived from `PATH` as described for [`inject new`](#how-ids-and-names-are-derived). The group must be defined in a file under the plan's `groups/` directory.
 

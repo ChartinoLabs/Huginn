@@ -186,6 +186,36 @@ def test_run_filters_by_test_id_option(
     assert executed_ids == ["1.0.1"]
 
 
+def test_run_rejects_invalid_test_id_pattern_as_usage_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An invalid --test-id-pattern regex is a usage error, not a traceback."""
+    stage_runner_fixture(tmp_path, "cli_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--test-id-pattern",
+            "[",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 2
+    assert "--test-id-pattern" in result.output
+    assert "unterminated character set" in result.output
+
+
 def test_run_filters_by_exclude_tags_option(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

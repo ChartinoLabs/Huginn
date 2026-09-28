@@ -34,6 +34,15 @@ class ExecutionMode(StrEnum):
     TESTING = "testing"
 
 
+class IdStyle(StrEnum):
+    """Test case ID generation style used by `huginn inject`.
+
+    - PREFIX_COUNTER: `<PREFIX>-<n>`, numbered after the highest existing counter.
+    """
+
+    PREFIX_COUNTER = "prefix-counter"
+
+
 class ResultStatus(StrEnum):
     """The outcome of a test case execution.
 
