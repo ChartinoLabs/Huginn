@@ -94,7 +94,17 @@ For example, a leftover `mode` key fails with:
 ERROR: Unknown key(s) in [tool.huginn]: mode
 ```
 
-The keys inside `[tool.huginn.plugins]` are not validated. An unrecognized key there is ignored.
+`[tool.huginn.plugins]` is validated in the same way. The command also fails if:
+
+- the plugins table has a key other than `brokers`, `reporters`, `hooks` or `config`
+- `brokers`, `reporters` or `hooks` is not a list of non-empty strings
+- `config` is not a table, or a value inside it is not a table
+
+An `enabled` key, from older documentation, fails with a hint to use the current keys:
+
+```txt
+ERROR: Unknown key(s) in [tool.huginn.plugins]: enabled. Use 'brokers', 'reporters' or 'hooks' instead of 'enabled'.
+```
 
 ## Plugins in `[tool.huginn.plugins]`
 

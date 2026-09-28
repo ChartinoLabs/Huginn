@@ -147,6 +147,61 @@ def test_load_project_config_rejects_invalid_tables(
     assert message in str(excinfo.value)
 
 
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        (
+            'brokerz = ["ssh"]',
+            "Unknown key(s) in [tool.huginn.plugins]: brokerz",
+        ),
+        (
+            'enabled = ["html"]',
+            "Unknown key(s) in [tool.huginn.plugins]: enabled. Use 'brokers', "
+            "'reporters' or 'hooks' instead of 'enabled'.",
+        ),
+        (
+            'reporters = "html"',
+            "'reporters' must be a list of non-empty strings, got 'html'",
+        ),
+        ("brokers = true", "'brokers' must be a list of non-empty strings"),
+        ('hooks = ["ok", ""]', "'hooks' must be a list of non-empty strings"),
+        ("brokers = [1]", "'brokers' must be a list of non-empty strings"),
+        ('config = "html"', "key 'config' must be a table, got 'html'"),
+        (
+            "[tool.huginn.plugins.config]\nhtml = 1",
+            "[tool.huginn.plugins.config] key 'html' must be a table, got 1",
+        ),
+    ],
+    ids=[
+        "unknown-key",
+        "enabled-hint",
+        "string-list",
+        "bool-list",
+        "empty-name",
+        "non-string-name",
+        "config-not-table",
+        "config-value-not-table",
+    ],
+)
+def test_load_project_config_rejects_invalid_plugins_table(
+    tmp_path: Path, body: str, message: str
+) -> None:
+    """Unknown keys and wrong types in [tool.huginn.plugins] raise."""
+    _write_pyproject(tmp_path, f"[tool.huginn.plugins]\n{body}\n")
+
+    with pytest.raises(ConfigurationError) as excinfo:
+        load_project_config(tmp_path)
+
+    assert message in str(excinfo.value)
+
+
+def test_load_project_config_accepts_empty_plugins_table(tmp_path: Path) -> None:
+    """An empty [tool.huginn.plugins] table leaves every plugin active."""
+    _write_pyproject(tmp_path, "[tool.huginn.plugins]\n")
+
+    assert load_project_config(tmp_path).plugins == ProjectConfig().plugins
+
+
 def test_load_project_config_rejects_invalid_toml(tmp_path: Path) -> None:
     """A malformed pyproject.toml is reported as a ConfigurationError."""
     _write_pyproject(tmp_path, "[tool.huginn\n")
