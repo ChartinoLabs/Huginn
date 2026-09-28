@@ -541,6 +541,10 @@ When one group reaches the same test case through two different child groups, th
 
 `exclude_tests` removes a test case from every child path.
 
+When one path references an unknown device in its `target.devices`, the test case is `ERRORED` in that group, even if its other paths are valid. The error names the child group on that path, for example `Unknown target device 'r9' in Test case group 'leaf-checks'`.
+
+Paths through different child groups that apply the same targets and carry the same tags are merged into one, so stacked diamonds of nested groups do not multiply the work at load time. A test case that one group still reaches through more than 256 paths with different targets or tags fails the load with a `ConfigurationError`.
+
 #### Circular Reference Detection
 
 The framework validates that group inclusions do not form cycles (e.g., group A includes B, B includes A).
@@ -684,9 +688,21 @@ A phase that finishes `FAILED` or `ERRORED` blocks every phase that depends on i
 
 - Dependent phases do not run. Their test cases are recorded as `BLOCKED` with a reason that names the phase that failed, for example `Blocked because phase 'A' failed`. A phase blocked by a blocked phase names the original failure.
 - Phases that do not depend on the failed phase still run.
-- A phase that finishes `NOT_APPLICABLE` or `SKIPPED` does not block its dependents.
+- A phase that finishes `NOT_APPLICABLE` or `SKIPPED` does not block its dependents, with one exception in learning mode, described below.
 
 In the example above, if `B` fails, `D` is blocked and `C` still runs. If `A` fails, `B`, `C` and `D` are all blocked.
+
+##### Blocking in learning mode
+
+Learning mode skips a test case whose job does not inherit `LearningTestCase`, such as a change or action job. A phase with any test case skipped for this reason blocks the phases that depend on it, directly or transitively, in the same way as a failed phase. Their test cases are recorded as `BLOCKED` with a reason such as `Blocked because phase 'shutdown' was not run in learning mode`.
+
+The phase blocks even when its other test cases were learned, because the change it exists to make did not happen. Learning the phases after it would save the unchanged network's state as their expected post-change state.
+
+Other skips do not block. A test case skipped because no device matched its target, for example, does not block its phase's dependents.
+
+A test case blocked this way does not make `huginn run` or `huginn relearn` exit non-zero. It is the expected result of learning a change-validation scenario, not a failure. When a phase is blocked both by a failure and by a phase that was not run in learning mode, the reason names the failure, and the run exits 1. See [Exit codes](cli.md#exit-codes).
+
+To learn the phases after a change, apply the change first, then learn those phases on their own, for example with `--phase` or `--test-id`. [Reconciliation](../concepts/reconciliation.md) describes this workflow.
 
 There is no partial status. A phase with one failed test case out of ten is `FAILED`, and the phase and run summaries report a count for each status. See [Aggregate Result](../concepts/glossary.md#aggregate-result) for how statuses roll up.
 

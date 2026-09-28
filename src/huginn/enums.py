@@ -45,8 +45,8 @@ class ResultStatus(StrEnum):
     - ERRORED: An exception occurred during execution.
     - NOT_APPLICABLE: Check was out of scope for the target at runtime.
     - SKIPPED: The test case did not execute because it was intentionally skipped.
-    - BLOCKED: The test case could not run because a phase it depends on failed or
-      errored.
+    - BLOCKED: The test case could not run because a phase it depends on failed,
+      errored, or was not run in learning mode (see ``BlockKind``).
 
     Test cases filtered out before execution (e.g., by tags) do not appear in
     results at all.
@@ -59,6 +59,33 @@ class ResultStatus(StrEnum):
     NOT_APPLICABLE = "not_applicable"
     SKIPPED = "skipped"
     BLOCKED = "blocked"
+
+
+class SkipKind(StrEnum):
+    """Why a test case was recorded as SKIPPED.
+
+    - NO_MATCHING_TARGETS: no device matched the test case's target selectors.
+    - LEARNING_MODE_UNSUPPORTED: the run is in learning mode and the job does
+      not inherit ``LearningTestCase``, so it did not run. A phase with such a
+      test case blocks the phases that depend on it, because its intended
+      effect (for example a change) did not happen.
+    """
+
+    NO_MATCHING_TARGETS = "no_matching_targets"
+    LEARNING_MODE_UNSUPPORTED = "learning_mode_unsupported"
+
+
+class BlockKind(StrEnum):
+    """Why a test case was recorded as BLOCKED.
+
+    - DEPENDENCY_FAILED: a phase it depends on, directly or transitively,
+      failed or errored.
+    - DEPENDENCY_NOT_LEARNED: a phase it depends on, directly or transitively,
+      was not run in learning mode (see ``SkipKind.LEARNING_MODE_UNSUPPORTED``).
+    """
+
+    DEPENDENCY_FAILED = "dependency_failed"
+    DEPENDENCY_NOT_LEARNED = "dependency_not_learned"
 
 
 class ConnectionProtocol(StrEnum):

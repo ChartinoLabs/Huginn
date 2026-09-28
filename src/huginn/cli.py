@@ -425,6 +425,7 @@ def run(
     )
     if result.summary.total == 0:
         output.warning("No test cases were selected for execution")
+    _report_learning_mode_blocks(result.summary, output)
     output.status("Run artifacts written to results/")
     output.status("Run report written to reports/latest/")
     if _summary_has_failures(result.summary):
@@ -649,9 +650,21 @@ def validate(
 def _summary_has_failures(summary: RunSummary) -> bool:
     """Return True when a run has failed, errored or blocked test cases.
 
-    NOT_APPLICABLE and SKIPPED results do not make a run fail.
+    NOT_APPLICABLE and SKIPPED results do not make a run fail. Neither do test
+    cases blocked only because a phase they depend on was not run in learning
+    mode: that is the expected outcome of learning a change-validation plan.
     """
-    return summary.failed > 0 or summary.errored > 0 or summary.blocked > 0
+    failure_blocked = summary.blocked - summary.learning_mode_blocked
+    return summary.failed > 0 or summary.errored > 0 or failure_blocked > 0
+
+
+def _report_learning_mode_blocks(summary: RunSummary, output: Output) -> None:
+    """Say how many blocked test cases were blocked only by learning mode."""
+    if summary.learning_mode_blocked:
+        output.status(
+            f"{summary.learning_mode_blocked} test case(s) blocked because a phase "
+            "they depend on was not run in learning mode; this does not fail the run"
+        )
 
 
 def _exit_code_for_run_error(code: ErrorCode) -> int:
@@ -1253,6 +1266,7 @@ def _execute_relearn(
         f"errored={result.summary.errored} "
         f"not_applicable={result.summary.not_applicable}"
     )
+    _report_learning_mode_blocks(result.summary, output)
 
     if _summary_has_failures(result.summary):
         output.error(

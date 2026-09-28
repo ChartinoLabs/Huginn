@@ -29,7 +29,7 @@ Both `pre-change` and `post-shutdown` point to the same groups, which means they
 
 Execution mode is set per run with `--mode`, not per phase, so building this scenario takes two runs:
 
-1. **Learning run** (`--mode learning`) - the `pre-change` phase captures baseline parameters: OSPF neighbors, BGP peers, all healthy. The `shutdown` action job does not inherit `LearningTestCase`, so it is skipped in learning mode and the link stays up. A skipped phase does not block the phases that depend on it, so `post-shutdown` still runs, but its tests are the same ones `pre-change` already learned, so the run reuses those results instead of learning them again.
+1. **Learning run** (`--mode learning`) - the `pre-change` phase captures baseline parameters: OSPF neighbors, BGP peers, all healthy. The `shutdown` action job does not inherit `LearningTestCase`, so it is skipped in learning mode and the link stays up. Because the change did not happen, `post-shutdown` is blocked rather than learned, with the reason `Blocked because phase 'shutdown' was not run in learning mode`. This keeps the learning run from saving the unchanged network as the post-change state, and it does not make the run exit non-zero.
 2. **Testing run** (`--mode testing`) - all three phases run in order. `shutdown` disables the R1-R2 link, and `post-shutdown` compares current state against the baseline parameters captured by the learning run.
 
 The OSPF tests in `post-shutdown` fail. The parameters say "neighbor 10.1.1.1 exists on GigabitEthernet2" but after the shutdown, that neighbor is gone. This is expected behavior - the link is down - but the test plan has no way to express that the post-change expected state differs from baseline.

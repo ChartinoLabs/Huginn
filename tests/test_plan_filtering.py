@@ -611,7 +611,9 @@ def _fully_populated_plan() -> models.TestPlan:
                 inclusion_paths={
                     "2.0.0": (
                         models.InclusionPath(
-                            groups=("bgp",), targets=(target,), tags=("bgp-group",)
+                            groups=("bgp",),
+                            targets=(("bgp", target),),
+                            tags=("bgp-group",),
                         ),
                     )
                 },

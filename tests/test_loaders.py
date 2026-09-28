@@ -1,8 +1,10 @@
 """Unit tests for YAML loader helpers."""
 
+import time
 from pathlib import Path
 
 import pytest
+import yaml
 
 from huginn.enums import ConnectionProtocol
 from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
@@ -340,8 +342,8 @@ def test_load_test_plan_records_nested_group_inclusion_paths() -> None:
         InclusionPath(
             groups=("child", "grandchild"),
             targets=(
-                TargetDefinition(groups=["spine"]),
-                TargetDefinition(os=["nxos"]),
+                ("child", TargetDefinition(groups=["spine"])),
+                ("grandchild", TargetDefinition(os=["nxos"])),
             ),
             tags=("child-tag", "grandchild-tag"),
         ),
@@ -357,12 +359,12 @@ def test_load_test_plan_keeps_every_path_to_a_diamond_test() -> None:
     assert parent.paths_for("3.0.0") == (
         InclusionPath(
             groups=("nxos-only",),
-            targets=(TargetDefinition(os=["nxos"]),),
+            targets=(("nxos-only", TargetDefinition(os=["nxos"])),),
             tags=("nxos-tag",),
         ),
         InclusionPath(
             groups=("leaf-only",),
-            targets=(TargetDefinition(groups=["leaf"]),),
+            targets=(("leaf-only", TargetDefinition(groups=["leaf"])),),
             tags=("leaf-tag",),
         ),
     )
@@ -552,3 +554,66 @@ def test_load_test_plan_single_file_populates_metadata() -> None:
     assert plan.name is None
     assert plan.description is None
     assert plan.data_model is None
+
+
+def _write_stacked_diamonds(
+    tmp_path: Path, depth: int, *, distinct_tags: bool = False
+) -> Path:
+    """Write a plan whose ``top`` group reaches one test through stacked diamonds.
+
+    Each level has two groups that both include both groups of the level
+    below, so ``top`` reaches ``1.0.0`` through ``2 ** depth`` group chains.
+    With ``distinct_tags``, every group has its own tag, so no two chains are
+    equivalent.
+    """
+    groups: dict[str, dict[str, object]] = {"base": {"tests": ["1.0.0"]}}
+    below = ["base"]
+    for level in range(depth):
+        names = [f"a{level}", f"b{level}"]
+        for name in names:
+            groups[name] = {"groups": list(below)}
+            if distinct_tags:
+                groups[name]["tags"] = [name]
+        below = names
+    groups["top"] = {"groups": below}
+    plan = {
+        "test_cases": {"1.0.0": {"title": "Diamond test", "job": "jobs/x.py"}},
+        "test_case_groups": groups,
+        "scenarios": {"s": {"phases": {"p": {"test_case_groups": ["top"]}}}},
+    }
+    path = tmp_path / "plan.yaml"
+    path.write_text(yaml.safe_dump(plan), encoding="utf-8")
+    return path
+
+
+def test_load_test_plan_merges_equivalent_inclusion_paths(tmp_path: Path) -> None:
+    """Paths with the same targets and tags merge and keep every group ID."""
+    test_plan = load_test_plan(_write_stacked_diamonds(tmp_path, 2))
+    paths = test_plan.test_case_groups["top"].paths_for("1.0.0")
+
+    assert len(paths) == 1
+    assert paths[0].targets == ()
+    assert paths[0].tags == ()
+    assert set(paths[0].groups) == {"a1", "b1", "a0", "b0", "base"}
+
+
+def test_load_test_plan_stacked_diamonds_load_quickly(tmp_path: Path) -> None:
+    """Fourteen stacked diamonds, 16384 group chains, load well under a second."""
+    path = _write_stacked_diamonds(tmp_path, 14)
+
+    started = time.perf_counter()
+    test_plan = load_test_plan(path)
+    elapsed = time.perf_counter() - started
+
+    assert elapsed < 1.0
+    assert len(test_plan.test_case_groups["top"].paths_for("1.0.0")) == 1
+
+
+def test_load_test_plan_rejects_too_many_distinct_inclusion_paths(
+    tmp_path: Path,
+) -> None:
+    """Distinct paths beyond the cap raise instead of growing exponentially."""
+    path = _write_stacked_diamonds(tmp_path, 14, distinct_tags=True)
+
+    with pytest.raises(ConfigurationError, match="nested-group paths"):
+        load_test_plan(path)

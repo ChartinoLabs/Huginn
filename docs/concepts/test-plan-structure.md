@@ -70,7 +70,7 @@ scenarios:
           - interface-baseline
 ```
 
-The phases form a dependency chain: `pre-change` -> `shutdown` -> `gate-post-shutdown` -> `post-shutdown` -> `normalize` -> `post-normalize`. Phases run one at a time, and each waits for its dependencies to complete before executing. If a phase fails or errors, every phase after it in the chain is marked blocked (see [Phase](glossary.md#phase) in the glossary).
+The phases form a dependency chain: `pre-change` -> `shutdown` -> `gate-post-shutdown` -> `post-shutdown` -> `normalize` -> `post-normalize`. Phases run one at a time, and each waits for its dependencies to complete before executing. If a phase fails or errors, every phase after it in the chain is marked blocked. In learning mode, the `shutdown` change job is skipped, so every phase after it is blocked as well (see [Phase](glossary.md#phase) in the glossary).
 
 Notice that `version-baseline`, `bgp-summary-baseline`, `ospf-neighbor-baseline`, and `interface-baseline` appear in three different phases. The test case groups and their test cases are defined once and reused wherever needed.
 

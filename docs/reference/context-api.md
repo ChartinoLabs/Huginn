@@ -128,17 +128,17 @@ There is no `skip()` helper. Record a skip with `add_result(ResultStatus.SKIPPED
 
 ### ResultStatus enum
 
-| Status           | Meaning                                                                                                       | Counts as failure? |
-| ---------------- | ------------------------------------------------------------------------------------------------------------- | ------------------ |
-| `PASSED`         | The check succeeded.                                                                                          | No                 |
-| `FAILED`         | The check did not match expected state.                                                                       | Yes                |
-| `ERRORED`        | An exception or error occurred.                                                                               | Yes                |
-| `NOT_APPLICABLE` | The check did not apply to the target at runtime.                                                             | No                 |
-| `SKIPPED`        | The test case was intentionally not executed.                                                                 | No                 |
-| `BLOCKED`        | The test case did not run because a phase it depends on failed or errored. Set by the framework, not by jobs. | Yes                |
-| `INFO`           | Informational note. Ignored when deriving status.                                                             | No                 |
+| Status           | Meaning                                                                                                                                        | Counts as failure?                        |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `PASSED`         | The check succeeded.                                                                                                                           | No                                        |
+| `FAILED`         | The check did not match expected state.                                                                                                        | Yes                                       |
+| `ERRORED`        | An exception or error occurred.                                                                                                                | Yes                                       |
+| `NOT_APPLICABLE` | The check did not apply to the target at runtime.                                                                                              | No                                        |
+| `SKIPPED`        | The test case was intentionally not executed.                                                                                                  | No                                        |
+| `BLOCKED`        | The test case did not run because a phase it depends on failed or errored, or was not run in learning mode. Set by the framework, not by jobs. | Yes, unless blocked only by learning mode |
+| `INFO`           | Informational note. Ignored when deriving status.                                                                                              | No                                        |
 
-A test case's status is derived from its checks in this order: any `ERRORED` gives `ERRORED`; otherwise any `FAILED` gives `FAILED`; otherwise, ignoring `INFO` checks, all `NOT_APPLICABLE` gives `NOT_APPLICABLE` and all `SKIPPED` gives `SKIPPED`; anything else gives `PASSED`. The run status is derived from the test case statuses in the same order. `huginn run` exits with code 1 when any test case is `FAILED`, `ERRORED` or `BLOCKED`. A run whose test cases are all `PASSED`, `NOT_APPLICABLE` or `SKIPPED` exits 0, even when none of them passed.
+A test case's status is derived from its checks in this order: any `ERRORED` gives `ERRORED`; otherwise any `FAILED` gives `FAILED`; otherwise, ignoring `INFO` checks, all `NOT_APPLICABLE` gives `NOT_APPLICABLE` and all `SKIPPED` gives `SKIPPED`; anything else gives `PASSED`. The run status is derived from the test case statuses in the same order. `huginn run` exits with code 1 when any test case is `FAILED`, `ERRORED` or `BLOCKED`, except a test case blocked only because a phase it depends on was not run in learning mode. A run whose test cases are all `PASSED`, `NOT_APPLICABLE` or `SKIPPED` exits 0, even when none of them passed.
 
 A `LOST_APPLICABILITY` status is planned but not implemented; see [Command support regression detection](#command-support-regression-detection).
 

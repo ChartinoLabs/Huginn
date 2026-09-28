@@ -80,7 +80,7 @@ A high-level organizational unit within a scenario representing a stage of test 
 
 Phases provide structure for reporting (collapse/expand, filtering) and establish execution order through dependencies. Phases within a scenario run one at a time in dependency order, never concurrently. Concurrency lives inside a phase: its test case groups run in parallel by default, subject to the phase's `strategy`, and so do the tests within each group, subject to the group's `strategy`.
 
-A phase that finishes FAILED or ERRORED blocks the phases that depend on it, directly or through a chain of `depends_on`. Each blocked phase is recorded as BLOCKED with a reason that names the phase that failed, for example `Blocked because phase 'change' failed`. Phases that do not depend on it still run. A phase that finishes NOT_APPLICABLE or SKIPPED does not block anything.
+A phase that finishes FAILED or ERRORED blocks the phases that depend on it, directly or through a chain of `depends_on`. Each blocked phase is recorded as BLOCKED with a reason that names the phase that failed, for example `Blocked because phase 'change' failed`. Phases that do not depend on it still run. In learning mode, a phase with any test case that was skipped because its job does not inherit `LearningTestCase`, such as a change or action job, also blocks the phases that depend on it, with a reason such as `Blocked because phase 'shutdown' was not run in learning mode`. The change did not happen, so learning the phases after it would record the unchanged network as their expected state. Otherwise, a phase that finishes NOT_APPLICABLE or SKIPPED does not block anything.
 
 ### Test Plan
 
@@ -136,15 +136,15 @@ The object passed to jobs during execution. Contains access to the connection br
 
 The outcome of a test case execution. Every test case that runs, or is prevented from running, records exactly one of these statuses:
 
-| Status           | Meaning                                                                                                                                                                   |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PASSED`         | All assertions succeeded.                                                                                                                                                 |
-| `FAILED`         | One or more assertions did not match expected state.                                                                                                                      |
-| `INFO`           | An informational check with no effect on pass/fail. Used for individual checks; it never becomes a test case's overall status.                                            |
-| `ERRORED`        | An exception or planning error prevented the test case from completing.                                                                                                   |
-| `NOT_APPLICABLE` | The test case was in scope but determined at runtime to be not applicable to its targets.                                                                                 |
-| `SKIPPED`        | The test case did not execute, for example because no devices matched its target, or because the run is in learning mode and the job does not inherit `LearningTestCase`. |
-| `BLOCKED`        | The test case could not run because a phase it depends on, directly or transitively, failed or errored.                                                                   |
+| Status           | Meaning                                                                                                                                                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PASSED`         | All assertions succeeded.                                                                                                                                                                                |
+| `FAILED`         | One or more assertions did not match expected state.                                                                                                                                                     |
+| `INFO`           | An informational check with no effect on pass/fail. Used for individual checks; it never becomes a test case's overall status.                                                                           |
+| `ERRORED`        | An exception or planning error prevented the test case from completing.                                                                                                                                  |
+| `NOT_APPLICABLE` | The test case was in scope but determined at runtime to be not applicable to its targets.                                                                                                                |
+| `SKIPPED`        | The test case did not execute, for example because no devices matched its target, or because the run is in learning mode and the job does not inherit `LearningTestCase`.                                |
+| `BLOCKED`        | The test case could not run because a phase it depends on, directly or transitively, failed or errored, or, in learning mode, was not run because it has a job that does not inherit `LearningTestCase`. |
 
 A test case's status is derived from its individual checks in this order:
 

@@ -4,13 +4,13 @@ import re
 from dataclasses import dataclass, replace
 
 from huginn.models import (
-    DIRECT_INCLUSION,
     InclusionPath,
     Phase,
     Scenario,
     TestCaseDefinition,
     TestCaseGroup,
     TestPlan,
+    nested_inclusion_paths,
 )
 
 
@@ -169,11 +169,7 @@ def _narrow_group(
     return replace(
         group,
         tests=list(kept_paths),
-        inclusion_paths={
-            test_id: paths
-            for test_id, paths in kept_paths.items()
-            if paths != (DIRECT_INCLUSION,)
-        },
+        inclusion_paths=nested_inclusion_paths(kept_paths),
     )
 
 

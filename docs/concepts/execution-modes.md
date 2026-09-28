@@ -24,6 +24,8 @@ During a learning run, each test case:
 
 No comparison-based pass/fail judgement occurs (though a test case will still fail if it cannot successfully gather parameters). The output is a set of parameter files representing what the infrastructure looks like *right now*.
 
+Test cases whose job does not inherit `LearningTestCase`, such as change and action jobs, are skipped in learning mode. The phases that depend on a phase with such a test case are blocked, so a learning run never records the unchanged network as the expected state after a change. These blocked test cases do not make the run exit non-zero. See [Blocking in learning mode](../reference/test-plan.md#blocking-in-learning-mode).
+
 ### When to run in learning mode
 
 - **Initial deployment** - capture the baseline after confirming the network is healthy

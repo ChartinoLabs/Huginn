@@ -189,7 +189,7 @@ def test_resolve_targets_reports_unknown_device_in_nested_child() -> None:
             "1.0.0": (
                 InclusionPath(
                     groups=("child",),
-                    targets=(TargetDefinition(devices=["missing-01"]),),
+                    targets=(("child", TargetDefinition(devices=["missing-01"])),),
                 ),
             )
         },
