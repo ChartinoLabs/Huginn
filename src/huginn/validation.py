@@ -9,7 +9,7 @@ from huginn.inventory_plugins import (
     resolve_inventory_testbed,
 )
 from huginn.jobs import JobLoadError, load_test_case_class
-from huginn.loaders import ConfigurationError, load_test_plan
+from huginn.loaders import ConfigurationError, load_plan_data_model, load_test_plan
 from huginn.logging_helpers import log_debug, log_info, log_warning
 from huginn.models import (
     Phase,
@@ -70,6 +70,7 @@ async def validate_inputs(
     project_root: Path,
     results_dir: Path,
     output: Output | None = None,
+    data_model_path: Path | None = None,
 ) -> ValidationResult:
     """Validate configuration and emit a validation result."""
     log_info(
@@ -85,7 +86,11 @@ async def validate_inputs(
             inventory_plugin=inventory_plugin,
             project_root=project_root,
         )
-        test_plan = filter_test_plan(load_test_plan(plan_path), filters)
+        loaded_plan = load_test_plan(plan_path)
+        load_plan_data_model(
+            plan_path=plan_path, test_plan=loaded_plan, override=data_model_path
+        )
+        test_plan = filter_test_plan(loaded_plan, filters)
         log_debug(
             output,
             "Validation inputs loaded",

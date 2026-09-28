@@ -323,7 +323,7 @@ Parameters files:
 
 ### Data Model
 
-The `data_model` section configures an external source of truth for expected state. This is an alternative to file-based parameters, useful for Infrastructure as Code approaches.
+The `data_model` section points at an external source of truth for expected state, such as a Network as Code data directory. Huginn loads it once per run and passes it to every job as `context.data_model`. Each job decides how to use it. When no data model is configured, `context.data_model` is `None`.
 
 ```yaml
 data_model:
@@ -334,20 +334,82 @@ data_model:
 | ------ | ------ | -------- | -------------------------------------------------- |
 | `path` | string | Yes      | Path to directory containing data model YAML files |
 
-The data model directory is recursively scanned for YAML files, which are merged into a unified data structure accessible via `context.data_model` in jobs.
+When `data_model` is present, `path` must be a non-empty string, or the test plan fails to load.
 
-**CLI Override:**
+#### Path Resolution
 
-```bash
-# Override data model path at runtime
-huginn run --data-model ./alternative/data/
+A relative `data_model.path` is resolved against the directory that contains the test plan file. In directory mode, it is resolved against the test plan directory itself. The working directory does not affect it.
+
+A path that does not exist or is not a directory fails with a configuration error, as does a directory with no YAML files.
+
+#### Merge Rules
+
+Huginn recursively discovers YAML files in the data model directory using the same rules as a [test plan directory](#directory-mode):
+
+- Files ending in `.yaml` or `.yml` are loaded, in alphabetical order by path.
+- Files and directories whose names start with `_` or `.` are skipped.
+
+Each file must contain a mapping at its root. Files are then deep-merged into one mapping:
+
+- Mappings under the same key are merged recursively.
+- Any other value (a string, number, boolean, null or list) can be defined by only one file. If two files set the same key, loading fails with an error that names both files and the dotted key path, even when the values are equal. Lists are not concatenated.
+
+For example, these two files:
+
+```yaml
+# nac/data/fabric.yaml
+fabric:
+  name: dc1
+  bgp:
+    asn: 65000
 ```
 
-CLI arguments take precedence over test plan settings.
+```yaml
+# nac/data/sites/leafs.yaml
+fabric:
+  leafs: [leaf-01, leaf-02]
+```
 
-**Usage in Jobs:**
+merge into:
 
-Jobs can access the data model to derive expected state:
+```yaml
+fabric:
+  name: dc1
+  bgp:
+    asn: 65000
+  leafs: [leaf-01, leaf-02]
+```
+
+Adding `fabric.name: dc2` to `leafs.yaml` fails with `Conflicting data model value at 'fabric.name' defined in nac/data/fabric.yaml and nac/data/sites/leafs.yaml`.
+
+Invalid YAML fails with a configuration error that names the file.
+
+#### CLI Override
+
+`--data-model` (or the `HUGINN_DATA_MODEL` environment variable) replaces `data_model.path` for `huginn run`, `huginn validate` and `huginn relearn`. It also works when the test plan has no `data_model` section. A relative path given on the command line is resolved against the working directory.
+
+```bash
+huginn run --mode testing --data-model ./alternative/data/
+```
+
+`huginn validate` loads the data model and reports a load failure as a `configuration_error`, so a broken data model is caught before a run.
+
+#### Read-Only Access
+
+Every job in a run shares the same data model object, so it is read-only. Every nested mapping and list rejects changes with a `TypeError`. Reads, iteration, `isinstance(..., dict)` and `isinstance(..., list)` checks, `json.dumps` and `yaml.safe_dump` all behave as they do for plain dictionaries and lists.
+
+To modify the data model inside a job, make a private copy with `copy.deepcopy()`. The copy is built from plain, mutable dictionaries and lists:
+
+```python
+import copy
+
+interfaces = copy.deepcopy(context.data_model["interfaces"])
+interfaces.append({"name": "Loopback0"})
+```
+
+#### Usage in Jobs
+
+Jobs can derive expected state from the data model and fall back to file-based parameters when none is configured:
 
 ```python
 async def test(self, context: Context) -> None:
@@ -358,7 +420,9 @@ async def test(self, context: Context) -> None:
         # Derive expected state from data model
         ospf_config = context.data_model.get("ospf")
         if ospf_config is None:
-            context.results.skip("OSPF not configured in data model")
+            context.results.add_result(
+                ResultStatus.NOT_APPLICABLE, "OSPF not configured in data model"
+            )
             return
         expected = ospf_config.get("neighbors", [])
 

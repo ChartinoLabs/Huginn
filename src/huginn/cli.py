@@ -242,8 +242,8 @@ def run(
             "--data-model",
             "-d",
             help="Path to data model directory containing YAML files representing "
-            "intended infrastructure state.",
-            exists=True,
+            "intended infrastructure state. Overrides data_model.path in the "
+            "test plan.",
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
@@ -347,7 +347,6 @@ def run(
     testbed_path = _resolve_testbed_option(
         testbed=testbed,
         inventory_plugin=inventory_plugin,
-        data_model=data_model,
     )
 
     output = _build_output(
@@ -361,6 +360,7 @@ def run(
         "CLI run options",
         plan=plan,
         testbed=testbed_path,
+        data_model=data_model,
         inventory_plugin=inventory_plugin,
         tags=tags,
         exclude_tags=exclude_tags,
@@ -399,6 +399,7 @@ def run(
                 output_dir=output_dir,
                 output=output,
                 registry=plugin_registry,
+                data_model_path=data_model,
             )
         )
     except ConfigurationError as error:
@@ -519,8 +520,9 @@ def validate(
         typer.Option(
             "--data-model",
             "-d",
-            help="Reserved for future data model support.",
-            exists=True,
+            help="Path to data model directory containing YAML files representing "
+            "intended infrastructure state. Overrides data_model.path in the "
+            "test plan.",
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
@@ -576,7 +578,6 @@ def validate(
     testbed_path = _resolve_testbed_option(
         testbed=testbed,
         inventory_plugin=inventory_plugin,
-        data_model=data_model,
     )
 
     output = _build_output(
@@ -590,6 +591,7 @@ def validate(
         "CLI validate options",
         plan=plan,
         testbed=testbed_path,
+        data_model=data_model,
         inventory_plugin=inventory_plugin,
         tags=tags,
         exclude_tags=exclude_tags,
@@ -619,6 +621,7 @@ def validate(
                 project_root=Path.cwd(),
                 results_dir=Path.cwd() / "results",
                 output=output,
+                data_model_path=data_model,
             )
         )
     except ConfigurationError as error:
@@ -667,7 +670,6 @@ def _resolve_testbed_option(
     *,
     testbed: Path | None,
     inventory_plugin: str | None,
-    data_model: Path | None,
 ) -> Path | None:
     """Validate first-slice options and return required testbed path."""
     if testbed is not None and inventory_plugin is not None:
@@ -685,8 +687,6 @@ def _resolve_testbed_option(
                 "(no default ./testbed.yaml found)."
             )
 
-    if data_model is not None:
-        raise typer.BadParameter("--data-model is not implemented yet.")
     return testbed
 
 
@@ -1005,8 +1005,8 @@ def relearn(
             "--data-model",
             "-d",
             help="Path to data model directory containing YAML files representing "
-            "intended infrastructure state.",
-            exists=True,
+            "intended infrastructure state. Overrides data_model.path in the "
+            "test plan.",
             file_okay=False,
             dir_okay=True,
             resolve_path=True,
@@ -1111,7 +1111,6 @@ def relearn(
     testbed_path = _resolve_testbed_option(
         testbed=testbed,
         inventory_plugin=inventory_plugin,
-        data_model=data_model,
     )
 
     output = _build_output(
@@ -1125,6 +1124,7 @@ def relearn(
         "CLI relearn options",
         plan=resolved_plan,
         testbed=testbed_path,
+        data_model=data_model,
         scenario=scenario,
         phase=phase,
         results_dir=resolved_results_dir,
@@ -1146,6 +1146,7 @@ def relearn(
             parameters_dir=resolved_parameters_dir,
             results_dir=resolved_results_dir,
             output_dir=output_dir,
+            data_model_path=data_model,
             output=output,
             plugin_registry=_project_plugin_registry(ctx),
         )
@@ -1211,6 +1212,7 @@ def _execute_relearn(
     parameters_dir: Path,
     results_dir: Path,
     output_dir: Path | None,
+    data_model_path: Path | None,
     output: Output,
     plugin_registry: PluginRegistry,
 ) -> None:
@@ -1230,6 +1232,7 @@ def _execute_relearn(
             output_dir=output_dir,
             output=output,
             registry=plugin_registry,
+            data_model_path=data_model_path,
         )
     )
 

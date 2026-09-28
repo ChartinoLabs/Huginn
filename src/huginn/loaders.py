@@ -4,7 +4,7 @@ import os
 import re
 from collections.abc import Mapping
 from pathlib import Path
-from typing import cast
+from typing import NoReturn, cast
 
 import yaml
 
@@ -479,8 +479,8 @@ def _load_test_plan_file(path: Path) -> TestPlan:
         description=_load_optional_metadata_string(
             data.get("description"), "description"
         ),
-        data_model=_load_optional_metadata_mapping(
-            data.get("data_model"), "data_model"
+        data_model=_validate_data_model_metadata(
+            _load_optional_metadata_mapping(data.get("data_model"), "data_model")
         ),
     )
 
@@ -503,6 +503,20 @@ def _load_optional_metadata_mapping(
     if not isinstance(value, dict):
         raise ConfigurationError(f"Test plan '{field}' must be a mapping")
     return cast(dict[str, object], value)
+
+
+def _validate_data_model_metadata(
+    value: dict[str, object] | None,
+) -> dict[str, object] | None:
+    """Require a non-empty string `path` in a test plan `data_model` section."""
+    if value is None:
+        return None
+    path = value.get("path")
+    if not isinstance(path, str) or not path:
+        raise ConfigurationError(
+            "Test plan 'data_model.path' must be a non-empty string"
+        )
+    return value
 
 
 _SECTION_KEYS = frozenset({"test_cases", "test_case_groups", "scenarios"})
@@ -676,7 +690,7 @@ def _load_test_plan_directory(directory: Path) -> TestPlan:
         scenarios=scenarios,
         name=metadata_scalars.get("name"),
         description=metadata_scalars.get("description"),
-        data_model=metadata_mappings.get("data_model"),
+        data_model=_validate_data_model_metadata(metadata_mappings.get("data_model")),
     )
 
 
@@ -1220,3 +1234,188 @@ def _validate_scenario_references(
                     "undefined depends_on phases: "
                     f"{missing_phase_dependencies}"
                 )
+
+
+def resolve_data_model_path(
+    *,
+    plan_path: Path,
+    test_plan: TestPlan,
+    override: Path | None = None,
+) -> Path | None:
+    """Return the data model directory for a run, or None if none is configured.
+
+    `override` (from `--data-model`) wins and is used as given, so a relative
+    path resolves against the working directory. Otherwise `data_model.path`
+    is resolved relative to the plan file's directory, or to the plan
+    directory itself in directory mode.
+    """
+    if override is not None:
+        return override
+    if test_plan.data_model is None:
+        return None
+    base = plan_path if plan_path.is_dir() else plan_path.parent
+    return base / str(test_plan.data_model["path"])
+
+
+def load_plan_data_model(
+    *,
+    plan_path: Path,
+    test_plan: TestPlan,
+    override: Path | None = None,
+) -> Mapping[str, object] | None:
+    """Resolve and load a plan's data model, or return None if none is configured."""
+    directory = resolve_data_model_path(
+        plan_path=plan_path, test_plan=test_plan, override=override
+    )
+    if directory is None:
+        return None
+    return load_data_model(directory)
+
+
+def load_data_model(directory: Path) -> Mapping[str, object]:
+    """Load and deep-merge every YAML file under a data model directory.
+
+    Files are discovered with the test plan directory-mode rules. Mappings are
+    merged recursively; any other value may only be defined by one file. The
+    result is built from read-only dicts and lists so jobs sharing it cannot
+    change it for each other.
+    """
+    if not directory.is_dir():
+        raise ConfigurationError(
+            f"Data model path {directory} does not exist or is not a directory"
+        )
+    yaml_files = discover_yaml_files(directory)
+    if not yaml_files:
+        raise ConfigurationError(
+            f"Data model directory {directory} contains no YAML files"
+        )
+
+    merged: dict[str, object] = {}
+    sources: dict[tuple[str, ...], Path] = {}
+    for yaml_path in yaml_files:
+        try:
+            data = _load_yaml(yaml_path)
+        except OSError as exc:
+            raise ConfigurationError(
+                f"Failed to read data model file {yaml_path}: {exc}"
+            ) from exc
+        _deep_merge_data_model(
+            merged, data, source_path=yaml_path, sources=sources, key_path=()
+        )
+    return cast(Mapping[str, object], _freeze(merged))
+
+
+def _deep_merge_data_model(
+    target: dict[str, object],
+    source: dict[str, object],
+    *,
+    source_path: Path,
+    sources: dict[tuple[str, ...], Path],
+    key_path: tuple[str, ...],
+) -> None:
+    """Merge `source` into `target`, raising when a non-mapping value repeats."""
+    for key, value in source.items():
+        path = (*key_path, str(key))
+        existing = target.get(key)
+        if key not in target:
+            target[key] = value
+            sources[path] = source_path
+        elif isinstance(existing, dict) and isinstance(value, dict):
+            _deep_merge_data_model(
+                cast(dict[str, object], existing),
+                cast(dict[str, object], value),
+                source_path=source_path,
+                sources=sources,
+                key_path=path,
+            )
+        else:
+            raise ConfigurationError(
+                f"Conflicting data model value at '{'.'.join(path)}' defined in "
+                f"{_data_model_source(sources, path)} and {source_path}"
+            )
+
+
+def _data_model_source(
+    sources: dict[tuple[str, ...], Path], path: tuple[str, ...]
+) -> Path:
+    """Return the file that first defined `path` or its closest ancestor."""
+    while path not in sources:
+        path = path[:-1]
+    return sources[path]
+
+
+def _freeze(value: object) -> object:
+    """Recursively convert dicts and lists to their read-only counterparts."""
+    if isinstance(value, dict):
+        return _ReadOnlyDict({key: _freeze(item) for key, item in value.items()})
+    if isinstance(value, list):
+        return _ReadOnlyList(_freeze(item) for item in value)
+    return value
+
+
+def _thaw(value: object) -> object:
+    """Recursively convert read-only containers back to plain dicts and lists."""
+    if isinstance(value, dict):
+        return {key: _thaw(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_thaw(item) for item in value]
+    return value
+
+
+def _read_only(*_args: object, **_kwargs: object) -> NoReturn:
+    """Reject a mutation of a shared data model container."""
+    raise TypeError(
+        "context.data_model is read-only and shared by every job; "
+        "use copy.deepcopy() to get a mutable copy"
+    )
+
+
+class _ReadOnlyDict(dict[str, object]):
+    """A dict that rejects mutation, used for the shared data model.
+
+    Reads, equality, `isinstance(..., dict)` and JSON serialization behave as
+    for a plain dict. `copy.copy` and `copy.deepcopy` return mutable copies.
+    """
+
+    __setitem__ = __delitem__ = __ior__ = _read_only
+    clear = pop = popitem = setdefault = update = _read_only
+
+    def __copy__(self) -> dict[str, object]:
+        """Return a shallow, mutable copy."""
+        return dict(self)
+
+    def __deepcopy__(self, memo: dict[int, object]) -> object:
+        """Return a deep, mutable copy."""
+        return _thaw(self)
+
+    def __reduce__(self) -> tuple[type[dict[str, object]], tuple[object]]:
+        """Pickle as a plain dict."""
+        return (dict, (_thaw(self),))
+
+
+class _ReadOnlyList(list[object]):
+    """A list that rejects mutation, used for the shared data model.
+
+    Reads, equality, `isinstance(..., list)` and JSON serialization behave as
+    for a plain list. `copy.copy` and `copy.deepcopy` return mutable copies.
+    """
+
+    __setitem__ = __delitem__ = __iadd__ = __imul__ = _read_only
+    append = extend = insert = pop = remove = clear = sort = reverse = _read_only
+
+    def __copy__(self) -> list[object]:
+        """Return a shallow, mutable copy."""
+        return list(self)
+
+    def __deepcopy__(self, memo: dict[int, object]) -> object:
+        """Return a deep, mutable copy."""
+        return _thaw(self)
+
+    def __reduce__(self) -> tuple[type[list[object]], tuple[object]]:
+        """Pickle as a plain list."""
+        return (list, (_thaw(self),))
+
+
+# Let `yaml.safe_dump` serialize the data model like plain dicts and lists.
+yaml.SafeDumper.add_representer(_ReadOnlyDict, yaml.SafeDumper.represent_dict)
+yaml.SafeDumper.add_representer(_ReadOnlyList, yaml.SafeDumper.represent_list)

@@ -4,7 +4,7 @@ import asyncio
 import copy
 import traceback
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -17,7 +17,7 @@ from huginn.inventory_plugins import (
     resolve_inventory_testbed,
 )
 from huginn.jobs import JobLoadError, load_test_case_class
-from huginn.loaders import ConfigurationError, load_test_plan
+from huginn.loaders import ConfigurationError, load_plan_data_model, load_test_plan
 from huginn.logging_helpers import log_debug, log_info, log_warning
 from huginn.models import (
     CheckResult,
@@ -92,6 +92,7 @@ async def run_test_plan(
     output: Output | None = None,
     broker_factory: Callable[[], RuntimeBroker] | None = None,
     registry: PluginRegistry | None = None,
+    data_model_path: Path | None = None,
 ) -> RunResult:
     """Execute a minimal test plan and persist run artifacts."""
     run_started = perf_counter()
@@ -118,7 +119,13 @@ async def run_test_plan(
             project_root=project_root,
             registry=registry,
         )
-        test_plan = filter_test_plan(load_test_plan(plan_path), filters)
+        loaded_plan = load_test_plan(plan_path)
+        data_model = load_plan_data_model(
+            plan_path=plan_path,
+            test_plan=loaded_plan,
+            override=data_model_path,
+        )
+        test_plan = filter_test_plan(loaded_plan, filters)
         log_debug(
             output,
             "Configuration loaded",
@@ -202,6 +209,7 @@ async def run_test_plan(
             broker=runtime_broker,
             parameters_dir=parameters_dir,
             output_dir=output_dir,
+            data_model=data_model,
             output=output,
         )
         _emit_status(
@@ -333,6 +341,7 @@ async def _execute_scenarios(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output_dir: Path,
+    data_model: Mapping[str, object] | None,
     output: Output | None,
 ) -> list[ExecutedScenario]:
     """Execute scenarios and their phases in declared order."""
@@ -356,6 +365,7 @@ async def _execute_scenarios(
             broker=broker,
             parameters_dir=parameters_dir,
             output_dir=output_dir,
+            data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
         )
@@ -373,6 +383,7 @@ async def _execute_scenario(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output_dir: Path,
+    data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> ExecutedScenario:
@@ -410,6 +421,7 @@ async def _execute_scenario(
             broker=broker,
             parameters_dir=parameters_dir,
             output_dir=output_dir,
+            data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
             phase_results=phase_results,
@@ -469,6 +481,7 @@ async def _execute_ready_phase(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output_dir: Path,
+    data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
     phase_results: dict[str, ExecutedPhase],
@@ -493,6 +506,7 @@ async def _execute_ready_phase(
         broker=broker,
         parameters_dir=parameters_dir,
         output_dir=output_dir,
+        data_model=data_model,
         learning_execution_cache=learning_execution_cache,
         output=output,
     )
@@ -613,6 +627,7 @@ async def _execute_phase(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output_dir: Path,
+    data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> ExecutedPhase:
@@ -637,6 +652,7 @@ async def _execute_phase(
             broker=broker,
             parameters_dir=parameters_dir,
             output_dir=output_dir,
+            data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
         )
@@ -651,6 +667,7 @@ async def _execute_phase(
             broker=broker,
             parameters_dir=parameters_dir,
             output_dir=output_dir,
+            data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
         )
@@ -675,6 +692,7 @@ async def _execute_phase_groups_serial(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output_dir: Path,
+    data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> list[ExecutedTestCaseGroup]:
@@ -693,6 +711,7 @@ async def _execute_phase_groups_serial(
                 broker=broker,
                 parameters_dir=parameters_dir,
                 output_dir=output_dir,
+                data_model=data_model,
                 learning_execution_cache=learning_execution_cache,
                 output=output,
             )
@@ -711,6 +730,7 @@ async def _execute_phase_groups_parallel(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output_dir: Path,
+    data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> list[ExecutedTestCaseGroup]:
@@ -734,6 +754,7 @@ async def _execute_phase_groups_parallel(
                     broker=broker,
                     parameters_dir=parameters_dir,
                     output_dir=output_dir,
+                    data_model=data_model,
                     learning_execution_cache=learning_execution_cache,
                     output=output,
                 )
@@ -759,6 +780,7 @@ async def _execute_group_with_optional_semaphore(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output_dir: Path,
+    data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> tuple[int, ExecutedTestCaseGroup]:
@@ -777,6 +799,7 @@ async def _execute_group_with_optional_semaphore(
                 broker=broker,
                 parameters_dir=parameters_dir,
                 output_dir=output_dir,
+                data_model=data_model,
                 learning_execution_cache=learning_execution_cache,
                 output=output,
             ),
@@ -796,6 +819,7 @@ async def _execute_group_with_optional_semaphore(
                 broker=broker,
                 parameters_dir=parameters_dir,
                 output_dir=output_dir,
+                data_model=data_model,
                 learning_execution_cache=learning_execution_cache,
                 output=output,
             ),
@@ -814,6 +838,7 @@ async def _execute_group(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output_dir: Path,
+    data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> ExecutedTestCaseGroup:
@@ -841,6 +866,7 @@ async def _execute_group(
             broker=broker,
             parameters_dir=parameters_dir,
             output_dir=output_dir,
+            data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
         )
@@ -856,6 +882,7 @@ async def _execute_group(
             broker=broker,
             parameters_dir=parameters_dir,
             output_dir=output_dir,
+            data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
         )
@@ -888,6 +915,7 @@ async def _execute_group_tests_serial(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output_dir: Path,
+    data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> list[ExecutedTestCase]:
@@ -907,6 +935,7 @@ async def _execute_group_tests_serial(
                 broker=broker,
                 parameters_dir=parameters_dir,
                 output_dir=output_dir,
+                data_model=data_model,
                 learning_execution_cache=learning_execution_cache,
                 output=output,
             )
@@ -926,6 +955,7 @@ async def _execute_group_tests_parallel(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output_dir: Path,
+    data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> list[ExecutedTestCase]:
@@ -950,6 +980,7 @@ async def _execute_group_tests_parallel(
                     broker=broker,
                     parameters_dir=parameters_dir,
                     output_dir=output_dir,
+                    data_model=data_model,
                     learning_execution_cache=learning_execution_cache,
                     output=output,
                 )
@@ -975,6 +1006,7 @@ async def _execute_test_case_with_optional_semaphore(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output_dir: Path,
+    data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> tuple[int, ExecutedTestCase]:
@@ -993,6 +1025,7 @@ async def _execute_test_case_with_optional_semaphore(
                 broker=broker,
                 parameters_dir=parameters_dir,
                 output_dir=output_dir,
+                data_model=data_model,
                 learning_execution_cache=learning_execution_cache,
                 output=output,
             ),
@@ -1012,6 +1045,7 @@ async def _execute_test_case_with_optional_semaphore(
                 broker=broker,
                 parameters_dir=parameters_dir,
                 output_dir=output_dir,
+                data_model=data_model,
                 learning_execution_cache=learning_execution_cache,
                 output=output,
             ),
@@ -1153,6 +1187,7 @@ async def _execute_test_case(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output_dir: Path,
+    data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> ExecutedTestCase:
@@ -1168,6 +1203,7 @@ async def _execute_test_case(
             broker=broker,
             parameters_dir=parameters_dir,
             output_dir=output_dir,
+            data_model=data_model,
             output=output,
         )
 
@@ -1185,6 +1221,7 @@ async def _execute_test_case(
                 broker=broker,
                 parameters_dir=parameters_dir,
                 output_dir=output_dir,
+                data_model=data_model,
                 output=output,
             )
         )
@@ -1228,6 +1265,7 @@ async def _execute_test_case_once(
     broker: RuntimeBroker,
     parameters_dir: Path,
     output_dir: Path,
+    data_model: Mapping[str, object] | None,
     output: Output | None,
 ) -> ExecutedTestCase:
     _emit_status(output, f"Starting test: {definition.test_id} ({definition.title})")
@@ -1308,6 +1346,7 @@ async def _execute_test_case_once(
         ),
         results=result_collector,
         output_dir=output_dir,
+        data_model=data_model,
         scenario=scenario_name,
         phase=phase.identifier,
         test_case_group=group.identifier,
