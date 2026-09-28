@@ -1674,27 +1674,27 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#future-plugin-discovery-and-extraction" class="md-nav__link">
+  <a href="#plugin-discovery" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Future: Plugin Discovery and Extraction
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Future: Plugin Discovery and Extraction">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#entry-point-discovery" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Entry Point Discovery
+        Plugin Discovery
       
     </span>
   </a>
   
 </li>
+      
+        <li class="md-nav__item">
+  <a href="#future-broker-configuration-and-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Future: Broker Configuration and Extraction
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Future: Broker Configuration and Extraction">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#explicit-configuration" class="md-nav__link">
@@ -2272,27 +2272,27 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#future-plugin-discovery-and-extraction" class="md-nav__link">
+  <a href="#plugin-discovery" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Future: Plugin Discovery and Extraction
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Future: Plugin Discovery and Extraction">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#entry-point-discovery" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Entry Point Discovery
+        Plugin Discovery
       
     </span>
   </a>
   
 </li>
+      
+        <li class="md-nav__item">
+  <a href="#future-broker-configuration-and-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Future: Broker Configuration and Extraction
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Future: Broker Configuration and Extraction">
+      <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#explicit-configuration" class="md-nav__link">
@@ -2414,16 +2414,20 @@
 <td>Implemented</td>
 </tr>
 <tr>
-<td>Capability-aware routing</td>
+<td>Capability declaration (<code>capabilities()</code>, <code>PROTOCOL_VERSION</code>)</td>
 <td>Implemented</td>
+</tr>
+<tr>
+<td>Capability-aware routing in <code>RuntimeBroker</code></td>
+<td>Not yet implemented</td>
 </tr>
 <tr>
 <td>Configuration passthrough via <code>options</code> dict</td>
 <td>Implemented</td>
 </tr>
 <tr>
-<td>Entry point discovery for external broker plugins</td>
-<td>Not yet implemented</td>
+<td>Entry point discovery (<code>huginn.brokers</code>) and <code>[tool.huginn.plugins] brokers</code> filter</td>
+<td>Implemented</td>
 </tr>
 <tr>
 <td><code>[tool.huginn.brokers]</code> explicit broker configuration</td>
@@ -2452,7 +2456,7 @@
 <ol>
 <li><strong>Protocol-first</strong>: The contract between core and brokers is defined by Python protocols, not inheritance</li>
 <li><strong>Async-native</strong>: All broker operations are async to support concurrent device operations</li>
-<li><strong>Capability-aware</strong>: Brokers declare their capabilities; the framework adapts accordingly</li>
+<li><strong>Capability-aware</strong>: Brokers declare their capabilities (see <a href="#capability-negotiation">Capability Negotiation</a> for how far the framework uses them today)</li>
 <li><strong>Configuration passthrough</strong>: Broker-specific options flow through without core interpretation</li>
 <li><strong>Fail-fast validation</strong>: Broker compatibility is verified at startup, not runtime</li>
 </ol>
@@ -2563,9 +2567,9 @@
 <a id="__codelineno-2-83" name="__codelineno-2-83" href="#__codelineno-2-83"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cache_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-2-84" name="__codelineno-2-84" href="#__codelineno-2-84"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate a cache key for an operation.</span>
 <a id="__codelineno-2-85" name="__codelineno-2-85" href="#__codelineno-2-85"></a>
-<a id="__codelineno-2-86" name="__codelineno-2-86" href="#__codelineno-2-86"></a><span class="sd">        The broker controls cache key generation, enabling</span>
-<a id="__codelineno-2-87" name="__codelineno-2-87" href="#__codelineno-2-87"></a><span class="sd">        protocol-specific logic. Returns None for operations that</span>
-<a id="__codelineno-2-88" name="__codelineno-2-88" href="#__codelineno-2-88"></a><span class="sd">        should never be cached (e.g., configuration commands).</span>
+<a id="__codelineno-2-86" name="__codelineno-2-86" href="#__codelineno-2-86"></a><span class="sd">        Returns None for operations that should never be cached</span>
+<a id="__codelineno-2-87" name="__codelineno-2-87" href="#__codelineno-2-87"></a><span class="sd">        (e.g., configuration commands). RuntimeBroker does not call</span>
+<a id="__codelineno-2-88" name="__codelineno-2-88" href="#__codelineno-2-88"></a><span class="sd">        this method; see Caching below.</span>
 <a id="__codelineno-2-89" name="__codelineno-2-89" href="#__codelineno-2-89"></a><span class="sd">        &quot;&quot;&quot;</span>
 <a id="__codelineno-2-90" name="__codelineno-2-90" href="#__codelineno-2-90"></a>        <span class="o">...</span>
 <a id="__codelineno-2-91" name="__codelineno-2-91" href="#__codelineno-2-91"></a>
@@ -2686,11 +2690,11 @@
 <li><strong>SSH</strong>: <code>send_interactive()</code> for commands requiring interactive prompts (e.g., confirmation dialogs)</li>
 <li><strong>NETCONF</strong>: <code>lock()</code>, <code>unlock()</code>, <code>commit()</code>, <code>discard_changes()</code> for advanced NETCONF datastore operations</li>
 </ul>
-<p>These are accessed via runtime type checking in the <code>RuntimeBroker</code> when needed.</p>
+<p><code>RuntimeBroker.send_interactive()</code> forwards to the SSH broker's <code>send_interactive()</code> after checking that the broker has one. The NETCONF datastore methods are not exposed through <code>RuntimeBroker</code>, so jobs using <code>context.broker</code> cannot call them.</p>
 <h3 id="module-structure">Module Structure<a class="headerlink" href="#module-structure" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>huginn/
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>├── brokers/
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>│   ├── __init__.py           # Broker registry and exports
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>│   ├── __init__.py           # Protocol, data class, and exception exports
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>│   ├── protocol.py           # Protocol definition, data classes
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>│   ├── exceptions.py         # Exception hierarchy
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>│   ├── ssh.py                # SSHBroker (Scrapli)
@@ -2702,64 +2706,109 @@
 <p>The <code>RuntimeBroker</code> class is the framework's broker manager that coordinates all broker instances. Tests interact with it via <code>context.broker</code>.</p>
 <h3 id="responsibilities">Responsibilities<a class="headerlink" href="#responsibilities" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Instantiating and managing broker instances</li>
+<li>Instantiating broker instances through the plugin registry</li>
 <li>Connection pooling across all brokers</li>
-<li>Routing operations to the correct broker based on connection type</li>
-<li>Command result caching with broker-controlled cache keys</li>
+<li>Routing operations to the broker a device is connected through</li>
+<li>Command result caching</li>
 <li>Per-device operation locking for serial execution</li>
 <li>Single-flight semantics (concurrent identical requests share one execution)</li>
 </ul>
 <h3 id="key-interface">Key Interface<a class="headerlink" href="#key-interface" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">RuntimeBroker</span><span class="p">:</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">connect_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">devices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Device</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Connect to all devices using appropriate brokers.&quot;&quot;&quot;</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>        <span class="o">...</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">disconnect_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Disconnect all active connections.&quot;&quot;&quot;</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">connect_targets</span><span class="p">(</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>        <span class="n">targets</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Device</span><span class="p">],</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        <span class="n">required_brokers</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">BrokerType</span><span class="p">]</span> <span class="o">|</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Open one connection per target and required broker.&quot;&quot;&quot;</span>
 <a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="o">...</span>
 <a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">execute</span><span class="p">(</span>
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>        <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>        <span class="n">target</span><span class="p">:</span> <span class="n">Device</span><span class="p">,</span>
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>        <span class="n">command</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>        <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>        <span class="n">broker</span><span class="p">:</span> <span class="n">BrokerType</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        <span class="n">use_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>        <span class="n">bust_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CommandResult</span><span class="p">:</span>
-<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute command through appropriate broker.&quot;&quot;&quot;</span>
-<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>        <span class="o">...</span>
-<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>
-<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span>
-<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>        <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>        <span class="n">target</span><span class="p">:</span> <span class="n">Device</span><span class="p">,</span>
-<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>        <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>        <span class="n">broker</span><span class="p">:</span> <span class="n">BrokerType</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>        <span class="n">use_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>        <span class="n">bust_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CommandResult</span><span class="p">:</span>
-<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform GET operation through appropriate broker.&quot;&quot;&quot;</span>
-<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>        <span class="o">...</span>
-<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>
-<a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">edit</span><span class="p">(</span>
-<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a>        <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a>        <span class="n">target</span><span class="p">:</span> <span class="n">Device</span><span class="p">,</span>
-<a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a>        <span class="n">config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a>        <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-5-39" name="__codelineno-5-39" href="#__codelineno-5-39"></a>        <span class="n">broker</span><span class="p">:</span> <span class="n">BrokerType</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-5-40" name="__codelineno-5-40" href="#__codelineno-5-40"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CommandResult</span><span class="p">:</span>
-<a id="__codelineno-5-41" name="__codelineno-5-41" href="#__codelineno-5-41"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform edit operation (never cached).&quot;&quot;&quot;</span>
-<a id="__codelineno-5-42" name="__codelineno-5-42" href="#__codelineno-5-42"></a>        <span class="o">...</span>
-<a id="__codelineno-5-43" name="__codelineno-5-43" href="#__codelineno-5-43"></a>
-<a id="__codelineno-5-44" name="__codelineno-5-44" href="#__codelineno-5-44"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">clear_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-5-45" name="__codelineno-5-45" href="#__codelineno-5-45"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Clear all cached results.&quot;&quot;&quot;</span>
-<a id="__codelineno-5-46" name="__codelineno-5-46" href="#__codelineno-5-46"></a>        <span class="o">...</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">disconnect_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Disconnect all active connections.&quot;&quot;&quot;</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>        <span class="o">...</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">execute</span><span class="p">(</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        <span class="n">target</span><span class="p">:</span> <span class="n">Device</span><span class="p">,</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>        <span class="n">command</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>        <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>        <span class="n">broker</span><span class="p">:</span> <span class="n">BrokerType</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>        <span class="n">use_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>        <span class="n">bust_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CommandResult</span><span class="p">:</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute a command through the broker the target is connected to.&quot;&quot;&quot;</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>        <span class="o">...</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">send_interactive</span><span class="p">(</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>        <span class="n">target</span><span class="p">:</span> <span class="n">Device</span><span class="p">,</span>
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>        <span class="n">interact_events</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]],</span>
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>        <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>        <span class="n">broker</span><span class="p">:</span> <span class="n">BrokerType</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CommandResult</span><span class="p">:</span>
+<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Run an interactive command sequence (never cached).&quot;&quot;&quot;</span>
+<a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a>        <span class="o">...</span>
+<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a>
+<a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span>
+<a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a>        <span class="n">target</span><span class="p">:</span> <span class="n">Device</span><span class="p">,</span>
+<a id="__codelineno-5-39" name="__codelineno-5-39" href="#__codelineno-5-39"></a>        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-5-40" name="__codelineno-5-40" href="#__codelineno-5-40"></a>        <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-5-41" name="__codelineno-5-41" href="#__codelineno-5-41"></a>        <span class="n">broker</span><span class="p">:</span> <span class="n">BrokerType</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-5-42" name="__codelineno-5-42" href="#__codelineno-5-42"></a>        <span class="n">use_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-5-43" name="__codelineno-5-43" href="#__codelineno-5-43"></a>        <span class="n">bust_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-5-44" name="__codelineno-5-44" href="#__codelineno-5-44"></a>        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
+<a id="__codelineno-5-45" name="__codelineno-5-45" href="#__codelineno-5-45"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CommandResult</span><span class="p">:</span>
+<a id="__codelineno-5-46" name="__codelineno-5-46" href="#__codelineno-5-46"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform a GET operation; extra kwargs go to the broker.&quot;&quot;&quot;</span>
+<a id="__codelineno-5-47" name="__codelineno-5-47" href="#__codelineno-5-47"></a>        <span class="o">...</span>
+<a id="__codelineno-5-48" name="__codelineno-5-48" href="#__codelineno-5-48"></a>
+<a id="__codelineno-5-49" name="__codelineno-5-49" href="#__codelineno-5-49"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">edit</span><span class="p">(</span>
+<a id="__codelineno-5-50" name="__codelineno-5-50" href="#__codelineno-5-50"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-5-51" name="__codelineno-5-51" href="#__codelineno-5-51"></a>        <span class="n">target</span><span class="p">:</span> <span class="n">Device</span><span class="p">,</span>
+<a id="__codelineno-5-52" name="__codelineno-5-52" href="#__codelineno-5-52"></a>        <span class="n">config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-5-53" name="__codelineno-5-53" href="#__codelineno-5-53"></a>        <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-5-54" name="__codelineno-5-54" href="#__codelineno-5-54"></a>        <span class="n">broker</span><span class="p">:</span> <span class="n">BrokerType</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-5-55" name="__codelineno-5-55" href="#__codelineno-5-55"></a>        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
+<a id="__codelineno-5-56" name="__codelineno-5-56" href="#__codelineno-5-56"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CommandResult</span><span class="p">:</span>
+<a id="__codelineno-5-57" name="__codelineno-5-57" href="#__codelineno-5-57"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform an edit operation (never cached).&quot;&quot;&quot;</span>
+<a id="__codelineno-5-58" name="__codelineno-5-58" href="#__codelineno-5-58"></a>        <span class="o">...</span>
+<a id="__codelineno-5-59" name="__codelineno-5-59" href="#__codelineno-5-59"></a>
+<a id="__codelineno-5-60" name="__codelineno-5-60" href="#__codelineno-5-60"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">clear_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-5-61" name="__codelineno-5-61" href="#__codelineno-5-61"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Clear all cached results.&quot;&quot;&quot;</span>
+<a id="__codelineno-5-62" name="__codelineno-5-62" href="#__codelineno-5-62"></a>        <span class="o">...</span>
+<a id="__codelineno-5-63" name="__codelineno-5-63" href="#__codelineno-5-63"></a>
+<a id="__codelineno-5-64" name="__codelineno-5-64" href="#__codelineno-5-64"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">invalidate_execute_cache</span><span class="p">(</span>
+<a id="__codelineno-5-65" name="__codelineno-5-65" href="#__codelineno-5-65"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-5-66" name="__codelineno-5-66" href="#__codelineno-5-66"></a>        <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-5-67" name="__codelineno-5-67" href="#__codelineno-5-67"></a>        <span class="n">target</span><span class="p">:</span> <span class="n">Device</span><span class="p">,</span>
+<a id="__codelineno-5-68" name="__codelineno-5-68" href="#__codelineno-5-68"></a>        <span class="n">command</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-5-69" name="__codelineno-5-69" href="#__codelineno-5-69"></a>        <span class="n">broker</span><span class="p">:</span> <span class="n">BrokerType</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-5-70" name="__codelineno-5-70" href="#__codelineno-5-70"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-5-71" name="__codelineno-5-71" href="#__codelineno-5-71"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Drop one cached execute result.&quot;&quot;&quot;</span>
+<a id="__codelineno-5-72" name="__codelineno-5-72" href="#__codelineno-5-72"></a>        <span class="o">...</span>
+<a id="__codelineno-5-73" name="__codelineno-5-73" href="#__codelineno-5-73"></a>
+<a id="__codelineno-5-74" name="__codelineno-5-74" href="#__codelineno-5-74"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">invalidate_get_cache</span><span class="p">(</span>
+<a id="__codelineno-5-75" name="__codelineno-5-75" href="#__codelineno-5-75"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-5-76" name="__codelineno-5-76" href="#__codelineno-5-76"></a>        <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-5-77" name="__codelineno-5-77" href="#__codelineno-5-77"></a>        <span class="n">target</span><span class="p">:</span> <span class="n">Device</span><span class="p">,</span>
+<a id="__codelineno-5-78" name="__codelineno-5-78" href="#__codelineno-5-78"></a>        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-5-79" name="__codelineno-5-79" href="#__codelineno-5-79"></a>        <span class="n">broker</span><span class="p">:</span> <span class="n">BrokerType</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-5-80" name="__codelineno-5-80" href="#__codelineno-5-80"></a>        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
+<a id="__codelineno-5-81" name="__codelineno-5-81" href="#__codelineno-5-81"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-5-82" name="__codelineno-5-82" href="#__codelineno-5-82"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Drop one cached get result for a path and kwargs.&quot;&quot;&quot;</span>
+<a id="__codelineno-5-83" name="__codelineno-5-83" href="#__codelineno-5-83"></a>        <span class="o">...</span>
+<a id="__codelineno-5-84" name="__codelineno-5-84" href="#__codelineno-5-84"></a>
+<a id="__codelineno-5-85" name="__codelineno-5-85" href="#__codelineno-5-85"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">for_protocol</span><span class="p">(</span>
+<a id="__codelineno-5-86" name="__codelineno-5-86" href="#__codelineno-5-86"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-5-87" name="__codelineno-5-87" href="#__codelineno-5-87"></a>        <span class="n">protocol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">ConnectionProtocol</span> <span class="o">|</span> <span class="n">BrokerType</span><span class="p">,</span>
+<a id="__codelineno-5-88" name="__codelineno-5-88" href="#__codelineno-5-88"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuntimeBrokerClient</span><span class="p">:</span>
+<a id="__codelineno-5-89" name="__codelineno-5-89" href="#__codelineno-5-89"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a client pinned to one broker (execute, get, edit).&quot;&quot;&quot;</span>
+<a id="__codelineno-5-90" name="__codelineno-5-90" href="#__codelineno-5-90"></a>        <span class="o">...</span>
 </code></pre></div>
+<p>When <code>broker</code> is omitted, <code>RuntimeBroker</code> uses the only broker the target is connected through. If the target is connected through more than one, the call raises <code>RuntimeBrokerError</code> and the job must pass <code>broker</code> or use <code>for_protocol()</code>.</p>
 <h3 id="caching">Caching<a class="headerlink" href="#caching" title="Permanent link">&para;</a></h3>
 <p>Caching is built directly into <code>RuntimeBroker</code> rather than a separate class. Cacheable operations are <code>execute</code> and <code>get</code>; <code>edit</code> is never cached since it's stateful.</p>
-<p>Cache keys are tuples of <code>(operation, target_name, broker_type, payload, kwargs)</code>. The broker's <code>cache_key()</code> method controls whether an operation is cacheable - returning <code>None</code> skips the cache entirely.</p>
+<p>Cache keys are tuples of <code>(operation, target_name, broker_type, payload, kwargs)</code>, built by <code>RuntimeBroker</code> itself. Every <code>execute</code> and <code>get</code> call is cached unless the caller passes <code>use_cache=False</code>; <code>bust_cache=True</code> replaces any cached entry. The broker's <code>cache_key()</code> method is not consulted.</p>
 <p>When multiple concurrent requests target the same cache key, single-flight semantics ensure only one actual execution occurs; other callers wait for and share the result.</p>
 <h2 id="configuration-passthrough">Configuration Passthrough<a class="headerlink" href="#configuration-passthrough" title="Permanent link">&para;</a></h2>
 <p>Broker-specific options are passed through without core framework interpretation.</p>
@@ -2777,19 +2826,18 @@
 <a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">        </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ssh</span>
 <a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="w">        </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.1.1.1</span>
 <a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">        </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">22</span>
-<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">        </span><span class="c1"># Broker-specific options passed directly to broker</span>
-<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="w">        </span><span class="nt">options</span><span class="p">:</span>
-<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="w">          </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asyncssh</span>
-<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="w">          </span><span class="nt">auth_strict_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="w">      </span><span class="nt">netconf</span><span class="p">:</span>
-<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="w">        </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">netconf</span>
-<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="w">        </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.1.1.1</span>
-<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="w">        </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">830</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">        </span><span class="c1"># Any other key is a broker-specific option</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="w">        </span><span class="nt">auth_strict_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="w">        </span><span class="nt">timeout_ops</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="w">      </span><span class="nt">netconf</span><span class="p">:</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="w">        </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">netconf</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="w">        </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.1.1.1</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="w">        </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">830</span>
 </code></pre></div>
 <h3 id="option-resolution">Option Resolution<a class="headerlink" href="#option-resolution" title="Permanent link">&para;</a></h3>
-<p>Device-level <code>options</code> in the testbed are passed directly to the broker's <code>ConnectionConfig.options</code> dict. The broker interprets them according to its underlying library's requirements.</p>
+<p>Every connection key other than <code>protocol</code>, <code>host</code>, <code>port</code>, and <code>credential</code> is collected into the broker's <code>ConnectionConfig.options</code> dict. The broker interprets them according to its underlying library's requirements. Do not nest options under an <code>options:</code> key: the loader would pass it through as a single option literally named <code>options</code>. See <a href="../../reference/testbed/#connection-types">Connection Types</a> for the options each broker accepts.</p>
 <h2 id="capability-negotiation">Capability Negotiation<a class="headerlink" href="#capability-negotiation" title="Permanent link">&para;</a></h2>
-<p>Not all brokers support all operations. The framework adapts based on declared capabilities.</p>
+<p>Not all brokers support all operations. Each broker declares its capabilities, but the framework does not yet use the declaration.</p>
 <h3 id="capability-declaration">Capability Declaration<a class="headerlink" href="#capability-declaration" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">SSHBroker</span><span class="p">:</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">capabilities</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -2806,29 +2854,23 @@
 <a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;get&quot;</span><span class="p">,</span> <span class="s2">&quot;edit&quot;</span><span class="p">}</span>
 </code></pre></div>
 <h3 id="capability-checking">Capability Checking<a class="headerlink" href="#capability-checking" title="Permanent link">&para;</a></h3>
-<p>The framework checks capabilities before invoking operations. If a broker doesn't support the requested operation, a <code>CapabilityError</code> is raised.</p>
-<h2 id="future-plugin-discovery-and-extraction">Future: Plugin Discovery and Extraction<a class="headerlink" href="#future-plugin-discovery-and-extraction" title="Permanent link">&para;</a></h2>
-<p>The following sections describe the planned plugin architecture for when brokers are extracted from the core framework into separate packages. None of this is currently implemented.</p>
-<h3 id="entry-point-discovery">Entry Point Discovery<a class="headerlink" href="#entry-point-discovery" title="Permanent link">&para;</a></h3>
-<p>Brokers will register via Python entry points for automatic discovery:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># In broker package&#39;s pyproject.toml</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;huginn.brokers&quot;</span><span class="k">]</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">scrapli-ssh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;huginn_broker_scrapli:SSHBroker&quot;</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">scrapli-netconf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;huginn_broker_scrapli:NETCONFBroker&quot;</span>
+<p><code>RuntimeBroker</code> does not call <code>capabilities()</code> or check <code>PROTOCOL_VERSION</code> before invoking an operation. It routes each call to the broker the target is connected through, and a broker that doesn't support the operation raises <code>CapabilityError</code> itself (for example, <code>HTTPBroker.execute()</code> and <code>NETCONFBroker.configure()</code>). <code>RuntimeBroker</code> wraps the error in <code>RuntimeBrokerError</code>.</p>
+<h2 id="plugin-discovery">Plugin Discovery<a class="headerlink" href="#plugin-discovery" title="Permanent link">&para;</a></h2>
+<p>Brokers are discovered through the <code>huginn.brokers</code> entry point group. The in-tree brokers register themselves this way in Huginn's own <code>pyproject.toml</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;huginn.brokers&quot;</span><span class="k">]</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">ssh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;huginn.brokers.ssh:SSHBroker&quot;</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">http</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;huginn.brokers.http:HTTPBroker&quot;</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">netconf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;huginn.brokers.netconf:NETCONFBroker&quot;</span>
 </code></pre></div>
-<p>The framework will discover all installed brokers at startup:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">importlib.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">entry_points</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">discover_brokers</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">]:</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Discover all installed connection brokers.&quot;&quot;&quot;</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">brokers</span> <span class="o">=</span> <span class="p">{}</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">eps</span> <span class="o">=</span> <span class="n">entry_points</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="s2">&quot;huginn.brokers&quot;</span><span class="p">)</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="k">for</span> <span class="n">ep</span> <span class="ow">in</span> <span class="n">eps</span><span class="p">:</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>        <span class="n">broker_class</span> <span class="o">=</span> <span class="n">ep</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>        <span class="n">brokers</span><span class="p">[</span><span class="n">ep</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">broker_class</span>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="k">return</span> <span class="n">brokers</span>
+<p><code>PluginRegistry.resolve_broker()</code> loads the entry point whose name matches the broker type a run requires (<code>ssh</code>, <code>http</code>, or <code>netconf</code>) and instantiates it. An installed package that registers an entry point under one of those names is found the same way.</p>
+<p>A project can restrict which discovered brokers are available with the <code>brokers</code> list under <code>[tool.huginn.plugins]</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># pyproject.toml</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">[tool.huginn.plugins]</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">brokers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;ssh&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;netconf&quot;</span><span class="p">]</span>
 </code></pre></div>
+<p>Requiring a broker that is installed but not in the list fails with <code>Broker '&lt;name&gt;' is installed but not enabled in plugin configuration</code>. When the key is absent, every discovered broker is available. <code>huginn run</code> and <code>huginn relearn</code> resolve brokers this way; <code>huginn execute</code> instantiates the in-tree brokers directly and ignores both entry points and the filter.</p>
+<h2 id="future-broker-configuration-and-extraction">Future: Broker Configuration and Extraction<a class="headerlink" href="#future-broker-configuration-and-extraction" title="Permanent link">&para;</a></h2>
+<p>The following sections describe planned work for when brokers are extracted from the core framework into separate packages. None of this is currently implemented.</p>
 <h3 id="explicit-configuration">Explicit Configuration<a class="headerlink" href="#explicit-configuration" title="Permanent link">&para;</a></h3>
 <p>Users will be able to explicitly specify brokers in configuration:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># pyproject.toml</span>
@@ -2840,7 +2882,7 @@
 <h3 id="resolution-order">Resolution Order<a class="headerlink" href="#resolution-order" title="Permanent link">&para;</a></h3>
 <ol>
 <li><strong>Explicit configuration</strong>: If <code>[tool.huginn.brokers]</code> specifies a broker for a connection type, use it</li>
-<li><strong>Entry point discovery</strong>: Otherwise, use discovered broker that handles the connection type</li>
+<li><strong>Entry point discovery</strong>: Otherwise, use the discovered broker registered for the connection type (current behavior)</li>
 <li><strong>Built-in brokers</strong>: Fall back to in-tree implementations (during transition period)</li>
 </ol>
 <h3 id="conformance-testing">Conformance Testing<a class="headerlink" href="#conformance-testing" title="Permanent link">&para;</a></h3>
@@ -2882,7 +2924,7 @@ All brokers live in the core <code>huginn</code> package. This enables rapid ite
 <ul>
 <li><a href="../architecture/">Architecture</a>: Connection Broker's role in the system</li>
 <li><a href="../../reference/testbed/">Testbed Specification</a>: Connection configuration in testbeds</li>
-<li><a href="../../reference/configuration/">Configuration</a>: Broker configuration in pyproject.toml</li>
+<li><a href="../../reference/configuration/">Configuration</a>: Project settings in pyproject.toml</li>
 </ul>
 
 

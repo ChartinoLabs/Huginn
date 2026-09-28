@@ -2006,25 +2006,21 @@ Keep the framework simple; handle device correlation externally via:</p>
 <h2 id="additional-future-items">Additional Future Items<a class="headerlink" href="#additional-future-items" title="Permanent link">&para;</a></h2>
 <p><em>(Placeholder for additional considerations as they arise)</em></p>
 <h3 id="authentication-mechanisms">Authentication Mechanisms<a class="headerlink" href="#authentication-mechanisms" title="Permanent link">&para;</a></h3>
-<p>The MVP supports username/password authentication only. Future releases should consider:</p>
+<p>Huginn already supports username/password authentication, SSH key authentication (<code>private_key</code> for the SSH and NETCONF brokers), and API token authentication (<code>token</code> for the HTTP broker); see <a href="../../reference/testbed/#credential-fields">Credential Fields</a>. Future releases should consider:</p>
 <ul>
-<li>SSH key authentication</li>
-<li>API token/key authentication</li>
 <li>Certificate-based authentication</li>
 <li>Integration with secrets management systems (HashiCorp Vault, AWS Secrets Manager)</li>
 </ul>
 <h3 id="custom-report-templates">Custom Report Templates<a class="headerlink" href="#custom-report-templates" title="Permanent link">&para;</a></h3>
-<p>Support for user-defined report templates was descoped from MVP. Consider:</p>
+<p>Support for user-defined report templates was descoped from MVP. Integration with external reporting systems is already possible by writing a reporter plugin registered under the <code>huginn.reporters</code> entry point group, which receives the full <code>RunResult</code>. What remains is customizing the built-in HTML report without writing a plugin:</p>
 <ul>
 <li>Jinja2 template support for HTML reports</li>
 <li>Custom data transformations for report output</li>
-<li>Integration with external reporting systems</li>
 </ul>
 <h3 id="inventory-plugin-merging">Inventory Plugin Merging<a class="headerlink" href="#inventory-plugin-merging" title="Permanent link">&para;</a></h3>
-<p>The MVP supports inventory plugins as a complete replacement for the static testbed YAML file. Future releases could support merging plugin inventory with a testbed file:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[tool.huginn]</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">inventory_plugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;huginn-netbox&quot;</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">inventory_merge</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w">  </span><span class="c1"># Future: merge with testbed.yaml</span>
+<p>Inventory plugins are selected per run with <code>--inventory-plugin &lt;name&gt;:&lt;config&gt;</code> (for example <code>--inventory-plugin netbox:netbox.yaml</code>) and completely replace the static testbed YAML file: <code>--testbed</code> and <code>--inventory-plugin</code> are mutually exclusive. Future releases could support merging plugin inventory with a testbed file, for example with a hypothetical flag:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Future: not implemented</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>huginn<span class="w"> </span>run<span class="w"> </span>--inventory-plugin<span class="w"> </span>netbox:netbox.yaml<span class="w"> </span>--testbed<span class="w"> </span>lab-overrides.yaml<span class="w"> </span>--merge-inventory
 </code></pre></div>
 <p><strong>Use cases:</strong></p>
 <ul>
