@@ -1,6 +1,6 @@
 """Unit tests for test plan tag filtering behavior."""
 
-from dataclasses import MISSING, fields
+from dataclasses import MISSING, fields, replace
 from typing import TypeAlias
 
 import pytest
@@ -200,6 +200,148 @@ def test_filter_by_phase_group_and_test_id_combines_with_and_logic() -> None:
     assert filtered.scenarios["scenario-1"].phases["pre"].test_case_groups == ["core"]
     assert filtered.test_case_groups["core"].tests == ["1.0.1"]
     assert list(filtered.test_cases.keys()) == ["1.0.1"]
+
+
+def _shared_group_plan() -> models.TestPlan:
+    """Build two scenarios whose two dependent phases share one group."""
+    phases = {
+        "pre": models.Phase(identifier="pre", test_case_groups=["core"]),
+        "post": models.Phase(
+            identifier="post", test_case_groups=["core"], depends_on=["pre"]
+        ),
+    }
+    return models.TestPlan(
+        scenarios={
+            name: models.Scenario(
+                identifier=name,
+                phases={key: replace(phase) for key, phase in phases.items()},
+            )
+            for name in ("scenario-1", "scenario-2")
+        },
+        test_case_groups={
+            "core": models.TestCaseGroup(
+                identifier="core", name="Core", tests=["1.0.0", "2.0.0"]
+            )
+        },
+        test_cases={
+            test_id: models.TestCaseDefinition(
+                test_id=test_id, title=test_id, job="jobs/check.py"
+            )
+            for test_id in ("1.0.0", "2.0.0")
+        },
+    )
+
+
+def _phase_tests(
+    test_plan: models.TestPlan, scenario: str, phase: str
+) -> list[tuple[str, list[str]]]:
+    """Return (group identifier, tests) pairs for one filtered phase."""
+    groups = test_plan.scenarios[scenario].phases[phase].test_case_groups
+    return [
+        (
+            test_plan.test_case_groups[key].identifier,
+            test_plan.test_case_groups[key].tests,
+        )
+        for key in groups
+    ]
+
+
+def test_filter_by_test_contexts_keeps_only_exact_tuples() -> None:
+    """Contexts select exact tuples rather than a scenario x phase x id product."""
+    filtered = filter_test_plan(
+        _shared_group_plan(),
+        PlanFilterOptions(
+            test_contexts=[
+                ("scenario-1", "pre", "1.0.0"),
+                ("scenario-2", "post", "2.0.0"),
+            ]
+        ),
+    )
+
+    assert list(filtered.scenarios["scenario-1"].phases) == ["pre"]
+    assert list(filtered.scenarios["scenario-2"].phases) == ["post"]
+    assert _phase_tests(filtered, "scenario-1", "pre") == [("core", ["1.0.0"])]
+    assert _phase_tests(filtered, "scenario-2", "post") == [("core", ["2.0.0"])]
+    assert list(filtered.test_cases) == ["1.0.0", "2.0.0"]
+
+
+def test_filter_by_test_contexts_splits_shared_group_per_phase() -> None:
+    """A group shared by two phases can keep different tests in each phase."""
+    filtered = filter_test_plan(
+        _shared_group_plan(),
+        PlanFilterOptions(
+            test_contexts=[
+                ("scenario-1", "pre", "1.0.0"),
+                ("scenario-1", "post", "2.0.0"),
+                ("scenario-2", "pre", "1.0.0"),
+            ]
+        ),
+    )
+
+    assert _phase_tests(filtered, "scenario-1", "pre") == [("core", ["1.0.0"])]
+    assert _phase_tests(filtered, "scenario-1", "post") == [("core", ["2.0.0"])]
+    assert _phase_tests(filtered, "scenario-2", "pre") == [("core", ["1.0.0"])]
+    # Identical subsets reuse one group entry; distinct subsets get their own
+    # entry, all keeping the original group identifier and fields.
+    assert len(filtered.test_case_groups) == 2
+    for group in filtered.test_case_groups.values():
+        assert group.identifier == "core"
+        assert group.name == "Core"
+    assert _shared_group_plan().test_case_groups["core"].tests == ["1.0.0", "2.0.0"]
+
+
+def test_filter_by_test_contexts_combines_with_other_filters() -> None:
+    """Contexts are ANDed with the scenario, phase, and test ID filters."""
+    contexts = [
+        ("scenario-1", "pre", "1.0.0"),
+        ("scenario-1", "post", "2.0.0"),
+        ("scenario-2", "post", "1.0.0"),
+    ]
+
+    by_phase = filter_test_plan(
+        _shared_group_plan(),
+        PlanFilterOptions(phases=["post"], test_contexts=contexts),
+    )
+    by_scenario_and_id = filter_test_plan(
+        _shared_group_plan(),
+        PlanFilterOptions(
+            scenarios=["scenario-1"], test_ids=["1.0.0"], test_contexts=contexts
+        ),
+    )
+
+    assert _phase_tests(by_phase, "scenario-1", "post") == [("core", ["2.0.0"])]
+    assert _phase_tests(by_phase, "scenario-2", "post") == [("core", ["1.0.0"])]
+    assert list(by_scenario_and_id.scenarios) == ["scenario-1"]
+    assert list(by_scenario_and_id.scenarios["scenario-1"].phases) == ["pre"]
+    assert list(by_scenario_and_id.test_cases) == ["1.0.0"]
+
+
+def test_filter_by_test_contexts_drops_dependency_on_unselected_phase() -> None:
+    """A selected phase no longer depends on a phase that was filtered out."""
+    filtered = filter_test_plan(
+        _shared_group_plan(),
+        PlanFilterOptions(test_contexts=[("scenario-1", "post", "1.0.0")]),
+    )
+
+    assert list(filtered.scenarios) == ["scenario-1"]
+    post = filtered.scenarios["scenario-1"].phases["post"]
+    assert list(filtered.scenarios["scenario-1"].phases) == ["post"]
+    assert post.depends_on == []
+
+
+def test_filter_by_test_contexts_keeps_dependency_on_selected_phase() -> None:
+    """Dependencies between two selected phases are preserved."""
+    filtered = filter_test_plan(
+        _shared_group_plan(),
+        PlanFilterOptions(
+            test_contexts=[
+                ("scenario-1", "pre", "1.0.0"),
+                ("scenario-1", "post", "2.0.0"),
+            ]
+        ),
+    )
+
+    assert filtered.scenarios["scenario-1"].phases["post"].depends_on == ["pre"]
 
 
 def test_filter_by_tags_requires_all_requested_tags() -> None:
@@ -451,6 +593,12 @@ def _assert_fields_preserved(
         PlanFilterOptions(test_case_groups=["core"]),
         PlanFilterOptions(test_ids=["1.0.0"]),
         PlanFilterOptions(test_id_pattern=r"^1\."),
+        PlanFilterOptions(
+            test_contexts=[
+                ("scenario-1", "pre", "1.0.0"),
+                ("scenario-1", "post", "1.0.0"),
+            ]
+        ),
     ],
     ids=[
         "tags",
@@ -460,6 +608,7 @@ def _assert_fields_preserved(
         "test_case_groups",
         "test_ids",
         "test_id_pattern",
+        "test_contexts",
     ],
 )
 def test_filter_preserves_all_non_collection_fields(

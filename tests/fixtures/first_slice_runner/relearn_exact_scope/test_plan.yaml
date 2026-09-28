@@ -1,0 +1,33 @@
+test_cases:
+  TA:
+    title: Learn test A
+    job: jobs/test_verify_relearn_scope.py
+  TB:
+    title: Learn test B
+    job: jobs/test_verify_relearn_scope.py
+test_case_groups:
+  checks:
+    tests:
+    - TA
+    - TB
+scenarios:
+  S1:
+    phases:
+      P1:
+        test_case_groups:
+        - checks
+      P2:
+        depends_on:
+        - P1
+        test_case_groups:
+        - checks
+  S2:
+    phases:
+      P1:
+        test_case_groups:
+        - checks
+      P2:
+        depends_on:
+        - P1
+        test_case_groups:
+        - checks

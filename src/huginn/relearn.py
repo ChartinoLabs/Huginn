@@ -1,7 +1,7 @@
 """Parse failed test IDs from a testing run for selective re-learning."""
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
 
@@ -19,6 +19,8 @@ class RelearnInput:
     test_ids: list[str]
     scenario_ids: list[str]
     phase_ids: list[str]
+    # Exact (scenario, phase, test_id) contexts in which a test failed.
+    contexts: list[tuple[str, str, str]] = field(default_factory=list)
 
 
 def parse_failed_test_ids(
@@ -28,72 +30,43 @@ def parse_failed_test_ids(
 ) -> RelearnInput:
     """Extract unique failed/errored test IDs from a testing run's run.json.
 
-    Returns a RelearnInput containing deduplicated test IDs, affected scenario
-    IDs, and affected phase IDs — all in the order they were first encountered.
+    Returns a RelearnInput containing the exact (scenario, phase, test_id)
+    contexts that failed, plus the deduplicated test IDs, affected scenario IDs,
+    and affected phase IDs -- all in the order they were first encountered.
     Optional scenario and phase filters narrow which results are considered.
     """
     raw = json.loads(run_json_path.read_text(encoding="utf-8"))
-    scenarios = raw.get("scenarios", [])
+    contexts: dict[tuple[str, str, str], None] = {}
 
-    seen_tests: set[str] = set()
-    seen_scenarios: set[str] = set()
-    seen_phases: set[str] = set()
-    failed_ids: list[str] = []
-    scenario_ids: list[str] = []
-    phase_ids: list[str] = []
-
-    for scenario in scenarios:
+    for scenario in raw.get("scenarios", []):
         scenario_id = cast(str, scenario["id"])
         if scenario_filter is not None and scenario_id != scenario_filter:
             continue
 
         for phase in scenario.get("phases", []):
-            phase_id = cast(str, phase["id"])
-            if phase_filter is not None and phase_id != phase_filter:
-                continue
-
-            _collect_failures_from_phase(
-                phase,
-                scenario_id,
-                phase_id,
-                seen_tests,
-                seen_scenarios,
-                seen_phases,
-                failed_ids,
-                scenario_ids,
-                phase_ids,
-            )
+            for context in _failed_contexts_in_phase(phase, scenario_id, phase_filter):
+                contexts.setdefault(context)
 
     return RelearnInput(
-        test_ids=failed_ids,
-        scenario_ids=scenario_ids,
-        phase_ids=phase_ids,
+        test_ids=list(dict.fromkeys(test_id for _, _, test_id in contexts)),
+        scenario_ids=list(dict.fromkeys(scenario_id for scenario_id, _, _ in contexts)),
+        phase_ids=list(dict.fromkeys(phase_id for _, phase_id, _ in contexts)),
+        contexts=list(contexts),
     )
 
 
-def _collect_failures_from_phase(
+def _failed_contexts_in_phase(
     phase: dict[str, object],
     scenario_id: str,
-    phase_id: str,
-    seen_tests: set[str],
-    seen_scenarios: set[str],
-    seen_phases: set[str],
-    failed_ids: list[str],
-    scenario_ids: list[str],
-    phase_ids: list[str],
-) -> None:
-    """Extract failures from a single phase's test case groups."""
-    for group in cast(list[dict[str, object]], phase.get("test_case_groups", [])):
-        for test_case in cast(list[dict[str, object]], group.get("test_cases", [])):
-            test_id = cast(str, test_case["test_id"])
-            if test_case["status"] not in _FAILURE_STATUSES:
-                continue
-            if test_id not in seen_tests:
-                seen_tests.add(test_id)
-                failed_ids.append(test_id)
-            if scenario_id not in seen_scenarios:
-                seen_scenarios.add(scenario_id)
-                scenario_ids.append(scenario_id)
-            if phase_id not in seen_phases:
-                seen_phases.add(phase_id)
-                phase_ids.append(phase_id)
+    phase_filter: str | None,
+) -> list[tuple[str, str, str]]:
+    """Return failed/errored (scenario, phase, test_id) contexts from one phase."""
+    phase_id = cast(str, phase["id"])
+    if phase_filter is not None and phase_id != phase_filter:
+        return []
+    return [
+        (scenario_id, phase_id, cast(str, test_case["test_id"]))
+        for group in cast(list[dict[str, object]], phase.get("test_case_groups", []))
+        for test_case in cast(list[dict[str, object]], group.get("test_cases", []))
+        if test_case["status"] in _FAILURE_STATUSES
+    ]

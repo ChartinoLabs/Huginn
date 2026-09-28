@@ -18,7 +18,7 @@ The `huginn relearn` command identifies tests that are failing in the most recen
 
 This is the key value: you do not need to re-learn the entire phase or test plan. If 300 tests pass and 9 fail, only those 9 are re-learned. The passing tests keep their existing parameters, which are still accurate.
 
-The command also automatically scopes execution to only the scenarios and phases that contained failures. A test ID that appears across many scenarios but only failed in one will only be re-learned in that specific context.
+The command also scopes execution to the exact scenario and phase where each test failed. A test ID that appears across many scenarios but only failed in one will only be re-learned in that specific context.
 
 ## When to use relearn
 
