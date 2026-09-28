@@ -1274,6 +1274,56 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Environment Variable Substitution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Syntax
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#where-references-are-expanded" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where references are expanded
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2118,6 +2168,56 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Environment Variable Substitution">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Syntax
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#where-references-are-expanded" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where references are expanded
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2480,7 +2580,7 @@
 <td><code>port</code></td>
 <td>integer</td>
 <td>No</td>
-<td>Default: <code>22</code> for every protocol (see each connection below)</td>
+<td>Default: <code>22</code> for every protocol (see each connection below). A string of digits is also accepted</td>
 </tr>
 <tr>
 <td><code>credential</code></td>
@@ -2845,13 +2945,74 @@
 <a id="__codelineno-12-135" name="__codelineno-12-135" href="#__codelineno-12-135"></a><span class="w">        </span><span class="nt">verify_ssl</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 </code></pre></div>
 <h2 id="environment-variable-substitution">Environment Variable Substitution<a class="headerlink" href="#environment-variable-substitution" title="Permanent link">&para;</a></h2>
-<p>Credentials can reference environment variables to avoid storing secrets in files:</p>
+<p>Testbed values can reference environment variables, so secrets and per-environment values stay out of the file:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nt">credentials</span><span class="p">:</span>
 <a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">default</span><span class="p">:</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;${HUGINN_USERNAME}&quot;</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;${HUGINN_USERNAME:-admin}&quot;</span>
 <a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;${HUGINN_PASSWORD}&quot;</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="nt">devices</span><span class="p">:</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">  </span><span class="nt">rtr-01</span><span class="p">:</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">    </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">iosxe</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">    </span><span class="nt">connections</span><span class="p">:</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">      </span><span class="nt">ssh</span><span class="p">:</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">        </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ssh</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="w">        </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;${RTR_01_HOST}&quot;</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="w">        </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;${RTR_01_PORT:-22}&quot;</span>
 </code></pre></div>
-<p>The framework expands <code>${VAR_NAME}</code> syntax at load time.</p>
+<p>References are expanded once, when the testbed file is loaded and before it is validated. Loading fails if a referenced variable is missing, so a run never starts with a literal <code>${HUGINN_PASSWORD}</code> as a password.</p>
+<h3 id="syntax">Syntax<a class="headerlink" href="#syntax" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Form</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>${VAR}</code></td>
+<td>The value of <code>VAR</code>. Loading fails if <code>VAR</code> is not set</td>
+</tr>
+<tr>
+<td><code>${VAR:-default}</code></td>
+<td>The value of <code>VAR</code>, or <code>default</code> if <code>VAR</code> is not set or is empty</td>
+</tr>
+<tr>
+<td><code>$${</code></td>
+<td>A literal <code>${</code>. For example, <code>$${HOME}</code> loads as the text <code>${HOME}</code></td>
+</tr>
+<tr>
+<td><code>$VAR</code>, <code>$5</code>, <code>$$</code></td>
+<td>Unchanged. Only the braced <code>${...}</code> form is a reference</td>
+</tr>
+</tbody>
+</table>
+<p><code>VAR</code> must start with a letter or underscore, followed by letters, digits, or underscores (<code>[A-Za-z_][A-Za-z0-9_]*</code>). A value can contain several references and surrounding text, such as <code>"https://${API_HOST}:${API_PORT:-443}/"</code>.</p>
+<p><code>${VAR:-default}</code> follows the POSIX shell <code>:-</code> rule: a variable that is set to the empty string uses the default. <code>${VAR}</code> with <code>VAR</code> set to the empty string expands to the empty string, which a required field such as <code>host</code> then rejects.</p>
+<p>The default is everything between <code>:-</code> and the next <code>}</code>, taken literally. It cannot contain <code>}</code> or another <code>${...}</code> reference. Other shell forms such as <code>${VAR-default}</code>, <code>${VAR:=default}</code>, and <code>${VAR:?message}</code> are not supported.</p>
+<p>Quote values that start with <code>${</code>. YAML reads an unquoted <code>${VAR}</code> as a plain string, but quoting avoids surprises when a default contains YAML syntax such as <code>:</code> or <code>#</code>.</p>
+<h3 id="where-references-are-expanded">Where references are expanded<a class="headerlink" href="#where-references-are-expanded" title="Permanent link">&para;</a></h3>
+<p>Every string value in the testbed file is expanded, including credential fields, <code>os</code>, <code>groups</code>, <code>metadata</code>, connection <code>host</code>, <code>credential</code>, and connection options. Mapping keys, such as device, credential, and connection names, are not expanded. Numbers, booleans, and <code>null</code> are not changed.</p>
+<p>Each value is expanded once. If a variable's value contains <code>${</code>, that text is kept as-is and is not expanded again.</p>
+<p>A reference always expands to a string. A connection <code>port</code> therefore accepts a string of digits, such as <code>"830"</code> or <code>"${RTR_01_PORT}"</code>, as well as an integer. Other fields with a non-string type, such as a boolean connection option like <code>auth_strict_key</code>, receive the expanded string, so write those values directly in the file.</p>
+<h3 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h3>
+<p>Loading stops with a <code>ConfigurationError</code> when:</p>
+<ul>
+<li>A referenced variable is not set and has no default</li>
+<li>A <code>${</code> has no closing <code>}</code></li>
+<li>The text inside <code>${...}</code> is not a valid name, optionally followed by <code>:-default</code>, for example <code>${}</code>, <code>${1X}</code>, or <code>${VAR-default}</code></li>
+<li>A default contains <code>${</code></li>
+</ul>
+<p>The message names the testbed file and the dotted key path of the value, and for an unset variable, the variable name. It never includes the value of a variable, a default, or the rest of the string:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>Environment variable &#39;DEVICE_PASSWORD&#39; referenced at &#39;devices.rtr-01.credentials.default.password&#39; in testbed.yaml is not set and has no default
+</code></pre></div>
+<p>Expanded values are not logged.</p>
+<h3 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h3>
+<p>Expansion applies only to testbed files loaded with <code>--testbed</code>, or through the built-in <code>file</code> inventory plugin. It does not apply to:</p>
+<ul>
+<li>Inventory plugins other than <code>file</code>, which build <code>Testbed</code> objects directly without reading a testbed file. A plugin that needs environment variables must read them itself</li>
+<li>Test plans and <code>pyproject.toml</code> settings, including <code>[tool.huginn.plugins.*]</code> sections</li>
+</ul>
 <h2 id="operating-system-identifiers">Operating System Identifiers<a class="headerlink" href="#operating-system-identifiers" title="Permanent link">&para;</a></h2>
 <p>The loader accepts any non-empty string for <code>os</code>. The SSH and NETCONF brokers check it when they connect, and fail with <code>Unsupported OS</code> for any value they do not know. The SSH broker also maps it to a scrapli platform. The NETCONF broker only validates it:</p>
 <table>
@@ -2910,12 +3071,13 @@
 <p>Commands that read a testbed, such as <code>huginn run</code>, <code>huginn validate</code>, and <code>huginn execute</code>, load it first and stop with a <code>ConfigurationError</code> naming the device or connection when:</p>
 <ul>
 <li>The file is not valid YAML, or its root is not a mapping</li>
+<li>An environment variable reference is malformed, or names a variable that is not set and has no default (see <a href="#environment-variable-substitution">Environment Variable Substitution</a>)</li>
 <li><code>devices</code> is missing or empty</li>
 <li>A device does not define a non-empty <code>os</code></li>
 <li><code>groups</code> is present but is not a non-empty list of non-empty strings</li>
 <li><code>credentials</code> (global or device) is not a mapping of names to mappings, or a credential field value is not a string</li>
 <li>A connection does not define <code>protocol</code> or <code>host</code>, or <code>protocol</code> is not one of <code>ssh</code>, <code>netconf</code>, <code>http</code>, <code>https</code>, or <code>rest</code></li>
-<li>A connection <code>port</code> is not an integer, or <code>credential</code> is not a string</li>
+<li>A connection <code>port</code> is not an integer or a string of digits, or <code>credential</code> is not a string</li>
 </ul>
 <p>The loader does not check which options a connection sets, whether a named credential exists, or whether <code>os</code> is supported by a broker. Duplicate device keys are not detected: the YAML parser keeps the last entry.</p>
 <h3 id="in-huginn-validate">In huginn validate<a class="headerlink" href="#in-huginn-validate" title="Permanent link">&para;</a></h3>
