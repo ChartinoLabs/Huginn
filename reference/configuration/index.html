@@ -1100,6 +1100,78 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#project-defaults-in-toolhuginn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project defaults in [tool.huginn]
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Project defaults in [tool.huginn]">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supported-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#precedence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Precedence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#discovery-and-path-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery and path resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testbed-and-inventory-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testbed and inventory plugin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#pyprojecttoml-schema" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1815,6 +1887,78 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#project-defaults-in-toolhuginn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project defaults in [tool.huginn]
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Project defaults in [tool.huginn]">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supported-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#precedence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Precedence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#discovery-and-path-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery and path resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testbed-and-inventory-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testbed and inventory plugin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#pyprojecttoml-schema" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2048,75 +2192,167 @@
 <li><strong>pyproject.toml</strong>: Project-level overrides</li>
 <li><strong>CLI arguments</strong>: Runtime overrides</li>
 </ol>
-<h2 id="pyprojecttoml-schema">pyproject.toml Schema<a class="headerlink" href="#pyprojecttoml-schema" title="Permanent link">&para;</a></h2>
+<h2 id="project-defaults-in-toolhuginn">Project defaults in <code>[tool.huginn]</code><a class="headerlink" href="#project-defaults-in-toolhuginn" title="Permanent link">&para;</a></h2>
+<p>A repository can store its paths and logging settings in <code>[tool.huginn]</code>, so you don't have to pass <code>-p</code> and <code>-t</code> on every command:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[tool.huginn]</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="c1"># Test execution settings</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">testbed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;testbed.yaml&quot;</span><span class="w">           </span><span class="c1"># Default testbed file</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">test_plan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;test_plan.yaml&quot;</span><span class="w">       </span><span class="c1"># Default test plan file or directory</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;testing&quot;</span><span class="w">                   </span><span class="c1"># Default mode: &quot;learning&quot; or &quot;testing&quot;</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Inventory plugin (alternative to static testbed YAML)</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">inventory_plugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">              </span><span class="c1"># Plugin name (e.g., &quot;huginn-netbox&quot;)</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Output paths</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">parameters_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;parameters&quot;</span><span class="w">      </span><span class="c1"># Learned parameters directory</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">logs_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;logs&quot;</span><span class="w">                  </span><span class="c1"># Log files directory</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="c1"># Execution settings</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="n">parallel_tests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w">              </span><span class="c1"># Run tests in parallel within test case groups</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="n">max_parallel_tests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="w">            </span><span class="c1"># Maximum concurrent test executions</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="n">fail_fast</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="w">                  </span><span class="c1"># Stop on first test case group failure</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="c1"># Timeouts (in seconds)</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="n">connection_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span><span class="w">            </span><span class="c1"># Device connection timeout</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="n">command_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span><span class="w">               </span><span class="c1"># Command execution timeout</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="n">test_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">300</span><span class="w">                 </span><span class="c1"># Overall test timeout</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="c1"># Logging</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span><span class="w">                 </span><span class="c1"># DEBUG, INFO, WARNING, ERROR</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="n">log_to_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w">                 </span><span class="c1"># Write logs to file</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="n">log_format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;%(asctime)s - %(name)s - %(levelname)s - %(message)s&quot;</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="c1"># Reporting</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="n">report_format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;json&quot;</span><span class="w">             </span><span class="c1"># Report output format (JSON is the current built-in format)</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="n">include_command_output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w">      </span><span class="c1"># Include raw command output in reports</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="n">include_parsed_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w">         </span><span class="c1"># Include parsed data in reports</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="k">[tool.huginn.connections]</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="c1"># Default connection settings</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="n">default_transport</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;asyncssh&quot;</span><span class="w">     </span><span class="c1"># SSH transport: asyncssh, ssh2</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="n">auth_strict_key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="w">            </span><span class="c1"># SSH host key verification</span>
-<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="n">default_port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">22</span><span class="w">                  </span><span class="c1"># Default SSH port</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>
-<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a><span class="k">[tool.huginn.connections.rest]</span>
-<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="c1"># Default REST API settings</span>
-<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a><span class="n">verify_ssl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w">                  </span><span class="c1"># SSL certificate verification</span>
-<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a><span class="n">timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span><span class="w">                       </span><span class="c1"># Request timeout</span>
-<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>
-<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a><span class="k">[tool.huginn.hooks]</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a><span class="c1"># Lifecycle hooks (Python entry points)</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a><span class="n">pre_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                       </span><span class="c1"># Before test run starts</span>
-<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a><span class="n">post_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                      </span><span class="c1"># After test run completes</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a><span class="n">pre_phase</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                     </span><span class="c1"># Before each phase</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="n">post_phase</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                    </span><span class="c1"># After each phase</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a><span class="n">pre_test_case_group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">           </span><span class="c1"># Before each test case group</span>
-<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a><span class="n">post_test_case_group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">          </span><span class="c1"># After each test case group</span>
-<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a><span class="n">pre_test</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                      </span><span class="c1"># Before each test</span>
-<a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a><span class="n">post_test</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                     </span><span class="c1"># After each test</span>
-<a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a><span class="n">on_failure</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                    </span><span class="c1"># When a test fails</span>
-<a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a><span class="n">on_error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                      </span><span class="c1"># When a test errors</span>
-<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a>
-<a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a><span class="k">[tool.huginn.plugins]</span>
-<a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a><span class="c1"># Plugin configuration</span>
-<a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span><span class="w">                       </span><span class="c1"># List of enabled plugins</span>
-<a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a><span class="c1"># Plugin-specific settings can be added as sub-tables</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">test_plan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;test_plan&quot;</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">testbed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;inventory/lab.yaml&quot;</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">parameters_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;state/parameters&quot;</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">results_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;state/results&quot;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">output_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;state/artifacts&quot;</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">log_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;logs/huginn.log&quot;</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span>
+</code></pre></div>
+<p>With this table in place, <code>huginn run -m testing</code> uses the plan, testbed and directories above.</p>
+<h3 id="supported-keys">Supported keys<a class="headerlink" href="#supported-keys" title="Permanent link">&para;</a></h3>
+<p>Each key sets the default for one CLI option. A command uses a key only if it has that option.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>CLI option</th>
+<th>Commands</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>test_plan</code></td>
+<td><code>-p/--plan</code></td>
+<td><code>run</code>, <code>validate</code>, <code>relearn</code>, <code>reconcile</code>, <code>prune</code>, <code>inject new/into</code></td>
+</tr>
+<tr>
+<td><code>testbed</code></td>
+<td><code>-t/--testbed</code></td>
+<td><code>run</code>, <code>validate</code>, <code>relearn</code>, <code>execute</code></td>
+</tr>
+<tr>
+<td><code>inventory_plugin</code></td>
+<td><code>-i/--inventory-plugin</code></td>
+<td><code>run</code>, <code>validate</code>, <code>relearn</code></td>
+</tr>
+<tr>
+<td><code>parameters_dir</code></td>
+<td><code>--parameters-dir</code></td>
+<td><code>run</code>, <code>relearn</code>, <code>reconcile</code></td>
+</tr>
+<tr>
+<td><code>results_dir</code></td>
+<td><code>--results-dir</code></td>
+<td><code>run</code>, <code>relearn</code>, <code>reconcile</code>, <code>prune</code></td>
+</tr>
+<tr>
+<td><code>output_dir</code></td>
+<td><code>--output-dir</code></td>
+<td><code>run</code>, <code>relearn</code></td>
+</tr>
+<tr>
+<td><code>log_file</code></td>
+<td><code>--log-file</code></td>
+<td><code>run</code>, <code>validate</code>, <code>relearn</code>, <code>reconcile</code>, <code>prune</code>, <code>execute</code></td>
+</tr>
+<tr>
+<td><code>log_level</code></td>
+<td><code>--log-level</code></td>
+<td><code>run</code>, <code>validate</code>, <code>relearn</code>, <code>reconcile</code>, <code>prune</code>, <code>execute</code></td>
+</tr>
+</tbody>
+</table>
+<p>Every value is a string. <code>log_level</code> must be one of <code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code> or <code>ERROR</code>, in any case. <code>mode</code> is not supported, because a <code>learning</code> default would silently overwrite baselines.</p>
+<h3 id="precedence">Precedence<a class="headerlink" href="#precedence" title="Permanent link">&para;</a></h3>
+<p>For each option, the first of these that is set wins:</p>
+<ol>
+<li>The CLI flag</li>
+<li>The <code>HUGINN_*</code> environment variable, for example <code>HUGINN_PLAN</code> or <code>HUGINN_RESULTS_DIR</code></li>
+<li>The key in <code>[tool.huginn]</code></li>
+<li>The built-in default, for example <code>./test_plan</code> or <code>./results/</code></li>
+</ol>
+<p><code>huginn &lt;command&gt; --help</code> marks each default that comes from <code>pyproject.toml</code>, for example <code>[default: (state/results from pyproject.toml)]</code>.</p>
+<h3 id="discovery-and-path-resolution">Discovery and path resolution<a class="headerlink" href="#discovery-and-path-resolution" title="Permanent link">&para;</a></h3>
+<p>Huginn reads <code>pyproject.toml</code> from the current working directory only. It doesn't search parent directories. Relative paths resolve against the directory that contains <code>pyproject.toml</code>, which is the current working directory. Absolute paths are used as written.</p>
+<h3 id="testbed-and-inventory-plugin">Testbed and inventory plugin<a class="headerlink" href="#testbed-and-inventory-plugin" title="Permanent link">&para;</a></h3>
+<p><code>testbed</code> and <code>inventory_plugin</code> are mutually exclusive, the same as <code>--testbed</code> and <code>--inventory-plugin</code>:</p>
+<ul>
+<li>Setting both keys in <code>[tool.huginn]</code> is an error.</li>
+<li>If you pass one on the CLI or through its environment variable, it overrides the other key from <code>[tool.huginn]</code> for that run. For example, <code>huginn run -m testing -i huginn-netbox</code> ignores a <code>testbed</code> key.</li>
+</ul>
+<h3 id="errors">Errors<a class="headerlink" href="#errors" title="Permanent link">&para;</a></h3>
+<p>Huginn validates <code>[tool.huginn]</code> before running any command except <code>version</code>. The command exits with code 1 if the table has:</p>
+<ul>
+<li>a key that is not in the table above, for example <code>mode</code> or <code>parallel_tests</code></li>
+<li>a value that is not a non-empty string</li>
+<li>a <code>log_level</code> outside the accepted levels</li>
+<li>both <code>testbed</code> and <code>inventory_plugin</code></li>
+</ul>
+<p>The <code>[tool.huginn.plugins]</code> sub-table is allowed alongside these keys and configures plugin selection.</p>
+<h2 id="pyprojecttoml-schema">pyproject.toml Schema<a class="headerlink" href="#pyprojecttoml-schema" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[tool.huginn]</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># Test execution settings</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">testbed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;testbed.yaml&quot;</span><span class="w">           </span><span class="c1"># Default testbed file</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">test_plan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;test_plan.yaml&quot;</span><span class="w">       </span><span class="c1"># Default test plan file or directory</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;testing&quot;</span><span class="w">                   </span><span class="c1"># Default mode: &quot;learning&quot; or &quot;testing&quot;</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Inventory plugin (alternative to static testbed YAML)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">inventory_plugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">              </span><span class="c1"># Plugin name (e.g., &quot;huginn-netbox&quot;)</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Output paths</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">parameters_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;parameters&quot;</span><span class="w">      </span><span class="c1"># Learned parameters directory</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">logs_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;logs&quot;</span><span class="w">                  </span><span class="c1"># Log files directory</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1"># Execution settings</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">parallel_tests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w">              </span><span class="c1"># Run tests in parallel within test case groups</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="n">max_parallel_tests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="w">            </span><span class="c1"># Maximum concurrent test executions</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">fail_fast</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="w">                  </span><span class="c1"># Stop on first test case group failure</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="c1"># Timeouts (in seconds)</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="n">connection_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span><span class="w">            </span><span class="c1"># Device connection timeout</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="n">command_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span><span class="w">               </span><span class="c1"># Command execution timeout</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="n">test_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">300</span><span class="w">                 </span><span class="c1"># Overall test timeout</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="c1"># Logging</span>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span><span class="w">                 </span><span class="c1"># DEBUG, INFO, WARNING, ERROR</span>
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="n">log_to_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w">                 </span><span class="c1"># Write logs to file</span>
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="n">log_format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;%(asctime)s - %(name)s - %(levelname)s - %(message)s&quot;</span>
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="c1"># Reporting</span>
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="n">report_format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;json&quot;</span><span class="w">             </span><span class="c1"># Report output format (JSON is the current built-in format)</span>
+<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="n">include_command_output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w">      </span><span class="c1"># Include raw command output in reports</span>
+<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="n">include_parsed_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w">         </span><span class="c1"># Include parsed data in reports</span>
+<a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>
+<a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="k">[tool.huginn.connections]</span>
+<a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a><span class="c1"># Default connection settings</span>
+<a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a><span class="n">default_transport</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;asyncssh&quot;</span><span class="w">     </span><span class="c1"># SSH transport: asyncssh, ssh2</span>
+<a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a><span class="n">auth_strict_key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="w">            </span><span class="c1"># SSH host key verification</span>
+<a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a><span class="n">default_port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">22</span><span class="w">                  </span><span class="c1"># Default SSH port</span>
+<a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>
+<a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a><span class="k">[tool.huginn.connections.rest]</span>
+<a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a><span class="c1"># Default REST API settings</span>
+<a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a><span class="n">verify_ssl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="w">                  </span><span class="c1"># SSL certificate verification</span>
+<a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a><span class="n">timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span><span class="w">                       </span><span class="c1"># Request timeout</span>
+<a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a>
+<a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a><span class="k">[tool.huginn.hooks]</span>
+<a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a><span class="c1"># Lifecycle hooks (Python entry points)</span>
+<a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a><span class="n">pre_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                       </span><span class="c1"># Before test run starts</span>
+<a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a><span class="n">post_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                      </span><span class="c1"># After test run completes</span>
+<a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a><span class="n">pre_phase</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                     </span><span class="c1"># Before each phase</span>
+<a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a><span class="n">post_phase</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                    </span><span class="c1"># After each phase</span>
+<a id="__codelineno-1-51" name="__codelineno-1-51" href="#__codelineno-1-51"></a><span class="n">pre_test_case_group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">           </span><span class="c1"># Before each test case group</span>
+<a id="__codelineno-1-52" name="__codelineno-1-52" href="#__codelineno-1-52"></a><span class="n">post_test_case_group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">          </span><span class="c1"># After each test case group</span>
+<a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a><span class="n">pre_test</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                      </span><span class="c1"># Before each test</span>
+<a id="__codelineno-1-54" name="__codelineno-1-54" href="#__codelineno-1-54"></a><span class="n">post_test</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                     </span><span class="c1"># After each test</span>
+<a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a><span class="n">on_failure</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                    </span><span class="c1"># When a test fails</span>
+<a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a><span class="n">on_error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w">                      </span><span class="c1"># When a test errors</span>
+<a id="__codelineno-1-57" name="__codelineno-1-57" href="#__codelineno-1-57"></a>
+<a id="__codelineno-1-58" name="__codelineno-1-58" href="#__codelineno-1-58"></a><span class="k">[tool.huginn.plugins]</span>
+<a id="__codelineno-1-59" name="__codelineno-1-59" href="#__codelineno-1-59"></a><span class="c1"># Plugin configuration</span>
+<a id="__codelineno-1-60" name="__codelineno-1-60" href="#__codelineno-1-60"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span><span class="w">                       </span><span class="c1"># List of enabled plugins</span>
+<a id="__codelineno-1-61" name="__codelineno-1-61" href="#__codelineno-1-61"></a><span class="c1"># Plugin-specific settings can be added as sub-tables</span>
 </code></pre></div>
 <h2 id="configuration-sections">Configuration Sections<a class="headerlink" href="#configuration-sections" title="Permanent link">&para;</a></h2>
 <h3 id="core-settings">Core Settings<a class="headerlink" href="#core-settings" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[tool.huginn]</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">testbed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;testbed.yaml&quot;</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">test_plan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;test_plan.yaml&quot;</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;testing&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[tool.huginn]</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">testbed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;testbed.yaml&quot;</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">test_plan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;test_plan.yaml&quot;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;testing&quot;</span>
 </code></pre></div>
 <table>
 <thead>
@@ -2149,8 +2385,8 @@
 </tbody>
 </table>
 <h3 id="inventory-plugins">Inventory Plugins<a class="headerlink" href="#inventory-plugins" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[tool.huginn]</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">inventory_plugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;huginn-netbox&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[tool.huginn]</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">inventory_plugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;huginn-netbox&quot;</span>
 </code></pre></div>
 <table>
 <thead>
@@ -2178,17 +2414,17 @@
 </ul>
 <p><strong>Plugin Configuration:</strong></p>
 <p>Each inventory plugin has its own configuration section:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[tool.huginn.plugins.huginn-netbox]</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://netbox.example.com&quot;</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">token</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;${NETBOX_API_TOKEN}&quot;</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">site</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;dc1&quot;</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;active&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[tool.huginn.plugins.huginn-netbox]</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://netbox.example.com&quot;</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">token</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;${NETBOX_API_TOKEN}&quot;</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">site</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;dc1&quot;</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;active&quot;</span>
 </code></pre></div>
 <p>See <a href="../../design/architecture/#inventory-plugins">Architecture - Inventory Plugins</a> for plugin development details.</p>
 <h3 id="output-paths">Output Paths<a class="headerlink" href="#output-paths" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[tool.huginn]</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">parameters_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;parameters&quot;</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">logs_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;logs&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[tool.huginn]</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">parameters_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;parameters&quot;</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">logs_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;logs&quot;</span>
 </code></pre></div>
 <table>
 <thead>
@@ -2219,10 +2455,10 @@
 <code>results/&lt;timestamp&gt;-validate/validate.json</code>. Run execution writes
 <code>results/&lt;timestamp&gt;-&lt;mode&gt;/run.json</code>, with one <code>result.json</code> file per test case.</p>
 <h3 id="execution-settings">Execution Settings<a class="headerlink" href="#execution-settings" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">[tool.huginn]</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">parallel_tests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">max_parallel_tests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">fail_fast</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">[tool.huginn]</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">parallel_tests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">max_parallel_tests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">fail_fast</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
 </code></pre></div>
 <table>
 <thead>
@@ -2256,10 +2492,10 @@
 </table>
 <p>When <code>fail_fast</code> is <code>true</code>, the framework stops after any test case group fails. Dependent test case groups are still marked as blocked, but independent test case groups are not executed.</p>
 <h3 id="timeouts">Timeouts<a class="headerlink" href="#timeouts" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">[tool.huginn]</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">connection_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">command_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">test_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">300</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">[tool.huginn]</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">connection_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">command_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">test_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">300</span>
 </code></pre></div>
 <table>
 <thead>
@@ -2293,10 +2529,10 @@
 </table>
 <p>Timeouts can be overridden per-device in the testbed file.</p>
 <h3 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">[tool.huginn]</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">log_to_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">log_format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;%(asctime)s - %(name)s - %(levelname)s - %(message)s&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">[tool.huginn]</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">log_to_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">log_format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;%(asctime)s - %(name)s - %(levelname)s - %(message)s&quot;</span>
 </code></pre></div>
 <table>
 <thead>
@@ -2329,10 +2565,10 @@
 </tbody>
 </table>
 <h3 id="reporting">Reporting<a class="headerlink" href="#reporting" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">[tool.huginn]</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">report_format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;json&quot;</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">include_command_output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">include_parsed_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">[tool.huginn]</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">report_format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;json&quot;</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">include_command_output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">include_parsed_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
 </code></pre></div>
 <table>
 <thead>
@@ -2366,17 +2602,17 @@
 </table>
 <p>Current builds default to JSON output. Additional report formats can be added via
 report plugins as support is implemented:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">report_format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;json&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">report_format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;json&quot;</span>
 </code></pre></div>
 <h3 id="connection-defaults">Connection Defaults<a class="headerlink" href="#connection-defaults" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">[tool.huginn.connections]</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">default_transport</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;asyncssh&quot;</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">auth_strict_key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">default_port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">22</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="k">[tool.huginn.connections.rest]</span>
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="n">verify_ssl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="n">timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">[tool.huginn.connections]</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">default_transport</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;asyncssh&quot;</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">auth_strict_key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">default_port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">22</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="k">[tool.huginn.connections.rest]</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="n">verify_ssl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="n">timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">30</span>
 </code></pre></div>
 <p>These provide defaults for device connections. Per-device settings in the testbed override these.</p>
 <table>
@@ -2422,10 +2658,10 @@ report plugins as support is implemented:</p>
 </tbody>
 </table>
 <h3 id="hooks">Hooks<a class="headerlink" href="#hooks" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">[tool.huginn.hooks]</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">pre_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myproject.hooks:before_run&quot;</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">post_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myproject.hooks:after_run&quot;</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">on_failure</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myproject.hooks:notify_failure&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">[tool.huginn.hooks]</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">pre_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myproject.hooks:before_run&quot;</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">post_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myproject.hooks:after_run&quot;</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="n">on_failure</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myproject.hooks:notify_failure&quot;</span>
 </code></pre></div>
 <p>Hooks are Python entry points in the format <code>module.path:function_name</code>. They're called at specific lifecycle points.</p>
 <table>
@@ -2490,120 +2726,120 @@ report plugins as support is implemented:</p>
 </tbody>
 </table>
 <p>Example hook implementation:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># myproject/hooks.py</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">before_run</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">test_plan</span><span class="p">,</span> <span class="n">testbed</span><span class="p">):</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Called before test execution begins.&quot;&quot;&quot;</span>
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting test run with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">testbed</span><span class="o">.</span><span class="n">devices</span><span class="p">)</span><span class="si">}</span><span class="s2"> devices&quot;</span><span class="p">)</span>
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">notify_failure</span><span class="p">(</span><span class="n">test_id</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">failure_info</span><span class="p">):</span>
-<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Called when a test fails.&quot;&quot;&quot;</span>
-<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>    <span class="c1"># Send Slack notification, create Jira ticket, etc.</span>
-<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="n">send_slack_message</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Test </span><span class="si">{</span><span class="n">test_id</span><span class="si">}</span><span class="s2"> failed: </span><span class="si">{</span><span class="n">failure_info</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># myproject/hooks.py</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">before_run</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">test_plan</span><span class="p">,</span> <span class="n">testbed</span><span class="p">):</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Called before test execution begins.&quot;&quot;&quot;</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting test run with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">testbed</span><span class="o">.</span><span class="n">devices</span><span class="p">)</span><span class="si">}</span><span class="s2"> devices&quot;</span><span class="p">)</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">notify_failure</span><span class="p">(</span><span class="n">test_id</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">failure_info</span><span class="p">):</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Called when a test fails.&quot;&quot;&quot;</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>    <span class="c1"># Send Slack notification, create Jira ticket, etc.</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>    <span class="n">send_slack_message</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Test </span><span class="si">{</span><span class="n">test_id</span><span class="si">}</span><span class="s2"> failed: </span><span class="si">{</span><span class="n">failure_info</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="plugins">Plugins<a class="headerlink" href="#plugins" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">[tool.huginn.plugins]</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;huginn-netconf&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;huginn-slack-reporter&quot;</span><span class="p">]</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="k">[tool.huginn.plugins.huginn-slack-reporter]</span>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="n">webhook_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://hooks.slack.com/...&quot;</span>
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="n">channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;#network-automation&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">[tool.huginn.plugins]</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;huginn-netconf&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;huginn-slack-reporter&quot;</span><span class="p">]</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="k">[tool.huginn.plugins.huginn-slack-reporter]</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="n">webhook_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://hooks.slack.com/...&quot;</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="n">channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;#network-automation&quot;</span>
 </code></pre></div>
 <p>Plugins extend Huginn's functionality. They're discovered via Python entry points and configured here.</p>
 <h2 id="complete-example">Complete Example<a class="headerlink" href="#complete-example" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># pyproject.toml</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="k">[project]</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my-network-tests&quot;</span>
-<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span>
-<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="n">requires-python</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&gt;=3.11&quot;</span>
-<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="n">dependencies</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">    </span><span class="s2">&quot;huginn&gt;=1.0.0&quot;</span><span class="p">,</span>
-<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">    </span><span class="s2">&quot;muninn&gt;=1.0.0&quot;</span><span class="p">,</span><span class="w">  </span><span class="c1"># Parser library</span>
-<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="p">]</span>
-<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>
-<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="k">[tool.huginn]</span>
-<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="c1"># Core settings</span>
-<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="n">testbed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;inventory/production.yaml&quot;</span>
-<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="n">test_plan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;plans/full-validation.yaml&quot;</span>
-<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;testing&quot;</span>
-<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a>
-<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a><span class="c1"># Paths</span>
-<a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a><span class="n">parameters_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/parameters&quot;</span>
-<a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a><span class="n">logs_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;output/logs&quot;</span>
-<a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a>
-<a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a><span class="c1"># Execution</span>
-<a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a><span class="n">parallel_tests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a><span class="n">max_parallel_tests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">20</span>
-<a id="__codelineno-14-25" name="__codelineno-14-25" href="#__codelineno-14-25"></a><span class="n">fail_fast</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
-<a id="__codelineno-14-26" name="__codelineno-14-26" href="#__codelineno-14-26"></a>
-<a id="__codelineno-14-27" name="__codelineno-14-27" href="#__codelineno-14-27"></a><span class="c1"># Timeouts</span>
-<a id="__codelineno-14-28" name="__codelineno-14-28" href="#__codelineno-14-28"></a><span class="n">connection_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">45</span>
-<a id="__codelineno-14-29" name="__codelineno-14-29" href="#__codelineno-14-29"></a><span class="n">command_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">120</span>
-<a id="__codelineno-14-30" name="__codelineno-14-30" href="#__codelineno-14-30"></a><span class="n">test_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">600</span>
-<a id="__codelineno-14-31" name="__codelineno-14-31" href="#__codelineno-14-31"></a>
-<a id="__codelineno-14-32" name="__codelineno-14-32" href="#__codelineno-14-32"></a><span class="c1"># Logging</span>
-<a id="__codelineno-14-33" name="__codelineno-14-33" href="#__codelineno-14-33"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span>
-<a id="__codelineno-14-34" name="__codelineno-14-34" href="#__codelineno-14-34"></a><span class="n">log_to_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-14-35" name="__codelineno-14-35" href="#__codelineno-14-35"></a>
-<a id="__codelineno-14-36" name="__codelineno-14-36" href="#__codelineno-14-36"></a><span class="c1"># Reporting</span>
-<a id="__codelineno-14-37" name="__codelineno-14-37" href="#__codelineno-14-37"></a><span class="n">report_format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;json&quot;</span>
-<a id="__codelineno-14-38" name="__codelineno-14-38" href="#__codelineno-14-38"></a><span class="n">include_command_output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-14-39" name="__codelineno-14-39" href="#__codelineno-14-39"></a><span class="n">include_parsed_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-14-40" name="__codelineno-14-40" href="#__codelineno-14-40"></a>
-<a id="__codelineno-14-41" name="__codelineno-14-41" href="#__codelineno-14-41"></a><span class="k">[tool.huginn.connections]</span>
-<a id="__codelineno-14-42" name="__codelineno-14-42" href="#__codelineno-14-42"></a><span class="n">default_transport</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;asyncssh&quot;</span>
-<a id="__codelineno-14-43" name="__codelineno-14-43" href="#__codelineno-14-43"></a><span class="n">auth_strict_key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
-<a id="__codelineno-14-44" name="__codelineno-14-44" href="#__codelineno-14-44"></a>
-<a id="__codelineno-14-45" name="__codelineno-14-45" href="#__codelineno-14-45"></a><span class="k">[tool.huginn.connections.rest]</span>
-<a id="__codelineno-14-46" name="__codelineno-14-46" href="#__codelineno-14-46"></a><span class="n">verify_ssl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="w">  </span><span class="c1"># Lab environment</span>
-<a id="__codelineno-14-47" name="__codelineno-14-47" href="#__codelineno-14-47"></a><span class="n">timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span>
-<a id="__codelineno-14-48" name="__codelineno-14-48" href="#__codelineno-14-48"></a>
-<a id="__codelineno-14-49" name="__codelineno-14-49" href="#__codelineno-14-49"></a><span class="k">[tool.huginn.hooks]</span>
-<a id="__codelineno-14-50" name="__codelineno-14-50" href="#__codelineno-14-50"></a><span class="n">pre_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myproject.hooks:setup_environment&quot;</span>
-<a id="__codelineno-14-51" name="__codelineno-14-51" href="#__codelineno-14-51"></a><span class="n">post_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myproject.hooks:generate_summary&quot;</span>
-<a id="__codelineno-14-52" name="__codelineno-14-52" href="#__codelineno-14-52"></a><span class="n">on_failure</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myproject.hooks:notify_team&quot;</span>
-<a id="__codelineno-14-53" name="__codelineno-14-53" href="#__codelineno-14-53"></a>
-<a id="__codelineno-14-54" name="__codelineno-14-54" href="#__codelineno-14-54"></a><span class="k">[tool.huginn.plugins]</span>
-<a id="__codelineno-14-55" name="__codelineno-14-55" href="#__codelineno-14-55"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;huginn-slack-reporter&quot;</span><span class="p">]</span>
-<a id="__codelineno-14-56" name="__codelineno-14-56" href="#__codelineno-14-56"></a>
-<a id="__codelineno-14-57" name="__codelineno-14-57" href="#__codelineno-14-57"></a><span class="k">[tool.huginn.plugins.huginn-slack-reporter]</span>
-<a id="__codelineno-14-58" name="__codelineno-14-58" href="#__codelineno-14-58"></a><span class="n">webhook_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;${SLACK_WEBHOOK_URL}&quot;</span>
-<a id="__codelineno-14-59" name="__codelineno-14-59" href="#__codelineno-14-59"></a><span class="n">channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;#network-ops&quot;</span>
-<a id="__codelineno-14-60" name="__codelineno-14-60" href="#__codelineno-14-60"></a><span class="n">notify_on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;failure&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;error&quot;</span><span class="p">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># pyproject.toml</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="k">[project]</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my-network-tests&quot;</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="n">requires-python</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&gt;=3.11&quot;</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="n">dependencies</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="w">    </span><span class="s2">&quot;huginn&gt;=1.0.0&quot;</span><span class="p">,</span>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="w">    </span><span class="s2">&quot;muninn&gt;=1.0.0&quot;</span><span class="p">,</span><span class="w">  </span><span class="c1"># Parser library</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="p">]</span>
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>
+<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="k">[tool.huginn]</span>
+<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="c1"># Core settings</span>
+<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="n">testbed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;inventory/production.yaml&quot;</span>
+<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="n">test_plan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;plans/full-validation.yaml&quot;</span>
+<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="n">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;testing&quot;</span>
+<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a>
+<a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="c1"># Paths</span>
+<a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a><span class="n">parameters_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;data/parameters&quot;</span>
+<a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a><span class="n">logs_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;output/logs&quot;</span>
+<a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a>
+<a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a><span class="c1"># Execution</span>
+<a id="__codelineno-15-23" name="__codelineno-15-23" href="#__codelineno-15-23"></a><span class="n">parallel_tests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-15-24" name="__codelineno-15-24" href="#__codelineno-15-24"></a><span class="n">max_parallel_tests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">20</span>
+<a id="__codelineno-15-25" name="__codelineno-15-25" href="#__codelineno-15-25"></a><span class="n">fail_fast</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<a id="__codelineno-15-26" name="__codelineno-15-26" href="#__codelineno-15-26"></a>
+<a id="__codelineno-15-27" name="__codelineno-15-27" href="#__codelineno-15-27"></a><span class="c1"># Timeouts</span>
+<a id="__codelineno-15-28" name="__codelineno-15-28" href="#__codelineno-15-28"></a><span class="n">connection_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">45</span>
+<a id="__codelineno-15-29" name="__codelineno-15-29" href="#__codelineno-15-29"></a><span class="n">command_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">120</span>
+<a id="__codelineno-15-30" name="__codelineno-15-30" href="#__codelineno-15-30"></a><span class="n">test_timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">600</span>
+<a id="__codelineno-15-31" name="__codelineno-15-31" href="#__codelineno-15-31"></a>
+<a id="__codelineno-15-32" name="__codelineno-15-32" href="#__codelineno-15-32"></a><span class="c1"># Logging</span>
+<a id="__codelineno-15-33" name="__codelineno-15-33" href="#__codelineno-15-33"></a><span class="n">log_level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;INFO&quot;</span>
+<a id="__codelineno-15-34" name="__codelineno-15-34" href="#__codelineno-15-34"></a><span class="n">log_to_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-15-35" name="__codelineno-15-35" href="#__codelineno-15-35"></a>
+<a id="__codelineno-15-36" name="__codelineno-15-36" href="#__codelineno-15-36"></a><span class="c1"># Reporting</span>
+<a id="__codelineno-15-37" name="__codelineno-15-37" href="#__codelineno-15-37"></a><span class="n">report_format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;json&quot;</span>
+<a id="__codelineno-15-38" name="__codelineno-15-38" href="#__codelineno-15-38"></a><span class="n">include_command_output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-15-39" name="__codelineno-15-39" href="#__codelineno-15-39"></a><span class="n">include_parsed_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-15-40" name="__codelineno-15-40" href="#__codelineno-15-40"></a>
+<a id="__codelineno-15-41" name="__codelineno-15-41" href="#__codelineno-15-41"></a><span class="k">[tool.huginn.connections]</span>
+<a id="__codelineno-15-42" name="__codelineno-15-42" href="#__codelineno-15-42"></a><span class="n">default_transport</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;asyncssh&quot;</span>
+<a id="__codelineno-15-43" name="__codelineno-15-43" href="#__codelineno-15-43"></a><span class="n">auth_strict_key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
+<a id="__codelineno-15-44" name="__codelineno-15-44" href="#__codelineno-15-44"></a>
+<a id="__codelineno-15-45" name="__codelineno-15-45" href="#__codelineno-15-45"></a><span class="k">[tool.huginn.connections.rest]</span>
+<a id="__codelineno-15-46" name="__codelineno-15-46" href="#__codelineno-15-46"></a><span class="n">verify_ssl</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="w">  </span><span class="c1"># Lab environment</span>
+<a id="__codelineno-15-47" name="__codelineno-15-47" href="#__codelineno-15-47"></a><span class="n">timeout</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">60</span>
+<a id="__codelineno-15-48" name="__codelineno-15-48" href="#__codelineno-15-48"></a>
+<a id="__codelineno-15-49" name="__codelineno-15-49" href="#__codelineno-15-49"></a><span class="k">[tool.huginn.hooks]</span>
+<a id="__codelineno-15-50" name="__codelineno-15-50" href="#__codelineno-15-50"></a><span class="n">pre_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myproject.hooks:setup_environment&quot;</span>
+<a id="__codelineno-15-51" name="__codelineno-15-51" href="#__codelineno-15-51"></a><span class="n">post_run</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myproject.hooks:generate_summary&quot;</span>
+<a id="__codelineno-15-52" name="__codelineno-15-52" href="#__codelineno-15-52"></a><span class="n">on_failure</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;myproject.hooks:notify_team&quot;</span>
+<a id="__codelineno-15-53" name="__codelineno-15-53" href="#__codelineno-15-53"></a>
+<a id="__codelineno-15-54" name="__codelineno-15-54" href="#__codelineno-15-54"></a><span class="k">[tool.huginn.plugins]</span>
+<a id="__codelineno-15-55" name="__codelineno-15-55" href="#__codelineno-15-55"></a><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;huginn-slack-reporter&quot;</span><span class="p">]</span>
+<a id="__codelineno-15-56" name="__codelineno-15-56" href="#__codelineno-15-56"></a>
+<a id="__codelineno-15-57" name="__codelineno-15-57" href="#__codelineno-15-57"></a><span class="k">[tool.huginn.plugins.huginn-slack-reporter]</span>
+<a id="__codelineno-15-58" name="__codelineno-15-58" href="#__codelineno-15-58"></a><span class="n">webhook_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;${SLACK_WEBHOOK_URL}&quot;</span>
+<a id="__codelineno-15-59" name="__codelineno-15-59" href="#__codelineno-15-59"></a><span class="n">channel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;#network-ops&quot;</span>
+<a id="__codelineno-15-60" name="__codelineno-15-60" href="#__codelineno-15-60"></a><span class="n">notify_on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;failure&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;error&quot;</span><span class="p">]</span>
 </code></pre></div>
 <h2 id="cli-overrides">CLI Overrides<a class="headerlink" href="#cli-overrides" title="Permanent link">&para;</a></h2>
 <p>Configuration can be overridden at runtime:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># Override testbed and test plan</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>huginn<span class="w"> </span>run<span class="w"> </span>--testbed<span class="w"> </span>staging.yaml<span class="w"> </span>--plan<span class="w"> </span>smoke-tests.yaml
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="c1"># Override mode</span>
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>learning
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="c1"># Override logging</span>
-<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>huginn<span class="w"> </span>run<span class="w"> </span>--log-level<span class="w"> </span>DEBUG
-<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>
-<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="c1"># Override parallelism</span>
-<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>huginn<span class="w"> </span>run<span class="w"> </span>--no-parallel
-<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>huginn<span class="w"> </span>run<span class="w"> </span>--max-parallel<span class="w"> </span><span class="m">5</span>
-<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>
-<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="c1"># Override fail-fast</span>
-<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a>huginn<span class="w"> </span>run<span class="w"> </span>--fail-fast
-<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a>
-<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="c1"># Override data model path</span>
-<a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a>huginn<span class="w"> </span>run<span class="w"> </span>--data-model<span class="w"> </span>./nac/data/
-<a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a>
-<a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a><span class="c1"># Use inventory plugin</span>
-<a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a>huginn<span class="w"> </span>run<span class="w"> </span>--inventory-plugin<span class="w"> </span>huginn-netbox
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Override testbed and test plan</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>huginn<span class="w"> </span>run<span class="w"> </span>--testbed<span class="w"> </span>staging.yaml<span class="w"> </span>--plan<span class="w"> </span>smoke-tests.yaml
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="c1"># Override mode</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>learning
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="c1"># Override logging</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>huginn<span class="w"> </span>run<span class="w"> </span>--log-level<span class="w"> </span>DEBUG
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="c1"># Override parallelism</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>huginn<span class="w"> </span>run<span class="w"> </span>--no-parallel
+<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a>huginn<span class="w"> </span>run<span class="w"> </span>--max-parallel<span class="w"> </span><span class="m">5</span>
+<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a>
+<a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a><span class="c1"># Override fail-fast</span>
+<a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a>huginn<span class="w"> </span>run<span class="w"> </span>--fail-fast
+<a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a>
+<a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a><span class="c1"># Override data model path</span>
+<a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a>huginn<span class="w"> </span>run<span class="w"> </span>--data-model<span class="w"> </span>./nac/data/
+<a id="__codelineno-16-19" name="__codelineno-16-19" href="#__codelineno-16-19"></a>
+<a id="__codelineno-16-20" name="__codelineno-16-20" href="#__codelineno-16-20"></a><span class="c1"># Use inventory plugin</span>
+<a id="__codelineno-16-21" name="__codelineno-16-21" href="#__codelineno-16-21"></a>huginn<span class="w"> </span>run<span class="w"> </span>--inventory-plugin<span class="w"> </span>huginn-netbox
 </code></pre></div>
 <p>CLI arguments take precedence over <code>pyproject.toml</code> settings.</p>
 <p>When <code>--testbed</code> is explicitly provided, it takes precedence over <code>--inventory-plugin</code> (the plugin is ignored).</p>
 <h2 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h2>
 <p>Certain settings support environment variable expansion:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">[tool.huginn.plugins.huginn-slack-reporter]</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="n">webhook_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;${SLACK_WEBHOOK_URL}&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">[tool.huginn.plugins.huginn-slack-reporter]</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">webhook_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;${SLACK_WEBHOOK_URL}&quot;</span>
 </code></pre></div>
 <p>Additionally, some settings can be set via environment variables directly:</p>
 <table>
@@ -2648,9 +2884,9 @@ report plugins as support is implemented:</p>
 <p>The first <code>pyproject.toml</code> with a <code>[tool.huginn]</code> section is used.</p>
 <h2 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h2>
 <p>Configuration is validated on startup. Invalid settings produce clear error messages:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>Configuration error in pyproject.toml:
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>  [tool.huginn] mode = &quot;invalid&quot;
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>  Expected one of: learning, testing
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>Configuration error in pyproject.toml:
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>  [tool.huginn] mode = &quot;invalid&quot;
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>  Expected one of: learning, testing
 </code></pre></div>
 <h2 id="related-documents">Related Documents<a class="headerlink" href="#related-documents" title="Permanent link">&para;</a></h2>
 <ul>
