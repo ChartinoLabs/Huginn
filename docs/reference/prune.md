@@ -8,7 +8,7 @@ The `huginn prune` command reads learning results and narrows the test plan auto
 
 - **Partially applicable tests** (some devices are N/A): adds `target.exclude_devices` to the test case definition so those devices are skipped on future runs.
 - **Fully non-applicable tests** (all devices are N/A): removes the test from its group. Leaf groups have the test ID removed from `tests`; composite groups that use `groups` inheritance get an `exclude_tests` entry instead.
-- **Orphaned definitions** (optional): with `--remove-orphans`, test case definitions that are no longer referenced by any group are deleted entirely.
+- **Orphaned definitions** (optional): with `--remove-orphans`, every test case definition that no group references is deleted entirely. This includes orphans left by earlier prune runs and test cases that were never placed in any group. See [Orphan removal](#orphan-removal).
 
 Prune is designed to be run once after an initial learning pass against a new testbed. It tightens test scope based on observed reality, eliminating noise from tests that can never pass on the current infrastructure.
 
@@ -74,11 +74,19 @@ The command validates the modified test plan after writing changes. If validatio
 
 ### Optionally remove orphaned definitions
 
-If fully non-applicable tests were removed from all groups, their test case definitions still exist in the YAML but are unreferenced. Use `--remove-orphans` to clean them up.
+If fully non-applicable tests were removed from all groups, their test case definitions still exist in the YAML but are unreferenced. Use `--remove-orphans` to clean them up. You can pass it on the same run that does the pruning, or on a later, separate run.
 
 ```bash
 huginn prune -p test_plan/ --remove-orphans
 ```
+
+`--remove-orphans` removes every unreferenced test case definition in the plan, not only the ones the current run pruned. That includes test cases that no group has ever listed, such as drafts you have not added to a group yet. Preview with `--dry-run` first:
+
+```bash
+huginn prune -p test_plan/ --remove-orphans --dry-run
+```
+
+The dry-run output lists each definition that would be deleted under `Removing orphaned test case definitions`.
 
 ## CLI reference
 
@@ -86,16 +94,16 @@ huginn prune -p test_plan/ --remove-orphans
 huginn prune --plan <path> [--results-dir <path>] [--dry-run] [--remove-orphans]
 ```
 
-| Option             | Default        | Description                                                                           |
-| ------------------ | -------------- | ------------------------------------------------------------------------------------- |
-| `--plan`, `-p`     | (required)     | Path to test plan YAML file or directory. Also accepts `HUGINN_PLAN` env var.         |
-| `--results-dir`    | `./results/`   | Path to results directory. Also accepts `HUGINN_RESULTS_DIR` env var.                 |
-| `--dry-run`        | off            | Show what would be pruned without modifying files.                                    |
-| `--remove-orphans` | off            | Delete test case definitions no longer referenced by any group.                       |
-| `--debug`          | off            | Enable DEBUG-level logging. Also accepts `HUGINN_DEBUG` env var.                      |
-| `--log-level`      | `INFO`         | Logging level (DEBUG, INFO, WARNING, ERROR). Also accepts `HUGINN_LOG_LEVEL` env var. |
-| `--show-logs`      | off            | Stream logs to console in addition to file. Also accepts `HUGINN_SHOW_LOGS` env var.  |
-| `--log-file`       | `./huginn.log` | Path to log file. Also accepts `HUGINN_LOG_FILE` env var.                             |
+| Option             | Default        | Description                                                                                         |
+| ------------------ | -------------- | --------------------------------------------------------------------------------------------------- |
+| `--plan`, `-p`     | (required)     | Path to test plan YAML file or directory. Also accepts `HUGINN_PLAN` env var.                       |
+| `--results-dir`    | `./results/`   | Path to results directory. Also accepts `HUGINN_RESULTS_DIR` env var.                               |
+| `--dry-run`        | off            | Show what would be pruned without modifying files.                                                  |
+| `--remove-orphans` | off            | Delete every test case definition that no group references (see [Orphan removal](#orphan-removal)). |
+| `--debug`          | off            | Enable DEBUG-level logging. Also accepts `HUGINN_DEBUG` env var.                                    |
+| `--log-level`      | `INFO`         | Logging level (DEBUG, INFO, WARNING, ERROR). Also accepts `HUGINN_LOG_LEVEL` env var.               |
+| `--show-logs`      | off            | Stream logs to console in addition to file. Also accepts `HUGINN_SHOW_LOGS` env var.                |
+| `--log-file`       | `./huginn.log` | Path to log file. Also accepts `HUGINN_LOG_FILE` env var.                                           |
 
 ## What the command modifies
 
@@ -177,7 +185,17 @@ This preserves the inheritance structure. The `exclude_tests` mechanism is the s
 
 ### Orphan removal
 
-When `--remove-orphans` is passed, the command checks whether any fully non-applicable test IDs are still referenced by at least one group after all group removals are applied. Test case definitions with no remaining group references are deleted from the YAML.
+When `--remove-orphans` is passed, the command checks every test case defined in the plan, whether or not the current run pruned it. A test case is referenced if at least one group's effective tests include it. A group's effective tests are:
+
+1. The test IDs in its `tests`, plus the tests it inherits through nested `groups`.
+2. Minus the test IDs in its `exclude_tests`.
+3. Minus the test IDs this run removes from that group.
+
+Test case definitions that no group references are deleted from the YAML. Some consequences:
+
+- A test case that no group has ever listed, such as a draft, is an orphan and is deleted.
+- A test case that appears only in a group's `exclude_tests` is an orphan.
+- Any group counts, including a group that no scenario phase uses. A test case referenced only by such a group is kept.
 
 This is a destructive operation - the test case definition and its key are removed from the `test_cases` map. The associated parameter files in `parameters/` are not touched; remove those manually if desired.
 

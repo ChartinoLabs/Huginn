@@ -1226,7 +1226,10 @@ def _display_prune_plan_details(plan_result: PrunePlan, output: Output) -> None:
                 output.status(f"  {tid} from {group_id}")
 
     if plan_result.orphaned_test_cases:
-        output.status("Removing orphaned test case definitions:")
+        output.status(
+            "Removing orphaned test case definitions "
+            "(not referenced by any group, including never-grouped tests):"
+        )
         for tid in plan_result.orphaned_test_cases:
             output.status(f"  {tid}")
 
@@ -1343,8 +1346,8 @@ def prune(
         typer.Option(
             "--remove-orphans",
             help=(
-                "Remove test case definitions that are no longer"
-                " referenced by any group after pruning."
+                "Remove every test case definition that no group"
+                " references after pruning, including ones never grouped."
             ),
         ),
     ] = False,
@@ -1387,7 +1390,7 @@ def prune(
         prune_input = parse_applicability_from_run(run_json_path)
 
         total_na = len(prune_input.partial_tests) + len(prune_input.full_tests)
-        if total_na == 0:
+        if total_na == 0 and not remove_orphans:
             output.success("No non-applicable tests found -- nothing to prune")
             return
 

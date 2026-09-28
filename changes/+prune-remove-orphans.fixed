@@ -1,0 +1,1 @@
+`huginn prune --remove-orphans` now removes every test case that no group references, including orphans left by an earlier prune and test cases never placed in a group, instead of doing nothing on a follow-up run.
