@@ -2446,7 +2446,7 @@
 <td><code>-d</code></td>
 <td><code>HUGINN_DATA_MODEL</code></td>
 <td>none</td>
-<td>Data model directory. Overrides the test plan's <code>data_model.path</code>. A relative path resolves against the working directory.</td>
+<td>Data model directory. Overrides the test plan's <code>data_model.path</code>. A relative path resolves against the current working directory.</td>
 </tr>
 <tr>
 <td><code>--results-dir</code></td>
@@ -2509,7 +2509,7 @@
 </tr>
 </tbody>
 </table>
-<p>An invalid <code>--test-id-pattern</code> regular expression currently ends the run with a Python traceback and exit code 1.</p>
+<p>An invalid <code>--test-id-pattern</code> regular expression is a <a href="#usage-errors">usage error</a>: the run does not start and the command exits 2.</p>
 <h2 id="validate">validate<a class="headerlink" href="#validate" title="Permanent link">&para;</a></h2>
 <p>Validate the testbed and test plan without executing tests. Validation loads both inputs, applies the filters, resolves phase order, and checks that every test case can be loaded and targeted. No devices are contacted.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>huginn validate --plan &lt;path&gt; [--testbed &lt;path&gt; | --inventory-plugin &lt;name&gt;]
@@ -2603,7 +2603,7 @@
 <td><code>-d</code></td>
 <td><code>HUGINN_DATA_MODEL</code></td>
 <td>none</td>
-<td>Data model directory. Overrides the test plan's <code>data_model.path</code>. A relative path resolves against the working directory.</td>
+<td>Data model directory. Overrides the test plan's <code>data_model.path</code>. A relative path resolves against the current working directory.</td>
 </tr>
 <tr>
 <td>logging options</td>
@@ -2637,7 +2637,7 @@
 </tr>
 </tbody>
 </table>
-<p>An invalid <code>--test-id-pattern</code> regular expression currently ends validation with a Python traceback and exit code 1.</p>
+<p>An invalid <code>--test-id-pattern</code> regular expression is a <a href="#usage-errors">usage error</a>: validation does not start and the command exits 2.</p>
 <h2 id="execute">execute<a class="headerlink" href="#execute" title="Permanent link">&para;</a></h2>
 <p>Run ad-hoc commands on testbed devices and print the raw output. Single-command mode takes <code>--device</code> and <code>--command</code> together. Batch mode takes <code>--commands</code> with a YAML file and cannot be combined with <code>--device</code> or <code>--command</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>huginn execute --testbed &lt;path&gt; --device &lt;name&gt; --command &lt;command&gt; [--broker &lt;ssh|http|netconf&gt;] [--no-prompt] [logging options]
@@ -2820,7 +2820,7 @@
 <td></td>
 <td></td>
 <td><code>prefix-counter</code></td>
-<td>ID generation style. <code>prefix-counter</code> is the only style implemented; other values are accepted but ignored.</td>
+<td>ID generation style. <code>prefix-counter</code> is the only style implemented; any other value is a usage error.</td>
 </tr>
 <tr>
 <td><code>--dry-run</code></td>
@@ -2917,7 +2917,7 @@
 <td></td>
 <td></td>
 <td><code>prefix-counter</code></td>
-<td>ID generation style. <code>prefix-counter</code> is the only style implemented; other values are accepted but ignored.</td>
+<td>ID generation style. <code>prefix-counter</code> is the only style implemented; any other value is a usage error.</td>
 </tr>
 <tr>
 <td><code>--dry-run</code></td>
