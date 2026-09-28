@@ -151,6 +151,15 @@ inventory_merge = true  # Future: merge with testbed.yaml
 - Credential merging behavior
 - Group membership merging (union? intersection?)
 
+### Job Packages
+
+Test cases can reference jobs in installed Python packages by module path (see [Package-Based Job References](../reference/package-jobs.md)). These questions will be resolved as the first job package is built:
+
+- **Formal package interface**: Does the framework need a registration mechanism (e.g., entry points) for job packages, or is any importable module with `LearningTestCase` subclasses sufficient?
+- **Job discovery / browsing**: Should the framework provide tooling to list available jobs from installed packages (e.g., `huginn jobs list --package huginn-jobs-network`)?
+- **Parser bundling**: Should job packages bundle their own Muninn parsers, or depend on a separate parser package?
+- **Unit test conventions**: Should job packages follow the same spec-driven test harness pattern documented in the [Unit Testing Automation](../authoring/unit-testing.md) guide?
+
 ______________________________________________________________________
 
 ## Related Documents
