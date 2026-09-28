@@ -1,5 +1,6 @@
 """Tests for CLI filtering options: --phase, --group, --test-id, --tags."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -184,6 +185,37 @@ def test_run_filters_by_test_id_option(
         for case in group["test_cases"]
     ]
     assert executed_ids == ["1.0.1"]
+
+
+def test_run_rejects_invalid_test_id_pattern_as_usage_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An invalid --test-id-pattern regex is a usage error, not a traceback."""
+    stage_runner_fixture(tmp_path, "cli_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--test-id-pattern",
+            "[",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 2
+    normalized_output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+    assert "Invalid value for '--test-id-pattern'" in normalized_output
+    assert "unterminated character set" in normalized_output
 
 
 def test_run_filters_by_exclude_tags_option(

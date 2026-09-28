@@ -308,6 +308,35 @@ def test_validate_rejects_phase_filter_without_scenario(
     assert "--phase requires --scenario" in normalized_output
 
 
+def test_validate_rejects_invalid_test_id_pattern_as_usage_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An invalid --test-id-pattern regex is a usage error, not a traceback."""
+    _stage_runner_fixture(tmp_path, "cli_filtering")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "validate",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--test-id-pattern",
+            "[",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 2
+    normalized_output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+    assert "Invalid value for '--test-id-pattern'" in normalized_output
+    assert "unterminated character set" in normalized_output
+
+
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
     """Copy a first-slice fixture scenario into a temporary directory."""
     fixture_root = Path(__file__).resolve().parent / "fixtures" / "first_slice_runner"
