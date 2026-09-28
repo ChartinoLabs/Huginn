@@ -40,7 +40,7 @@ project/
 ├── pyproject.toml
 ├── testbed.yaml
 ├── test_plan/                    # Directory instead of single file
-│   ├── project.yaml              # Top-level metadata (name, description, defaults)
+│   ├── project.yaml              # Top-level metadata (name, description)
 │   ├── scenarios.yaml            # Scenario definitions (contain phases)
 │   ├── connectivity/
 │   │   └── connectivity.yaml     # Connectivity test cases and groups
@@ -70,7 +70,7 @@ huginn run --mode testing --plan test_plan/
 
 ### Top-Level Metadata
 
-Top-level metadata (`name`, `description`, `data_model`, `defaults`) can be defined in any file within the test plan directory. There is no required file name or location.
+Top-level metadata (`name`, `description`, `data_model`) can be defined in any file within the test plan directory. There is no required file name or location.
 
 ```yaml
 # test_plan/project.yaml (or any name you prefer)
@@ -82,14 +82,13 @@ description: >
 
 data_model:
   path: ./nac/data/
-
-defaults:
-  tags: [production]
 ```
 
 Each top-level metadata key must be defined in exactly one file. If the same key appears in multiple files, the framework reports an error identifying both files.
 
 If no file defines a particular metadata key, that key is unset (empty).
+
+The `defaults` key has been removed. A test plan that sets it fails to load, in both single-file and directory mode. Set `tags` or `target` on scenarios, phases or test case groups instead.
 
 ### Merge Semantics
 
@@ -100,7 +99,6 @@ When multiple files define the same section, the framework merges them according
 | `name`             | Single definition only; error on duplicate |
 | `description`      | Single definition only; error on duplicate |
 | `data_model`       | Single definition only; error on duplicate |
-| `defaults`         | Single definition only; error on duplicate |
 | `test_cases`       | Map merge; error on duplicate keys         |
 | `test_case_groups` | Map merge; error on duplicate keys         |
 | `scenarios`        | Map merge; error on duplicate keys         |

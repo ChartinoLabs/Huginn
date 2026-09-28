@@ -455,6 +455,34 @@ def test_load_test_plan_directory_rejects_duplicate_metadata() -> None:
         load_test_plan(path)
 
 
+def test_load_test_plan_rejects_removed_defaults_key(tmp_path: Path) -> None:
+    """Raise when a single-file plan still sets the removed 'defaults' key."""
+    plan_file = tmp_path / "plan.yaml"
+    plan_file.write_text(
+        (FIXTURES / "plan_valid.yaml").read_text() + "defaults:\n  tags: [ospf]\n"
+    )
+
+    with pytest.raises(
+        ConfigurationError,
+        match=r"'defaults' in .*plan\.yaml was removed.*'tags' or 'target'",
+    ):
+        load_test_plan(plan_file)
+
+
+def test_load_test_plan_directory_rejects_removed_defaults_key(
+    tmp_path: Path,
+) -> None:
+    """Raise when any file in a directory plan sets the removed 'defaults' key."""
+    (tmp_path / "plan.yaml").write_text((FIXTURES / "plan_valid.yaml").read_text())
+    (tmp_path / "project.yaml").write_text("defaults:\n  tags: [ospf]\n")
+
+    with pytest.raises(
+        ConfigurationError,
+        match=r"'defaults' in .*project\.yaml was removed.*'tags' or 'target'",
+    ):
+        load_test_plan(tmp_path)
+
+
 def test_load_test_plan_directory_rejects_empty_directory(tmp_path: Path) -> None:
     """Raise when directory contains no YAML files."""
     with pytest.raises(ConfigurationError, match="contains no YAML files"):
@@ -480,5 +508,4 @@ def test_load_test_plan_single_file_populates_metadata() -> None:
     # plan_valid.yaml doesn't define metadata, so fields should be None
     assert plan.name is None
     assert plan.description is None
-    assert plan.defaults is None
     assert plan.data_model is None

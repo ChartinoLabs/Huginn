@@ -158,7 +158,6 @@ class TestPlan:
     test_cases: dict[str, TestCaseDefinition]
     name: str | None = None
     description: str | None = None
-    defaults: dict[str, object] | None = None
     data_model: dict[str, object] | None = None
 
 

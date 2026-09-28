@@ -462,6 +462,7 @@ def load_test_plan(path: Path) -> TestPlan:
 def _load_test_plan_file(path: Path) -> TestPlan:
     """Load a single-file test plan with validation."""
     data = _load_yaml(path)
+    _reject_removed_keys(data, path)
 
     test_cases = _load_test_cases(data)
     groups = _load_test_case_groups(data)
@@ -478,7 +479,6 @@ def _load_test_plan_file(path: Path) -> TestPlan:
         description=_load_optional_metadata_string(
             data.get("description"), "description"
         ),
-        defaults=_load_optional_metadata_mapping(data.get("defaults"), "defaults"),
         data_model=_load_optional_metadata_mapping(
             data.get("data_model"), "data_model"
         ),
@@ -507,8 +507,18 @@ def _load_optional_metadata_mapping(
 
 _SECTION_KEYS = frozenset({"test_cases", "test_case_groups", "scenarios"})
 _METADATA_SCALAR_KEYS = frozenset({"name", "description"})
-_METADATA_MAPPING_KEYS = frozenset({"defaults", "data_model"})
+_METADATA_MAPPING_KEYS = frozenset({"data_model"})
 _RECOGNIZED_KEYS = _SECTION_KEYS | _METADATA_SCALAR_KEYS | _METADATA_MAPPING_KEYS
+
+
+def _reject_removed_keys(data: dict[str, object], source_path: Path) -> None:
+    """Raise when a test plan file still uses the removed ``defaults`` key."""
+    if "defaults" in data:
+        raise ConfigurationError(
+            f"Test plan key 'defaults' in {source_path} was removed and is no "
+            "longer supported; set 'tags' or 'target' on scenarios, phases or "
+            "test case groups instead"
+        )
 
 
 def discover_yaml_files(directory: Path) -> list[Path]:
@@ -618,6 +628,7 @@ def _load_test_plan_directory(directory: Path) -> TestPlan:
 
     for yaml_path in yaml_files:
         data = _load_yaml(yaml_path)
+        _reject_removed_keys(data, yaml_path)
 
         for section_key in _SECTION_KEYS:
             raw = data.get(section_key)
@@ -665,7 +676,6 @@ def _load_test_plan_directory(directory: Path) -> TestPlan:
         scenarios=scenarios,
         name=metadata_scalars.get("name"),
         description=metadata_scalars.get("description"),
-        defaults=metadata_mappings.get("defaults"),
         data_model=metadata_mappings.get("data_model"),
     )
 
