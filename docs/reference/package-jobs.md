@@ -1,12 +1,12 @@
 # Package-Based Job References
 
-This document describes the design for referencing test automation jobs from installed Python packages, enabling organizations to maintain reusable job libraries that can be shared across multiple projects.
+A test case's `job` field can reference a job in an installed Python package as well as a local file. Organizations can keep reusable jobs in versioned packages and share them across projects. This page covers the reference syntax, how references are resolved and validated, and how to build and version a job package.
 
 ## Motivation
 
 As test automation matures, organizations accumulate large libraries of reusable jobs - OSPF neighbor verification, BGP peering checks, interface status validation, and so on. These jobs are not specific to any one project or testbed; they encode general validation logic that applies across environments.
 
-Currently, jobs are referenced as file paths relative to the project root:
+A job referenced by file path lives inside the project that uses it:
 
 ```yaml
 test_cases:
@@ -15,13 +15,13 @@ test_cases:
     job: jobs/verify_ospf_neighbors.py
 ```
 
-This means every project that needs OSPF validation must either copy the job file or maintain a shared directory. Neither scales well:
+Sharing a file-based job means copying the file into each project or keeping a shared directory. Neither scales well:
 
 - **Copy-paste** leads to drift - bug fixes in one copy don't propagate to others
 - **Shared directories** create tight coupling and awkward path management
 - **Version pinning** is impossible - there's no way to say "use v2.1 of the OSPF checks"
 
-## Solution: Python Package References
+## Module Path References
 
 Jobs from installed Python packages are referenced using dot-delimited module paths instead of file paths:
 
@@ -44,16 +44,37 @@ The framework detects whether a `job` value is a file path or a module path and 
 
 ### Detection Logic
 
-The framework distinguishes between local file paths and package module paths:
+The framework splits off an optional `:ClassName` suffix at the last `:`, then classifies the rest of the reference:
 
-- **File path**: Contains `/` or ends with `.py` - resolved relative to the project root
-- **Module path**: Dot-delimited identifier with no `/` and no `.py` suffix - resolved via Python's import system
+- **File path**: contains `/` or ends with `.py`. Resolved relative to the project root, which is the directory `huginn` is run from.
+- **Module path**: otherwise, contains a `.` or is a valid Python identifier. Resolved via Python's import system.
+- **Anything else** (for example `verify-ospf`) is treated as a file path.
 
+```txt
+jobs/verify_ospf.py             -> file path (contains /)
+verify_ospf.py                  -> file path (ends with .py)
+jobs/verify_ospf                -> file path (contains /, so no file is found)
+huginn_jobs_network.ospf.verify -> module path (contains .)
+verify_ospf                     -> module path (bare identifier)
 ```
-jobs/verify_ospf.py             → file path (contains /)
-jobs.verify_ospf                → module path (dots only)
-huginn_jobs_network.ospf.verify → module path (dots only)
+
+A bare identifier such as `verify_ospf` is a module path, not a file in the project root. Write `verify_ospf.py` to reference a local file.
+
+Both forms are loaded by executing the module. A file path is imported from its location on disk, and a module path is imported by name, so any top-level code in the job module runs when the reference is resolved.
+
+### Module Paths and sys.path
+
+Module paths are resolved with `importlib.import_module`, so the module must be importable from `sys.path` in the process running `huginn`. In practice, the package must either be installed in the active environment (for example with `uv sync`) or have its parent directory on `PYTHONPATH`.
+
+The project root is not added to `sys.path`. When `huginn` runs as a console script, `sys.path[0]` is the environment's `bin/` directory rather than the working directory. A local `jobs/` directory referenced as `jobs.verify_ospf` fails with `No module named 'jobs'` unless it is installed or on `PYTHONPATH`:
+
+```bash
+PYTHONPATH=. uv run huginn run -m testing -t testbed.yaml -p test_plan.yaml
 ```
+
+Use file paths for jobs that live in the project, and keep module paths for installed job packages.
+
+### Class Selection
 
 The `:ClassName` suffix works with both forms:
 
@@ -62,7 +83,13 @@ job: jobs/verify_ospf.py:VerifyOSPFNeighbors       # File path + explicit class
 job: huginn_jobs_network.ospf.verify:VerifyOSPFNeighbors  # Module path + explicit class
 ```
 
-When no class is specified, the framework loads the first concrete `TestCase` (or `LearningTestCase`) subclass found in the module, consistent with the existing behavior for file-based jobs.
+The named class must be an attribute of the module, inherit from `TestCase`, and be concrete.
+
+When no class is specified, the framework loads the first concrete `TestCase` (or `LearningTestCase`) subclass defined in the module. Only classes whose `__module__` is that module are considered, so classes imported from elsewhere are skipped. A job class re-exported from a package's `__init__.py` must be named explicitly:
+
+```yaml
+job: huginn_jobs_network.ospf:VerifyOSPFNeighbors  # Re-exported from ospf/__init__.py
+```
 
 ### Advantages Over Git References
 
@@ -111,12 +138,14 @@ huginn-jobs-network/
 name = "huginn-jobs-network"
 version = "2.1.0"
 description = "Network validation jobs for Huginn"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
-    "huginn>=1.0.0,<2.0.0",
-    "muninn>=1.0.0",
+    "huginn-framework>=0.2,<1",
+    "muninn-parsers>=0.7",
 ]
 ```
+
+Huginn is distributed as `huginn-framework` and Muninn as `muninn-parsers`, although both are imported as `huginn` and `muninn`.
 
 ### Job Implementation
 
@@ -134,7 +163,7 @@ from huginn import CommandSupportResult, Context, LearningTestCase, ResultStatus
 from huginn.utils.commands import is_command_unsupported
 
 mn = muninn.Muninn()
-mn.load_local_parsers()
+mn.load_builtin_parsers()
 
 # ... TypedDict definitions, message templates, LearningTestCase subclass
 # Exactly the same structure as a local job.
@@ -146,7 +175,7 @@ mn.load_local_parsers()
 # Project's pyproject.toml
 [project]
 dependencies = [
-    "huginn>=1.0.0",
+    "huginn-framework>=0.2,<1",
     "huginn-jobs-network>=2.1.0,<3.0.0",
 ]
 ```
@@ -184,12 +213,15 @@ test_cases:
 
 ### Validation
 
-The framework validates job references at startup:
+Both forms are resolved the same way: the module is imported and a concrete `TestCase` subclass is selected. A reference fails to resolve when the file does not exist, the module cannot be imported, or no matching class is found.
 
-- **File paths**: Checks that the file exists on disk (current behavior)
-- **Module paths**: Checks that the module is importable and contains a concrete `TestCase` subclass
+`huginn validate` resolves every job reference in the plan and reports each failure as a `planning_error` before any test runs:
 
-Both types of validation errors are reported before any tests execute, consistent with the fail-fast principle.
+```txt
+ERROR [planning_error]: 1.0.0: Unable to import job module 'huginn_jobs_network.ospf.verify_neighbors' from 'huginn_jobs_network.ospf.verify_neighbors': No module named 'huginn_jobs_network'
+```
+
+`huginn run` does not stop on an unresolvable reference. The affected test case is marked `ERRORED` with error code `planning_error`, and the remaining test cases run as normal. Run `huginn validate` first to catch broken references before a full run.
 
 ## Versioning and Compatibility
 
@@ -215,7 +247,7 @@ Job packages declare their Huginn framework dependency:
 
 ```toml
 dependencies = [
-    "huginn>=1.0.0,<2.0.0",
+    "huginn-framework>=0.2,<1",
 ]
 ```
 
@@ -281,20 +313,9 @@ dependencies = [
 
 If your fixes span many files across the same modules and create merge conflicts, the combined branch requires manual conflict resolution. In practice this is rare for job-level bug fixes but more likely for structural refactors. In that case, consider submitting a single PR with both fixes rather than maintaining separate branches.
 
-## Open Questions
-
-The following questions will be resolved as we build the first job package:
-
-1. **Formal package interface**: Does the framework need a registration mechanism (e.g., entry points) for job packages, or is any importable module with `LearningTestCase` subclasses sufficient?
-
-2. **Job discovery / browsing**: Should the framework provide tooling to list available jobs from installed packages (e.g., `huginn jobs list --package huginn-jobs-network`)?
-
-3. **Parser bundling**: Should job packages bundle their own Muninn parsers, or depend on a separate parser package?
-
-4. **Unit test conventions**: Should job packages follow the same spec-driven test harness pattern documented in the [Unit Testing Automation](../authoring/unit-testing.md) guide?
-
 ## Related Documents
 
 - [Test Plan Specification](test-plan.md): Test case `job` field definition
+- [Future Considerations - Job Packages](../design/future.md#job-packages): Unresolved questions about job package tooling and conventions
 - [Architecture](../design/architecture.md): Job loading and execution flow
 - [Unit Testing Automation](../authoring/unit-testing.md): Testing patterns for jobs
