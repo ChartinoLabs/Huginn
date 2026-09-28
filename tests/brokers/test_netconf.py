@@ -8,6 +8,7 @@ from scrapli.exceptions import (
     ScrapliConnectionError,
     ScrapliTimeout,
 )
+from scrapli_netconf import AsyncNetconfDriver
 
 from huginn.brokers import (
     AuthenticationError,
@@ -101,41 +102,27 @@ class TestCacheKey:
         assert key is None
 
 
-class TestPlatformMapping:
-    """Tests for OS to NETCONF platform mapping."""
+class TestOSValidation:
+    """Tests for NETCONF OS validation."""
 
-    def test_map_iosxe(self, broker: NETCONFBroker) -> None:
-        """Test mapping iosxe to cisco_iosxe."""
-        assert broker._get_netconf_platform("iosxe") == "cisco_iosxe"
-
-    def test_map_ios(self, broker: NETCONFBroker) -> None:
-        """Test mapping ios to cisco_iosxe."""
-        assert broker._get_netconf_platform("ios") == "cisco_iosxe"
-
-    def test_map_nxos(self, broker: NETCONFBroker) -> None:
-        """Test mapping nxos to cisco_nxos."""
-        assert broker._get_netconf_platform("nxos") == "cisco_nxos"
-
-    def test_map_iosxr(self, broker: NETCONFBroker) -> None:
-        """Test mapping iosxr to cisco_iosxr."""
-        assert broker._get_netconf_platform("iosxr") == "cisco_iosxr"
-
-    def test_map_junos(self, broker: NETCONFBroker) -> None:
-        """Test mapping junos to juniper_junos."""
-        assert broker._get_netconf_platform("junos") == "juniper_junos"
+    @pytest.mark.parametrize("os", ["ios", "iosxe", "iosxr", "junos", "nxos"])
+    def test_supported_os_accepted(self, broker: NETCONFBroker, os: str) -> None:
+        """Test that each documented OS passes validation."""
+        broker._validate_os(os)
 
     def test_missing_os_raises_error(self, broker: NETCONFBroker) -> None:
         """Test that None OS raises ConnectionError."""
         with pytest.raises(ConnectionError) as exc_info:
-            broker._get_netconf_platform(None)
+            broker._validate_os(None)
         assert "OS must be specified" in str(exc_info.value)
 
     def test_unsupported_os_raises_error(self, broker: NETCONFBroker) -> None:
         """Test that unsupported OS raises ConnectionError."""
         with pytest.raises(ConnectionError) as exc_info:
-            broker._get_netconf_platform("unsupported_os")
-        assert "Unsupported OS" in str(exc_info.value)
-        assert "unsupported_os" in str(exc_info.value)
+            broker._validate_os("eos")
+        assert str(exc_info.value) == (
+            "Unsupported OS 'eos'. Supported: ios, iosxe, iosxr, junos, nxos"
+        )
 
 
 class TestConnect:
@@ -158,6 +145,23 @@ class TestConnect:
             assert handle.device_name == "router1"
             assert handle.connection_type == "netconf"
             assert handle.state == ConnectionState.CONNECTED
+
+    @pytest.mark.asyncio
+    async def test_connect_kwargs_accepted_by_real_driver(
+        self, broker: NETCONFBroker, connection_config: ConnectionConfig
+    ) -> None:
+        """Test the real AsyncNetconfDriver accepts the broker's kwargs.
+
+        Only open() is patched, so the real constructor runs and any drift
+        between the broker's kwargs and scrapli_netconf's signature fails here.
+        """
+        with patch.object(AsyncNetconfDriver, "open", new_callable=AsyncMock):
+            handle = await broker.connect(connection_config)
+
+        driver = broker._connections[handle.device_name]
+        assert isinstance(driver, AsyncNetconfDriver)
+        assert driver.host == "192.168.1.1"
+        assert driver.port == 830
 
     @pytest.mark.asyncio
     async def test_connect_default_port(self, broker: NETCONFBroker) -> None:

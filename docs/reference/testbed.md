@@ -193,9 +193,9 @@ devices:
 
 #### Required Fields
 
-| Field | Type   | Description                                                                                  |
-| ----- | ------ | -------------------------------------------------------------------------------------------- |
-| `os`  | string | Operating system identifier (used for SSH/NETCONF platform selection and OS-based targeting) |
+| Field | Type   | Description                                                                                                      |
+| ----- | ------ | ---------------------------------------------------------------------------------------------------------------- |
+| `os`  | string | Operating system identifier (used for SSH platform selection, SSH/NETCONF OS validation, and OS-based targeting) |
 
 #### Optional Fields
 
@@ -547,7 +547,7 @@ The framework expands `${VAR_NAME}` syntax at load time.
 
 ## Operating System Identifiers
 
-The loader accepts any non-empty string for `os`. The SSH and NETCONF brokers map it to a scrapli platform when they connect, and fail with `Unsupported OS` for any value they do not know:
+The loader accepts any non-empty string for `os`. The SSH and NETCONF brokers check it when they connect, and fail with `Unsupported OS` for any value they do not know. The SSH broker also maps it to a scrapli platform. The NETCONF broker only validates it:
 
 | Identifier | Platform      | SSH | NETCONF |
 | ---------- | ------------- | --- | ------- |
@@ -558,7 +558,7 @@ The loader accepts any non-empty string for `os`. The SSH and NETCONF brokers ma
 | `eos`      | Arista EOS    | Yes | No      |
 | `junos`    | Juniper Junos | Yes | Yes     |
 
-`ios` and `iosxe` both map to scrapli's `cisco_iosxe` platform. The HTTP broker does not use `os`, so a device reached only over HTTP can use any identifier, such as `aci`.
+For SSH, `ios` and `iosxe` both map to scrapli's `cisco_iosxe` platform. The HTTP broker does not use `os`, so a device reached only over HTTP can use any identifier, such as `aci`.
 
 The `os` value is also used for OS-based test targeting (`target.os` in the test plan) and is available to tests as `device.os`. It does not set any connection parameter defaults.
 
