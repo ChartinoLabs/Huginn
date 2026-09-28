@@ -3143,6 +3143,7 @@ full discussion of packaged jobs.</p>
 <h4 id="path-resolution">Path Resolution<a class="headerlink" href="#path-resolution" title="Permanent link">&para;</a></h4>
 <p>A relative <code>data_model.path</code> is resolved against the directory that contains the test plan file. In directory mode, it is resolved against the test plan directory itself. The working directory does not affect it.</p>
 <p>A path that does not exist or is not a directory fails with a configuration error, as does a directory with no YAML files.</p>
+<p>In directory mode, keep the data model directory outside the test plan directory, or give it a name that starts with <code>_</code>, such as <code>test_plan/_data/</code>. The test plan loader reads every YAML file in the plan directory, so data model files inside it without the <code>_</code> prefix are also merged into the test plan. A data model key that matches a test plan key, such as <code>name</code> or <code>test_cases</code>, then fails with a duplicate definition error or adds to the test plan.</p>
 <h4 id="merge-rules">Merge Rules<a class="headerlink" href="#merge-rules" title="Permanent link">&para;</a></h4>
 <p>Huginn recursively discovers YAML files in the data model directory using the same rules as a <a href="#directory-mode">test plan directory</a>:</p>
 <ul>

@@ -2285,7 +2285,8 @@
 </table>
 <h2 id="conventions">Conventions<a class="headerlink" href="#conventions" title="Permanent link">&para;</a></h2>
 <h3 id="environment-variables">Environment variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h3>
-<p>Most options can also be set through an environment variable, listed in the Env var column of each table. An option given on the command line takes precedence over its environment variable. Options with an empty Env var column can only be set on the command line.</p>
+<p>Most options can also be set through an environment variable, listed in the Env var column of each table. Options with an empty Env var column can only be set on the command line.</p>
+<p>For each option, a value given on the command line takes precedence over its environment variable, which takes precedence over a <a href="../configuration/#project-defaults-in-toolhuginn">project default</a> in the <code>[tool.huginn]</code> table of <code>./pyproject.toml</code>, which takes precedence over the built-in default. See <a href="../configuration/#precedence">Configuration - Precedence</a>.</p>
 <p>Boolean flags such as <code>--debug</code> accept <code>1</code>, <code>true</code>, <code>yes</code> or <code>on</code> (and their negative forms) when set through the environment:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">HUGINN_TESTBED</span><span class="o">=</span>testbed.yaml
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">HUGINN_DEBUG</span><span class="o">=</span><span class="nb">true</span>
@@ -2298,7 +2299,7 @@
 </code></pre></div>
 <p>Whitespace around each item is stripped and duplicates are dropped. When a repeatable option is set through its environment variable, separate the values with spaces or commas, for example <code>HUGINN_TAGS="ospf,critical"</code>.</p>
 <h3 id="default-paths">Default paths<a class="headerlink" href="#default-paths" title="Permanent link">&para;</a></h3>
-<p>Paths default to locations relative to the current working directory, such as <code>./test_plan</code> and <code>./testbed.yaml</code>. When a default path is required and does not exist, the command stops with a usage error.</p>
+<p>Paths default to locations relative to the current working directory, such as <code>./test_plan</code> and <code>./testbed.yaml</code>. The Default column in the tables below shows these built-in defaults. A <code>[tool.huginn]</code> table in <code>./pyproject.toml</code> can replace them for the plan, testbed, parameters, results, output and log file paths, and can set a default inventory plugin; see <a href="../configuration/#supported-keys">Configuration - Supported keys</a>. <code>huginn &lt;command&gt; --help</code> marks a default that comes from <code>pyproject.toml</code>. When a default path is required and does not exist, the command stops with a usage error.</p>
 <h3 id="logging-options">Logging options<a class="headerlink" href="#logging-options" title="Permanent link">&para;</a></h3>
 <p>Every command except <code>inject</code>, <code>version</code> and shell completion accepts the same logging options. They are listed here once and referred to as the logging options in the tables below.</p>
 <table>
@@ -2445,7 +2446,7 @@
 <td><code>-d</code></td>
 <td><code>HUGINN_DATA_MODEL</code></td>
 <td>none</td>
-<td>Not yet implemented. Any value is rejected with a usage error. Planned in <a href="https://github.com/ChartinoLabs/Huginn/issues/255">#255</a>.</td>
+<td>Data model directory. Overrides the test plan's <code>data_model.path</code>. A relative path resolves against the working directory.</td>
 </tr>
 <tr>
 <td><code>--results-dir</code></td>
@@ -2602,7 +2603,7 @@
 <td><code>-d</code></td>
 <td><code>HUGINN_DATA_MODEL</code></td>
 <td>none</td>
-<td>Not yet implemented. Any value is rejected with a usage error. Planned in <a href="https://github.com/ChartinoLabs/Huginn/issues/255">#255</a>.</td>
+<td>Data model directory. Overrides the test plan's <code>data_model.path</code>. A relative path resolves against the working directory.</td>
 </tr>
 <tr>
 <td>logging options</td>
@@ -2961,7 +2962,7 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>huginn relearn [--plan &lt;path&gt;] [--testbed &lt;path&gt; | --inventory-plugin &lt;name&gt;] [--scenario &lt;id&gt;] [--phase &lt;id&gt;]
 <a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>               [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;] [--output-dir &lt;path&gt;] [logging options]
 </code></pre></div>
-<p>The options match those of <code>run</code> with the same names and environment variables, including the <code>./test_plan</code> and <code>./testbed.yaml</code> defaults. <code>--scenario</code> and <code>--phase</code> take a single value each and filter the failures to re-learn; <code>--phase</code> does not require <code>--scenario</code>. <code>--data-model</code>/<code>-d</code> is not yet implemented and any value is rejected with a usage error, as for <code>run</code>. The command exits 0 when every test is re-learned or there are no failures, 1 when a test fails during re-learning, and 2 in the same run-level error cases as <code>run</code>.</p>
+<p>The options match those of <code>run</code> with the same names and environment variables, including the <code>./test_plan</code> and <code>./testbed.yaml</code> defaults. <code>--scenario</code> and <code>--phase</code> take a single value each and filter the failures to re-learn; <code>--phase</code> does not require <code>--scenario</code>. <code>--data-model</code>/<code>-d</code> overrides the test plan's <code>data_model.path</code>, as for <code>run</code>. The command exits 0 when every test is re-learned or there are no failures, 1 when a test fails during re-learning, and 2 in the same run-level error cases as <code>run</code>.</p>
 <p>See <a href="../relearn/">Selective Re-learning</a> for the full option table, exit codes and workflow.</p>
 <h2 id="prune">prune<a class="headerlink" href="#prune" title="Permanent link">&para;</a></h2>
 <p>Remove non-applicable tests and device targets from the test plan, based on the latest learning run.</p>

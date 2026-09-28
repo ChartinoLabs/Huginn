@@ -2166,11 +2166,11 @@
 <p>Expected state data associated with a test case, used for validation during test execution. Parameters can be sourced from:</p>
 <ul>
 <li><strong>File-based</strong>: JSON files following the convention <code>parameters/{test_case_id}.json</code>. In learning mode, parameters are captured from live infrastructure and persisted. In testing mode, parameters are loaded and compared against current state.</li>
-<li><strong>Data model-based</strong>: Derived from an external data model (e.g., Network as Code YAML) representing intended infrastructure state. The job queries the data model for expected values.</li>
+<li><strong>Data model-based</strong>: Derived by the job itself from <code>context.data_model</code>, an external data model (e.g., Network as Code YAML) representing intended infrastructure state. The framework loads the data model and passes it to every job, but does not map it to test cases or load it in place of a parameters file. Each job decides whether and how to read expected values from it.</li>
 </ul>
-<p>If a test case has no parameters file and no data model, it requires execution in learning mode to establish baseline parameters.</p>
+<p>The framework only loads file-based parameters. In testing mode, a test case without a parameters file has nothing to compare against unless its job derives expected state from the data model. Otherwise it requires execution in learning mode to establish baseline parameters.</p>
 <h3 id="data-model">Data Model<a class="headerlink" href="#data-model" title="Permanent link">&para;</a></h3>
-<p>An external source of truth representing intended infrastructure state, typically a YAML file conforming to a defined schema. Data models can serve as parameters for test cases, enabling validation of actual device state against declared intent. This pattern is commonly used with Infrastructure as Code approaches like Cisco's Network as Code.</p>
+<p>An external source of truth representing intended infrastructure state, typically a directory of YAML files conforming to a defined schema. The test plan's <code>data_model.path</code> or the <code>--data-model</code> option points at the directory, and Huginn merges its files into one read-only mapping exposed to jobs as <code>context.data_model</code>. A job can derive expected values from it, enabling validation of actual device state against declared intent. See <a href="../../reference/test-plan/#data-model">Test Plan Specification - Data Model</a>. This pattern is commonly used with Infrastructure as Code approaches like Cisco's Network as Code.</p>
 <h3 id="target">Target<a class="headerlink" href="#target" title="Permanent link">&para;</a></h3>
 <p>The specification of which devices a test case applies to. Targets can be defined by:</p>
 <ul>
@@ -2187,7 +2187,7 @@
 <li>A reference to a job (file path or dotted module path, with optional <code>:ClassName</code>)</li>
 <li>Optional target specification</li>
 <li>Optional tags for filtering</li>
-<li>Parameters sourced by convention (<code>parameters/{id}.json</code>) or from a data model</li>
+<li>Parameters sourced by convention (<code>parameters/{id}.json</code>), or derived by its job from the data model</li>
 </ul>
 <p>The same test case can be referenced in multiple test case groups, enabling reuse across phases (e.g., pre-change and post-change validation).</p>
 <h3 id="test-case-group">Test Case Group<a class="headerlink" href="#test-case-group" title="Permanent link">&para;</a></h3>
@@ -2218,7 +2218,7 @@
 <p>The execution mode for a test run. Huginn supports two modes:</p>
 <ul>
 <li><strong>Learning</strong>: Execute against live infrastructure, capture current state, and persist it as parameters for future comparison.</li>
-<li><strong>Testing</strong>: Execute against live infrastructure, compare current state against previously learned parameters (or data model), and report deviations.</li>
+<li><strong>Testing</strong>: Execute against live infrastructure, compare current state against previously learned parameters (or expected state the job derives from the data model), and report deviations.</li>
 </ul>
 <h3 id="run">Run<a class="headerlink" href="#run" title="Permanent link">&para;</a></h3>
 <p>A single execution of a test plan against a testbed. A run establishes connections to all devices, executes each scenario's phases in dependency order, executes test case groups within each phase, collects results, and generates reports. Test cases filtered out by tags or other criteria do not appear in run results.</p>
@@ -2242,7 +2242,7 @@
 </ul>
 <p><code>LearningTestCase.test()</code> calls <code>check_command_support()</code> after <code>setup()</code> has run, records NOT_APPLICABLE for each device that is not applicable, and narrows <code>context.targets</code> to the applicable devices before calling <code>gather_state()</code>. The runner itself only calls <code>setup()</code>, <code>test()</code>, and <code>cleanup()</code>.</p>
 <h3 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h3>
-<p>The object passed to jobs during execution. Contains access to the connection broker, target devices, results collector, parameters (file-based or data model), and execution metadata. The context is the primary interface between a job and the framework.</p>
+<p>The object passed to jobs during execution. Contains access to the connection broker, target devices, results collector, file-based parameters, the data model (if configured), and execution metadata. The context is the primary interface between a job and the framework.</p>
 <h3 id="result">Result<a class="headerlink" href="#result" title="Permanent link">&para;</a></h3>
 <p>The outcome of a test case execution. Every test case that runs, or is prevented from running, records exactly one of these statuses:</p>
 <table>
