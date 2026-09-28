@@ -13,9 +13,10 @@ This document describes the plugin architecture for connection brokers in Huginn
 | In-tree HTTP broker (aiohttp)                                                             | Implemented         |
 | In-tree NETCONF broker (scrapli_netconf)                                                  | Implemented         |
 | `RuntimeBroker` manager with caching and connection pooling                               | Implemented         |
-| Capability-aware routing                                                                  | Implemented         |
+| Capability declaration (`capabilities()`, `PROTOCOL_VERSION`)                             | Implemented         |
+| Capability-aware routing in `RuntimeBroker`                                               | Not yet implemented |
 | Configuration passthrough via `options` dict                                              | Implemented         |
-| Entry point discovery for external broker plugins                                         | Not yet implemented |
+| Entry point discovery (`huginn.brokers`) and `[tool.huginn.plugins] brokers` filter       | Implemented         |
 | `[tool.huginn.brokers]` explicit broker configuration                                     | Not yet implemented |
 | Conformance test suite (`huginn-broker-conformance`)                                      | Not yet implemented |
 | Broker extraction to separate packages                                                    | Not yet implemented |
@@ -35,7 +36,7 @@ This architecture provides:
 
 1. **Protocol-first**: The contract between core and brokers is defined by Python protocols, not inheritance
 2. **Async-native**: All broker operations are async to support concurrent device operations
-3. **Capability-aware**: Brokers declare their capabilities; the framework adapts accordingly
+3. **Capability-aware**: Brokers declare their capabilities (see [Capability Negotiation](#capability-negotiation) for how far the framework uses them today)
 4. **Configuration passthrough**: Broker-specific options flow through without core interpretation
 5. **Fail-fast validation**: Broker compatibility is verified at startup, not runtime
 
@@ -159,9 +160,9 @@ class ConnectionBrokerProtocolV1(Protocol):
     def cache_key(self, operation: str, **kwargs: Any) -> str | None:
         """Generate a cache key for an operation.
 
-        The broker controls cache key generation, enabling
-        protocol-specific logic. Returns None for operations that
-        should never be cached (e.g., configuration commands).
+        Returns None for operations that should never be cached
+        (e.g., configuration commands). RuntimeBroker does not call
+        this method; see Caching below.
         """
         ...
 
@@ -268,14 +269,14 @@ Some brokers provide methods beyond the protocol definition:
 - **SSH**: `send_interactive()` for commands requiring interactive prompts (e.g., confirmation dialogs)
 - **NETCONF**: `lock()`, `unlock()`, `commit()`, `discard_changes()` for advanced NETCONF datastore operations
 
-These are accessed via runtime type checking in the `RuntimeBroker` when needed.
+`RuntimeBroker.send_interactive()` forwards to the SSH broker's `send_interactive()` after checking that the broker has one. The NETCONF datastore methods are not exposed through `RuntimeBroker`, so jobs using `context.broker` cannot call them.
 
 ### Module Structure
 
 ```
 huginn/
 ├── brokers/
-│   ├── __init__.py           # Broker registry and exports
+│   ├── __init__.py           # Protocol, data class, and exception exports
 │   ├── protocol.py           # Protocol definition, data classes
 │   ├── exceptions.py         # Exception hierarchy
 │   ├── ssh.py                # SSHBroker (Scrapli)
@@ -290,10 +291,10 @@ The `RuntimeBroker` class is the framework's broker manager that coordinates all
 
 ### Responsibilities
 
-- Instantiating and managing broker instances
+- Instantiating broker instances through the plugin registry
 - Connection pooling across all brokers
-- Routing operations to the correct broker based on connection type
-- Command result caching with broker-controlled cache keys
+- Routing operations to the broker a device is connected through
+- Command result caching
 - Per-device operation locking for serial execution
 - Single-flight semantics (concurrent identical requests share one execution)
 
@@ -301,8 +302,12 @@ The `RuntimeBroker` class is the framework's broker manager that coordinates all
 
 ```python
 class RuntimeBroker:
-    async def connect_targets(self, devices: list[Device]) -> None:
-        """Connect to all devices using appropriate brokers."""
+    async def connect_targets(
+        self,
+        targets: list[Device],
+        required_brokers: set[BrokerType] | set[str],
+    ) -> None:
+        """Open one connection per target and required broker."""
         ...
 
     async def disconnect_targets(self) -> None:
@@ -314,11 +319,21 @@ class RuntimeBroker:
         target: Device,
         command: str,
         *,
-        broker: BrokerType | None = None,
+        broker: BrokerType | str | None = None,
         use_cache: bool = True,
         bust_cache: bool = False,
     ) -> CommandResult:
-        """Execute command through appropriate broker."""
+        """Execute a command through the broker the target is connected to."""
+        ...
+
+    async def send_interactive(
+        self,
+        target: Device,
+        interact_events: list[tuple[str, str]] | list[tuple[str, str, bool]],
+        *,
+        broker: BrokerType | str | None = None,
+    ) -> CommandResult:
+        """Run an interactive command sequence (never cached)."""
         ...
 
     async def get(
@@ -326,11 +341,12 @@ class RuntimeBroker:
         target: Device,
         path: str,
         *,
-        broker: BrokerType | None = None,
+        broker: BrokerType | str | None = None,
         use_cache: bool = True,
         bust_cache: bool = False,
+        **kwargs: object,
     ) -> CommandResult:
-        """Perform GET operation through appropriate broker."""
+        """Perform a GET operation; extra kwargs go to the broker."""
         ...
 
     async def edit(
@@ -338,21 +354,52 @@ class RuntimeBroker:
         target: Device,
         config: str,
         *,
-        broker: BrokerType | None = None,
+        broker: BrokerType | str | None = None,
+        **kwargs: object,
     ) -> CommandResult:
-        """Perform edit operation (never cached)."""
+        """Perform an edit operation (never cached)."""
         ...
 
     def clear_cache(self) -> None:
         """Clear all cached results."""
         ...
+
+    def invalidate_execute_cache(
+        self,
+        *,
+        target: Device,
+        command: str,
+        broker: BrokerType | str | None = None,
+    ) -> None:
+        """Drop one cached execute result."""
+        ...
+
+    def invalidate_get_cache(
+        self,
+        *,
+        target: Device,
+        path: str,
+        broker: BrokerType | str | None = None,
+        **kwargs: object,
+    ) -> None:
+        """Drop one cached get result for a path and kwargs."""
+        ...
+
+    def for_protocol(
+        self,
+        protocol: str | ConnectionProtocol | BrokerType,
+    ) -> RuntimeBrokerClient:
+        """Return a client pinned to one broker (execute, get, edit)."""
+        ...
 ```
+
+When `broker` is omitted, `RuntimeBroker` uses the only broker the target is connected through. If the target is connected through more than one, the call raises `RuntimeBrokerError` and the job must pass `broker` or use `for_protocol()`.
 
 ### Caching
 
 Caching is built directly into `RuntimeBroker` rather than a separate class. Cacheable operations are `execute` and `get`; `edit` is never cached since it's stateful.
 
-Cache keys are tuples of `(operation, target_name, broker_type, payload, kwargs)`. The broker's `cache_key()` method controls whether an operation is cacheable - returning `None` skips the cache entirely.
+Cache keys are tuples of `(operation, target_name, broker_type, payload, kwargs)`, built by `RuntimeBroker` itself. Every `execute` and `get` call is cached unless the caller passes `use_cache=False`; `bust_cache=True` replaces any cached entry. The broker's `cache_key()` method is not consulted.
 
 When multiple concurrent requests target the same cache key, single-flight semantics ensure only one actual execution occurs; other callers wait for and share the result.
 
@@ -376,10 +423,9 @@ devices:
         protocol: ssh
         host: 10.1.1.1
         port: 22
-        # Broker-specific options passed directly to broker
-        options:
-          transport: asyncssh
-          auth_strict_key: false
+        # Any other key is a broker-specific option
+        auth_strict_key: false
+        timeout_ops: 60
       netconf:
         protocol: netconf
         host: 10.1.1.1
@@ -388,11 +434,11 @@ devices:
 
 ### Option Resolution
 
-Device-level `options` in the testbed are passed directly to the broker's `ConnectionConfig.options` dict. The broker interprets them according to its underlying library's requirements.
+Every connection key other than `protocol`, `host`, `port`, and `credential` is collected into the broker's `ConnectionConfig.options` dict. The broker interprets them according to its underlying library's requirements. Do not nest options under an `options:` key: the loader would pass it through as a single option literally named `options`. See [Connection Types](../reference/testbed.md#connection-types) for the options each broker accepts.
 
 ## Capability Negotiation
 
-Not all brokers support all operations. The framework adapts based on declared capabilities.
+Not all brokers support all operations. Each broker declares its capabilities, but the framework does not yet use the declaration.
 
 ### Capability Declaration
 
@@ -414,38 +460,34 @@ class NETCONFBroker:
 
 ### Capability Checking
 
-The framework checks capabilities before invoking operations. If a broker doesn't support the requested operation, a `CapabilityError` is raised.
+`RuntimeBroker` does not call `capabilities()` or check `PROTOCOL_VERSION` before invoking an operation. It routes each call to the broker the target is connected through, and a broker that doesn't support the operation raises `CapabilityError` itself (for example, `HTTPBroker.execute()` and `NETCONFBroker.configure()`). `RuntimeBroker` wraps the error in `RuntimeBrokerError`.
 
-## Future: Plugin Discovery and Extraction
+## Plugin Discovery
 
-The following sections describe the planned plugin architecture for when brokers are extracted from the core framework into separate packages. None of this is currently implemented.
-
-### Entry Point Discovery
-
-Brokers will register via Python entry points for automatic discovery:
+Brokers are discovered through the `huginn.brokers` entry point group. The in-tree brokers register themselves this way in Huginn's own `pyproject.toml`:
 
 ```toml
-# In broker package's pyproject.toml
 [project.entry-points."huginn.brokers"]
-scrapli-ssh = "huginn_broker_scrapli:SSHBroker"
-scrapli-netconf = "huginn_broker_scrapli:NETCONFBroker"
+ssh = "huginn.brokers.ssh:SSHBroker"
+http = "huginn.brokers.http:HTTPBroker"
+netconf = "huginn.brokers.netconf:NETCONFBroker"
 ```
 
-The framework will discover all installed brokers at startup:
+`PluginRegistry.resolve_broker()` loads the entry point whose name matches the broker type a run requires (`ssh`, `http`, or `netconf`) and instantiates it. An installed package that registers an entry point under one of those names is found the same way.
 
-```python
-from importlib.metadata import entry_points
+A project can restrict which discovered brokers are available with the `brokers` list under `[tool.huginn.plugins]`:
 
-
-def discover_brokers() -> dict[str, type]:
-    """Discover all installed connection brokers."""
-    brokers = {}
-    eps = entry_points(group="huginn.brokers")
-    for ep in eps:
-        broker_class = ep.load()
-        brokers[ep.name] = broker_class
-    return brokers
+```toml
+# pyproject.toml
+[tool.huginn.plugins]
+brokers = ["ssh", "netconf"]
 ```
+
+Requiring a broker that is installed but not in the list fails with `Broker '<name>' is installed but not enabled in plugin configuration`. When the key is absent, every discovered broker is available. `huginn run` and `huginn relearn` resolve brokers this way; `huginn execute` instantiates the in-tree brokers directly and ignores both entry points and the filter.
+
+## Future: Broker Configuration and Extraction
+
+The following sections describe planned work for when brokers are extracted from the core framework into separate packages. None of this is currently implemented.
 
 ### Explicit Configuration
 
@@ -462,7 +504,7 @@ https = "huginn-broker-httpx"
 ### Resolution Order
 
 1. **Explicit configuration**: If `[tool.huginn.brokers]` specifies a broker for a connection type, use it
-2. **Entry point discovery**: Otherwise, use discovered broker that handles the connection type
+2. **Entry point discovery**: Otherwise, use the discovered broker registered for the connection type (current behavior)
 3. **Built-in brokers**: Fall back to in-tree implementations (during transition period)
 
 ### Conformance Testing
@@ -510,4 +552,4 @@ All brokers live in the core `huginn` package. This enables rapid iteration on t
 
 - [Architecture](../design/architecture.md): Connection Broker's role in the system
 - [Testbed Specification](../reference/testbed.md): Connection configuration in testbeds
-- [Configuration](../reference/configuration.md): Broker configuration in pyproject.toml
+- [Configuration](../reference/configuration.md): Project settings in pyproject.toml
