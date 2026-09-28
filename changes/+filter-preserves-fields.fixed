@@ -1,0 +1,1 @@
+Plan filters no longer reset a phase's `preserve_cache` or a group's `exclude_tests`, and no longer drop the test plan's `name`, `description`, `defaults` and `data_model`.

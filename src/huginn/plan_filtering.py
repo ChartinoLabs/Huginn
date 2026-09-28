@@ -1,7 +1,7 @@
 """Utilities for filtering test plans before validation/execution."""
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from huginn.models import Phase, Scenario, TestCaseDefinition, TestCaseGroup, TestPlan
 
@@ -54,7 +54,8 @@ def filter_test_plan(test_plan: TestPlan, filters: PlanFilterOptions) -> TestPla
     )
 
     _normalize_phase_dependencies(filtered_scenarios)
-    return TestPlan(
+    return replace(
+        test_plan,
         scenarios=filtered_scenarios,
         test_case_groups=filtered_groups,
         test_cases=filtered_test_cases,
@@ -132,14 +133,7 @@ def _filter_groups(
         ]
         if not kept_tests:
             continue
-        filtered_groups[group_name] = TestCaseGroup(
-            identifier=group.identifier,
-            tests=kept_tests,
-            name=group.name,
-            tags=group.tags,
-            target=group.target,
-            strategy=group.strategy,
-        )
+        filtered_groups[group_name] = replace(group, tests=kept_tests)
     return filtered_groups
 
 
@@ -220,11 +214,7 @@ def _filter_scenario(
     if not kept_phases:
         return None
 
-    return Scenario(
-        identifier=scenario.identifier,
-        phases=kept_phases,
-        name=scenario.name,
-    )
+    return replace(scenario, phases=kept_phases)
 
 
 def _filter_phase(
@@ -246,14 +236,7 @@ def _filter_phase(
     if not kept_groups:
         return None
 
-    return Phase(
-        identifier=phase.identifier,
-        test_case_groups=kept_groups,
-        name=phase.name,
-        depends_on=phase.depends_on,
-        target=phase.target,
-        strategy=phase.strategy,
-    )
+    return replace(phase, test_case_groups=kept_groups)
 
 
 def _normalize_phase_dependencies(scenarios: dict[str, Scenario]) -> None:
