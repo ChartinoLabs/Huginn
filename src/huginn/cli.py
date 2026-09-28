@@ -6,7 +6,6 @@ against infrastructure testbeds.
 
 import asyncio
 import sys
-from importlib.metadata import version as get_version
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -17,6 +16,7 @@ from typing import Annotated
 
 import typer
 
+from huginn._version import __version__
 from huginn.enums import ErrorCode, ExecutionMode
 from huginn.execute import (
     ExecuteCommandResult,
@@ -1946,7 +1946,7 @@ def _display_inject_plan(inject_plan: "InjectPlan", output: Output) -> None:
 @app.command()
 def version() -> None:
     """Display the Huginn version."""
-    typer.echo(f"huginn v{get_version('huginn')}")
+    typer.echo(f"huginn v{__version__}")
 
 
 def _load_plugin_registry(project_root: Path) -> PluginRegistry:
