@@ -36,6 +36,18 @@ This test job executes `show version` on each target device and validates that t
 
 > **Note:** Muninn is not required. You can use regular expressions, TextFSM templates, or pyATS Genie parsers to extract structured data from CLI output. Muninn is recommended because it provides type-hinted return values and integrates cleanly with Huginn's async patterns.
 
+Muninn is not a Huginn dependency, so install it alongside Huginn before running this job. The package is published as `muninn-parsers` and imported as `muninn`:
+
+```bash
+pip install muninn-parsers
+```
+
+Or using [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv add muninn-parsers
+```
+
 Create `jobs/verify_ios_version.py`:
 
 ```python
@@ -110,12 +122,12 @@ When the job is executed in learning mode, Huginn saves the output of `gather_st
 
 ## Create a test plan
 
-Next, we need to create a test plan that defines defines how test cases will be executed. The hierarchy of objects in a test plan are:
+Next, we need to create a test plan that defines how test cases will be executed. The hierarchy of objects in a test plan are:
 
 - **Scenario**: An organizational unit in a test plan representing a stage of test execution. Scenarios contain one or more phases.
 - **Phase**: An organizational unit in a test plan representing a stage of test execution. Phases contain one or more test case groups and can have dependencies on other phases in the same scenario.
 - **Test Case Group**: A logical grouping of test cases. Test case groups reference test cases by ID and can include other groups by name, enabling hierarchical organization. Groups can specify targets that apply to all contained test cases, and the framework executes test cases within a group in parallel.
-- **Test Case**: A first-class entity defining what to test. A test case references a job and, and the test case identifier drives the name of the JSON file where parameters are stored.
+- **Test Case**: A first-class entity defining what to test. A test case references a job, and the test case identifier drives the name of the JSON file where parameters are stored.
 
 Create `test_plan.yaml` referencing your job:
 
@@ -170,23 +182,29 @@ Testing mode compares current state against the learned parameters. This is typi
 huginn run -m testing -t testbed.yaml -p test_plan.yaml
 ```
 
-If the device state matches the learned parameters, the test passes. If state has drifted, the test fails with a diff showing what changed.
+If the device state matches the learned parameters, the test passes. If state has drifted, the test fails with the message the job passed to `add_result` in `compare_state`. In this job, that message names the learned and current versions.
 
 ## Review the HTML report
 
 After each run, Huginn generates an HTML report in the `reports/` directory. The report includes a dashboard with pass/fail statistics and a detail page for each test case showing the commands executed, parsed output, and comparison results.
 
-The report is written to `reports/<run-timestamp>/html/index.html`. A `latest` symlink always points to the most recent run:
+The report is written to `reports/<run-timestamp>-<mode>/html/index.html`, and each test case detail page is named `<scenario>-<phase>-<test-case-id>.html`. A `latest` symlink always points to the most recent run. After the learning and testing runs above, the directory looks like this:
 
 ```
 reports/
-  latest -> 2026-06-05T10-30-00/html
-  2026-06-05T10-30-00/
+  latest -> 2026-Sep-28-13-10-49-testing/html
+  2026-Sep-28-13-10-38-learning/
     html/
       index.html          # dashboard
       styles.css
       test-cases/
-        VERSION-IOS-VERSION.html
+        validation-pre-change-VERSION-IOS-VERSION.html
+  2026-Sep-28-13-10-49-testing/
+    html/
+      index.html          # dashboard
+      styles.css
+      test-cases/
+        validation-pre-change-VERSION-IOS-VERSION.html
 ```
 
 To view the report locally, start a simple HTTP server from the report directory:
