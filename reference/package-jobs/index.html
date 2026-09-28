@@ -2314,7 +2314,7 @@
 <a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">jobs/verify_custom_logic.py</span>
 </code></pre></div>
 <h3 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h3>
-<p>Both forms are resolved the same way: the module is imported and a concrete <code>TestCase</code> subclass is selected. A reference fails to resolve when the file does not exist, the module cannot be imported, or no matching class is found.</p>
+<p>Both forms are resolved the same way: the module is imported and a concrete <code>TestCase</code> subclass is selected. A reference fails to resolve when the file does not exist, the module cannot be found, the module raises an exception while it is being imported, or no matching class is found. The import case covers a job that imports a dependency that is not installed, contains a syntax error, or raises an exception at the top level.</p>
 <p><code>huginn validate</code> resolves every job reference in the plan and reports each failure as a <code>planning_error</code> before any test runs:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>ERROR [planning_error]: 1.0.0: Unable to import job module &#39;huginn_jobs_network.ospf.verify_neighbors&#39; from &#39;huginn_jobs_network.ospf.verify_neighbors&#39;: No module named &#39;huginn_jobs_network&#39;
 </code></pre></div>
