@@ -2416,7 +2416,7 @@
 <tr>
 <td><code>os</code></td>
 <td>string</td>
-<td>Operating system identifier (used for SSH/NETCONF platform selection and OS-based targeting)</td>
+<td>Operating system identifier (used for SSH platform selection, SSH/NETCONF OS validation, and OS-based targeting)</td>
 </tr>
 </tbody>
 </table>
@@ -2853,7 +2853,7 @@
 </code></pre></div>
 <p>The framework expands <code>${VAR_NAME}</code> syntax at load time.</p>
 <h2 id="operating-system-identifiers">Operating System Identifiers<a class="headerlink" href="#operating-system-identifiers" title="Permanent link">&para;</a></h2>
-<p>The loader accepts any non-empty string for <code>os</code>. The SSH and NETCONF brokers map it to a scrapli platform when they connect, and fail with <code>Unsupported OS</code> for any value they do not know:</p>
+<p>The loader accepts any non-empty string for <code>os</code>. The SSH and NETCONF brokers check it when they connect, and fail with <code>Unsupported OS</code> for any value they do not know. The SSH broker also maps it to a scrapli platform. The NETCONF broker only validates it:</p>
 <table>
 <thead>
 <tr>
@@ -2902,7 +2902,7 @@
 </tr>
 </tbody>
 </table>
-<p><code>ios</code> and <code>iosxe</code> both map to scrapli's <code>cisco_iosxe</code> platform. The HTTP broker does not use <code>os</code>, so a device reached only over HTTP can use any identifier, such as <code>aci</code>.</p>
+<p>For SSH, <code>ios</code> and <code>iosxe</code> both map to scrapli's <code>cisco_iosxe</code> platform. The HTTP broker does not use <code>os</code>, so a device reached only over HTTP can use any identifier, such as <code>aci</code>.</p>
 <p>The <code>os</code> value is also used for OS-based test targeting (<code>target.os</code> in the test plan) and is available to tests as <code>device.os</code>. It does not set any connection parameter defaults.</p>
 <h2 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h2>
 <p>Checks happen at three points.</p>
