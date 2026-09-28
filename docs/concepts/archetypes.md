@@ -35,7 +35,7 @@ In every case, "learning mode" captures parameters that "testing mode" subsequen
 
 ## How the framework treats them
 
-The framework does not distinguish between the four archetypes at execution time. From the framework's perspective, every job is a `TestCase` (or a subclass of one) with `check_command_support`, `setup`, `test`, and `cleanup` methods, executed inside a phase, against a target set, in either learning or testing mode.
+The framework does not distinguish between the four archetypes at execution time. From the framework's perspective, every job is a `TestCase` (or a subclass of one) with `setup`, `test`, and `cleanup` methods, executed inside a phase, against a target set, in either learning or testing mode.
 
 Archetype is a **convention** - a way of organizing how authors think about jobs and how readers find them. The four archetypes have stable shapes, naming conventions, and module layouts, documented on their respective authoring pages.
 

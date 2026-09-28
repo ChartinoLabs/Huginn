@@ -87,7 +87,7 @@ Tests are organized into a four-tier hierarchy of scenarios, phases, test case g
 
 ### Parallel Test Execution
 
-The framework can execute multiple tests in parallel within a test case group. Individual tests control their own parallelism when interacting with multiple target devices - the framework provides the targets and connection broker, but tests decide whether to execute commands serially or in parallel across their targets.
+The framework executes the test case groups within a phase in parallel, and the tests within each test case group in parallel, by default. Each phase and group can set a `strategy` to run serially or cap concurrency. Phases themselves run one at a time in dependency order. Individual tests control their own parallelism when interacting with multiple target devices - the framework provides the targets and connection broker, but tests decide whether to execute commands serially or in parallel across their targets.
 
 ### Comprehensive Reporting
 
