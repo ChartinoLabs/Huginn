@@ -1150,10 +1150,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#excluded-directories" class="md-nav__link">
+  <a href="#excluded-files-and-directories" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Excluded Directories
+        Excluded Files and Directories
       
     </span>
   </a>
@@ -1322,6 +1322,34 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#scenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenarios
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scenarios">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scenario-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenario Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#phases" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1432,6 +1460,17 @@
     <span class="md-ellipsis">
       
         Combined Targeting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#excluding-devices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Excluding Devices
       
     </span>
   </a>
@@ -2137,10 +2176,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#excluded-directories" class="md-nav__link">
+  <a href="#excluded-files-and-directories" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Excluded Directories
+        Excluded Files and Directories
       
     </span>
   </a>
@@ -2309,6 +2348,34 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#scenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenarios
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scenarios">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scenario-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scenario Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#phases" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2419,6 +2486,17 @@
     <span class="md-ellipsis">
       
         Combined Targeting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#excluding-devices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Excluding Devices
       
     </span>
   </a>
@@ -2555,13 +2633,14 @@
 
 
 <h1 id="test-plan-specification">Test Plan Specification<a class="headerlink" href="#test-plan-specification" title="Permanent link">&para;</a></h1>
-<p>This document defines the YAML schema for Huginn test plan files. A test plan organizes tests into a three-tier hierarchy: phases contain test case groups, which reference test cases.</p>
+<p>This document defines the YAML schema for Huginn test plan files. A test plan organizes tests into a four-tier hierarchy: scenarios contain phases, phases reference test case groups, and test case groups reference test cases.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>The test plan is the orchestration layer. It defines:</p>
 <ul>
 <li><strong>Test Cases</strong>: First-class entities defining what to test, referencing jobs and parameters</li>
 <li><strong>Test Case Groups</strong>: Logical groupings of test case references</li>
-<li><strong>Phases</strong>: High-level stages of execution with dependencies</li>
+<li><strong>Scenarios</strong>: End-to-end validation workflows, each containing its own phases</li>
+<li><strong>Phases</strong>: Stages of execution within a scenario, with dependencies</li>
 <li><strong>Targets</strong>: Which devices, operating systems, or device groups each test applies to</li>
 <li><strong>Tags</strong>: Labels for filtering test execution</li>
 </ul>
@@ -2600,7 +2679,7 @@
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">test_plan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;test_plan/&quot;</span><span class="w">    </span><span class="c1"># Trailing slash optional</span>
 </code></pre></div>
 <p>Or via CLI:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>huginn<span class="w"> </span>run<span class="w"> </span>--plan<span class="w"> </span>test_plan/
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>testing<span class="w"> </span>--plan<span class="w"> </span>test_plan/
 </code></pre></div>
 <h3 id="top-level-metadata">Top-Level Metadata<a class="headerlink" href="#top-level-metadata" title="Permanent link">&para;</a></h3>
 <p>Top-level metadata (<code>name</code>, <code>description</code>, <code>data_model</code>, <code>defaults</code>) can be defined in any file within the test plan directory. There is no required file name or location.</p>
@@ -2700,17 +2779,19 @@
 </code></pre></div>
 <h3 id="file-load-order">File Load Order<a class="headerlink" href="#file-load-order" title="Permanent link">&para;</a></h3>
 <p>Files are loaded in <strong>alphabetical order</strong> by path for determinism. Because all keys must be unique and merging is additive, load order does not affect the final result.</p>
-<h3 id="excluded-directories">Excluded Directories<a class="headerlink" href="#excluded-directories" title="Permanent link">&para;</a></h3>
-<p>The framework skips files in directories whose names start with <code>_</code> or <code>.</code>. This allows storing drafts, scratch files, or work-in-progress content alongside the active test plan without affecting loading.</p>
+<h3 id="excluded-files-and-directories">Excluded Files and Directories<a class="headerlink" href="#excluded-files-and-directories" title="Permanent link">&para;</a></h3>
+<p>The framework loads every <code>.yaml</code> and <code>.yml</code> file in the directory tree, skipping any file or directory whose name starts with <code>_</code> or <code>.</code>. This allows storing drafts, scratch files, or work-in-progress content alongside the active test plan without affecting loading.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>test_plan/
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>├── project.yaml                  # Loaded
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>├── scenarios.yaml                # Loaded
 <a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>├── routing/
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>│   └── ospf.yaml                 # Loaded
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>├── _drafts/
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>│   └── wip.yaml                  # Excluded (underscore-prefixed directory)
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>└── .scratch/
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    └── notes.yaml                # Excluded (dot-prefixed directory)
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>│   ├── ospf.yaml                 # Loaded
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>│   ├── bgp.yml                   # Loaded (.yml extension)
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>│   └── _isis.yaml                # Excluded (underscore-prefixed file)
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>├── _drafts/
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>│   └── wip.yaml                  # Excluded (underscore-prefixed directory)
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>└── .scratch/
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    └── notes.yaml                # Excluded (dot-prefixed directory)
 </code></pre></div>
 <h2 id="schema">Schema<a class="headerlink" href="#schema" title="Permanent link">&para;</a></h2>
 <h3 id="top-level-structure">Top-Level Structure<a class="headerlink" href="#top-level-structure" title="Permanent link">&para;</a></h3>
@@ -2733,10 +2814,12 @@
 <a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">&lt;test-id&gt;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">...</span><span class="p p-Indicator">]</span>
 <a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="w">    </span><span class="c1"># Additional group fields...</span>
 <a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>
-<a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="nt">phases</span><span class="p">:</span><span class="w">                              </span><span class="c1"># Required: execution phases</span>
-<a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="w">  </span><span class="nt">&lt;phase-name&gt;</span><span class="p">:</span>
-<a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">&lt;group&gt;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">...</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="w">    </span><span class="c1"># Additional phase fields...</span>
+<a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="nt">scenarios</span><span class="p">:</span><span class="w">                           </span><span class="c1"># Required: end-to-end workflows</span>
+<a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="w">  </span><span class="nt">&lt;scenario-id&gt;</span><span class="p">:</span>
+<a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a><span class="w">    </span><span class="nt">phases</span><span class="p">:</span><span class="w">                          </span><span class="c1"># Required: execution phases</span>
+<a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="w">      </span><span class="nt">&lt;phase-name&gt;</span><span class="p">:</span>
+<a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">&lt;group&gt;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">...</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a><span class="w">        </span><span class="c1"># Additional phase fields...</span>
 </code></pre></div>
 <h3 id="test-cases">Test Cases<a class="headerlink" href="#test-cases" title="Permanent link">&para;</a></h3>
 <p>Test cases are first-class entities defined once and referenced by ID throughout the test plan. Each test case is a key under <code>test_cases</code>, with the key serving as the unique identifier.</p>
@@ -2813,6 +2896,30 @@
 <td>dict</td>
 <td>No</td>
 <td>Targeting specification</td>
+</tr>
+<tr>
+<td><code>priority</code></td>
+<td>string</td>
+<td>No</td>
+<td>Priority label (for example, <code>high</code>)</td>
+</tr>
+<tr>
+<td><code>category</code></td>
+<td>string</td>
+<td>No</td>
+<td>Category label (for example, <code>routing</code>)</td>
+</tr>
+<tr>
+<td><code>is_automated</code></td>
+<td>bool</td>
+<td>No</td>
+<td>Whether the test case is automated (default: <code>true</code>)</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>dict</td>
+<td>No</td>
+<td>Free-form key/value metadata</td>
 </tr>
 </tbody>
 </table>
@@ -2910,7 +3017,7 @@ full discussion of packaged jobs.</p>
 <a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a>
 <a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a>    <span class="c1"># Validate current state against expected...</span>
 </code></pre></div>
-<p>See <a href="../context-api/">Test Authoring</a> for detailed patterns.</p>
+<p>See <a href="../context-api/">Context API</a> for detailed patterns.</p>
 <h3 id="test-case-groups">Test Case Groups<a class="headerlink" href="#test-case-groups" title="Permanent link">&para;</a></h3>
 <p>Test case groups organize test cases for execution within a phase. Groups reference test cases by ID and can include other groups by name, enabling hierarchical organization.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
@@ -2942,10 +3049,16 @@ full discussion of packaged jobs.</p>
 </thead>
 <tbody>
 <tr>
+<td><code>name</code></td>
+<td>string</td>
+<td>No</td>
+<td>Display name (defaults to the group key)</td>
+</tr>
+<tr>
 <td><code>description</code></td>
 <td>string</td>
 <td>No</td>
-<td>Group description</td>
+<td>Informational only; not read by the loader</td>
 </tr>
 <tr>
 <td><code>tests</code></td>
@@ -2958,6 +3071,12 @@ full discussion of packaged jobs.</p>
 <td>list[string]</td>
 <td>No</td>
 <td>List of test case group names to include</td>
+</tr>
+<tr>
+<td><code>exclude_tests</code></td>
+<td>list[string]</td>
+<td>No</td>
+<td>Test case IDs to drop from the groups included through <code>groups</code></td>
 </tr>
 <tr>
 <td><code>tags</code></td>
@@ -2979,7 +3098,7 @@ full discussion of packaged jobs.</p>
 </tr>
 </tbody>
 </table>
-<p>At least one of <code>tests</code> or <code>groups</code> must be specified.</p>
+<p>At least one of <code>tests</code> or <code>groups</code> must be specified. <code>exclude_tests</code> only applies to test cases inherited through <code>groups</code>, so defining it without <code>groups</code> fails at load.</p>
 <h4 id="nested-test-case-groups">Nested Test Case Groups<a class="headerlink" href="#nested-test-case-groups" title="Permanent link">&para;</a></h4>
 <p>Test case groups can include other test case groups, enabling feature-based organization:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
@@ -3045,22 +3164,67 @@ full discussion of packaged jobs.</p>
 <li><code>strategy.parallel.maximum</code> optionally bounds concurrency.</li>
 <li>If <code>strategy</code> is omitted, group execution defaults to unbounded parallel.</li>
 </ul>
+<h3 id="scenarios">Scenarios<a class="headerlink" href="#scenarios" title="Permanent link">&para;</a></h3>
+<p>Scenarios are the top-level organizational unit. Each scenario is an end-to-end validation workflow, such as one configuration change with its pre-change and post-change checks, and contains its own set of phases. A test plan must define at least one scenario.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nt">scenarios</span><span class="p">:</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">  </span><span class="nt">ospf-area-change</span><span class="p">:</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF Area Change</span>
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="w">    </span><span class="nt">phases</span><span class="p">:</span>
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="w">      </span><span class="nt">pre-change</span><span class="p">:</span>
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity-checks</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">pre-change-state</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>
+<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a><span class="w">      </span><span class="nt">change</span><span class="p">:</span>
+<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a><span class="w">        </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pre-change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">change-implementation</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>
+<a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a><span class="w">      </span><span class="nt">post-change</span><span class="p">:</span>
+<a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a><span class="w">        </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity-checks</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">post-change-state</span><span class="p p-Indicator">]</span>
+</code></pre></div>
+<h4 id="scenario-fields">Scenario Fields<a class="headerlink" href="#scenario-fields" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>phases</code></td>
+<td>dict</td>
+<td>Yes</td>
+<td>Non-empty mapping of phase names to phases</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>string</td>
+<td>No</td>
+<td>Display name (defaults to the scenario key)</td>
+</tr>
+</tbody>
+</table>
+<p>Phase names are scoped to their scenario. Two scenarios can each define a <code>pre-change</code> phase, and <code>depends_on</code> can only reference phases in the same scenario. Referencing an undefined phase fails at load.</p>
 <h3 id="phases">Phases<a class="headerlink" href="#phases" title="Permanent link">&para;</a></h3>
-<p>Phases are the top-level organizational unit, representing stages of test execution. Phases declare dependencies on other phases to establish execution order.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nt">phases</span><span class="p">:</span>
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">  </span><span class="nt">pre-change</span><span class="p">:</span>
-<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate state before making changes</span>
-<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity-checks</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">pre-change-state</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>
-<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="w">  </span><span class="nt">change</span><span class="p">:</span>
-<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Apply the configuration change</span>
-<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pre-change</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">change-implementation</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>
-<a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a><span class="w">  </span><span class="nt">post-change</span><span class="p">:</span>
-<a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate state after changes</span>
-<a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">change</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity-checks</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">post-change-state</span><span class="p p-Indicator">]</span>
+<p>Phases represent stages of test execution within a scenario. Phases declare dependencies on other phases to establish execution order.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="nt">scenarios</span><span class="p">:</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">  </span><span class="nt">ospf-area-change</span><span class="p">:</span>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">    </span><span class="nt">phases</span><span class="p">:</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">      </span><span class="nt">pre-change</span><span class="p">:</span>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate state before making changes</span>
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity-checks</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">pre-change-state</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>
+<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="w">      </span><span class="nt">change</span><span class="p">:</span>
+<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Apply the configuration change</span>
+<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a><span class="w">        </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pre-change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">change-implementation</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a>
+<a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a><span class="w">      </span><span class="nt">post-change</span><span class="p">:</span>
+<a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a><span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate state after changes</span>
+<a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a><span class="w">        </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-22-16" name="__codelineno-22-16" href="#__codelineno-22-16"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity-checks</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">post-change-state</span><span class="p p-Indicator">]</span>
 </code></pre></div>
 <h4 id="phase-fields">Phase Fields<a class="headerlink" href="#phase-fields" title="Permanent link">&para;</a></h4>
 <table>
@@ -3074,6 +3238,12 @@ full discussion of packaged jobs.</p>
 </thead>
 <tbody>
 <tr>
+<td><code>name</code></td>
+<td>string</td>
+<td>No</td>
+<td>Display name (defaults to the phase key)</td>
+</tr>
+<tr>
 <td><code>description</code></td>
 <td>string</td>
 <td>No</td>
@@ -3083,7 +3253,7 @@ full discussion of packaged jobs.</p>
 <td><code>depends_on</code></td>
 <td>list[string]</td>
 <td>No</td>
-<td>Phases that must complete before this phase</td>
+<td>Phases in the same scenario that must complete before this phase</td>
 </tr>
 <tr>
 <td><code>test_case_groups</code></td>
@@ -3103,25 +3273,34 @@ full discussion of packaged jobs.</p>
 <td>No</td>
 <td>Group execution strategy within the phase (<code>serial</code>/<code>parallel</code>)</td>
 </tr>
+<tr>
+<td><code>preserve_cache</code></td>
+<td>bool</td>
+<td>No</td>
+<td>Keep the broker command cache from earlier phases (default: <code>false</code>)</td>
+</tr>
 </tbody>
 </table>
+<p>By default, the broker command cache is cleared at the start of each phase, so every phase observes fresh device state. Set <code>preserve_cache: true</code> on a phase that can safely reuse command output collected by earlier phases.</p>
 <h4 id="phase-dependencies">Phase Dependencies<a class="headerlink" href="#phase-dependencies" title="Permanent link">&para;</a></h4>
 <p>The <code>depends_on</code> field creates a directed acyclic graph (DAG) of phase execution:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="nt">phases</span><span class="p">:</span>
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">  </span><span class="nt">A</span><span class="p">:</span>
-<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">...</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>
-<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="w">  </span><span class="nt">B</span><span class="p">:</span>
-<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">A</span><span class="p p-Indicator">]</span><span class="w">      </span><span class="c1"># B waits for A</span>
-<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">...</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>
-<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="w">  </span><span class="nt">C</span><span class="p">:</span>
-<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">A</span><span class="p p-Indicator">]</span><span class="w">      </span><span class="c1"># C waits for A (can run parallel with B)</span>
-<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">...</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a>
-<a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a><span class="w">  </span><span class="nt">D</span><span class="p">:</span>
-<a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">B</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">C</span><span class="p p-Indicator">]</span><span class="w">   </span><span class="c1"># D waits for both B and C</span>
-<a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">...</span><span class="p p-Indicator">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="nt">scenarios</span><span class="p">:</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="w">  </span><span class="nt">fabric-upgrade</span><span class="p">:</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">    </span><span class="nt">phases</span><span class="p">:</span>
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">      </span><span class="nt">A</span><span class="p">:</span>
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">...</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="w">      </span><span class="nt">B</span><span class="p">:</span>
+<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="w">        </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">A</span><span class="p p-Indicator">]</span><span class="w">      </span><span class="c1"># B waits for A</span>
+<a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">...</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a>
+<a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a><span class="w">      </span><span class="nt">C</span><span class="p">:</span>
+<a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a><span class="w">        </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">A</span><span class="p p-Indicator">]</span><span class="w">      </span><span class="c1"># C waits for A (can run parallel with B)</span>
+<a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">...</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a>
+<a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a><span class="w">      </span><span class="nt">D</span><span class="p">:</span>
+<a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a><span class="w">        </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">B</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">C</span><span class="p p-Indicator">]</span><span class="w">   </span><span class="c1"># D waits for both B and C</span>
+<a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">...</span><span class="p p-Indicator">]</span>
 </code></pre></div>
 <p>Execution order: <code>A</code> → <code>B, C</code> (parallel) → <code>D</code></p>
 <p>If a phase fails (any test case fails):</p>
@@ -3131,19 +3310,36 @@ full discussion of packaged jobs.</p>
 <li>Results show <strong>Partial</strong> status with pass/fail counts</li>
 </ul>
 <h4 id="reusing-test-case-groups-across-phases">Reusing Test Case Groups Across Phases<a class="headerlink" href="#reusing-test-case-groups-across-phases" title="Permanent link">&para;</a></h4>
+<p>The same test case group can appear in multiple phases. This is the key pattern for change validation:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="nt">scenarios</span><span class="p">:</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="w">  </span><span class="nt">ospf-area-change</span><span class="p">:</span>
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="w">    </span><span class="nt">phases</span><span class="p">:</span>
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="w">      </span><span class="nt">pre-change</span><span class="p">:</span>
+<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">unchanged-state-checks</span><span class="p p-Indicator">]</span><span class="w">    </span><span class="c1"># Run these tests</span>
+<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>
+<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="w">      </span><span class="nt">change</span><span class="p">:</span>
+<a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="w">        </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pre-change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">apply-change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>
+<a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="w">      </span><span class="nt">post-change</span><span class="p">:</span>
+<a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a><span class="w">        </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">unchanged-state-checks</span><span class="p p-Indicator">]</span><span class="w">    </span><span class="c1"># Same tests again!</span>
+</code></pre></div>
 <h4 id="phase-group-execution-strategy">Phase Group Execution Strategy<a class="headerlink" href="#phase-group-execution-strategy" title="Permanent link">&para;</a></h4>
 <p>Phases can control how referenced test case groups execute:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="nt">phases</span><span class="p">:</span>
-<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="w">  </span><span class="nt">pre-change</span><span class="p">:</span>
-<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">    </span><span class="nt">strategy</span><span class="p">:</span>
-<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">      </span><span class="nt">serial</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
-<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">group-a</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">group-b</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>
-<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="w">  </span><span class="nt">post-change</span><span class="p">:</span>
-<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="w">    </span><span class="nt">strategy</span><span class="p">:</span>
-<a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a><span class="w">      </span><span class="nt">parallel</span><span class="p">:</span>
-<a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="w">        </span><span class="nt">maximum</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
-<a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">group-c</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">group-d</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">group-e</span><span class="p p-Indicator">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="nt">scenarios</span><span class="p">:</span>
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="w">  </span><span class="nt">ospf-area-change</span><span class="p">:</span>
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="w">    </span><span class="nt">phases</span><span class="p">:</span>
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="w">      </span><span class="nt">pre-change</span><span class="p">:</span>
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="w">        </span><span class="nt">strategy</span><span class="p">:</span>
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="w">          </span><span class="nt">serial</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity-checks</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">pre-change-state</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>
+<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="w">      </span><span class="nt">post-change</span><span class="p">:</span>
+<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a><span class="w">        </span><span class="nt">strategy</span><span class="p">:</span>
+<a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a><span class="w">          </span><span class="nt">parallel</span><span class="p">:</span>
+<a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a><span class="w">            </span><span class="nt">maximum</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity-checks</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">bgp-checks</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">post-change-state</span><span class="p p-Indicator">]</span>
 </code></pre></div>
 <ul>
 <li><code>strategy.serial</code> executes groups in listed order.</li>
@@ -3151,19 +3347,6 @@ full discussion of packaged jobs.</p>
 <li><code>strategy.parallel.maximum</code> optionally bounds concurrent groups.</li>
 <li>If <code>strategy</code> is omitted, phase group execution defaults to unbounded parallel.</li>
 </ul>
-<p>The same test case group can appear in multiple phases. This is the key pattern for change validation:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="nt">phases</span><span class="p">:</span>
-<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="w">  </span><span class="nt">pre-change</span><span class="p">:</span>
-<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">unchanged-state-checks</span><span class="p p-Indicator">]</span><span class="w">    </span><span class="c1"># Run these tests</span>
-<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>
-<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="w">  </span><span class="nt">change</span><span class="p">:</span>
-<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pre-change</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">apply-change</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>
-<a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="w">  </span><span class="nt">post-change</span><span class="p">:</span>
-<a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">change</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">unchanged-state-checks</span><span class="p p-Indicator">]</span><span class="w">    </span><span class="c1"># Same tests again!</span>
-</code></pre></div>
 <h3 id="targeting">Targeting<a class="headerlink" href="#targeting" title="Permanent link">&para;</a></h3>
 <p>The <code>target</code> field specifies which devices a test applies to. Targets can be specified at three levels:</p>
 <ul>
@@ -3171,268 +3354,287 @@ full discussion of packaged jobs.</p>
 <li>Test case group level</li>
 <li>Test case level</li>
 </ul>
-<p>All applicable targets are intersected (AND logic).</p>
+<p>Within one selector, values are combined with OR: <code>groups: [spine, border]</code> matches a device in either group. Different selectors in the same <code>target</code> block, and <code>target</code> blocks at different levels, are combined with AND. Each selector must be a non-empty list of strings.</p>
 <h4 id="by-device-name">By Device Name<a class="headerlink" href="#by-device-name" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="nt">target</span><span class="p">:</span>
-<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="w">  </span><span class="nt">devices</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">spine-01</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">spine-02</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">leaf-01</span><span class="p p-Indicator">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="nt">target</span><span class="p">:</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="w">  </span><span class="nt">devices</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">spine-01</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">spine-02</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">leaf-01</span><span class="p p-Indicator">]</span>
 </code></pre></div>
 <h4 id="by-operating-system">By Operating System<a class="headerlink" href="#by-operating-system" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="nt">target</span><span class="p">:</span>
-<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="w">  </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">nxos</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">iosxe</span><span class="p p-Indicator">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="nt">target</span><span class="p">:</span>
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="w">  </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">nxos</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">iosxe</span><span class="p p-Indicator">]</span>
 </code></pre></div>
 <h4 id="by-device-group">By Device Group<a class="headerlink" href="#by-device-group" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="nt">target</span><span class="p">:</span>
-<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="w">  </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">spine</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">datacenter-1</span><span class="p p-Indicator">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="nt">target</span><span class="p">:</span>
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="w">  </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">spine</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">datacenter-1</span><span class="p p-Indicator">]</span>
 </code></pre></div>
 <h4 id="combined-targeting">Combined Targeting<a class="headerlink" href="#combined-targeting" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="nt">target</span><span class="p">:</span>
-<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="w">  </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">nxos</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a><span class="w">  </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">leaf</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="c1"># Targets: NX-OS devices that are also in the &quot;leaf&quot; device group</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="nt">target</span><span class="p">:</span>
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="w">  </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">nxos</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="w">  </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">leaf</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="c1"># Targets: NX-OS devices that are also in the &quot;leaf&quot; device group</span>
+</code></pre></div>
+<h4 id="excluding-devices">Excluding Devices<a class="headerlink" href="#excluding-devices" title="Permanent link">&para;</a></h4>
+<p><code>exclude_devices</code> removes specific devices from whatever the other selectors matched. It is applied after <code>devices</code>, <code>groups</code> and <code>os</code>, and can be combined with any of them:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="nt">target</span><span class="p">:</span>
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="w">  </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">leaf</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="w">  </span><span class="nt">exclude_devices</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">leaf-04</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="c1"># Targets: every device in the &quot;leaf&quot; device group except leaf-04</span>
 </code></pre></div>
 <h4 id="explicit-vs-dynamic-targeting">Explicit vs Dynamic Targeting<a class="headerlink" href="#explicit-vs-dynamic-targeting" title="Permanent link">&para;</a></h4>
-<p>For initial implementation, target selector modes are mutually exclusive:</p>
+<p>Target selector modes are mutually exclusive:</p>
 <ul>
 <li><strong>Explicit targeting</strong>: use <code>target.devices</code></li>
 <li><strong>Dynamic targeting</strong>: use <code>target.groups</code> and/or <code>target.os</code></li>
 </ul>
-<p>Mixing <code>devices</code> with <code>groups</code> or <code>os</code> in the same <code>target</code> block is invalid and should fail validation.</p>
+<p>Mixing <code>devices</code> with <code>groups</code> or <code>os</code> in the same <code>target</code> block fails at load with <code>cannot define target.devices together with target.groups and/or target.os</code>. <code>exclude_devices</code> is allowed in either mode.</p>
 <p>Invalid example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="nt">target</span><span class="p">:</span>
-<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="w">  </span><span class="nt">devices</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">leaf-01</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="w">  </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">leaf</span><span class="p p-Indicator">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="nt">target</span><span class="p">:</span>
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="w">  </span><span class="nt">devices</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">leaf-01</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="w">  </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">leaf</span><span class="p p-Indicator">]</span>
 </code></pre></div>
 <h4 id="empty-target">Empty Target<a class="headerlink" href="#empty-target" title="Permanent link">&para;</a></h4>
 <p>If no target is specified at any level, the test receives <strong>all devices</strong> in the testbed.</p>
 <h3 id="tags">Tags<a class="headerlink" href="#tags" title="Permanent link">&para;</a></h3>
 <p>Tags enable filtering test execution from the CLI:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="nt">test_cases</span><span class="p">:</span>
-<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="w">  </span><span class="s">&quot;1.0.0&quot;</span><span class="p p-Indicator">:</span>
-<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify OSPF Neighbors</span>
-<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/verify_ospf.py</span>
-<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">critical</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">fast</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>
-<a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="w">  </span><span class="s">&quot;2.0.0&quot;</span><span class="p p-Indicator">:</span>
-<a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify Full BGP Table</span>
-<a id="__codelineno-30-9" name="__codelineno-30-9" href="#__codelineno-30-9"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/verify_bgp_table.py</span>
-<a id="__codelineno-30-10" name="__codelineno-30-10" href="#__codelineno-30-10"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">bgp</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">slow</span><span class="p p-Indicator">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="nt">test_cases</span><span class="p">:</span>
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="w">  </span><span class="s">&quot;1.0.0&quot;</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify OSPF Neighbors</span>
+<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/verify_ospf.py</span>
+<a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">critical</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">fast</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>
+<a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="w">  </span><span class="s">&quot;2.0.0&quot;</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify Full BGP Table</span>
+<a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/verify_bgp_table.py</span>
+<a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">bgp</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">slow</span><span class="p p-Indicator">]</span>
 </code></pre></div>
 <p>CLI filtering:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="c1"># Run only tests tagged &quot;ospf&quot;</span>
-<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>huginn<span class="w"> </span>run<span class="w"> </span>--tags<span class="w"> </span>ospf
-<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>
-<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="c1"># Run tests tagged &quot;routing&quot; but not &quot;slow&quot;</span>
-<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>huginn<span class="w"> </span>run<span class="w"> </span>--tags<span class="w"> </span>routing<span class="w"> </span>--exclude-tags<span class="w"> </span>slow
-<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>
-<a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a><span class="c1"># Run tests tagged both &quot;critical&quot; and &quot;fast&quot;</span>
-<a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a>huginn<span class="w"> </span>run<span class="w"> </span>--tags<span class="w"> </span>critical,fast
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="c1"># Run only tests tagged &quot;ospf&quot;</span>
+<a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>testing<span class="w"> </span>--tags<span class="w"> </span>ospf
+<a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>
+<a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a><span class="c1"># Run tests tagged &quot;routing&quot; but not &quot;slow&quot;</span>
+<a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>testing<span class="w"> </span>--tags<span class="w"> </span>routing<span class="w"> </span>--exclude-tags<span class="w"> </span>slow
+<a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>
+<a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a><span class="c1"># Run tests tagged both &quot;critical&quot; and &quot;fast&quot;</span>
+<a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>testing<span class="w"> </span>--tags<span class="w"> </span>critical,fast
 </code></pre></div>
 <p><strong>Important</strong>: Filtered tests do not appear in results. If you filter to run only OSPF tests, only those tests appear in the report.</p>
 <p>Test case groups can also define <code>tags</code>. Effective filtering tags are the union of test-case tags and group tags for each execution context.</p>
 <h2 id="complete-example">Complete Example<a class="headerlink" href="#complete-example" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="c1"># test_plan.yaml</span>
-<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="nn">---</span>
-<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF Change Validation</span>
-<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;</span>
-<a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="w">  </span><span class="no">Validates network state before and after an OSPF configuration change.</span>
-<a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="w">  </span><span class="no">Tests are organized into pre-change, change, and post-change phases.</span>
-<a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a>
-<a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a><span class="nt">data_model</span><span class="p">:</span>
-<a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a><span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./nac/data/</span><span class="w">  </span><span class="c1"># Optional: Network as Code data model</span>
-<a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a>
-<a id="__codelineno-32-11" name="__codelineno-32-11" href="#__codelineno-32-11"></a><span class="nt">test_cases</span><span class="p">:</span>
-<a id="__codelineno-32-12" name="__codelineno-32-12" href="#__codelineno-32-12"></a><span class="w">  </span><span class="c1"># Connectivity tests - state should not change</span>
-<a id="__codelineno-32-13" name="__codelineno-32-13" href="#__codelineno-32-13"></a><span class="w">  </span><span class="s">&quot;1.0.0&quot;</span><span class="p p-Indicator">:</span>
-<a id="__codelineno-32-14" name="__codelineno-32-14" href="#__codelineno-32-14"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify Management Connectivity</span>
-<a id="__codelineno-32-15" name="__codelineno-32-15" href="#__codelineno-32-15"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/connectivity/verify_ssh.py</span>
-<a id="__codelineno-32-16" name="__codelineno-32-16" href="#__codelineno-32-16"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">critical</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-17" name="__codelineno-32-17" href="#__codelineno-32-17"></a>
-<a id="__codelineno-32-18" name="__codelineno-32-18" href="#__codelineno-32-18"></a><span class="w">  </span><span class="s">&quot;1.1.0&quot;</span><span class="p p-Indicator">:</span>
-<a id="__codelineno-32-19" name="__codelineno-32-19" href="#__codelineno-32-19"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify NTP Synchronization</span>
-<a id="__codelineno-32-20" name="__codelineno-32-20" href="#__codelineno-32-20"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/connectivity/verify_ntp.py</span>
-<a id="__codelineno-32-21" name="__codelineno-32-21" href="#__codelineno-32-21"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">ntp</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-22" name="__codelineno-32-22" href="#__codelineno-32-22"></a>
-<a id="__codelineno-32-23" name="__codelineno-32-23" href="#__codelineno-32-23"></a><span class="w">  </span><span class="s">&quot;1.2.0&quot;</span><span class="p p-Indicator">:</span>
-<a id="__codelineno-32-24" name="__codelineno-32-24" href="#__codelineno-32-24"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify Syslog Configuration</span>
-<a id="__codelineno-32-25" name="__codelineno-32-25" href="#__codelineno-32-25"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/connectivity/verify_syslog.py</span>
-<a id="__codelineno-32-26" name="__codelineno-32-26" href="#__codelineno-32-26"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">logging</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-27" name="__codelineno-32-27" href="#__codelineno-32-27"></a>
-<a id="__codelineno-32-28" name="__codelineno-32-28" href="#__codelineno-32-28"></a><span class="w">  </span><span class="c1"># BGP tests - state should not change</span>
-<a id="__codelineno-32-29" name="__codelineno-32-29" href="#__codelineno-32-29"></a><span class="w">  </span><span class="s">&quot;2.0.0&quot;</span><span class="p p-Indicator">:</span>
-<a id="__codelineno-32-30" name="__codelineno-32-30" href="#__codelineno-32-30"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify BGP Neighbor State</span>
-<a id="__codelineno-32-31" name="__codelineno-32-31" href="#__codelineno-32-31"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/routing/verify_bgp_neighbors.py</span>
-<a id="__codelineno-32-32" name="__codelineno-32-32" href="#__codelineno-32-32"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">bgp</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-33" name="__codelineno-32-33" href="#__codelineno-32-33"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
-<a id="__codelineno-32-34" name="__codelineno-32-34" href="#__codelineno-32-34"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">fabric-core</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-35" name="__codelineno-32-35" href="#__codelineno-32-35"></a>
-<a id="__codelineno-32-36" name="__codelineno-32-36" href="#__codelineno-32-36"></a><span class="w">  </span><span class="c1"># OSPF tests - state WILL change, need separate pre/post test cases</span>
-<a id="__codelineno-32-37" name="__codelineno-32-37" href="#__codelineno-32-37"></a><span class="w">  </span><span class="s">&quot;3.0.0-pre&quot;</span><span class="p p-Indicator">:</span>
-<a id="__codelineno-32-38" name="__codelineno-32-38" href="#__codelineno-32-38"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify OSPF Neighbors (Pre-change)</span>
-<a id="__codelineno-32-39" name="__codelineno-32-39" href="#__codelineno-32-39"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/routing/verify_ospf_neighbors.py</span>
-<a id="__codelineno-32-40" name="__codelineno-32-40" href="#__codelineno-32-40"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">pre-change</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-41" name="__codelineno-32-41" href="#__codelineno-32-41"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
-<a id="__codelineno-32-42" name="__codelineno-32-42" href="#__codelineno-32-42"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">fabric-core</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-43" name="__codelineno-32-43" href="#__codelineno-32-43"></a>
-<a id="__codelineno-32-44" name="__codelineno-32-44" href="#__codelineno-32-44"></a><span class="w">  </span><span class="s">&quot;3.0.0-post&quot;</span><span class="p p-Indicator">:</span>
-<a id="__codelineno-32-45" name="__codelineno-32-45" href="#__codelineno-32-45"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify OSPF Neighbors (Post-change)</span>
-<a id="__codelineno-32-46" name="__codelineno-32-46" href="#__codelineno-32-46"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/routing/verify_ospf_neighbors.py</span>
-<a id="__codelineno-32-47" name="__codelineno-32-47" href="#__codelineno-32-47"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">post-change</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-48" name="__codelineno-32-48" href="#__codelineno-32-48"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
-<a id="__codelineno-32-49" name="__codelineno-32-49" href="#__codelineno-32-49"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">fabric-core</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-50" name="__codelineno-32-50" href="#__codelineno-32-50"></a>
-<a id="__codelineno-32-51" name="__codelineno-32-51" href="#__codelineno-32-51"></a><span class="w">  </span><span class="s">&quot;3.1.0-pre&quot;</span><span class="p p-Indicator">:</span>
-<a id="__codelineno-32-52" name="__codelineno-32-52" href="#__codelineno-32-52"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify OSPF Interface Config (Pre-change)</span>
-<a id="__codelineno-32-53" name="__codelineno-32-53" href="#__codelineno-32-53"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/routing/verify_ospf_interfaces.py</span>
-<a id="__codelineno-32-54" name="__codelineno-32-54" href="#__codelineno-32-54"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">pre-change</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-55" name="__codelineno-32-55" href="#__codelineno-32-55"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
-<a id="__codelineno-32-56" name="__codelineno-32-56" href="#__codelineno-32-56"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">fabric-core</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-57" name="__codelineno-32-57" href="#__codelineno-32-57"></a>
-<a id="__codelineno-32-58" name="__codelineno-32-58" href="#__codelineno-32-58"></a><span class="w">  </span><span class="s">&quot;3.1.0-post&quot;</span><span class="p p-Indicator">:</span>
-<a id="__codelineno-32-59" name="__codelineno-32-59" href="#__codelineno-32-59"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify OSPF Interface Config (Post-change)</span>
-<a id="__codelineno-32-60" name="__codelineno-32-60" href="#__codelineno-32-60"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/routing/verify_ospf_interfaces.py</span>
-<a id="__codelineno-32-61" name="__codelineno-32-61" href="#__codelineno-32-61"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">post-change</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-62" name="__codelineno-32-62" href="#__codelineno-32-62"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
-<a id="__codelineno-32-63" name="__codelineno-32-63" href="#__codelineno-32-63"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">fabric-core</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-64" name="__codelineno-32-64" href="#__codelineno-32-64"></a>
-<a id="__codelineno-32-65" name="__codelineno-32-65" href="#__codelineno-32-65"></a><span class="w">  </span><span class="c1"># Change implementation</span>
-<a id="__codelineno-32-66" name="__codelineno-32-66" href="#__codelineno-32-66"></a><span class="w">  </span><span class="nt">change-001</span><span class="p">:</span>
-<a id="__codelineno-32-67" name="__codelineno-32-67" href="#__codelineno-32-67"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Apply OSPF Area Configuration</span>
-<a id="__codelineno-32-68" name="__codelineno-32-68" href="#__codelineno-32-68"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/changes/apply_ospf_area_change.py</span>
-<a id="__codelineno-32-69" name="__codelineno-32-69" href="#__codelineno-32-69"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">change</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">ospf</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-70" name="__codelineno-32-70" href="#__codelineno-32-70"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
-<a id="__codelineno-32-71" name="__codelineno-32-71" href="#__codelineno-32-71"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">fabric-core</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-72" name="__codelineno-32-72" href="#__codelineno-32-72"></a>
-<a id="__codelineno-32-73" name="__codelineno-32-73" href="#__codelineno-32-73"></a><span class="nt">test_case_groups</span><span class="p">:</span>
-<a id="__codelineno-32-74" name="__codelineno-32-74" href="#__codelineno-32-74"></a><span class="w">  </span><span class="c1"># Feature-specific groups (reusable building blocks)</span>
-<a id="__codelineno-32-75" name="__codelineno-32-75" href="#__codelineno-32-75"></a><span class="w">  </span><span class="nt">connectivity-tests</span><span class="p">:</span>
-<a id="__codelineno-32-76" name="__codelineno-32-76" href="#__codelineno-32-76"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Basic connectivity validation</span>
-<a id="__codelineno-32-77" name="__codelineno-32-77" href="#__codelineno-32-77"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;1.0.0&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;1.1.0&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;1.2.0&quot;</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-78" name="__codelineno-32-78" href="#__codelineno-32-78"></a>
-<a id="__codelineno-32-79" name="__codelineno-32-79" href="#__codelineno-32-79"></a><span class="w">  </span><span class="nt">bgp-tests</span><span class="p">:</span>
-<a id="__codelineno-32-80" name="__codelineno-32-80" href="#__codelineno-32-80"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BGP neighbor state validation</span>
-<a id="__codelineno-32-81" name="__codelineno-32-81" href="#__codelineno-32-81"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;2.0.0&quot;</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-82" name="__codelineno-32-82" href="#__codelineno-32-82"></a>
-<a id="__codelineno-32-83" name="__codelineno-32-83" href="#__codelineno-32-83"></a><span class="w">  </span><span class="c1"># OSPF tests - separate groups for pre/post since state changes</span>
-<a id="__codelineno-32-84" name="__codelineno-32-84" href="#__codelineno-32-84"></a><span class="w">  </span><span class="nt">ospf-tests-pre</span><span class="p">:</span>
-<a id="__codelineno-32-85" name="__codelineno-32-85" href="#__codelineno-32-85"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF state validation (pre-change parameters)</span>
-<a id="__codelineno-32-86" name="__codelineno-32-86" href="#__codelineno-32-86"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;3.0.0-pre&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;3.1.0-pre&quot;</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-87" name="__codelineno-32-87" href="#__codelineno-32-87"></a>
-<a id="__codelineno-32-88" name="__codelineno-32-88" href="#__codelineno-32-88"></a><span class="w">  </span><span class="nt">ospf-tests-post</span><span class="p">:</span>
-<a id="__codelineno-32-89" name="__codelineno-32-89" href="#__codelineno-32-89"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF state validation (post-change parameters)</span>
-<a id="__codelineno-32-90" name="__codelineno-32-90" href="#__codelineno-32-90"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;3.0.0-post&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;3.1.0-post&quot;</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-91" name="__codelineno-32-91" href="#__codelineno-32-91"></a>
-<a id="__codelineno-32-92" name="__codelineno-32-92" href="#__codelineno-32-92"></a><span class="w">  </span><span class="c1"># Composite groups using nested groups</span>
-<a id="__codelineno-32-93" name="__codelineno-32-93" href="#__codelineno-32-93"></a><span class="w">  </span><span class="nt">pre-change-validation</span><span class="p">:</span>
-<a id="__codelineno-32-94" name="__codelineno-32-94" href="#__codelineno-32-94"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">All validation tests for pre-change phase</span>
-<a id="__codelineno-32-95" name="__codelineno-32-95" href="#__codelineno-32-95"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">bgp-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">ospf-tests-pre</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-96" name="__codelineno-32-96" href="#__codelineno-32-96"></a>
-<a id="__codelineno-32-97" name="__codelineno-32-97" href="#__codelineno-32-97"></a><span class="w">  </span><span class="nt">post-change-validation</span><span class="p">:</span>
-<a id="__codelineno-32-98" name="__codelineno-32-98" href="#__codelineno-32-98"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">All validation tests for post-change phase</span>
-<a id="__codelineno-32-99" name="__codelineno-32-99" href="#__codelineno-32-99"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">bgp-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">ospf-tests-post</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-100" name="__codelineno-32-100" href="#__codelineno-32-100"></a>
-<a id="__codelineno-32-101" name="__codelineno-32-101" href="#__codelineno-32-101"></a><span class="w">  </span><span class="c1"># Change implementation</span>
-<a id="__codelineno-32-102" name="__codelineno-32-102" href="#__codelineno-32-102"></a><span class="w">  </span><span class="nt">apply-change</span><span class="p">:</span>
-<a id="__codelineno-32-103" name="__codelineno-32-103" href="#__codelineno-32-103"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Applies the OSPF configuration change</span>
-<a id="__codelineno-32-104" name="__codelineno-32-104" href="#__codelineno-32-104"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;change-001&quot;</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-105" name="__codelineno-32-105" href="#__codelineno-32-105"></a>
-<a id="__codelineno-32-106" name="__codelineno-32-106" href="#__codelineno-32-106"></a><span class="nt">phases</span><span class="p">:</span>
-<a id="__codelineno-32-107" name="__codelineno-32-107" href="#__codelineno-32-107"></a><span class="w">  </span><span class="nt">pre-change</span><span class="p">:</span>
-<a id="__codelineno-32-108" name="__codelineno-32-108" href="#__codelineno-32-108"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate network state before making changes</span>
-<a id="__codelineno-32-109" name="__codelineno-32-109" href="#__codelineno-32-109"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pre-change-validation</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-110" name="__codelineno-32-110" href="#__codelineno-32-110"></a>
-<a id="__codelineno-32-111" name="__codelineno-32-111" href="#__codelineno-32-111"></a><span class="w">  </span><span class="nt">change</span><span class="p">:</span>
-<a id="__codelineno-32-112" name="__codelineno-32-112" href="#__codelineno-32-112"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Apply the OSPF configuration change</span>
-<a id="__codelineno-32-113" name="__codelineno-32-113" href="#__codelineno-32-113"></a><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pre-change</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-114" name="__codelineno-32-114" href="#__codelineno-32-114"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">apply-change</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-115" name="__codelineno-32-115" href="#__codelineno-32-115"></a>
-<a id="__codelineno-32-116" name="__codelineno-32-116" href="#__codelineno-32-116"></a><span class="w">  </span><span class="nt">post-change</span><span class="p">:</span>
-<a id="__codelineno-32-117" name="__codelineno-32-117" href="#__codelineno-32-117"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate network state after changes</span>
-<a id="__codelineno-32-118" name="__codelineno-32-118" href="#__codelineno-32-118"></a><span class="w">    </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">change</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-32-119" name="__codelineno-32-119" href="#__codelineno-32-119"></a><span class="w">    </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">post-change-validation</span><span class="p p-Indicator">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="c1"># test_plan.yaml</span>
+<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="nn">---</span>
+<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF Change Validation</span>
+<a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;</span>
+<a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a><span class="w">  </span><span class="no">Validates network state before and after an OSPF configuration change.</span>
+<a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a><span class="w">  </span><span class="no">Tests are organized into pre-change, change, and post-change phases.</span>
+<a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>
+<a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a><span class="nt">data_model</span><span class="p">:</span>
+<a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a><span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./nac/data/</span><span class="w">  </span><span class="c1"># Optional: Network as Code data model</span>
+<a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a>
+<a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a><span class="nt">test_cases</span><span class="p">:</span>
+<a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a><span class="w">  </span><span class="c1"># Connectivity tests - state should not change</span>
+<a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a><span class="w">  </span><span class="s">&quot;1.0.0&quot;</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-34-14" name="__codelineno-34-14" href="#__codelineno-34-14"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify Management Connectivity</span>
+<a id="__codelineno-34-15" name="__codelineno-34-15" href="#__codelineno-34-15"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/connectivity/verify_ssh.py</span>
+<a id="__codelineno-34-16" name="__codelineno-34-16" href="#__codelineno-34-16"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">critical</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-17" name="__codelineno-34-17" href="#__codelineno-34-17"></a>
+<a id="__codelineno-34-18" name="__codelineno-34-18" href="#__codelineno-34-18"></a><span class="w">  </span><span class="s">&quot;1.1.0&quot;</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-34-19" name="__codelineno-34-19" href="#__codelineno-34-19"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify NTP Synchronization</span>
+<a id="__codelineno-34-20" name="__codelineno-34-20" href="#__codelineno-34-20"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/connectivity/verify_ntp.py</span>
+<a id="__codelineno-34-21" name="__codelineno-34-21" href="#__codelineno-34-21"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">ntp</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-22" name="__codelineno-34-22" href="#__codelineno-34-22"></a>
+<a id="__codelineno-34-23" name="__codelineno-34-23" href="#__codelineno-34-23"></a><span class="w">  </span><span class="s">&quot;1.2.0&quot;</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-34-24" name="__codelineno-34-24" href="#__codelineno-34-24"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify Syslog Configuration</span>
+<a id="__codelineno-34-25" name="__codelineno-34-25" href="#__codelineno-34-25"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/connectivity/verify_syslog.py</span>
+<a id="__codelineno-34-26" name="__codelineno-34-26" href="#__codelineno-34-26"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">logging</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-27" name="__codelineno-34-27" href="#__codelineno-34-27"></a>
+<a id="__codelineno-34-28" name="__codelineno-34-28" href="#__codelineno-34-28"></a><span class="w">  </span><span class="c1"># BGP tests - state should not change</span>
+<a id="__codelineno-34-29" name="__codelineno-34-29" href="#__codelineno-34-29"></a><span class="w">  </span><span class="s">&quot;2.0.0&quot;</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-34-30" name="__codelineno-34-30" href="#__codelineno-34-30"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify BGP Neighbor State</span>
+<a id="__codelineno-34-31" name="__codelineno-34-31" href="#__codelineno-34-31"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/routing/verify_bgp_neighbors.py</span>
+<a id="__codelineno-34-32" name="__codelineno-34-32" href="#__codelineno-34-32"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">bgp</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-33" name="__codelineno-34-33" href="#__codelineno-34-33"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
+<a id="__codelineno-34-34" name="__codelineno-34-34" href="#__codelineno-34-34"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">fabric-core</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-35" name="__codelineno-34-35" href="#__codelineno-34-35"></a>
+<a id="__codelineno-34-36" name="__codelineno-34-36" href="#__codelineno-34-36"></a><span class="w">  </span><span class="c1"># OSPF tests - state WILL change, need separate pre/post test cases</span>
+<a id="__codelineno-34-37" name="__codelineno-34-37" href="#__codelineno-34-37"></a><span class="w">  </span><span class="s">&quot;3.0.0-pre&quot;</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-34-38" name="__codelineno-34-38" href="#__codelineno-34-38"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify OSPF Neighbors (Pre-change)</span>
+<a id="__codelineno-34-39" name="__codelineno-34-39" href="#__codelineno-34-39"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/routing/verify_ospf_neighbors.py</span>
+<a id="__codelineno-34-40" name="__codelineno-34-40" href="#__codelineno-34-40"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">pre-change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-41" name="__codelineno-34-41" href="#__codelineno-34-41"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
+<a id="__codelineno-34-42" name="__codelineno-34-42" href="#__codelineno-34-42"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">fabric-core</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-43" name="__codelineno-34-43" href="#__codelineno-34-43"></a>
+<a id="__codelineno-34-44" name="__codelineno-34-44" href="#__codelineno-34-44"></a><span class="w">  </span><span class="s">&quot;3.0.0-post&quot;</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-34-45" name="__codelineno-34-45" href="#__codelineno-34-45"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify OSPF Neighbors (Post-change)</span>
+<a id="__codelineno-34-46" name="__codelineno-34-46" href="#__codelineno-34-46"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/routing/verify_ospf_neighbors.py</span>
+<a id="__codelineno-34-47" name="__codelineno-34-47" href="#__codelineno-34-47"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">post-change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-48" name="__codelineno-34-48" href="#__codelineno-34-48"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
+<a id="__codelineno-34-49" name="__codelineno-34-49" href="#__codelineno-34-49"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">fabric-core</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-50" name="__codelineno-34-50" href="#__codelineno-34-50"></a>
+<a id="__codelineno-34-51" name="__codelineno-34-51" href="#__codelineno-34-51"></a><span class="w">  </span><span class="s">&quot;3.1.0-pre&quot;</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-34-52" name="__codelineno-34-52" href="#__codelineno-34-52"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify OSPF Interface Config (Pre-change)</span>
+<a id="__codelineno-34-53" name="__codelineno-34-53" href="#__codelineno-34-53"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/routing/verify_ospf_interfaces.py</span>
+<a id="__codelineno-34-54" name="__codelineno-34-54" href="#__codelineno-34-54"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">pre-change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-55" name="__codelineno-34-55" href="#__codelineno-34-55"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
+<a id="__codelineno-34-56" name="__codelineno-34-56" href="#__codelineno-34-56"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">fabric-core</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-57" name="__codelineno-34-57" href="#__codelineno-34-57"></a>
+<a id="__codelineno-34-58" name="__codelineno-34-58" href="#__codelineno-34-58"></a><span class="w">  </span><span class="s">&quot;3.1.0-post&quot;</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-34-59" name="__codelineno-34-59" href="#__codelineno-34-59"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify OSPF Interface Config (Post-change)</span>
+<a id="__codelineno-34-60" name="__codelineno-34-60" href="#__codelineno-34-60"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/routing/verify_ospf_interfaces.py</span>
+<a id="__codelineno-34-61" name="__codelineno-34-61" href="#__codelineno-34-61"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">routing</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">post-change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-62" name="__codelineno-34-62" href="#__codelineno-34-62"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
+<a id="__codelineno-34-63" name="__codelineno-34-63" href="#__codelineno-34-63"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">fabric-core</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-64" name="__codelineno-34-64" href="#__codelineno-34-64"></a>
+<a id="__codelineno-34-65" name="__codelineno-34-65" href="#__codelineno-34-65"></a><span class="w">  </span><span class="c1"># Change implementation</span>
+<a id="__codelineno-34-66" name="__codelineno-34-66" href="#__codelineno-34-66"></a><span class="w">  </span><span class="nt">change-001</span><span class="p">:</span>
+<a id="__codelineno-34-67" name="__codelineno-34-67" href="#__codelineno-34-67"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Apply OSPF Area Configuration</span>
+<a id="__codelineno-34-68" name="__codelineno-34-68" href="#__codelineno-34-68"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/changes/apply_ospf_area_change.py</span>
+<a id="__codelineno-34-69" name="__codelineno-34-69" href="#__codelineno-34-69"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">change</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">ospf</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-70" name="__codelineno-34-70" href="#__codelineno-34-70"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
+<a id="__codelineno-34-71" name="__codelineno-34-71" href="#__codelineno-34-71"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">fabric-core</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-72" name="__codelineno-34-72" href="#__codelineno-34-72"></a>
+<a id="__codelineno-34-73" name="__codelineno-34-73" href="#__codelineno-34-73"></a><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-34-74" name="__codelineno-34-74" href="#__codelineno-34-74"></a><span class="w">  </span><span class="c1"># Feature-specific groups (reusable building blocks)</span>
+<a id="__codelineno-34-75" name="__codelineno-34-75" href="#__codelineno-34-75"></a><span class="w">  </span><span class="nt">connectivity-tests</span><span class="p">:</span>
+<a id="__codelineno-34-76" name="__codelineno-34-76" href="#__codelineno-34-76"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Basic connectivity validation</span>
+<a id="__codelineno-34-77" name="__codelineno-34-77" href="#__codelineno-34-77"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;1.0.0&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;1.1.0&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;1.2.0&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-78" name="__codelineno-34-78" href="#__codelineno-34-78"></a>
+<a id="__codelineno-34-79" name="__codelineno-34-79" href="#__codelineno-34-79"></a><span class="w">  </span><span class="nt">bgp-tests</span><span class="p">:</span>
+<a id="__codelineno-34-80" name="__codelineno-34-80" href="#__codelineno-34-80"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">BGP neighbor state validation</span>
+<a id="__codelineno-34-81" name="__codelineno-34-81" href="#__codelineno-34-81"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;2.0.0&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-82" name="__codelineno-34-82" href="#__codelineno-34-82"></a>
+<a id="__codelineno-34-83" name="__codelineno-34-83" href="#__codelineno-34-83"></a><span class="w">  </span><span class="c1"># OSPF tests - separate groups for pre/post since state changes</span>
+<a id="__codelineno-34-84" name="__codelineno-34-84" href="#__codelineno-34-84"></a><span class="w">  </span><span class="nt">ospf-tests-pre</span><span class="p">:</span>
+<a id="__codelineno-34-85" name="__codelineno-34-85" href="#__codelineno-34-85"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF state validation (pre-change parameters)</span>
+<a id="__codelineno-34-86" name="__codelineno-34-86" href="#__codelineno-34-86"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;3.0.0-pre&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;3.1.0-pre&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-87" name="__codelineno-34-87" href="#__codelineno-34-87"></a>
+<a id="__codelineno-34-88" name="__codelineno-34-88" href="#__codelineno-34-88"></a><span class="w">  </span><span class="nt">ospf-tests-post</span><span class="p">:</span>
+<a id="__codelineno-34-89" name="__codelineno-34-89" href="#__codelineno-34-89"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF state validation (post-change parameters)</span>
+<a id="__codelineno-34-90" name="__codelineno-34-90" href="#__codelineno-34-90"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;3.0.0-post&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;3.1.0-post&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-91" name="__codelineno-34-91" href="#__codelineno-34-91"></a>
+<a id="__codelineno-34-92" name="__codelineno-34-92" href="#__codelineno-34-92"></a><span class="w">  </span><span class="c1"># Composite groups using nested groups</span>
+<a id="__codelineno-34-93" name="__codelineno-34-93" href="#__codelineno-34-93"></a><span class="w">  </span><span class="nt">pre-change-validation</span><span class="p">:</span>
+<a id="__codelineno-34-94" name="__codelineno-34-94" href="#__codelineno-34-94"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">All validation tests for pre-change phase</span>
+<a id="__codelineno-34-95" name="__codelineno-34-95" href="#__codelineno-34-95"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">bgp-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">ospf-tests-pre</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-96" name="__codelineno-34-96" href="#__codelineno-34-96"></a>
+<a id="__codelineno-34-97" name="__codelineno-34-97" href="#__codelineno-34-97"></a><span class="w">  </span><span class="nt">post-change-validation</span><span class="p">:</span>
+<a id="__codelineno-34-98" name="__codelineno-34-98" href="#__codelineno-34-98"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">All validation tests for post-change phase</span>
+<a id="__codelineno-34-99" name="__codelineno-34-99" href="#__codelineno-34-99"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">connectivity-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">bgp-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">ospf-tests-post</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-100" name="__codelineno-34-100" href="#__codelineno-34-100"></a>
+<a id="__codelineno-34-101" name="__codelineno-34-101" href="#__codelineno-34-101"></a><span class="w">  </span><span class="c1"># Change implementation</span>
+<a id="__codelineno-34-102" name="__codelineno-34-102" href="#__codelineno-34-102"></a><span class="w">  </span><span class="nt">apply-change</span><span class="p">:</span>
+<a id="__codelineno-34-103" name="__codelineno-34-103" href="#__codelineno-34-103"></a><span class="w">    </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Applies the OSPF configuration change</span>
+<a id="__codelineno-34-104" name="__codelineno-34-104" href="#__codelineno-34-104"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;change-001&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-105" name="__codelineno-34-105" href="#__codelineno-34-105"></a>
+<a id="__codelineno-34-106" name="__codelineno-34-106" href="#__codelineno-34-106"></a><span class="nt">scenarios</span><span class="p">:</span>
+<a id="__codelineno-34-107" name="__codelineno-34-107" href="#__codelineno-34-107"></a><span class="w">  </span><span class="nt">ospf-area-change</span><span class="p">:</span>
+<a id="__codelineno-34-108" name="__codelineno-34-108" href="#__codelineno-34-108"></a><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF Area Change</span>
+<a id="__codelineno-34-109" name="__codelineno-34-109" href="#__codelineno-34-109"></a><span class="w">    </span><span class="nt">phases</span><span class="p">:</span>
+<a id="__codelineno-34-110" name="__codelineno-34-110" href="#__codelineno-34-110"></a><span class="w">      </span><span class="nt">pre-change</span><span class="p">:</span>
+<a id="__codelineno-34-111" name="__codelineno-34-111" href="#__codelineno-34-111"></a><span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate network state before making changes</span>
+<a id="__codelineno-34-112" name="__codelineno-34-112" href="#__codelineno-34-112"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pre-change-validation</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-113" name="__codelineno-34-113" href="#__codelineno-34-113"></a>
+<a id="__codelineno-34-114" name="__codelineno-34-114" href="#__codelineno-34-114"></a><span class="w">      </span><span class="nt">change</span><span class="p">:</span>
+<a id="__codelineno-34-115" name="__codelineno-34-115" href="#__codelineno-34-115"></a><span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Apply the OSPF configuration change</span>
+<a id="__codelineno-34-116" name="__codelineno-34-116" href="#__codelineno-34-116"></a><span class="w">        </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">pre-change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-117" name="__codelineno-34-117" href="#__codelineno-34-117"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">apply-change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-118" name="__codelineno-34-118" href="#__codelineno-34-118"></a>
+<a id="__codelineno-34-119" name="__codelineno-34-119" href="#__codelineno-34-119"></a><span class="w">      </span><span class="nt">post-change</span><span class="p">:</span>
+<a id="__codelineno-34-120" name="__codelineno-34-120" href="#__codelineno-34-120"></a><span class="w">        </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Validate network state after changes</span>
+<a id="__codelineno-34-121" name="__codelineno-34-121" href="#__codelineno-34-121"></a><span class="w">        </span><span class="nt">depends_on</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">change</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-34-122" name="__codelineno-34-122" href="#__codelineno-34-122"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">post-change-validation</span><span class="p p-Indicator">]</span>
 </code></pre></div>
 <h2 id="execution-order">Execution Order<a class="headerlink" href="#execution-order" title="Permanent link">&para;</a></h2>
 <p>Given the above test plan, execution proceeds:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>1. pre-change
-<a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>   └── pre-change-validation
-<a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>       ├── connectivity-tests
-<a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>       │   ├── 1.0.0 Verify Management Connectivity
-<a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>       │   ├── 1.1.0 Verify NTP Synchronization
-<a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a>       │   └── 1.2.0 Verify Syslog Configuration
-<a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a>       ├── bgp-tests
-<a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>       │   └── 2.0.0 Verify BGP Neighbor State
-<a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a>       └── ospf-tests-pre
-<a id="__codelineno-33-10" name="__codelineno-33-10" href="#__codelineno-33-10"></a>           ├── 3.0.0-pre Verify OSPF Neighbors (Pre-change)
-<a id="__codelineno-33-11" name="__codelineno-33-11" href="#__codelineno-33-11"></a>           └── 3.1.0-pre Verify OSPF Interface Config (Pre-change)
-<a id="__codelineno-33-12" name="__codelineno-33-12" href="#__codelineno-33-12"></a>   │
-<a id="__codelineno-33-13" name="__codelineno-33-13" href="#__codelineno-33-13"></a>   ▼
-<a id="__codelineno-33-14" name="__codelineno-33-14" href="#__codelineno-33-14"></a>2. change
-<a id="__codelineno-33-15" name="__codelineno-33-15" href="#__codelineno-33-15"></a>   └── apply-change
-<a id="__codelineno-33-16" name="__codelineno-33-16" href="#__codelineno-33-16"></a>       └── change-001 Apply OSPF Area Configuration
-<a id="__codelineno-33-17" name="__codelineno-33-17" href="#__codelineno-33-17"></a>   │
-<a id="__codelineno-33-18" name="__codelineno-33-18" href="#__codelineno-33-18"></a>   ▼
-<a id="__codelineno-33-19" name="__codelineno-33-19" href="#__codelineno-33-19"></a>3. post-change
-<a id="__codelineno-33-20" name="__codelineno-33-20" href="#__codelineno-33-20"></a>   └── post-change-validation
-<a id="__codelineno-33-21" name="__codelineno-33-21" href="#__codelineno-33-21"></a>       ├── connectivity-tests (same tests as pre-change!)
-<a id="__codelineno-33-22" name="__codelineno-33-22" href="#__codelineno-33-22"></a>       │   ├── 1.0.0 Verify Management Connectivity
-<a id="__codelineno-33-23" name="__codelineno-33-23" href="#__codelineno-33-23"></a>       │   ├── 1.1.0 Verify NTP Synchronization
-<a id="__codelineno-33-24" name="__codelineno-33-24" href="#__codelineno-33-24"></a>       │   └── 1.2.0 Verify Syslog Configuration
-<a id="__codelineno-33-25" name="__codelineno-33-25" href="#__codelineno-33-25"></a>       ├── bgp-tests (same tests as pre-change!)
-<a id="__codelineno-33-26" name="__codelineno-33-26" href="#__codelineno-33-26"></a>       │   └── 2.0.0 Verify BGP Neighbor State
-<a id="__codelineno-33-27" name="__codelineno-33-27" href="#__codelineno-33-27"></a>       └── ospf-tests-post
-<a id="__codelineno-33-28" name="__codelineno-33-28" href="#__codelineno-33-28"></a>           ├── 3.0.0-post Verify OSPF Neighbors (Post-change)
-<a id="__codelineno-33-29" name="__codelineno-33-29" href="#__codelineno-33-29"></a>           └── 3.1.0-post Verify OSPF Interface Config (Post-change)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>ospf-area-change
+<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>    1. pre-change
+<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>       └── pre-change-validation
+<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>           ├── connectivity-tests
+<a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>           │   ├── 1.0.0 Verify Management Connectivity
+<a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a>           │   ├── 1.1.0 Verify NTP Synchronization
+<a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a>           │   └── 1.2.0 Verify Syslog Configuration
+<a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a>           ├── bgp-tests
+<a id="__codelineno-35-9" name="__codelineno-35-9" href="#__codelineno-35-9"></a>           │   └── 2.0.0 Verify BGP Neighbor State
+<a id="__codelineno-35-10" name="__codelineno-35-10" href="#__codelineno-35-10"></a>           └── ospf-tests-pre
+<a id="__codelineno-35-11" name="__codelineno-35-11" href="#__codelineno-35-11"></a>               ├── 3.0.0-pre Verify OSPF Neighbors (Pre-change)
+<a id="__codelineno-35-12" name="__codelineno-35-12" href="#__codelineno-35-12"></a>               └── 3.1.0-pre Verify OSPF Interface Config (Pre-change)
+<a id="__codelineno-35-13" name="__codelineno-35-13" href="#__codelineno-35-13"></a>       │
+<a id="__codelineno-35-14" name="__codelineno-35-14" href="#__codelineno-35-14"></a>       ▼
+<a id="__codelineno-35-15" name="__codelineno-35-15" href="#__codelineno-35-15"></a>    2. change
+<a id="__codelineno-35-16" name="__codelineno-35-16" href="#__codelineno-35-16"></a>       └── apply-change
+<a id="__codelineno-35-17" name="__codelineno-35-17" href="#__codelineno-35-17"></a>           └── change-001 Apply OSPF Area Configuration
+<a id="__codelineno-35-18" name="__codelineno-35-18" href="#__codelineno-35-18"></a>       │
+<a id="__codelineno-35-19" name="__codelineno-35-19" href="#__codelineno-35-19"></a>       ▼
+<a id="__codelineno-35-20" name="__codelineno-35-20" href="#__codelineno-35-20"></a>    3. post-change
+<a id="__codelineno-35-21" name="__codelineno-35-21" href="#__codelineno-35-21"></a>       └── post-change-validation
+<a id="__codelineno-35-22" name="__codelineno-35-22" href="#__codelineno-35-22"></a>           ├── connectivity-tests (same tests as pre-change!)
+<a id="__codelineno-35-23" name="__codelineno-35-23" href="#__codelineno-35-23"></a>           │   ├── 1.0.0 Verify Management Connectivity
+<a id="__codelineno-35-24" name="__codelineno-35-24" href="#__codelineno-35-24"></a>           │   ├── 1.1.0 Verify NTP Synchronization
+<a id="__codelineno-35-25" name="__codelineno-35-25" href="#__codelineno-35-25"></a>           │   └── 1.2.0 Verify Syslog Configuration
+<a id="__codelineno-35-26" name="__codelineno-35-26" href="#__codelineno-35-26"></a>           ├── bgp-tests (same tests as pre-change!)
+<a id="__codelineno-35-27" name="__codelineno-35-27" href="#__codelineno-35-27"></a>           │   └── 2.0.0 Verify BGP Neighbor State
+<a id="__codelineno-35-28" name="__codelineno-35-28" href="#__codelineno-35-28"></a>           └── ospf-tests-post
+<a id="__codelineno-35-29" name="__codelineno-35-29" href="#__codelineno-35-29"></a>               ├── 3.0.0-post Verify OSPF Neighbors (Post-change)
+<a id="__codelineno-35-30" name="__codelineno-35-30" href="#__codelineno-35-30"></a>               └── 3.1.0-post Verify OSPF Interface Config (Post-change)
 </code></pre></div>
 <p>Note that <code>connectivity-tests</code> and <code>bgp-tests</code> are included in both <code>pre-change-validation</code> and <code>post-change-validation</code>, validating that connectivity and BGP state remain consistent across the change.</p>
 <h2 id="report-structure">Report Structure<a class="headerlink" href="#report-structure" title="Permanent link">&para;</a></h2>
 <p>Results are organized hierarchically for easy navigation. Nested groups are shown in their hierarchy:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>Pre-change                                       [PASSED]  6/6
-<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>└── pre-change-validation                        [PASSED]  6/6
-<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>    ├── connectivity-tests                       [PASSED]  3/3
-<a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>    │   ├── 1.0.0 Verify Management              [PASSED]
-<a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>    │   ├── 1.1.0 Verify NTP Sync                [PASSED]
-<a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>    │   └── 1.2.0 Verify Syslog                  [PASSED]
-<a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>    ├── bgp-tests                                [PASSED]  1/1
-<a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a>    │   └── 2.0.0 Verify BGP Neighbors           [PASSED]
-<a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a>    └── ospf-tests-pre                           [PASSED]  2/2
-<a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a>        ├── 3.0.0-pre Verify OSPF Neighbors      [PASSED]
-<a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a>        └── 3.1.0-pre Verify OSPF Interfaces     [PASSED]
-<a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a>
-<a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a>Change                                           [PASSED]  1/1
-<a id="__codelineno-34-14" name="__codelineno-34-14" href="#__codelineno-34-14"></a>└── apply-change                                 [PASSED]  1/1
-<a id="__codelineno-34-15" name="__codelineno-34-15" href="#__codelineno-34-15"></a>    └── change-001 Apply OSPF Config             [PASSED]
-<a id="__codelineno-34-16" name="__codelineno-34-16" href="#__codelineno-34-16"></a>
-<a id="__codelineno-34-17" name="__codelineno-34-17" href="#__codelineno-34-17"></a>Post-change                                      [PARTIAL] 5/6 (1 failed)
-<a id="__codelineno-34-18" name="__codelineno-34-18" href="#__codelineno-34-18"></a>└── post-change-validation                       [PARTIAL] 5/6 (1 failed)
-<a id="__codelineno-34-19" name="__codelineno-34-19" href="#__codelineno-34-19"></a>    ├── connectivity-tests                       [PASSED]  3/3
-<a id="__codelineno-34-20" name="__codelineno-34-20" href="#__codelineno-34-20"></a>    │   ├── 1.0.0 Verify Management              [PASSED]
-<a id="__codelineno-34-21" name="__codelineno-34-21" href="#__codelineno-34-21"></a>    │   ├── 1.1.0 Verify NTP Sync                [PASSED]
-<a id="__codelineno-34-22" name="__codelineno-34-22" href="#__codelineno-34-22"></a>    │   └── 1.2.0 Verify Syslog                  [PASSED]
-<a id="__codelineno-34-23" name="__codelineno-34-23" href="#__codelineno-34-23"></a>    ├── bgp-tests                                [PASSED]  1/1
-<a id="__codelineno-34-24" name="__codelineno-34-24" href="#__codelineno-34-24"></a>    │   └── 2.0.0 Verify BGP Neighbors           [PASSED]
-<a id="__codelineno-34-25" name="__codelineno-34-25" href="#__codelineno-34-25"></a>    └── ospf-tests-post                          [PARTIAL] 1/2 (1 failed)
-<a id="__codelineno-34-26" name="__codelineno-34-26" href="#__codelineno-34-26"></a>        ├── 3.0.0-post Verify OSPF Neighbors     [PASSED]
-<a id="__codelineno-34-27" name="__codelineno-34-27" href="#__codelineno-34-27"></a>        └── 3.1.0-post Verify OSPF Interfaces    [FAILED] ← Unexpected state
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>OSPF Area Change                                     [PARTIAL] 12/13 (1 failed)
+<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>    Pre-change                                       [PASSED]  6/6
+<a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>    └── pre-change-validation                        [PASSED]  6/6
+<a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>        ├── connectivity-tests                       [PASSED]  3/3
+<a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>        │   ├── 1.0.0 Verify Management              [PASSED]
+<a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a>        │   ├── 1.1.0 Verify NTP Sync                [PASSED]
+<a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a>        │   └── 1.2.0 Verify Syslog                  [PASSED]
+<a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a>        ├── bgp-tests                                [PASSED]  1/1
+<a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a>        │   └── 2.0.0 Verify BGP Neighbors           [PASSED]
+<a id="__codelineno-36-10" name="__codelineno-36-10" href="#__codelineno-36-10"></a>        └── ospf-tests-pre                           [PASSED]  2/2
+<a id="__codelineno-36-11" name="__codelineno-36-11" href="#__codelineno-36-11"></a>            ├── 3.0.0-pre Verify OSPF Neighbors      [PASSED]
+<a id="__codelineno-36-12" name="__codelineno-36-12" href="#__codelineno-36-12"></a>            └── 3.1.0-pre Verify OSPF Interfaces     [PASSED]
+<a id="__codelineno-36-13" name="__codelineno-36-13" href="#__codelineno-36-13"></a>
+<a id="__codelineno-36-14" name="__codelineno-36-14" href="#__codelineno-36-14"></a>    Change                                           [PASSED]  1/1
+<a id="__codelineno-36-15" name="__codelineno-36-15" href="#__codelineno-36-15"></a>    └── apply-change                                 [PASSED]  1/1
+<a id="__codelineno-36-16" name="__codelineno-36-16" href="#__codelineno-36-16"></a>        └── change-001 Apply OSPF Config             [PASSED]
+<a id="__codelineno-36-17" name="__codelineno-36-17" href="#__codelineno-36-17"></a>
+<a id="__codelineno-36-18" name="__codelineno-36-18" href="#__codelineno-36-18"></a>    Post-change                                      [PARTIAL] 5/6 (1 failed)
+<a id="__codelineno-36-19" name="__codelineno-36-19" href="#__codelineno-36-19"></a>    └── post-change-validation                       [PARTIAL] 5/6 (1 failed)
+<a id="__codelineno-36-20" name="__codelineno-36-20" href="#__codelineno-36-20"></a>        ├── connectivity-tests                       [PASSED]  3/3
+<a id="__codelineno-36-21" name="__codelineno-36-21" href="#__codelineno-36-21"></a>        │   ├── 1.0.0 Verify Management              [PASSED]
+<a id="__codelineno-36-22" name="__codelineno-36-22" href="#__codelineno-36-22"></a>        │   ├── 1.1.0 Verify NTP Sync                [PASSED]
+<a id="__codelineno-36-23" name="__codelineno-36-23" href="#__codelineno-36-23"></a>        │   └── 1.2.0 Verify Syslog                  [PASSED]
+<a id="__codelineno-36-24" name="__codelineno-36-24" href="#__codelineno-36-24"></a>        ├── bgp-tests                                [PASSED]  1/1
+<a id="__codelineno-36-25" name="__codelineno-36-25" href="#__codelineno-36-25"></a>        │   └── 2.0.0 Verify BGP Neighbors           [PASSED]
+<a id="__codelineno-36-26" name="__codelineno-36-26" href="#__codelineno-36-26"></a>        └── ospf-tests-post                          [PARTIAL] 1/2 (1 failed)
+<a id="__codelineno-36-27" name="__codelineno-36-27" href="#__codelineno-36-27"></a>            ├── 3.0.0-post Verify OSPF Neighbors     [PASSED]
+<a id="__codelineno-36-28" name="__codelineno-36-28" href="#__codelineno-36-28"></a>            └── 3.1.0-post Verify OSPF Interfaces    [FAILED] ← Unexpected state
 </code></pre></div>
 <h2 id="cli-filtering">CLI Filtering<a class="headerlink" href="#cli-filtering" title="Permanent link">&para;</a></h2>
 <p>The test plan can be filtered at runtime:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="c1"># Run specific phase</span>
-<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>huginn<span class="w"> </span>run<span class="w"> </span>--phase<span class="w"> </span>pre-change
-<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>
-<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="c1"># Run specific test case group</span>
-<a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>huginn<span class="w"> </span>run<span class="w"> </span>--test-case-group<span class="w"> </span>unchanged-state
-<a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a>
-<a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a><span class="c1"># Run specific test by ID</span>
-<a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a>huginn<span class="w"> </span>run<span class="w"> </span>--test-id<span class="w"> </span><span class="m">3</span>.0.0-pre
-<a id="__codelineno-35-9" name="__codelineno-35-9" href="#__codelineno-35-9"></a>
-<a id="__codelineno-35-10" name="__codelineno-35-10" href="#__codelineno-35-10"></a><span class="c1"># Run tests matching tags</span>
-<a id="__codelineno-35-11" name="__codelineno-35-11" href="#__codelineno-35-11"></a>huginn<span class="w"> </span>run<span class="w"> </span>--tags<span class="w"> </span>ospf
-<a id="__codelineno-35-12" name="__codelineno-35-12" href="#__codelineno-35-12"></a>
-<a id="__codelineno-35-13" name="__codelineno-35-13" href="#__codelineno-35-13"></a><span class="c1"># Exclude tests by tag</span>
-<a id="__codelineno-35-14" name="__codelineno-35-14" href="#__codelineno-35-14"></a>huginn<span class="w"> </span>run<span class="w"> </span>--exclude-tags<span class="w"> </span>slow
-<a id="__codelineno-35-15" name="__codelineno-35-15" href="#__codelineno-35-15"></a>
-<a id="__codelineno-35-16" name="__codelineno-35-16" href="#__codelineno-35-16"></a><span class="c1"># Combine filters</span>
-<a id="__codelineno-35-17" name="__codelineno-35-17" href="#__codelineno-35-17"></a>huginn<span class="w"> </span>run<span class="w"> </span>--phase<span class="w"> </span>post-change<span class="w"> </span>--tags<span class="w"> </span>ospf
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="c1"># Run specific scenario</span>
+<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>testing<span class="w"> </span>--scenario<span class="w"> </span>ospf-area-change
+<a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>
+<a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a><span class="c1"># Run specific phase (requires --scenario)</span>
+<a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>testing<span class="w"> </span>--scenario<span class="w"> </span>ospf-area-change<span class="w"> </span>--phase<span class="w"> </span>pre-change
+<a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a>
+<a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a><span class="c1"># Run specific test case group</span>
+<a id="__codelineno-37-8" name="__codelineno-37-8" href="#__codelineno-37-8"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>testing<span class="w"> </span>--test-case-group<span class="w"> </span>post-change-validation
+<a id="__codelineno-37-9" name="__codelineno-37-9" href="#__codelineno-37-9"></a>
+<a id="__codelineno-37-10" name="__codelineno-37-10" href="#__codelineno-37-10"></a><span class="c1"># Run specific tests by ID</span>
+<a id="__codelineno-37-11" name="__codelineno-37-11" href="#__codelineno-37-11"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>testing<span class="w"> </span>--test-id<span class="w"> </span><span class="m">3</span>.0.0-pre,3.1.0-pre
+<a id="__codelineno-37-12" name="__codelineno-37-12" href="#__codelineno-37-12"></a>
+<a id="__codelineno-37-13" name="__codelineno-37-13" href="#__codelineno-37-13"></a><span class="c1"># Run tests whose IDs match a regular expression</span>
+<a id="__codelineno-37-14" name="__codelineno-37-14" href="#__codelineno-37-14"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>testing<span class="w"> </span>--test-id-pattern<span class="w"> </span><span class="s1">&#39;-post$&#39;</span>
+<a id="__codelineno-37-15" name="__codelineno-37-15" href="#__codelineno-37-15"></a>
+<a id="__codelineno-37-16" name="__codelineno-37-16" href="#__codelineno-37-16"></a><span class="c1"># Run tests matching tags</span>
+<a id="__codelineno-37-17" name="__codelineno-37-17" href="#__codelineno-37-17"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>testing<span class="w"> </span>--tags<span class="w"> </span>ospf
+<a id="__codelineno-37-18" name="__codelineno-37-18" href="#__codelineno-37-18"></a>
+<a id="__codelineno-37-19" name="__codelineno-37-19" href="#__codelineno-37-19"></a><span class="c1"># Exclude tests by tag</span>
+<a id="__codelineno-37-20" name="__codelineno-37-20" href="#__codelineno-37-20"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>testing<span class="w"> </span>--exclude-tags<span class="w"> </span>slow
+<a id="__codelineno-37-21" name="__codelineno-37-21" href="#__codelineno-37-21"></a>
+<a id="__codelineno-37-22" name="__codelineno-37-22" href="#__codelineno-37-22"></a><span class="c1"># Combine filters</span>
+<a id="__codelineno-37-23" name="__codelineno-37-23" href="#__codelineno-37-23"></a>huginn<span class="w"> </span>run<span class="w"> </span>--mode<span class="w"> </span>testing<span class="w"> </span>--scenario<span class="w"> </span>ospf-area-change<span class="w"> </span>--phase<span class="w"> </span>post-change<span class="w"> </span>--tags<span class="w"> </span>ospf
 </code></pre></div>
+<p>Every filter except <code>--test-id-pattern</code> accepts comma-separated values and can be repeated. <code>--scenario</code>, <code>--phase</code>, <code>--test-case-group</code> and <code>--test-id</code> match any listed value. <code>--tags</code> requires every listed tag, and <code>--exclude-tags</code> drops a test case that has any listed tag. <code>--phase</code> is rejected unless <code>--scenario</code> is also given, because phase names are scoped to a scenario.</p>
 <h2 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h2>
 <p>The framework validates test plans on load:</p>
 <ul>
@@ -3450,7 +3652,7 @@ full discussion of packaged jobs.</p>
 <ul>
 <li><a href="../../concepts/glossary/">Glossary</a>: Formal term definitions</li>
 <li><a href="../testbed/">Testbed Specification</a>: Device and device group definitions</li>
-<li><a href="../context-api/">Test Authoring</a>: Writing jobs</li>
+<li><a href="../context-api/">Context API</a>: Writing jobs</li>
 <li><a href="../configuration/">Configuration</a>: Default paths and settings</li>
 </ul>
 
