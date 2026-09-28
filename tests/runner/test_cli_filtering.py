@@ -7,7 +7,12 @@ from typer.testing import CliRunner
 
 from huginn.cli import app
 
-from .conftest import first_test_case, load_report, stage_runner_fixture
+from .conftest import (
+    _FakeRuntimeBroker,
+    first_test_case,
+    load_report,
+    stage_runner_fixture,
+)
 
 
 def test_run_filters_test_cases_by_tags(
@@ -251,3 +256,60 @@ def test_run_filters_by_comma_separated_tags_with_all_match_semantics(
         for case in group["test_cases"]
     ]
     assert executed_ids == ["2.0.0"]
+
+
+_PRESERVE_CACHE_PLAN = """\
+test_cases:
+  1.0.0:
+    title: Tagged OSPF
+    job: jobs/test_verify_tagged.py
+    tags:
+    - ospf
+test_case_groups:
+  group-1:
+    tests:
+    - 1.0.0
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - group-1
+      phase-2:
+        depends_on:
+        - phase-1
+        preserve_cache: true
+        test_case_groups:
+        - group-1
+"""
+
+
+def test_run_filtered_plan_honors_preserve_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A tag filter keeps preserve_cache, so only the first phase clears cache."""
+    stage_runner_fixture(tmp_path, "tag_filtering")
+    (tmp_path / "test_plan.yaml").write_text(_PRESERVE_CACHE_PLAN, encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            "--tags",
+            "ospf",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    assert load_report(tmp_path)["summary"]["total"] == 2
+    assert _FakeRuntimeBroker.clear_cache_invocations == 1

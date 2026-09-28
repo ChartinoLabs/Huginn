@@ -1,5 +1,10 @@
 """Unit tests for test plan tag filtering behavior."""
 
+from dataclasses import MISSING, fields
+from typing import TypeAlias
+
+import pytest
+
 import huginn.models as models
 from huginn.plan_filtering import (
     PlanFilterOptions,
@@ -325,3 +330,171 @@ def test_filter_by_test_id_pattern_no_match_prunes_group() -> None:
     assert filtered.test_case_groups == {}
     assert filtered.test_cases == {}
     assert filtered.scenarios == {}
+
+
+# --- field preservation ---
+
+PlanModel: TypeAlias = (
+    models.TestPlan
+    | models.Scenario
+    | models.Phase
+    | models.TestCaseGroup
+    | models.TestCaseDefinition
+)
+
+
+def _fully_populated_plan() -> models.TestPlan:
+    """Build a test plan where every model field has a non-default value."""
+    target = models.TargetDefinition(
+        devices=["leaf-01"],
+        groups=["leaf"],
+        os=["nxos"],
+        exclude_devices=["leaf-02"],
+    )
+    return models.TestPlan(
+        scenarios={
+            "scenario-1": models.Scenario(
+                identifier="scenario-1",
+                name="Scenario One",
+                phases={
+                    "pre": models.Phase(
+                        identifier="pre",
+                        name="Pre-change",
+                        test_case_groups=["core"],
+                        target=target,
+                        strategy=models.ExecutionStrategy(mode="serial", maximum=1),
+                        preserve_cache=True,
+                    ),
+                    "post": models.Phase(
+                        identifier="post",
+                        name="Post-change",
+                        test_case_groups=["core"],
+                        depends_on=["pre"],
+                        target=target,
+                        strategy=models.ExecutionStrategy(mode="serial", maximum=1),
+                        preserve_cache=True,
+                    ),
+                },
+            )
+        },
+        test_case_groups={
+            "core": models.TestCaseGroup(
+                identifier="core",
+                name="Core checks",
+                tests=["1.0.0", "2.0.0"],
+                tags=["core"],
+                target=target,
+                strategy=models.ExecutionStrategy(mode="parallel", maximum=2),
+                exclude_tests=["3.0.0"],
+            )
+        },
+        test_cases={
+            "1.0.0": models.TestCaseDefinition(
+                test_id="1.0.0",
+                title="Verify OSPF",
+                job="jobs/verify_ospf.py",
+                tags=["ospf"],
+                target=target,
+                description="Checks OSPF neighbors",
+                priority="high",
+                category="routing",
+                is_automated=False,
+                metadata={"owner": "netops"},
+            ),
+            "2.0.0": models.TestCaseDefinition(
+                test_id="2.0.0",
+                title="Verify BGP",
+                job="jobs/verify_bgp.py",
+                tags=["bgp"],
+            ),
+        },
+        name="Change plan",
+        description="Validates a change window",
+        defaults={"target": {"os": ["nxos"]}},
+        data_model={"vrfs": ["blue"]},
+    )
+
+
+def _assert_non_default(obj: PlanModel) -> None:
+    """Assert every field with a default is set to a non-default value."""
+    for field in fields(obj):
+        if field.default is not MISSING:
+            default = field.default
+        elif field.default_factory is not MISSING:
+            default = field.default_factory()
+        else:
+            continue
+        assert getattr(obj, field.name) != default, (
+            f"{type(obj).__name__}.{field.name} should be non-default in the fixture"
+        )
+
+
+def _assert_fields_preserved(
+    original: PlanModel, filtered: PlanModel, *, skip: set[str]
+) -> None:
+    """Assert every dataclass field except ``skip`` is unchanged."""
+    for field in fields(original):
+        if field.name in skip:
+            continue
+        assert getattr(filtered, field.name) == getattr(original, field.name), (
+            f"{type(original).__name__}.{field.name} was not preserved"
+        )
+
+
+@pytest.mark.parametrize(
+    "filters",
+    [
+        PlanFilterOptions(tags=["ospf"]),
+        PlanFilterOptions(exclude_tags=["bgp"]),
+        PlanFilterOptions(scenarios=["scenario-1"]),
+        PlanFilterOptions(phases=["pre", "post"]),
+        PlanFilterOptions(test_case_groups=["core"]),
+        PlanFilterOptions(test_ids=["1.0.0"]),
+        PlanFilterOptions(test_id_pattern=r"^1\."),
+    ],
+    ids=[
+        "tags",
+        "exclude_tags",
+        "scenarios",
+        "phases",
+        "test_case_groups",
+        "test_ids",
+        "test_id_pattern",
+    ],
+)
+def test_filter_preserves_all_non_collection_fields(
+    filters: PlanFilterOptions,
+) -> None:
+    """Filtering keeps every model field except the filtered collections."""
+    test_plan = _fully_populated_plan()
+    _assert_non_default(test_plan)
+    for scenario in test_plan.scenarios.values():
+        _assert_non_default(scenario)
+    _assert_non_default(test_plan.scenarios["scenario-1"].phases["post"])
+    for group in test_plan.test_case_groups.values():
+        _assert_non_default(group)
+    _assert_non_default(test_plan.test_cases["1.0.0"])
+
+    filtered = filter_test_plan(test_plan, filters)
+
+    _assert_fields_preserved(
+        test_plan,
+        filtered,
+        skip={"scenarios", "test_case_groups", "test_cases"},
+    )
+    for scenario_name, scenario in filtered.scenarios.items():
+        original_scenario = test_plan.scenarios[scenario_name]
+        _assert_fields_preserved(original_scenario, scenario, skip={"phases"})
+        for phase_name, phase in scenario.phases.items():
+            _assert_fields_preserved(
+                original_scenario.phases[phase_name],
+                phase,
+                skip={"test_case_groups"},
+            )
+    for group_name, group in filtered.test_case_groups.items():
+        _assert_fields_preserved(
+            test_plan.test_case_groups[group_name], group, skip={"tests"}
+        )
+    for test_id, test_case in filtered.test_cases.items():
+        _assert_fields_preserved(test_plan.test_cases[test_id], test_case, skip=set())
+    assert "1.0.0" in filtered.test_cases

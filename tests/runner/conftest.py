@@ -20,6 +20,7 @@ class _FakeRuntimeBroker:
     last_required_brokers: set[BrokerType] = set()
     connect_invocations: int = 0
     disconnect_invocations: int = 0
+    clear_cache_invocations: int = 0
 
     def __init__(
         self,
@@ -65,7 +66,7 @@ class _FakeRuntimeBroker:
         return _FakeCommandResult(output=f"edit:{target.name}")
 
     def clear_cache(self) -> None:
-        pass
+        _FakeRuntimeBroker.clear_cache_invocations += 1
 
     def for_protocol(self, protocol: str) -> "_FakeRuntimeBrokerClient":
         return _FakeRuntimeBrokerClient(runtime=self, protocol=protocol)
@@ -102,6 +103,7 @@ def patch_runtime_broker(monkeypatch: pytest.MonkeyPatch) -> None:
     _FakeRuntimeBroker.last_required_brokers = set()
     _FakeRuntimeBroker.connect_invocations = 0
     _FakeRuntimeBroker.disconnect_invocations = 0
+    _FakeRuntimeBroker.clear_cache_invocations = 0
     monkeypatch.setattr("huginn.runner.RuntimeBroker", _FakeRuntimeBroker)
 
 
