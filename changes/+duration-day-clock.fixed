@@ -1,0 +1,1 @@
+`parse_duration_seconds` now parses `D:HH:MM:SS`, `D+HH:MM:SS`, and `N days, HH:MM[:SS]` durations instead of returning `0` or dropping the clock.

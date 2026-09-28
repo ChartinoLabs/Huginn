@@ -538,6 +538,35 @@ def _parse_compact_duration(duration: str) -> int:
     return total
 
 
+# ``D:HH:MM:SS`` (IOS-XE SD-WAN) or ``D+HH:MM:SS`` (Junos process summary).
+_DAY_CLOCK_DURATION_RE = re.compile(
+    r"(?P<d>\d+)[:+](?P<hh>\d+):(?P<mm>\d+):(?P<ss>\d+)"
+)
+
+# ``N day(s), HH:MM[:SS]`` (EOS, PAN-OS, Junos). A two-field clock is
+# hours and minutes, as in the BSD-style ``uptime`` line Junos prints.
+_VERBOSE_DAY_CLOCK_RE = re.compile(
+    r"(?P<d>\d+)\s+days?,\s*(?P<hh>\d+):(?P<mm>\d+)(?::(?P<ss>\d+))?"
+)
+
+
+def _parse_day_clock_duration(duration: str) -> int:
+    """Parse days plus a clock, returning ``0`` unless the whole string matches."""
+    stripped = duration.strip()
+    match = _DAY_CLOCK_DURATION_RE.fullmatch(stripped)
+    if match is None:
+        match = _VERBOSE_DAY_CLOCK_RE.fullmatch(stripped)
+    if match is None:
+        return 0
+    parts = match.groupdict()
+    return (
+        int(parts["d"]) * 86400
+        + int(parts["hh"]) * 3600
+        + int(parts["mm"]) * 60
+        + int(parts["ss"] or 0)
+    )
+
+
 def parse_duration_seconds(duration: str) -> int:
     """Parse a Cisco-style duration string to total seconds.
 
@@ -549,6 +578,10 @@ def parse_duration_seconds(duration: str) -> int:
       optional (``"1d02h"``, ``"2w3d"``, ``"1y2w"``, ``"33m"``), optionally
       followed by ``"HH:MM:SS"`` (``"2d03:04:05"``, ``"29w5d 22:42:36"``)
     - Clock: ``"HH:MM:SS"``
+    - Days and clock: ``"D:HH:MM:SS"`` (``"0:00:16:22"``), ``"D+HH:MM:SS"``
+      (``"41+06:26:24"``), and ``"N days, HH:MM[:SS]"``
+      (``"2 days, 2:38:49"``, ``"154 days, 19:16"``). A two-field clock
+      after ``days,`` is hours and minutes.
 
     Years count as 365 days. A compact string must match the grammar in
     full, so trailing or unknown content is never partially parsed.
@@ -557,7 +590,9 @@ def parse_duration_seconds(duration: str) -> int:
     the function is typically used for monotonic comparison values where
     a missing value should simply fail the ``gt``/``gte`` check.
     """
-    total = 0
+    total = _parse_day_clock_duration(duration)
+    if total:
+        return total
     for count_s, unit in re.findall(
         r"(\d+)\s+(week|day|hour|minute|second)s?",
         duration,

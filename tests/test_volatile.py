@@ -726,6 +726,34 @@ def test_parse_duration_compact_forms(duration: str, expected: int) -> None:
 
 
 @pytest.mark.parametrize(
+    "duration, expected",
+    [
+        # D:HH:MM:SS from IOS-XE ``show sdwan control connections`` / ``omp peers``
+        ("0:00:16:22", 16 * 60 + 22),
+        ("6:13:58:46", 6 * _DAY + 13 * 3600 + 58 * 60 + 46),
+        ("90:21:24:08", 90 * _DAY + 21 * 3600 + 24 * 60 + 8),
+        # D+HH:MM:SS from Junos ``show system processes summary`` / ``brief``
+        ("41+06:26:24", 41 * _DAY + 6 * 3600 + 26 * 60 + 24),
+        ("87+21:25:46", 87 * _DAY + 21 * 3600 + 25 * 60 + 46),
+        # N day(s), H:MM:SS from EOS and PAN-OS
+        ("2 days, 2:38:49", 2 * _DAY + 2 * 3600 + 38 * 60 + 49),
+        ("68 days, 0:11:28", 68 * _DAY + 11 * 60 + 28),
+        ("1 day, 0:11:28", _DAY + 11 * 60 + 28),
+        # N day(s), HH:MM from Junos ``show system uptime`` is hours:minutes
+        ("154 days, 19:16", 154 * _DAY + 19 * 3600 + 16 * 60),
+        ("1 day, 19:16", _DAY + 19 * 3600 + 16 * 60),
+        # Three fields remain HH:MM:SS
+        ("0:00:16", 16),
+    ],
+)
+def test_parse_duration_day_clock_forms(duration: str, expected: int) -> None:
+    """Durations with a day count before a clock include the clock."""
+    from huginn import parse_duration_seconds
+
+    assert parse_duration_seconds(duration) == expected
+
+
+@pytest.mark.parametrize(
     "duration",
     [
         "never",
@@ -741,6 +769,12 @@ def test_parse_duration_compact_forms(duration: str, expected: int) -> None:
         "00:01:04 (3d10h ago)",
         # Incomplete clock
         "12:34",
+        # Malformed day-and-clock forms
+        "1:2:3:4:5",
+        "41+",
+        "+06:26:24",
+        "41+06:26",
+        "0:00:16:22 ago",
     ],
 )
 def test_parse_duration_unknown_returns_zero(duration: str) -> None:
