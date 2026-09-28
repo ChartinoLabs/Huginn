@@ -1004,8 +1004,8 @@ def relearn(
 
     Analyzes the most recent testing run results, identifies failed and
     errored test cases, then re-runs only those tests in learning mode to
-    refresh their baseline parameters. Automatically scopes execution to
-    only the scenarios and phases that contained failures.
+    refresh their baseline parameters. Each test is re-run only in the exact
+    scenario and phase where it failed.
 
     Examples:
         huginn relearn -p test_plan -t testbed.yaml
@@ -1097,9 +1097,14 @@ def _resolve_relearn_targets(
         return None
 
     output.status(
-        f"Re-learning {len(relearn_input.test_ids)} failed test(s) "
+        f"Re-learning {len(relearn_input.contexts)} failed test context(s) "
+        f"({len(relearn_input.test_ids)} test(s) "
         f"in {len(relearn_input.scenario_ids)} scenario(s), "
-        f"{len(relearn_input.phase_ids)} phase(s): " + ", ".join(relearn_input.test_ids)
+        f"{len(relearn_input.phase_ids)} phase(s)): "
+        + ", ".join(
+            f"{scenario_id}/{phase_id}/{test_id}"
+            for scenario_id, phase_id, test_id in relearn_input.contexts
+        )
     )
     return relearn_input
 
@@ -1116,11 +1121,7 @@ def _execute_relearn(
     output: Output,
 ) -> None:
     """Run the failed tests in learning mode and report results."""
-    filters = PlanFilterOptions(
-        test_ids=relearn_input.test_ids,
-        scenarios=relearn_input.scenario_ids,
-        phases=relearn_input.phase_ids,
-    )
+    filters = PlanFilterOptions(test_contexts=relearn_input.contexts)
     plugin_registry = _load_plugin_registry(project_root=Path.cwd())
 
     result = asyncio.run(

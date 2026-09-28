@@ -1,0 +1,1 @@
+`huginn relearn` now re-runs each failed test only in the exact scenario and phase where it failed, instead of in every combination of the failed scenarios and phases.

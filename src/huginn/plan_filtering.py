@@ -17,6 +17,10 @@ class PlanFilterOptions:
     test_case_groups: list[str] | None = None
     test_ids: list[str] | None = None
     test_id_pattern: str | None = None
+    # Exact (scenario, phase, test_id) execution contexts to keep. Unlike the
+    # independent scenario/phase/test ID filters, a test is kept in a phase only
+    # when its exact tuple is selected.
+    test_contexts: list[tuple[str, str, str]] | None = None
 
 
 def filter_test_plan_by_tags(test_plan: TestPlan, tags: list[str] | None) -> TestPlan:
@@ -45,13 +49,17 @@ def filter_test_plan(test_plan: TestPlan, filters: PlanFilterOptions) -> TestPla
         test_filter=test_filter,
         test_id_regex=test_id_regex,
     )
-    filtered_test_cases = _filter_test_cases(test_plan, filtered_groups)
     filtered_scenarios = _filter_scenarios(
         test_plan,
         filtered_groups,
         scenario_filter=scenario_filter,
         phase_filter=phase_filter,
     )
+    if filters.test_contexts:
+        filtered_scenarios, filtered_groups = _select_test_contexts(
+            filtered_scenarios, filtered_groups, filters.test_contexts
+        )
+    filtered_test_cases = _filter_test_cases(test_plan, filtered_groups)
 
     _normalize_phase_dependencies(filtered_scenarios)
     return replace(
@@ -73,6 +81,7 @@ def _is_noop(filters: PlanFilterOptions) -> bool:
             filters.test_case_groups,
             filters.test_ids,
             filters.test_id_pattern,
+            filters.test_contexts,
         )
     )
 
@@ -237,6 +246,72 @@ def _filter_phase(
         return None
 
     return replace(phase, test_case_groups=kept_groups)
+
+
+def _select_test_contexts(
+    scenarios: dict[str, Scenario],
+    groups: dict[str, TestCaseGroup],
+    test_contexts: list[tuple[str, str, str]],
+) -> tuple[dict[str, Scenario], dict[str, TestCaseGroup]]:
+    """Keep only tests whose exact (scenario, phase, test_id) is selected.
+
+    Groups are shared across phases, but a phase may need a different subset of a
+    group's tests. Each distinct subset becomes its own entry in the returned
+    group mapping: the first subset keeps the original key, later ones get a
+    synthetic key. The group ``identifier`` is never changed, so results and
+    reports still show the original group ID.
+    """
+    selected: dict[tuple[str, str], set[str]] = {}
+    for scenario_name, phase_name, test_id in test_contexts:
+        selected.setdefault((scenario_name, phase_name), set()).add(test_id)
+
+    variants = _GroupVariants(groups)
+    kept_scenarios: dict[str, Scenario] = {}
+    for scenario_name, scenario in scenarios.items():
+        kept_phases: dict[str, Phase] = {}
+        for phase_name, phase in scenario.phases.items():
+            test_ids = selected.get((scenario_name, phase_name), set())
+            kept_groups = [
+                key
+                for group_name in phase.test_case_groups
+                if (key := variants.key_for(group_name, test_ids)) is not None
+            ]
+            if kept_groups:
+                kept_phases[phase_name] = replace(phase, test_case_groups=kept_groups)
+        if kept_phases:
+            kept_scenarios[scenario_name] = replace(scenario, phases=kept_phases)
+    return kept_scenarios, variants.groups
+
+
+class _GroupVariants:
+    """Track per-phase subsets of shared groups under distinct mapping keys."""
+
+    def __init__(self, source_groups: dict[str, TestCaseGroup]) -> None:
+        self._source_groups = source_groups
+        self._keys: dict[tuple[str, tuple[str, ...]], str] = {}
+        self.groups: dict[str, TestCaseGroup] = {}
+
+    def key_for(self, group_name: str, test_ids: set[str]) -> str | None:
+        """Return the mapping key for a group narrowed to ``test_ids``."""
+        source = self._source_groups[group_name]
+        tests = tuple(test_id for test_id in source.tests if test_id in test_ids)
+        if not tests:
+            return None
+        key = self._keys.get((group_name, tests))
+        if key is None:
+            key = self._unused_key(group_name)
+            self._keys[(group_name, tests)] = key
+            self.groups[key] = replace(source, tests=list(tests))
+        return key
+
+    def _unused_key(self, group_name: str) -> str:
+        """Return ``group_name`` if free, else a synthetic key not already taken."""
+        key = group_name
+        suffix = 1
+        while key in self.groups or (key != group_name and key in self._source_groups):
+            key = f"{group_name}#{suffix}"
+            suffix += 1
+        return key
 
 
 def _normalize_phase_dependencies(scenarios: dict[str, Scenario]) -> None:

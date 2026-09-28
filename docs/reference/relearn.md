@@ -4,7 +4,7 @@
 
 When a testing run produces failures because learned parameters no longer reflect the current state of the environment, the `huginn relearn` command refreshes only the affected parameters. It parses the latest testing results, identifies failed and errored test cases, and re-runs only those tests in learning mode to capture current device state as the new expected parameters -- without re-learning tests that are already passing.
 
-The command automatically scopes execution to only the scenarios and phases that contained failures, avoiding redundant device connections when the same test ID appears across many scenarios.
+The command re-runs each failed test only in the exact scenario and phase where it failed, avoiding redundant device connections when the same test ID appears across many scenarios.
 
 ## Workflow
 
@@ -35,7 +35,7 @@ Example output:
 ```
 Analyzing latest testing run for failures
 Using results from 2026-Jun-22-17-52-44-testing
-Re-learning 9 failed test(s) in 1 scenario(s), 1 phase(s): BGP-SUMMARY-NEIGHBOR-EXISTENCE, BGP-SUMMARY-NEIGHBOR-TABLE-VERSION, ...
+Re-learning 9 failed test context(s) (9 test(s) in 1 scenario(s), 1 phase(s)): link-shutdown-r1r2/pre-change/BGP-SUMMARY-NEIGHBOR-EXISTENCE, link-shutdown-r1r2/pre-change/BGP-SUMMARY-NEIGHBOR-TABLE-VERSION, ...
 Starting run in learning mode
 Primed runtime connections in 2.846s
 Re-learn complete: total=9 passed=9 failed=0 errored=0 not_applicable=0
@@ -74,9 +74,11 @@ huginn relearn -p test_plan/ -t testbed.yaml --scenario link-shutdown-r1r2 --pha
 
 ## Automatic scoping
 
-The command does not simply filter by test ID. It also limits execution to the scenarios and phases that actually contained failures. This prevents a test ID that appears in 50 scenarios from being re-learned in all 50 when only one had a failure.
+The command does not simply filter by test ID. It records each failure as a scenario, phase, and test ID context, and re-runs each test only in the contexts where it failed. This prevents a test ID that appears in 50 scenarios from being re-learned in all 50 when only one had a failure.
 
-For example, if `BGP-SUMMARY-ROUTER-ID` failed only in the `link-shutdown-r1r2` scenario's `pre-change` phase, the relearn run will execute that test only in that specific scenario and phase context -- not across all scenarios that reference the same test ID.
+For example, if `BGP-SUMMARY-ROUTER-ID` failed only in the `link-shutdown-r1r2` scenario's `pre-change` phase, the relearn run will execute that test only in that specific scenario and phase context -- not across all scenarios that reference the same test ID. If another test failed only in a different scenario's `post-change` phase, `BGP-SUMMARY-ROUTER-ID` is not re-run there either. The summary line lists each context as `<scenario>/<phase>/<test ID>`.
+
+Phases that contain no failures are not run. When a phase with failures depends on a phase without failures, the dependency is dropped and the phase runs on its own. When both phases contain failures, the dependency is kept, so the dependent phase is blocked if re-learning fails in the earlier phase.
 
 ## CLI reference
 

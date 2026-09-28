@@ -206,6 +206,18 @@ class TestParseFailedTestIds:
         assert result.test_ids == ["DUPE-1"]
         assert result.scenario_ids == ["s1", "s2"]
         assert result.phase_ids == ["p1"]
+        assert result.contexts == [("s1", "p1", "DUPE-1"), ("s2", "p1", "DUPE-1")]
+
+    def test_returns_exact_failed_contexts(self, tmp_path: Path) -> None:
+        """Return each failed (scenario, phase, test_id) context in order."""
+        run_json = _write_json(tmp_path / "run.json", _build_run_json())
+        result = parse_failed_test_ids(run_json)
+        assert result.contexts == [
+            ("scenario-1", "pre-change", "TEST-2"),
+            ("scenario-1", "pre-change", "TEST-3"),
+            ("scenario-1", "post-change", "TEST-4"),
+            ("scenario-2", "pre-change", "TEST-6"),
+        ]
 
     def test_scenario_filter(self, tmp_path: Path) -> None:
         """Only include failures from the filtered scenario."""
