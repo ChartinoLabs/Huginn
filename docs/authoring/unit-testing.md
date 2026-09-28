@@ -37,35 +37,38 @@ Separate data gathering from decision logic.
 
 ### The LearningTestCase Interface
 
-Huginn's `LearningTestCase[ParametersType]` base class enforces this separation through its three-phase interface:
+Huginn's `LearningTestCase[ParametersT]` base class enforces this separation through its three-phase interface. `gather_state()` and `compare_state()` are abstract, so every job must implement them. `check_command_support()` has a default that marks every target applicable; override it when a job needs to probe devices first. A simplified view of the base class:
 
 ```python
-class LearningTestCase(Generic[ParametersType]):
-    """Base class for jobs with learning/testing lifecycle."""
+ParametersT = TypeVar("ParametersT", bound=Mapping[str, object])
+
+
+class LearningTestCase(TestCase, Generic[ParametersT], ABC):
+    """Reusable base class for learning/testing state comparison patterns."""
 
     async def check_command_support(self, context: Context) -> CommandSupportResult:
-        """Determine which targets support the required command(s)."""
-        ...
+        """Default: every target is applicable. Override to probe devices."""
+        return CommandSupportResult(applicable=list(context.targets), not_applicable={})
 
-    async def gather_state(self, context: Context) -> ParametersType:
-        """Collect current state from devices. Returns typed parameters."""
-        ...
+    @abstractmethod
+    async def gather_state(self, context: Context) -> ParametersT:
+        """Gather current state from targets for learning/testing flows."""
 
+    @abstractmethod
     async def compare_state(
         self,
         *,
-        expected: ParametersType,
-        current: ParametersType,
+        expected: ParametersT,
+        current: ParametersT,
         context: Context,
     ) -> None:
-        """Compare expected (learned) state against current state."""
-        ...
+        """Compare expected and current state, recording test results."""
 ```
 
 Each phase has a distinct responsibility:
 
 - **`check_command_support()`**: I/O to probe whether devices support the required command(s), returns `CommandSupportResult`
-- **`gather_state()`**: I/O to collect device state, returns a strongly typed `ParametersType` dict
+- **`gather_state()`**: I/O to collect device state, returns a strongly typed `ParametersT` dict
 - **`compare_state()`**: Decision logic comparing expected vs current, reports results via `context.results`
 
 This structure makes each phase independently testable.
@@ -83,7 +86,7 @@ from huginn import CommandSupportResult, Context, LearningTestCase, ResultStatus
 from huginn.utils.commands import is_command_unsupported
 
 mn = muninn.Muninn()
-mn.load_local_parsers()
+mn.load_builtin_parsers()
 
 NOT_SUPPORTED_REASON = "Device does not support '{command}'"
 MISSING_LEARNED_BASELINE = (
@@ -203,7 +206,7 @@ class VerifyCallHomeRateLimit(LearningTestCase[CallHomeRateLimitParameters]):
 For additional testability, comparison logic can be extracted into a pure function that returns results rather than calling `context.results` directly:
 
 ```python
-from collections import NamedTuple
+from typing import NamedTuple
 
 
 class _ResultRecord(NamedTuple):
@@ -275,6 +278,8 @@ async def compare_state(self, *, expected, current, context) -> None:
 
 This makes the core logic testable as a synchronous pure function, while `compare_state` remains a thin wrapper. Both approaches are valid - the pure function extraction is most beneficial when the comparison logic is complex or shared across jobs.
 
+The harness in the next section assumes `jobs/verify_call_home_rate_limit.py` contains the example job above, with `_ResultRecord`, `_build_value_results`, and this thinner `compare_state` added.
+
 ## Pattern 2: Spec-Driven Test Harness
 
 When a project has hundreds of structurally similar jobs, writing individual test assertions for each one creates massive duplication. The spec-driven pattern solves this: define a small data spec per job, and let shared assertion functions do the rest.
@@ -328,9 +333,11 @@ class InventoryCountJobSpec:
 Shared functions test each job phase using the spec data:
 
 ```python
-# tests/jobs/support.py
+# tests/jobs/support.py (continued)
 import asyncio
 import importlib
+
+from huginn import ResultStatus
 
 
 def load_module(module_name: str):
@@ -371,7 +378,6 @@ def assert_value_job_gather_state(
     *,
     make_device,
     make_context,
-    fake_command_result_cls,
     monkeypatch,
     supported_output: str,
 ) -> None:
@@ -420,6 +426,59 @@ def assert_value_job_build_results(spec: ValueJobSpec) -> None:
 
     # Also tests: missing baseline, missing current, value mismatch
     # ... (similar assertions for each case)
+
+
+def assert_value_job_compare_state(
+    spec: ValueJobSpec,
+    *,
+    make_device,
+    make_context,
+) -> None:
+    """Test compare_state records one result per device through FakeResults."""
+    module = load_module(spec.module_name)
+    job = getattr(module, spec.class_name)()
+    context = make_context(
+        targets=[make_device("edge-01"), make_device("edge-02")],
+        outputs={},
+    )
+    drifted_value = f"{spec.expected_value}0"
+
+    asyncio.run(
+        job.compare_state(
+            expected={
+                "devices": {
+                    "edge-01": {"value": spec.expected_value},
+                    "edge-02": {"value": spec.expected_value},
+                }
+            },
+            current={
+                "devices": {
+                    "edge-01": {"value": spec.expected_value},
+                    "edge-02": {"value": drifted_value},
+                }
+            },
+            context=context,
+        )
+    )
+
+    assert context.results.entries == [
+        (
+            ResultStatus.PASSED,
+            module.VALUE_MATCH.format(
+                device="edge-01",
+                current_value=spec.expected_value,
+                expected_value=spec.expected_value,
+            ),
+        ),
+        (
+            ResultStatus.FAILED,
+            module.VALUE_MISMATCH.format(
+                device="edge-02",
+                expected_value=spec.expected_value,
+                current_value=drifted_value,
+            ),
+        ),
+    ]
 ```
 
 ### Per-Job Test Files
@@ -468,7 +527,6 @@ def test_check_command_support(
 def test_gather_state(
     make_device,
     make_context,
-    fake_command_result_cls,
     monkeypatch,
     supported_output,
 ) -> None:
@@ -476,7 +534,6 @@ def test_gather_state(
         SPEC,
         make_device=make_device,
         make_context=make_context,
-        fake_command_result_cls=fake_command_result_cls,
         monkeypatch=monkeypatch,
         supported_output=supported_output,
     )
@@ -499,6 +556,8 @@ For jobs with unique structures (convergence gates, change actions), write custo
 ## Pattern 3: Hand-Crafted Fakes
 
 Use simple dataclass-based fakes instead of mocking frameworks. They're easier to understand, type-safe, and sufficient for testing job logic.
+
+The fakes below cover the per-phase methods (`check_command_support()`, `gather_state()`, and `compare_state()`) of static validation jobs, which is what the spec-driven harness calls. They do not implement the rest of the real `Context` (`output_dir`, `mode`, `parameters`, `test_id`, `scenario`, `phase`, `test_case_group`) or `ResultCollector` (`add_metadata_section`, `checks`, `not_applicable_devices`, `derive_status`), so calling `job.test()` or exercising a volatile job with them fails. Extend the fakes with the attributes that code reads if you need that coverage.
 
 Currently, each project defines its own fakes in `tests/jobs/conftest.py`. We are considering whether the core framework should ship a `huginn.testing` module with canonical fake implementations (e.g., `FakeDevice`, `FakeContext`, `FakeResults`), so that projects and plugins don't independently re-implement the same test doubles. This is an open design question - see [#83](https://github.com/ChartinoLabs/Huginn/issues/83) for the discussion.
 
@@ -528,7 +587,17 @@ class FakeCommandResult:
 class FakeBroker:
     outputs: dict[tuple[str, str], str]
 
-    async def execute(self, device: FakeDevice, command: str) -> FakeCommandResult:
+    async def execute(
+        self,
+        device: FakeDevice,
+        command: str,
+        *,
+        use_cache: bool = True,
+        bust_cache: bool = False,
+        **kwargs: Any,
+    ) -> FakeCommandResult:
+        # Accept the real broker's keywords so jobs that pass use_cache=False
+        # or broker=... still run against the fake.
         return FakeCommandResult(output=self.outputs[(device.name, command)])
 
 
@@ -620,6 +689,7 @@ project/
 │   └── change_clear_bgp_all_peers.py
 │
 ├── tests/                         # Unit tests for job logic
+│   ├── __init__.py
 │   └── jobs/
 │       ├── __init__.py
 │       ├── conftest.py            # Shared fakes and fixtures
@@ -634,6 +704,14 @@ project/
 ├── test_plan/                     # Test plan definitions
 ├── testbed.yaml
 └── pyproject.toml
+```
+
+The `tests/__init__.py` and `tests/jobs/__init__.py` files make the test directory a `tests.jobs` package, so `from tests.jobs.support import ...` resolves and `tests/jobs` does not shadow the top-level `jobs` package. Add the project root to pytest's import path in `pyproject.toml` so `jobs.*` modules import without installing the project:
+
+```toml
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
 ```
 
 ## Advanced: Injectable Data Providers
@@ -666,12 +744,16 @@ class LiveOSPFDataProvider:
         self.broker = broker
 
     async def get_neighbors(self, device) -> dict:
-        output = await self.broker.execute(device, "show ip ospf neighbor")
-        return mn.parse(os=device.os, command="show ip ospf neighbor", output=output)
+        result = await self.broker.execute(device, "show ip ospf neighbor")
+        return mn.parse(
+            os=device.os, command="show ip ospf neighbor", output=result.output
+        )
 
     async def get_interfaces(self, device) -> dict:
-        output = await self.broker.execute(device, "show ip ospf interface")
-        return mn.parse(os=device.os, command="show ip ospf interface", output=output)
+        result = await self.broker.execute(device, "show ip ospf interface")
+        return mn.parse(
+            os=device.os, command="show ip ospf interface", output=result.output
+        )
 
 
 class MockOSPFDataProvider:
@@ -747,22 +829,30 @@ def test_1():
 
 ### 3. Use Parametrize for Variations
 
-Use pytest parametrization for variations of the same test:
+Use pytest parametrization for variations of the same test. This example drives the pure `_build_value_results` function from the example job:
 
 ```python
+# tests/jobs/test_call_home_rate_limit_comparison.py
+import pytest
+from huginn import ResultStatus
+
+from jobs.verify_call_home_rate_limit import _build_value_results
+
+
 @pytest.mark.parametrize(
-    "current_state,expected_status",
+    ("current_value", "expected_status"),
     [
-        ("FULL", ResultStatus.PASSED),
-        ("INIT", ResultStatus.FAILED),
-        ("DOWN", ResultStatus.FAILED),
-        ("2WAY", ResultStatus.FAILED),
+        ("10", ResultStatus.PASSED),
+        ("20", ResultStatus.FAILED),
+        ("0", ResultStatus.FAILED),
     ],
 )
-def test_neighbor_state_validation(job, current_state, expected_status):
-    expected = {"spine-01": {"10.1.1.1": {"state": "FULL"}}}
-    current = {"spine-01": {"10.1.1.1": {"state": current_state}}}
-    results = job.validate_ospf_state(expected, current)
+def test_rate_limit_comparison(current_value, expected_status) -> None:
+    results = _build_value_results(
+        device_name="edge-01",
+        expected={"devices": {"edge-01": {"value": "10"}}},
+        current={"devices": {"edge-01": {"value": current_value}}},
+    )
     assert results[0].status == expected_status
 ```
 
@@ -801,7 +891,10 @@ jobs:
     # ...
 ```
 
+The `--cov` flags come from the [pytest-cov](https://pytest-cov.readthedocs.io/) plugin. Add it to the project's development dependencies (for example, `uv add --dev pytest-cov`) or drop the flags.
+
 ## Related Documents
 
-- [Test Authoring](../reference/context-api.md): Writing jobs with the TestCase pattern
-- [Architecture](../design/architecture.md): Context and adapter details
+- [Authoring Jobs](index.md): Writing jobs for each archetype with `LearningTestCase`
+- [Context API](../reference/context-api.md): Fields and services on the real `Context` that the fakes stand in for
+- [Architecture](../design/architecture.md): Context object, connection broker, and result collection
