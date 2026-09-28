@@ -86,21 +86,21 @@ Phases that contain no failures are not run. When a phase with failures depends 
 huginn relearn [--plan <path>] [--testbed <path>] [--scenario <id>] [--phase <id>] [--results-dir <path>] [--parameters-dir <path>]
 ```
 
-| Option                     | Default                | Description                                                                                          |
-| -------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------- |
-| `--plan`, `-p`             | `./test_plan`          | Path to test plan YAML file or directory. Also accepts `HUGINN_PLAN` env var.                        |
-| `--testbed`, `-t`          | `./testbed.yaml`       | Path to testbed YAML file. Also accepts `HUGINN_TESTBED` env var.                                    |
-| `--scenario`               | all                    | Re-learn only failures from the specified scenario.                                                  |
-| `--phase`                  | all                    | Re-learn only failures from the specified phase.                                                     |
-| `--data-model`, `-d`       | none                   | Path to data model directory. Also accepts `HUGINN_DATA_MODEL` env var.                              |
-| `--inventory-plugin`, `-i` | none                   | Use an inventory plugin instead of a static testbed. Also accepts `HUGINN_INVENTORY_PLUGIN` env var. |
-| `--results-dir`            | `./results/`           | Directory containing test run results. Also accepts `HUGINN_RESULTS_DIR` env var.                    |
-| `--parameters-dir`         | `./parameters/`        | Directory containing parameter files. Also accepts `HUGINN_PARAMETERS_DIR` env var.                  |
-| `--output-dir`             | `<run-dir>/artifacts/` | Output directory for run artifacts. Also accepts `HUGINN_OUTPUT_DIR` env var.                        |
-| `--debug`                  | off                    | Enable DEBUG-level logging. Also accepts `HUGINN_DEBUG` env var.                                     |
-| `--log-level`              | `INFO`                 | Logging level (DEBUG, INFO, WARNING, ERROR). Also accepts `HUGINN_LOG_LEVEL` env var.                |
-| `--show-logs`              | off                    | Stream logs to console in addition to file. Also accepts `HUGINN_SHOW_LOGS` env var.                 |
-| `--log-file`               | `./huginn.log`         | Path to log file. Also accepts `HUGINN_LOG_FILE` env var.                                            |
+| Option                     | Default                | Description                                                                                                                                                          |
+| -------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--plan`, `-p`             | `./test_plan`          | Path to test plan YAML file or directory. Also accepts `HUGINN_PLAN` env var.                                                                                        |
+| `--testbed`, `-t`          | `./testbed.yaml`       | Path to testbed YAML file. Also accepts `HUGINN_TESTBED` env var.                                                                                                    |
+| `--scenario`               | all                    | Re-learn only failures from the specified scenario.                                                                                                                  |
+| `--phase`                  | all                    | Re-learn only failures from the specified phase.                                                                                                                     |
+| `--data-model`, `-d`       | none                   | Data model directory. Overrides the test plan's `data_model.path`; a relative path resolves against the working directory. Also accepts `HUGINN_DATA_MODEL` env var. |
+| `--inventory-plugin`, `-i` | none                   | Use an inventory plugin instead of a static testbed. Also accepts `HUGINN_INVENTORY_PLUGIN` env var.                                                                 |
+| `--results-dir`            | `./results/`           | Directory containing test run results. Also accepts `HUGINN_RESULTS_DIR` env var.                                                                                    |
+| `--parameters-dir`         | `./parameters/`        | Directory containing parameter files. Also accepts `HUGINN_PARAMETERS_DIR` env var.                                                                                  |
+| `--output-dir`             | `<run-dir>/artifacts/` | Output directory for run artifacts. Also accepts `HUGINN_OUTPUT_DIR` env var.                                                                                        |
+| `--debug`                  | off                    | Enable DEBUG-level logging. Also accepts `HUGINN_DEBUG` env var.                                                                                                     |
+| `--log-level`              | `INFO`                 | Logging level (DEBUG, INFO, WARNING, ERROR). Also accepts `HUGINN_LOG_LEVEL` env var.                                                                                |
+| `--show-logs`              | off                    | Stream logs to console in addition to file. Also accepts `HUGINN_SHOW_LOGS` env var.                                                                                 |
+| `--log-file`               | `./huginn.log`         | Path to log file. Also accepts `HUGINN_LOG_FILE` env var.                                                                                                            |
 
 ## What the command modifies
 

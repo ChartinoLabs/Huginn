@@ -6,22 +6,22 @@ The framework passes a `Context` object to every test method (`setup()`, `test()
 
 `Context` is a dataclass defined in `huginn.context` and exported as `huginn.Context`.
 
-| Field             | Type                        | Description                                                                                                             |
-| ----------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `test_id`         | `str`                       | Test case identifier from the test plan, for example `"1.0.0"`.                                                         |
-| `test_title`      | `str`                       | Test case title from the test plan.                                                                                     |
-| `mode`            | `ExecutionMode`             | `ExecutionMode.LEARNING` or `ExecutionMode.TESTING`.                                                                    |
-| `testbed`         | `Testbed`                   | The full loaded testbed, including devices this test does not target.                                                   |
-| `targets`         | `list[Device]`              | Devices this test case targets after target resolution.                                                                 |
-| `broker`          | `Any`                       | A `RuntimeBroker` at runtime. All device operations go through it. See [Connection broker API](#connection-broker-api). |
-| `parameters`      | `ParameterManager`          | Loads and saves learned parameters for this test case.                                                                  |
-| `results`         | `ResultCollector`           | Records checks, command executions and metadata for the report.                                                         |
-| `output_dir`      | `Path`                      | Run-scoped directory for test artifacts (`<run>/artifacts` by default).                                                 |
-| `scenario`        | `str`                       | Identifier of the scenario being executed.                                                                              |
-| `phase`           | `str`                       | Identifier of the phase being executed.                                                                                 |
-| `test_case_group` | `str`                       | Identifier of the test case group being executed.                                                                       |
-| `output`          | `Output \| None`            | Console and log output helper. Defaults to `None`. See [Output and Logging](../design/output-logging.md).               |
-| `data_model`      | `dict[str, object] \| None` | Planned; always `None` today. See [Data model access](#data-model-access).                                              |
+| Field             | Type                           | Description                                                                                                             |
+| ----------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `test_id`         | `str`                          | Test case identifier from the test plan, for example `"1.0.0"`.                                                         |
+| `test_title`      | `str`                          | Test case title from the test plan.                                                                                     |
+| `mode`            | `ExecutionMode`                | `ExecutionMode.LEARNING` or `ExecutionMode.TESTING`.                                                                    |
+| `testbed`         | `Testbed`                      | The full loaded testbed, including devices this test does not target.                                                   |
+| `targets`         | `list[Device]`                 | Devices this test case targets after target resolution.                                                                 |
+| `broker`          | `Any`                          | A `RuntimeBroker` at runtime. All device operations go through it. See [Connection broker API](#connection-broker-api). |
+| `parameters`      | `ParameterManager`             | Loads and saves learned parameters for this test case.                                                                  |
+| `results`         | `ResultCollector`              | Records checks, command executions and metadata for the report.                                                         |
+| `output_dir`      | `Path`                         | Run-scoped directory for test artifacts (`<run>/artifacts` by default).                                                 |
+| `scenario`        | `str`                          | Identifier of the scenario being executed.                                                                              |
+| `phase`           | `str`                          | Identifier of the phase being executed.                                                                                 |
+| `test_case_group` | `str`                          | Identifier of the test case group being executed.                                                                       |
+| `output`          | `Output \| None`               | Console and log output helper. Defaults to `None`. See [Output and Logging](../design/output-logging.md).               |
+| `data_model`      | `Mapping[str, object] \| None` | Merged, read-only data model, or `None` when none is configured. See [Data model access](#data-model-access).           |
 
 ## Target devices
 
@@ -441,7 +441,18 @@ Because this class does not inherit `LearningTestCase`, its learning branch neve
 
 ## Data model access
 
-Planned; see [#255](https://github.com/ChartinoLabs/Huginn/issues/255). `context.data_model` is always `None` today, and `--data-model` is rejected as not implemented. Jobs should rely on learned parameters.
+`context.data_model` holds the data model configured by `data_model.path` in the test plan or by `--data-model`, merged into one mapping. It is `None` when neither is set. See [Test Plan Specification - Data Model](test-plan.md#data-model) for how it is loaded and merged.
+
+Every job in a run shares the same object, so it is read-only. Its mappings and lists behave like plain `dict` and `list` for reads, iteration, `isinstance()` checks and `json.dumps()`, but any change raises `TypeError`. Use `copy.deepcopy()` to get a mutable copy:
+
+```python
+import copy
+
+if context.data_model is not None:
+    fabric = context.data_model["fabric"]
+    leafs = copy.deepcopy(fabric["leafs"])
+    leafs.append("leaf-03")
+```
 
 ## Command support checking
 

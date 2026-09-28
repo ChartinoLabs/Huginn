@@ -342,6 +342,8 @@ A relative `data_model.path` is resolved against the directory that contains the
 
 A path that does not exist or is not a directory fails with a configuration error, as does a directory with no YAML files.
 
+In directory mode, keep the data model directory outside the test plan directory, or give it a name that starts with `_`, such as `test_plan/_data/`. The test plan loader reads every YAML file in the plan directory, so data model files inside it without the `_` prefix are also merged into the test plan. A data model key that matches a test plan key, such as `name` or `test_cases`, then fails with a duplicate definition error or adds to the test plan.
+
 #### Merge Rules
 
 Huginn recursively discovers YAML files in the data model directory using the same rules as a [test plan directory](#directory-mode):

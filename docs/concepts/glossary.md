@@ -27,13 +27,13 @@ A unit of test automation that can be executed against one or more devices in a 
 Expected state data associated with a test case, used for validation during test execution. Parameters can be sourced from:
 
 - **File-based**: JSON files following the convention `parameters/{test_case_id}.json`. In learning mode, parameters are captured from live infrastructure and persisted. In testing mode, parameters are loaded and compared against current state.
-- **Data model-based**: Derived from an external data model (e.g., Network as Code YAML) representing intended infrastructure state. The job queries the data model for expected values.
+- **Data model-based**: Derived by the job itself from `context.data_model`, an external data model (e.g., Network as Code YAML) representing intended infrastructure state. The framework loads the data model and passes it to every job, but does not map it to test cases or load it in place of a parameters file. Each job decides whether and how to read expected values from it.
 
-If a test case has no parameters file and no data model, it requires execution in learning mode to establish baseline parameters.
+The framework only loads file-based parameters. In testing mode, a test case without a parameters file has nothing to compare against unless its job derives expected state from the data model. Otherwise it requires execution in learning mode to establish baseline parameters.
 
 ### Data Model
 
-An external source of truth representing intended infrastructure state, typically a YAML file conforming to a defined schema. Data models can serve as parameters for test cases, enabling validation of actual device state against declared intent. This pattern is commonly used with Infrastructure as Code approaches like Cisco's Network as Code.
+An external source of truth representing intended infrastructure state, typically a directory of YAML files conforming to a defined schema. The test plan's `data_model.path` or the `--data-model` option points at the directory, and Huginn merges its files into one read-only mapping exposed to jobs as `context.data_model`. A job can derive expected values from it, enabling validation of actual device state against declared intent. See [Test Plan Specification - Data Model](../reference/test-plan.md#data-model). This pattern is commonly used with Infrastructure as Code approaches like Cisco's Network as Code.
 
 ### Target
 
@@ -54,7 +54,7 @@ A first-class entity in the test plan that instantiates a job with a specific id
 - A reference to a job (file path or dotted module path, with optional `:ClassName`)
 - Optional target specification
 - Optional tags for filtering
-- Parameters sourced by convention (`parameters/{id}.json`) or from a data model
+- Parameters sourced by convention (`parameters/{id}.json`), or derived by its job from the data model
 
 The same test case can be referenced in multiple test case groups, enabling reuse across phases (e.g., pre-change and post-change validation).
 
@@ -99,7 +99,7 @@ Defined in YAML format.
 The execution mode for a test run. Huginn supports two modes:
 
 - **Learning**: Execute against live infrastructure, capture current state, and persist it as parameters for future comparison.
-- **Testing**: Execute against live infrastructure, compare current state against previously learned parameters (or data model), and report deviations.
+- **Testing**: Execute against live infrastructure, compare current state against previously learned parameters (or expected state the job derives from the data model), and report deviations.
 
 ### Run
 
@@ -130,7 +130,7 @@ The return type of the `check_command_support()` method on `LearningTestCase` an
 
 ### Context
 
-The object passed to jobs during execution. Contains access to the connection broker, target devices, results collector, parameters (file-based or data model), and execution metadata. The context is the primary interface between a job and the framework.
+The object passed to jobs during execution. Contains access to the connection broker, target devices, results collector, file-based parameters, the data model (if configured), and execution metadata. The context is the primary interface between a job and the framework.
 
 ### Result
 
