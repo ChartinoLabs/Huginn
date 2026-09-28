@@ -1,0 +1,1 @@
+Corrected the testbed reference so its REST examples load, and documented the supported protocols, connection options, credential fields, OS identifiers, and where each testbed check is enforced.
