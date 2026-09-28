@@ -227,8 +227,12 @@ parse Cisco-style uptime strings into a monotonic integer value. It
 accepts verbose strings (`"5 weeks, 2 days, 13 hours"`), compact
 strings of the form `[Ny][Nw][Nd][Nh][Nm][Ns]` in that order
 (`"1d02h"`, `"2w3d"`, `"1y2w"`), and `"HH:MM:SS"`, alone or after a
-compact prefix (`"2d03:04:05"`). Years count as 365 days. Strings it
-cannot parse in full, such as `"never"`, return `0`.
+compact prefix (`"2d03:04:05"`). It also accepts a day count before a
+clock: `"D:HH:MM:SS"` (`"0:00:16:22"`), `"D+HH:MM:SS"`
+(`"41+06:26:24"`), and `"N days, HH:MM:SS"` (`"2 days, 2:38:49"`). In the
+`"N days, HH:MM"` form (`"154 days, 19:16"`), the two-field clock is
+hours and minutes. Years count as 365 days. Strings it cannot parse in
+full, such as `"never"`, return `0`.
 
 The `"any"` operator is useful at phase boundaries where the impact on
 individual series is heterogeneous - for example, an OSPF restart
