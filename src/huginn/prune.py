@@ -261,31 +261,32 @@ def _find_orphaned_tests(
     exclude_from_groups: dict[str, list[str]],
     test_plan: TestPlan,
 ) -> list[str]:
-    """Identify tests no longer referenced by any group after exclusions."""
-    removed_ids = {tid for tids in exclude_from_groups.values() for tid in tids}
-    orphaned: list[str] = []
-    for test_id in removed_ids:
-        if not _is_still_referenced(test_id, exclude_from_groups, test_plan):
-            orphaned.append(test_id)
-    orphaned.sort()
-    return orphaned
+    """Identify defined test cases that no group references after exclusions.
+
+    Every test case in the plan is considered, not only those removed by
+    this run, so orphans left behind by earlier runs (and test cases that
+    were never placed in any group) are found too.
+    """
+    referenced = _referenced_test_ids(exclude_from_groups, test_plan)
+    return sorted(set(test_plan.test_cases) - referenced)
 
 
-def _is_still_referenced(
-    test_id: str,
+def _referenced_test_ids(
     exclude_from_groups: dict[str, list[str]],
     test_plan: TestPlan,
-) -> bool:
-    """Return True if test_id is still active in at least one group."""
-    for group in test_plan.test_case_groups.values():
-        if test_id not in group.tests:
-            continue
-        if test_id in group.exclude_tests:
-            continue
-        group_removals = exclude_from_groups.get(group.identifier, [])
-        if test_id not in group_removals:
-            return True
-    return False
+) -> set[str]:
+    """Return test IDs still active in at least one group.
+
+    A group's ``tests`` is already flattened by the loader (it includes
+    tests inherited through nested ``groups``). Tests in the group's
+    ``exclude_tests`` or planned for removal from it in this run do not
+    count as references.
+    """
+    referenced: set[str] = set()
+    for group_id, group in test_plan.test_case_groups.items():
+        inactive = set(group.exclude_tests) | set(exclude_from_groups.get(group_id, []))
+        referenced.update(tid for tid in group.tests if tid not in inactive)
+    return referenced
 
 
 def apply_prune_plan(

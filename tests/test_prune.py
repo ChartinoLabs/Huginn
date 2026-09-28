@@ -1,10 +1,14 @@
 """Unit tests for the prune module."""
 
 import json
+import re
 from pathlib import Path
 
 import pytest
+from typer.testing import CliRunner
 
+from huginn.cli import app
+from huginn.loaders import load_test_plan
 from huginn.models import (
     Phase,
     Scenario,
@@ -512,6 +516,111 @@ class TestComputePrunePlan:
         # TC-2 is fully excluded from its only group, so it IS orphaned.
         assert "TC-2" in result.orphaned_test_cases
 
+    def test_remove_orphans_finds_orphans_from_earlier_runs(self) -> None:
+        """Orphans left by an earlier prune are found when nothing is pruned now."""
+        test_cases = {
+            "TC-1": TestCaseDefinition(test_id="TC-1", title="Kept", job="jobs/x.py"),
+            "TC-2": TestCaseDefinition(
+                test_id="TC-2", title="Pruned earlier", job="jobs/y.py"
+            ),
+        }
+        groups = {"group-a": TestCaseGroup(identifier="group-a", tests=["TC-1"])}
+        plan = _build_test_plan(test_cases=test_cases, groups=groups)
+
+        result = compute_prune_plan(
+            PruneInput(partial_tests=[], full_tests=[]), plan, remove_orphans=True
+        )
+
+        assert result.exclude_from_groups == {}
+        assert result.orphaned_test_cases == ["TC-2"]
+
+    def test_remove_orphans_includes_never_grouped_tests(self) -> None:
+        """A test case that no group ever listed (e.g. a draft) is orphaned."""
+        test_cases = {
+            "TC-1": TestCaseDefinition(test_id="TC-1", title="Kept", job="jobs/x.py"),
+            "TC-DRAFT": TestCaseDefinition(
+                test_id="TC-DRAFT", title="Draft", job="jobs/draft.py"
+            ),
+        }
+        groups = {"group-a": TestCaseGroup(identifier="group-a", tests=["TC-1"])}
+        plan = _build_test_plan(test_cases=test_cases, groups=groups)
+
+        result = compute_prune_plan(
+            PruneInput(partial_tests=[], full_tests=[]), plan, remove_orphans=True
+        )
+
+        assert result.orphaned_test_cases == ["TC-DRAFT"]
+
+    def test_nested_group_reference_keeps_test(self, tmp_path: Path) -> None:
+        """A test inherited through nested groups is still referenced.
+
+        The ``extra`` group is not referenced by any phase; a reference from
+        any group still counts.
+        """
+        plan_path = tmp_path / "test_plan.yaml"
+        plan_path.write_text(_NESTED_PLAN_YAML, encoding="utf-8")
+        plan = load_test_plan(plan_path)
+        # The loader flattens nested groups into ``tests``.
+        assert plan.test_case_groups["composite"].tests == ["TC-1", "TC-2"]
+
+        result = compute_prune_plan(
+            PruneInput(partial_tests=[], full_tests=[]), plan, remove_orphans=True
+        )
+
+        assert result.orphaned_test_cases == []
+
+    def test_exclude_tests_only_reference_is_orphaned(self, tmp_path: Path) -> None:
+        """A test listed only in a composite group's exclude_tests is orphaned.
+
+        This is the state a composite group is left in after a prune without
+        ``--remove-orphans``.
+        """
+        plan_path = tmp_path / "test_plan.yaml"
+        plan_path.write_text(_EXCLUDED_PLAN_YAML, encoding="utf-8")
+        plan = load_test_plan(plan_path)
+
+        result = compute_prune_plan(
+            PruneInput(partial_tests=[], full_tests=[]), plan, remove_orphans=True
+        )
+
+        assert result.orphaned_test_cases == ["TC-2"]
+
+
+_NESTED_PLAN_YAML = """\
+test_cases:
+  TC-1: {title: Base, job: jobs/x.py}
+  TC-2: {title: Inherited, job: jobs/y.py}
+test_case_groups:
+  base:
+    tests: [TC-1]
+  extra:
+    tests: [TC-2]
+  composite:
+    groups: [base, extra]
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups: [composite]
+"""
+
+_EXCLUDED_PLAN_YAML = """\
+test_cases:
+  TC-1: {title: Kept, job: jobs/x.py}
+  TC-2: {title: Excluded, job: jobs/y.py}
+test_case_groups:
+  base:
+    tests: [TC-1]
+  composite:
+    groups: [base]
+    exclude_tests: [TC-2]
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups: [composite]
+"""
+
 
 # ===========================================================================
 # _extract_all_devices
@@ -715,3 +824,148 @@ class TestRemoveOrphanedTestCases:
 
         _remove_orphaned_test_cases(data, ["TC-1"])
         # No exception raised.
+
+
+# ===========================================================================
+# huginn prune --remove-orphans (CLI)
+# ===========================================================================
+
+_CLI_PLAN_YAML = """\
+test_cases:
+  "3.0.0":
+    title: Check OSPF
+    job: jobs/ospf.py
+  "4.0.0":
+    title: Check BGP
+    job: jobs/bgp.py
+test_case_groups:
+  routing:
+    tests: ["3.0.0", "4.0.0"]
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups: [routing]
+"""
+
+
+def _stage_prune_workspace(tmp_path: Path) -> Path:
+    """Write a test plan plus learning results marking 4.0.0 fully N/A."""
+    plan_path = tmp_path / "test_plan.yaml"
+    plan_path.write_text(_CLI_PLAN_YAML, encoding="utf-8")
+
+    run_dir = tmp_path / "results" / "2026-Apr-30-14-22-01-learning"
+    _write_json(
+        run_dir / "test-cases" / "4.0.0" / "result.json",
+        {
+            "command_executions": [{"device": "device-A", "command": "show bgp"}],
+            "not_applicable_devices": {"device-A": "No BGP configured"},
+        },
+    )
+    groups = [
+        {
+            "id": "routing",
+            "test_cases": [
+                {"test_id": "4.0.0", "result_path": "test-cases/4.0.0/result.json"}
+            ],
+        },
+    ]
+    _write_json(run_dir / "run.json", _build_run_json(groups=groups))
+    return plan_path
+
+
+def _invoke_prune(tmp_path: Path, plan_path: Path, *extra: str) -> str:
+    """Run ``huginn prune`` and return its output as a single normalized line."""
+    result = CliRunner().invoke(
+        app,
+        [
+            "prune",
+            "--plan",
+            str(plan_path),
+            "--results-dir",
+            str(tmp_path / "results"),
+            "--log-file",
+            str(tmp_path / "huginn.log"),
+            *extra,
+        ],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0, result.output
+    return " ".join(re.sub(r"\x1b\[[0-9;]*m", "", result.output).split())
+
+
+class TestPruneRemoveOrphansCli:
+    """End-to-end tests for ``huginn prune --remove-orphans``."""
+
+    def test_follow_up_run_removes_orphans(self, tmp_path: Path) -> None:
+        """A later --remove-orphans run removes tests pruned by an earlier run."""
+        plan_path = _stage_prune_workspace(tmp_path)
+        _invoke_prune(tmp_path, plan_path)
+        assert "4.0.0" in load_test_plan(plan_path).test_cases
+
+        output = _invoke_prune(tmp_path, plan_path, "--remove-orphans")
+
+        assert "Pruning already applied" not in output
+        assert "1 test case definition(s) removed" in output
+        assert set(load_test_plan(plan_path).test_cases) == {"3.0.0"}
+
+    def test_same_run_removes_orphans(self, tmp_path: Path) -> None:
+        """Pruning and orphan removal in one run still works."""
+        plan_path = _stage_prune_workspace(tmp_path)
+
+        _invoke_prune(tmp_path, plan_path, "--remove-orphans")
+
+        loaded = load_test_plan(plan_path)
+        assert set(loaded.test_cases) == {"3.0.0"}
+        assert loaded.test_case_groups["routing"].tests == ["3.0.0"]
+
+    def test_dry_run_lists_orphans_without_writing(self, tmp_path: Path) -> None:
+        """--dry-run lists orphans, including never-grouped ones, and writes nothing."""
+        plan_path = _stage_prune_workspace(tmp_path)
+        # Add a draft test case that no group has ever referenced.
+        draft = '  "9.9.9":\n    title: Draft\n    job: jobs/draft.py\n'
+        text = plan_path.read_text(encoding="utf-8")
+        plan_path.write_text(
+            text.replace("test_case_groups:", f"{draft}test_case_groups:", 1),
+            encoding="utf-8",
+        )
+        _invoke_prune(tmp_path, plan_path)
+        before = plan_path.read_text(encoding="utf-8")
+
+        output = _invoke_prune(tmp_path, plan_path, "--remove-orphans", "--dry-run")
+
+        orphan_listing = output.split("Removing orphaned test case definitions")[1]
+        orphan_listing = orphan_listing.split("Dry run complete")[0]
+        assert "never-grouped" in orphan_listing
+        assert "4.0.0" in orphan_listing
+        assert "9.9.9" in orphan_listing
+        assert "2 test case definition(s) would be removed" in output
+        assert plan_path.read_text(encoding="utf-8") == before
+
+    def test_second_remove_orphans_run_reports_no_changes(self, tmp_path: Path) -> None:
+        """Running --remove-orphans again after cleanup changes nothing."""
+        plan_path = _stage_prune_workspace(tmp_path)
+        _invoke_prune(tmp_path, plan_path, "--remove-orphans")
+        before = plan_path.read_text(encoding="utf-8")
+
+        output = _invoke_prune(tmp_path, plan_path, "--remove-orphans")
+
+        assert "Pruning already applied -- no changes needed" in output
+        assert plan_path.read_text(encoding="utf-8") == before
+
+    def test_removes_orphans_when_results_have_no_na_tests(
+        self, tmp_path: Path
+    ) -> None:
+        """Orphans are removed even if the learning run found nothing N/A."""
+        plan_path = _stage_prune_workspace(tmp_path)
+        plan_path.write_text(
+            _CLI_PLAN_YAML.replace('["3.0.0", "4.0.0"]', '["3.0.0"]'),
+            encoding="utf-8",
+        )
+        run_dir = tmp_path / "results" / "2026-Apr-30-14-22-01-learning"
+        _write_json(run_dir / "run.json", _build_run_json(groups=[]))
+
+        output = _invoke_prune(tmp_path, plan_path, "--remove-orphans")
+
+        assert "1 test case definition(s) removed" in output
+        assert set(load_test_plan(plan_path).test_cases) == {"3.0.0"}
