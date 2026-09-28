@@ -1,0 +1,20 @@
+data_model:
+  path: data_model
+test_cases:
+  1.0.0:
+    title: Report Data Model
+    job: jobs/test_report_data_model.py
+  1.1.0:
+    title: Report Data Model Again
+    job: jobs/test_report_data_model.py
+test_case_groups:
+  group-1:
+    tests:
+    - 1.0.0
+    - 1.1.0
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - group-1

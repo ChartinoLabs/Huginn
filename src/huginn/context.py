@@ -1,5 +1,6 @@
 """Execution context passed to test jobs."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -30,5 +31,6 @@ class Context:
     phase: str
     test_case_group: str
     output: "Output | None" = None
-    # TODO: Implement data model loading/injection when this capability is scoped in.
-    data_model: dict[str, object] | None = None
+    # Merged data model shared by every job in the run, or None when none is
+    # configured. Read-only: every nested dict and list rejects mutation.
+    data_model: Mapping[str, object] | None = None
