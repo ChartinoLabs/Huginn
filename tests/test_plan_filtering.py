@@ -552,7 +552,6 @@ def _fully_populated_plan() -> models.TestPlan:
         },
         name="Change plan",
         description="Validates a change window",
-        defaults={"target": {"os": ["nxos"]}},
         data_model={"vrfs": ["blue"]},
     )
 
