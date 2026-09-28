@@ -1,5 +1,8 @@
 """YAML loaders for testbed and test plan files."""
 
+import os
+import re
+from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
 
@@ -35,6 +38,87 @@ def _load_yaml(path: Path) -> dict[str, object]:
     if not isinstance(loaded, dict):
         raise ConfigurationError(f"Expected mapping at root of {path}")
     return cast(dict[str, object], loaded)
+
+
+# Matches the `$${` escape, or a `${...}` reference. An unterminated reference
+# matches without the `close` group.
+_ENV_REFERENCE = re.compile(r"\$\$\{|\$\{(?P<body>[^}]*)(?P<close>\})?")
+_ENV_REFERENCE_BODY = re.compile(
+    r"(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?::-(?P<default>.*))?",
+    re.DOTALL,
+)
+
+
+def _expand_env_vars(
+    value: object,
+    *,
+    source: str,
+    environ: Mapping[str, str] | None = None,
+) -> object:
+    """Expand `${VAR}` references in every string scalar of a YAML structure.
+
+    Mapping keys and non-string scalars are returned unchanged, and each string
+    is expanded once, so a resolved value is never expanded again. Error
+    messages name the variable, `source` and the dotted key path, but never a
+    resolved value, a default, or the surrounding string.
+    """
+    env = os.environ if environ is None else environ
+
+    def expand(item: object, location: str) -> object:
+        if isinstance(item, str):
+            return _expand_env_string(item, f"'{location}' in {source}", env)
+        if isinstance(item, dict):
+            prefix = f"{location}." if location else ""
+            return {key: expand(val, f"{prefix}{key}") for key, val in item.items()}
+        if isinstance(item, list):
+            return [expand(val, f"{location}[{i}]") for i, val in enumerate(item)]
+        return item
+
+    return expand(value, "")
+
+
+def _expand_env_string(text: str, location: str, env: Mapping[str, str]) -> str:
+    """Expand the `${...}` references and `$${` escapes in one string."""
+
+    def replace(match: re.Match[str]) -> str:
+        body = match.group("body")
+        if body is None:
+            return "${"
+        if match.group("close") is None:
+            raise ConfigurationError(
+                f"Unterminated environment variable reference at {location}: "
+                "'${' has no closing '}'. Write '$${' for a literal '${'"
+            )
+        return _resolve_env_reference(body, location, env)
+
+    return _ENV_REFERENCE.sub(replace, text)
+
+
+def _resolve_env_reference(body: str, location: str, env: Mapping[str, str]) -> str:
+    """Resolve the inside of one `${...}` reference against the environment."""
+    parsed = _ENV_REFERENCE_BODY.fullmatch(body)
+    if parsed is None:
+        raise ConfigurationError(
+            f"Invalid environment variable reference at {location}: expected "
+            "'${VAR}' or '${VAR:-default}', where VAR matches "
+            "[A-Za-z_][A-Za-z0-9_]*"
+        )
+    name = parsed.group("name")
+    default = parsed.group("default")
+    if default is not None and "${" in default:
+        raise ConfigurationError(
+            f"Invalid default for environment variable '{name}' at {location}: "
+            "a default cannot contain '${'"
+        )
+    resolved = env.get(name)
+    if default is not None and not resolved:
+        return default
+    if resolved is None:
+        raise ConfigurationError(
+            f"Environment variable '{name}' referenced at {location} is not set "
+            "and has no default"
+        )
+    return resolved
 
 
 def _require_mapping(value: object, error_message: str) -> dict[str, object]:
@@ -159,7 +243,7 @@ def _parse_connection_definition(
         connection_mapping.get("host"),
         f"Connection '{connection_name}' on '{device_name}' must define host",
     )
-    port = _require_int(
+    port = _require_port(
         connection_mapping.get("port", 22),
         f"Connection '{connection_name}' on '{device_name}' port must be int",
     )
@@ -228,6 +312,17 @@ def _require_int(value: object, error_message: str) -> int:
     if not isinstance(value, int):
         raise ConfigurationError(error_message)
     return value
+
+
+def _require_port(value: object, error_message: str) -> int:
+    """Validate a port given as an integer or a string of ASCII digits.
+
+    Digit strings are accepted because a `${PORT}` reference always expands
+    to a string.
+    """
+    if isinstance(value, str) and re.fullmatch(r"[0-9]+", value):
+        return int(value)
+    return _require_int(value, error_message)
 
 
 def _load_target_definition(
@@ -306,8 +401,8 @@ def _validate_target_selector_exclusivity(
 
 
 def load_testbed(path: Path) -> Testbed:
-    """Load a testbed file with minimal first-slice validation."""
-    data = _load_yaml(path)
+    """Load a testbed file, expanding `${VAR}` references before validation."""
+    data = cast(dict[str, object], _expand_env_vars(_load_yaml(path), source=str(path)))
     global_credentials = _load_credentials(data.get("credentials"))
     raw_devices = _require_mapping(
         data.get("devices"),
