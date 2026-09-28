@@ -1,5 +1,6 @@
 """Tests for CLI option definitions shared across commands."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -50,7 +51,8 @@ def test_inject_rejects_unsupported_id_style(
     result = CliRunner().invoke(app, [*args, "--id-style", "uuid"])
 
     assert result.exit_code == 2
-    assert "--id-style" in result.output
+    normalized_output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+    assert "Invalid value for '--id-style'" in normalized_output
 
 
 def test_data_model_help_is_consistent_and_describes_override() -> None:

@@ -1,5 +1,6 @@
 """Tests for CLI filtering options: --phase, --group, --test-id, --tags."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -212,8 +213,9 @@ def test_run_rejects_invalid_test_id_pattern_as_usage_error(
     )
 
     assert result.exit_code == 2
-    assert "--test-id-pattern" in result.output
-    assert "unterminated character set" in result.output
+    normalized_output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+    assert "Invalid value for '--test-id-pattern'" in normalized_output
+    assert "unterminated character set" in normalized_output
 
 
 def test_run_filters_by_exclude_tags_option(
