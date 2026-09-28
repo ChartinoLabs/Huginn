@@ -1,0 +1,1 @@
+The CLI now reads project defaults for `test_plan`, `testbed`, `inventory_plugin`, `parameters_dir`, `results_dir`, `output_dir`, `log_file` and `log_level` from `[tool.huginn]` in `pyproject.toml`, below CLI flags and `HUGINN_*` environment variables.

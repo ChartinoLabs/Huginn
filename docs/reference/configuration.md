@@ -12,6 +12,73 @@ Configuration is hierarchical:
 2. **pyproject.toml**: Project-level overrides
 3. **CLI arguments**: Runtime overrides
 
+## Project defaults in `[tool.huginn]`
+
+A repository can store its paths and logging settings in `[tool.huginn]`, so you don't have to pass `-p` and `-t` on every command:
+
+```toml
+[tool.huginn]
+test_plan = "test_plan"
+testbed = "inventory/lab.yaml"
+parameters_dir = "state/parameters"
+results_dir = "state/results"
+output_dir = "state/artifacts"
+log_file = "logs/huginn.log"
+log_level = "INFO"
+```
+
+With this table in place, `huginn run -m testing` uses the plan, testbed and directories above.
+
+### Supported keys
+
+Each key sets the default for one CLI option. A command uses a key only if it has that option.
+
+| Key                | CLI option              | Commands                                                              |
+| ------------------ | ----------------------- | --------------------------------------------------------------------- |
+| `test_plan`        | `-p/--plan`             | `run`, `validate`, `relearn`, `reconcile`, `prune`, `inject new/into` |
+| `testbed`          | `-t/--testbed`          | `run`, `validate`, `relearn`, `execute`                               |
+| `inventory_plugin` | `-i/--inventory-plugin` | `run`, `validate`, `relearn`                                          |
+| `parameters_dir`   | `--parameters-dir`      | `run`, `relearn`, `reconcile`                                         |
+| `results_dir`      | `--results-dir`         | `run`, `relearn`, `reconcile`, `prune`                                |
+| `output_dir`       | `--output-dir`          | `run`, `relearn`                                                      |
+| `log_file`         | `--log-file`            | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`         |
+| `log_level`        | `--log-level`           | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`         |
+
+Every value is a string. `log_level` must be one of `DEBUG`, `INFO`, `WARNING` or `ERROR`, in any case. `mode` is not supported, because a `learning` default would silently overwrite baselines.
+
+### Precedence
+
+For each option, the first of these that is set wins:
+
+1. The CLI flag
+2. The `HUGINN_*` environment variable, for example `HUGINN_PLAN` or `HUGINN_RESULTS_DIR`
+3. The key in `[tool.huginn]`
+4. The built-in default, for example `./test_plan` or `./results/`
+
+`huginn <command> --help` marks each default that comes from `pyproject.toml`, for example `[default: (state/results from pyproject.toml)]`.
+
+### Discovery and path resolution
+
+Huginn reads `pyproject.toml` from the current working directory only. It doesn't search parent directories. Relative paths resolve against the directory that contains `pyproject.toml`, which is the current working directory. Absolute paths are used as written.
+
+### Testbed and inventory plugin
+
+`testbed` and `inventory_plugin` are mutually exclusive, the same as `--testbed` and `--inventory-plugin`:
+
+- Setting both keys in `[tool.huginn]` is an error.
+- If you pass one on the CLI or through its environment variable, it overrides the other key from `[tool.huginn]` for that run. For example, `huginn run -m testing -i huginn-netbox` ignores a `testbed` key.
+
+### Errors
+
+Huginn validates `[tool.huginn]` before running any command except `version`. The command exits with code 1 if the table has:
+
+- a key that is not in the table above, for example `mode` or `parallel_tests`
+- a value that is not a non-empty string
+- a `log_level` outside the accepted levels
+- both `testbed` and `inventory_plugin`
+
+The `[tool.huginn.plugins]` sub-table is allowed alongside these keys and configures plugin selection.
+
 ## pyproject.toml Schema
 
 ```toml
