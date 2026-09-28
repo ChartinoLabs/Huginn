@@ -5,12 +5,6 @@ against infrastructure testbeds.
 """
 
 import asyncio
-import sys
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[no-redef]  # noqa: F811  # ty: ignore[unresolved-import]
 from pathlib import Path
 from typing import Annotated
 
@@ -28,7 +22,8 @@ from huginn.inject import InjectPlan
 from huginn.loaders import ConfigurationError, load_test_plan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
-from huginn.plugin_registry import PluginConfig, PluginRegistry
+from huginn.plugin_registry import PluginRegistry
+from huginn.project_config import ProjectConfig, load_project_config
 from huginn.prune import (
     PruneError,
     PruneInput,
@@ -59,8 +54,94 @@ app = typer.Typer(
 )
 
 
+@app.callback()
+def _load_project_defaults(ctx: typer.Context) -> None:
+    """Apply ``[tool.huginn]`` defaults from ./pyproject.toml to every command.
+
+    Defaults go into Click's ``default_map``, which ranks below CLI flags and
+    ``HUGINN_*`` environment variables and above built-in defaults.
+    """
+    if ctx.invoked_subcommand == "version":
+        return
+    try:
+        project_config = load_project_config(Path.cwd())
+    except ConfigurationError as error:
+        typer.echo(f"ERROR: {error}", err=True)
+        raise typer.Exit(code=1) from error
+    ctx.obj = project_config
+    defaults = {
+        name: str(value) for name, value in project_config.cli_defaults().items()
+    }
+    ctx.default_map = _apply_project_defaults(ctx.command, defaults)
+
+
+def _apply_project_defaults(command: object, defaults: dict[str, str]) -> dict:
+    """Map each (sub)command to the project defaults matching its options.
+
+    Each matching option's ``--help`` default is labelled as coming from
+    ``pyproject.toml``, so the help output says where the value came from.
+    """
+    subcommands = getattr(command, "commands", None)
+    if subcommands is not None:
+        return {
+            name: _apply_project_defaults(subcommand, defaults)
+            for name, subcommand in subcommands.items()
+        }
+    command_defaults = {}
+    for param in getattr(command, "params", []):
+        if param.name in defaults:
+            command_defaults[param.name] = defaults[param.name]
+            param.show_default = (
+                f"{_display_default(defaults[param.name])} from pyproject.toml"
+            )
+    return command_defaults
+
+
+def _display_default(value: str) -> str:
+    """Show a pyproject path default relative to the project directory."""
+    path = Path(value)
+    if not path.is_absolute():
+        return value
+    try:
+        return str(path.relative_to(Path.cwd()))
+    except ValueError:
+        return value
+
+
+def _project_plugin_registry(ctx: typer.Context) -> PluginRegistry:
+    """Build the plugin registry from the loaded ``[tool.huginn.plugins]``."""
+    project_config = ctx.find_object(ProjectConfig) or ProjectConfig()
+    return PluginRegistry(config=project_config.plugins)
+
+
+def _from_project_defaults(ctx: typer.Context, name: str) -> bool:
+    """Return whether option ``name`` took its value from ``[tool.huginn]``."""
+    source = ctx.get_parameter_source(name)
+    return source is not None and source.name == "DEFAULT_MAP"
+
+
+def _drop_project_testbed_conflict(
+    ctx: typer.Context,
+    testbed: Path | None,
+    inventory_plugin: str | None,
+) -> tuple[Path | None, str | None]:
+    """Let an explicit testbed or inventory plugin override the other's default.
+
+    ``[tool.huginn]`` may set only one of the two, so when both arrive here
+    the pyproject one is dropped in favour of the CLI or environment value.
+    """
+    if testbed is None or inventory_plugin is None:
+        return testbed, inventory_plugin
+    if _from_project_defaults(ctx, "testbed"):
+        return None, inventory_plugin
+    if _from_project_defaults(ctx, "inventory_plugin"):
+        return testbed, None
+    return testbed, inventory_plugin
+
+
 @app.command()
 def run(
+    ctx: typer.Context,
     mode: Annotated[
         ExecutionMode,
         typer.Option(
@@ -260,6 +341,9 @@ def run(
     resolved_results_dir = results_dir or Path.cwd() / "results"
     resolved_parameters_dir = parameters_dir or Path.cwd() / "parameters"
 
+    testbed, inventory_plugin = _drop_project_testbed_conflict(
+        ctx, testbed, inventory_plugin
+    )
     testbed_path = _resolve_testbed_option(
         testbed=testbed,
         inventory_plugin=inventory_plugin,
@@ -301,7 +385,7 @@ def run(
             test_ids=test_id,
             test_id_pattern=test_id_pattern,
         )
-        plugin_registry = _load_plugin_registry(project_root=Path.cwd())
+        plugin_registry = _project_plugin_registry(ctx)
         result = asyncio.run(
             run_test_plan(
                 mode=mode,
@@ -347,6 +431,7 @@ def run(
 
 @app.command()
 def validate(
+    ctx: typer.Context,
     plan: Annotated[
         Path,
         typer.Option(
@@ -485,6 +570,9 @@ def validate(
     ] = None,
 ) -> None:
     """Validate testbed/plan inputs without executing tests."""
+    testbed, inventory_plugin = _drop_project_testbed_conflict(
+        ctx, testbed, inventory_plugin
+    )
     testbed_path = _resolve_testbed_option(
         testbed=testbed,
         inventory_plugin=inventory_plugin,
@@ -866,6 +954,7 @@ def reconcile(
 
 @app.command()
 def relearn(
+    ctx: typer.Context,
     plan: Annotated[
         Path | None,
         typer.Option(
@@ -1016,6 +1105,9 @@ def relearn(
     resolved_results_dir = results_dir or Path.cwd() / "results"
     resolved_parameters_dir = parameters_dir or Path.cwd() / "parameters"
 
+    testbed, inventory_plugin = _drop_project_testbed_conflict(
+        ctx, testbed, inventory_plugin
+    )
     testbed_path = _resolve_testbed_option(
         testbed=testbed,
         inventory_plugin=inventory_plugin,
@@ -1055,6 +1147,7 @@ def relearn(
             results_dir=resolved_results_dir,
             output_dir=output_dir,
             output=output,
+            plugin_registry=_project_plugin_registry(ctx),
         )
 
     except (RelearnError, ReconcileError, ConfigurationError) as error:
@@ -1119,10 +1212,10 @@ def _execute_relearn(
     results_dir: Path,
     output_dir: Path | None,
     output: Output,
+    plugin_registry: PluginRegistry,
 ) -> None:
     """Run the failed tests in learning mode and report results."""
     filters = PlanFilterOptions(test_contexts=relearn_input.contexts)
-    plugin_registry = _load_plugin_registry(project_root=Path.cwd())
 
     result = asyncio.run(
         run_test_plan(
@@ -1951,32 +2044,6 @@ def _display_inject_plan(inject_plan: "InjectPlan", output: Output) -> None:
 def version() -> None:
     """Display the Huginn version."""
     typer.echo(f"huginn v{__version__}")
-
-
-def _load_plugin_registry(project_root: Path) -> PluginRegistry:
-    """Load plugin configuration and construct a registry.
-
-    Reads [tool.huginn.plugins] from the project's pyproject.toml if
-    present, otherwise returns a default registry with no filtering.
-    """
-    pyproject_path = project_root / "pyproject.toml"
-    if not pyproject_path.exists():
-        return PluginRegistry()
-
-    with open(pyproject_path, "rb") as f:
-        data = tomllib.load(f)
-
-    plugins_section = data.get("tool", {}).get("huginn", {}).get("plugins", {})
-    if not plugins_section:
-        return PluginRegistry()
-
-    config = PluginConfig(
-        brokers=plugins_section.get("brokers"),
-        reporters=plugins_section.get("reporters"),
-        hooks=plugins_section.get("hooks"),
-        plugin_options=plugins_section.get("config", {}),
-    )
-    return PluginRegistry(config=config)
 
 
 def main() -> None:
