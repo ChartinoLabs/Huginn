@@ -1,0 +1,1 @@
+Fixed `huginn version` crashing with `PackageNotFoundError`; it now prints the installed Huginn version.
