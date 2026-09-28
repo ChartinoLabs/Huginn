@@ -209,6 +209,7 @@ When the `--plan` argument points to a directory, the prune command locates the 
 
 ## See also
 
+- [CLI Reference](cli.md) - every `huginn` command, option and environment variable.
 - [Test Plan Specification - Targeting](test-plan.md#targeting) - the `target` block and device filtering.
 - [Test Plan Specification - Test Case Groups](test-plan.md#test-case-groups) - group structure, `tests`, `groups`, and `exclude_tests`.
 - [Parameter Reconciliation](reconcile.md) - a related command that creates new test case variants after a network change.
