@@ -1755,20 +1755,20 @@
 </code></pre></div>
 <p>Both <code>pre-change</code> and <code>post-shutdown</code> point to the same groups, which means they reference the same learned parameters.</p>
 <h2 id="what-happens-when-you-run-this">What happens when you run this<a class="headerlink" href="#what-happens-when-you-run-this" title="Permanent link">&para;</a></h2>
+<p>Execution mode is set per run with <code>--mode</code>, not per phase, so building this scenario takes two runs:</p>
 <ol>
-<li><strong>Pre-change</strong> runs in learning mode and captures baseline parameters - OSPF neighbors, BGP peers, all healthy.</li>
-<li><strong>Shutdown</strong> disables the R1-R2 link.</li>
-<li><strong>Post-shutdown</strong> runs in testing mode and compares current state against the baseline parameters captured in step 1.</li>
+<li><strong>Learning run</strong> (<code>--mode learning</code>) - the <code>pre-change</code> phase captures baseline parameters: OSPF neighbors, BGP peers, all healthy. The <code>shutdown</code> action job does not inherit <code>LearningTestCase</code>, so it is skipped in learning mode and the <code>post-shutdown</code> phase is blocked rather than learned.</li>
+<li><strong>Testing run</strong> (<code>--mode testing</code>) - all three phases run in order. <code>shutdown</code> disables the R1-R2 link, and <code>post-shutdown</code> compares current state against the baseline parameters captured by the learning run.</li>
 </ol>
 <p>The OSPF tests in <code>post-shutdown</code> fail. The parameters say "neighbor 10.1.1.1 exists on GigabitEthernet2" but after the shutdown, that neighbor is gone. This is expected behavior - the link is down - but the test plan has no way to express that the post-change expected state differs from baseline.</p>
 <h2 id="what-reconciliation-does">What reconciliation does<a class="headerlink" href="#what-reconciliation-does" title="Permanent link">&para;</a></h2>
 <p>The <code>huginn reconcile</code> command is a convenience method that creates the post-change variants for you. You run it once during test plan development after you've observed which tests fail due to the intentional change. Reconciliation performs the following tasks:</p>
 <ol>
-<li>Creates new test case definitions with a phase-specific suffix (e.g., <code>OSPF-NEIGHBOR-EXISTENCE-post-shutdown</code>)</li>
+<li>Creates new test case definitions with a <code>-&lt;scenario&gt;-&lt;phase&gt;</code> suffix (e.g., <code>OSPF-NEIGHBOR-EXISTENCE-link-shutdown-r1r2-post-shutdown</code>)</li>
 <li>Creates a reconciled test case group that inherits from the baseline group but swaps in the new variants</li>
 <li>Copies baseline parameter files as a starting point for the new variants</li>
 </ol>
-<p>After reconciliation, you re-learn parameters for just the reconciled variants to capture the actual post-change state. Then you run the full scenario again end-to-end to confirm it passes.</p>
+<p>After reconciliation, you re-learn parameters for just the reconciled variants, selected by test ID, to capture the actual post-change state. Re-learning the whole reconciled group would also re-learn the baseline tests it inherits. Then you run the full scenario again end-to-end to confirm it passes.</p>
 <h2 id="what-the-reconciled-test-plan-looks-like">What the reconciled test plan looks like<a class="headerlink" href="#what-the-reconciled-test-plan-looks-like" title="Permanent link">&para;</a></h2>
 <p>The original scenario references baseline groups in the post-change phase:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">post-shutdown</span><span class="p">:</span>
@@ -1778,11 +1778,11 @@
 <p>After reconciliation, it references a reconciled group instead:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">post-shutdown</span><span class="p">:</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">test_case_groups</span><span class="p">:</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ospf-neighbor-baseline-post-shutdown</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ospf-neighbor-baseline-link-shutdown-r1r2-post-shutdown</span>
 </code></pre></div>
 <p>The reconciled group inherits from the baseline, excludes tests within the baseline that fail due to the intentional change, and includes phase-specific variants:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">ospf-neighbor-baseline-post-shutdown</span><span class="p">:</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">ospf-neighbor-baseline-link-shutdown-r1r2-post-shutdown</span><span class="p">:</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ospf-neighbor-baseline</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="nt">exclude_tests</span><span class="p">:</span>
@@ -1791,17 +1791,17 @@
 <a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-INTERFACE</span>
 <a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-PRIORITY</span>
 <a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-EXISTENCE-post-shutdown</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-STATE-post-shutdown</span>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-INTERFACE-post-shutdown</span>
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-PRIORITY-post-shutdown</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-EXISTENCE-link-shutdown-r1r2-post-shutdown</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-STATE-link-shutdown-r1r2-post-shutdown</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-INTERFACE-link-shutdown-r1r2-post-shutdown</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OSPF-NEIGHBOR-PRIORITY-link-shutdown-r1r2-post-shutdown</span>
 </code></pre></div>
 <p>The reconciled variants point to the same job modules as their baseline counterparts - only their parameters differ.</p>
 <h2 id="the-reconciliation-workflow">The reconciliation workflow<a class="headerlink" href="#the-reconciliation-workflow" title="Permanent link">&para;</a></h2>
 <p>This is a development-time workflow. You run it once while building and validating a new scenario, not every time you execute the test plan:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>1. Run scenario end-to-end             → post-change tests fail (expected)
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>2. huginn reconcile --phase &lt;phase&gt;    → creates variants + reconciled groups
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>3. Re-learn the reconciled variants    → captures actual post-change state
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>3. Re-learn the variants by test ID    → captures actual post-change state
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>4. Run scenario end-to-end again       → passes cleanly
 </code></pre></div>
 <p>Once the reconciled parameters are in place and you've confirmed the scenario passes, the test plan is ready for repeated use without further reconciliation.</p>
