@@ -1,0 +1,1 @@
+Rewrote the Context API reference to match the current `Context`, `Device`, `RuntimeBroker`, `CommandResult`, `ResultCollector` and `LearningTestCase` APIs, with runnable examples.
