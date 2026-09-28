@@ -2246,8 +2246,12 @@ parse Cisco-style uptime strings into a monotonic integer value. It
 accepts verbose strings (<code>"5 weeks, 2 days, 13 hours"</code>), compact
 strings of the form <code>[Ny][Nw][Nd][Nh][Nm][Ns]</code> in that order
 (<code>"1d02h"</code>, <code>"2w3d"</code>, <code>"1y2w"</code>), and <code>"HH:MM:SS"</code>, alone or after a
-compact prefix (<code>"2d03:04:05"</code>). Years count as 365 days. Strings it
-cannot parse in full, such as <code>"never"</code>, return <code>0</code>.</p>
+compact prefix (<code>"2d03:04:05"</code>). It also accepts a day count before a
+clock: <code>"D:HH:MM:SS"</code> (<code>"0:00:16:22"</code>), <code>"D+HH:MM:SS"</code>
+(<code>"41+06:26:24"</code>), and <code>"N days, HH:MM:SS"</code> (<code>"2 days, 2:38:49"</code>). In the
+<code>"N days, HH:MM"</code> form (<code>"154 days, 19:16"</code>), the two-field clock is
+hours and minutes. Years count as 365 days. Strings it cannot parse in
+full, such as <code>"never"</code>, return <code>0</code>.</p>
 <p>The <code>"any"</code> operator is useful at phase boundaries where the impact on
 individual series is heterogeneous - for example, an OSPF restart
 resets BGP sessions involving the restarted device but leaves other
