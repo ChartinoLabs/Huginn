@@ -27,9 +27,10 @@ Both `pre-change` and `post-shutdown` point to the same groups, which means they
 
 ## What happens when you run this
 
-1. **Pre-change** runs in learning mode and captures baseline parameters - OSPF neighbors, BGP peers, all healthy.
-2. **Shutdown** disables the R1-R2 link.
-3. **Post-shutdown** runs in testing mode and compares current state against the baseline parameters captured in step 1.
+Execution mode is set per run with `--mode`, not per phase, so building this scenario takes two runs:
+
+1. **Learning run** (`--mode learning`) - the `pre-change` phase captures baseline parameters: OSPF neighbors, BGP peers, all healthy. The `shutdown` action job does not inherit `LearningTestCase`, so it is skipped in learning mode and the `post-shutdown` phase is blocked rather than learned.
+2. **Testing run** (`--mode testing`) - all three phases run in order. `shutdown` disables the R1-R2 link, and `post-shutdown` compares current state against the baseline parameters captured by the learning run.
 
 The OSPF tests in `post-shutdown` fail. The parameters say "neighbor 10.1.1.1 exists on GigabitEthernet2" but after the shutdown, that neighbor is gone. This is expected behavior - the link is down - but the test plan has no way to express that the post-change expected state differs from baseline.
 
@@ -37,11 +38,11 @@ The OSPF tests in `post-shutdown` fail. The parameters say "neighbor 10.1.1.1 ex
 
 The `huginn reconcile` command is a convenience method that creates the post-change variants for you. You run it once during test plan development after you've observed which tests fail due to the intentional change. Reconciliation performs the following tasks:
 
-1. Creates new test case definitions with a phase-specific suffix (e.g., `OSPF-NEIGHBOR-EXISTENCE-post-shutdown`)
+1. Creates new test case definitions with a `-<scenario>-<phase>` suffix (e.g., `OSPF-NEIGHBOR-EXISTENCE-link-shutdown-r1r2-post-shutdown`)
 2. Creates a reconciled test case group that inherits from the baseline group but swaps in the new variants
 3. Copies baseline parameter files as a starting point for the new variants
 
-After reconciliation, you re-learn parameters for just the reconciled variants to capture the actual post-change state. Then you run the full scenario again end-to-end to confirm it passes.
+After reconciliation, you re-learn parameters for just the reconciled variants, selected by test ID, to capture the actual post-change state. Re-learning the whole reconciled group would also re-learn the baseline tests it inherits. Then you run the full scenario again end-to-end to confirm it passes.
 
 ## What the reconciled test plan looks like
 
@@ -58,14 +59,14 @@ After reconciliation, it references a reconciled group instead:
 ```yaml
 post-shutdown:
   test_case_groups:
-    - ospf-neighbor-baseline-post-shutdown
+    - ospf-neighbor-baseline-link-shutdown-r1r2-post-shutdown
 ```
 
 The reconciled group inherits from the baseline, excludes tests within the baseline that fail due to the intentional change, and includes phase-specific variants:
 
 ```yaml
 test_case_groups:
-  ospf-neighbor-baseline-post-shutdown:
+  ospf-neighbor-baseline-link-shutdown-r1r2-post-shutdown:
     groups:
       - ospf-neighbor-baseline
     exclude_tests:
@@ -74,10 +75,10 @@ test_case_groups:
       - OSPF-NEIGHBOR-INTERFACE
       - OSPF-NEIGHBOR-PRIORITY
     tests:
-      - OSPF-NEIGHBOR-EXISTENCE-post-shutdown
-      - OSPF-NEIGHBOR-STATE-post-shutdown
-      - OSPF-NEIGHBOR-INTERFACE-post-shutdown
-      - OSPF-NEIGHBOR-PRIORITY-post-shutdown
+      - OSPF-NEIGHBOR-EXISTENCE-link-shutdown-r1r2-post-shutdown
+      - OSPF-NEIGHBOR-STATE-link-shutdown-r1r2-post-shutdown
+      - OSPF-NEIGHBOR-INTERFACE-link-shutdown-r1r2-post-shutdown
+      - OSPF-NEIGHBOR-PRIORITY-link-shutdown-r1r2-post-shutdown
 ```
 
 The reconciled variants point to the same job modules as their baseline counterparts - only their parameters differ.
@@ -89,7 +90,7 @@ This is a development-time workflow. You run it once while building and validati
 ```
 1. Run scenario end-to-end             → post-change tests fail (expected)
 2. huginn reconcile --phase <phase>    → creates variants + reconciled groups
-3. Re-learn the reconciled variants    → captures actual post-change state
+3. Re-learn the variants by test ID    → captures actual post-change state
 4. Run scenario end-to-end again       → passes cleanly
 ```
 
