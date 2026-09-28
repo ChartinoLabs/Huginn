@@ -1693,7 +1693,7 @@
 <h1 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h1>
 <h2 id="requirements">Requirements<a class="headerlink" href="#requirements" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Python 3.11 or later</li>
+<li>Python 3.10 or later</li>
 <li>Network devices reachable via SSH (or another supported transport)</li>
 </ul>
 <h2 id="install-from-pypi">Install from PyPI<a class="headerlink" href="#install-from-pypi" title="Permanent link">&para;</a></h2>
@@ -1715,15 +1715,19 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>huginn<span class="w"> </span>version
 </code></pre></div>
 <p>You should see output like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Huginn version 0.1.0
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>huginn v0.2.0
 </code></pre></div>
 <h2 id="key-dependencies">Key dependencies<a class="headerlink" href="#key-dependencies" title="Permanent link">&para;</a></h2>
 <p>Huginn pulls in a small set of runtime dependencies automatically:</p>
 <ul>
-<li><strong>scrapli</strong> - async SSH and NETCONF transport for device connections</li>
+<li><strong>scrapli</strong> - async SSH transport for device connections</li>
+<li><strong>scrapli-netconf</strong> - async NETCONF transport for device connections</li>
+<li><strong>aiohttp</strong> - async HTTP client for the HTTP broker</li>
 <li><strong>typer</strong> - CLI framework</li>
 <li><strong>jinja2</strong> - template rendering for test metadata and reports</li>
+<li><strong>markdown</strong> - Markdown rendering for HTML report sections</li>
 <li><strong>pyyaml / ruamel.yaml</strong> - testbed and test plan YAML parsing</li>
+<li><strong>tomli</strong> - TOML parsing on Python 3.10 only (Python 3.11 and later use the standard library <code>tomllib</code>)</li>
 </ul>
 
 
