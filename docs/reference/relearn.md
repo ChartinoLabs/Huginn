@@ -119,6 +119,7 @@ A non-zero exit during re-learning typically means the device could not be reach
 
 ## See also
 
+- [CLI Reference](cli.md) - every `huginn` command, option and environment variable.
 - [Concepts - Re-learning](../concepts/relearning.md) - when and why to use relearn vs. reconciliation.
 - [CLI - reconcile](reconcile.md) - creating post-change test variants (different use case).
 - [CLI - prune](prune.md) - removing non-applicable tests from the plan.

@@ -82,6 +82,7 @@ nav:
       - Configuration: reference/configuration.md
       - Context API: reference/context-api.md
       - Package Jobs: reference/package-jobs.md
+      - CLI Reference: reference/cli.md
       - CLI - reconcile: reference/reconcile.md
       - CLI - relearn: reference/relearn.md
       - CLI - prune: reference/prune.md
