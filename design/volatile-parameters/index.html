@@ -2242,8 +2242,12 @@
   prescribe a parser library).</li>
 </ul>
 <p>The helper <code>parse_duration_seconds</code> is also exported for jobs that
-parse Cisco-style uptime strings (<code>"5 weeks, 2 days, 13 hours"</code>,
-<code>"1w2d"</code>, <code>"HH:MM:SS"</code>) into a monotonic integer value.</p>
+parse Cisco-style uptime strings into a monotonic integer value. It
+accepts verbose strings (<code>"5 weeks, 2 days, 13 hours"</code>), compact
+strings of the form <code>[Ny][Nw][Nd][Nh][Nm][Ns]</code> in that order
+(<code>"1d02h"</code>, <code>"2w3d"</code>, <code>"1y2w"</code>), and <code>"HH:MM:SS"</code>, alone or after a
+compact prefix (<code>"2d03:04:05"</code>). Years count as 365 days. Strings it
+cannot parse in full, such as <code>"never"</code>, return <code>0</code>.</p>
 <p>The <code>"any"</code> operator is useful at phase boundaries where the impact on
 individual series is heterogeneous - for example, an OSPF restart
 resets BGP sessions involving the restarted device but leaves other
