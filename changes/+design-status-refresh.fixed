@@ -1,0 +1,1 @@
+Updated the connection broker, output logging, and future considerations design pages to match the current implementation, including broker entry point discovery, how caching and routing really work, and which job loggers reach huginn.log.

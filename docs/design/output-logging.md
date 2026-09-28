@@ -233,29 +233,18 @@ context = Context(
 # Tests access output through context
 class MyTest(TestCase):
     async def test(self, context: Context) -> None:
-        context.output.status("Checking OSPF neighbors...")
-        context.output.log_info("Querying device for OSPF state")
+        if context.output is not None:
+            context.output.status("Checking OSPF neighbors...")
+            context.output.log_info("Querying device for OSPF state")
 ```
+
+`Context.output` is typed `Output | None`. The runner always sets it during `huginn run`, but a `Context` built elsewhere, such as in a unit test, may leave it as `None`, so jobs should check before using it.
 
 This pattern matches `ConnectionBroker` - a single shared instance injected via context rather than global state. All tests share the same `Output` instance, ensuring coordinated access to the console and log file without the downsides of a singleton.
 
 ## Logger Integration
 
-Test automation typically creates loggers using the standard pattern:
-
-```python
-import logging
-
-logger = logging.getLogger(__name__)  # e.g., "huginn.tests.verify_ospf"
-
-
-class VerifyOspfNeighbors(TestCase):
-    async def test(self, context: Context) -> None:
-        logger.info("Querying OSPF neighbor table")
-        # ...
-```
-
-These loggers automatically route through the `Output` class's handlers via Python's logging hierarchy.
+The `Output` class configures its handlers on the `huginn` logger, so only loggers named `huginn` or `huginn.<something>` write to the log file and the `--show-logs` console.
 
 ### How It Works
 
@@ -292,24 +281,28 @@ class Output:
 
 ```txt
 huginn                          <- Output configures handlers here
-├── huginn.cli                  <- Inherits handlers
-├── huginn.runner               <- Inherits handlers
-├── huginn.brokers              <- Inherits handlers
-└── huginn.tests                <- Inherits handlers
-    ├── huginn.tests.verify_ospf
-    └── huginn.tests.verify_bgp
+├── huginn.hooks                <- Inherits handlers
+├── huginn.plugin_registry      <- Inherits handlers
+└── huginn.jobs.verify_ospf     <- A job logger named under huginn
 ```
 
-Any logger created with `logging.getLogger(__name__)` in a module under the `huginn` package automatically inherits the file handler (always) and the Rich console handler (when `--show-logs` is enabled).
+Most framework messages are written through `Output` methods to the `huginn` logger itself. The only framework modules that create their own `logging.getLogger(__name__)` loggers are `huginn.hooks` and `huginn.plugin_registry`.
+
+A logger named anywhere else does not inherit these handlers, and because `huginn` sets `propagate = False`, nothing configured on `huginn` is applied to it. This includes the default `logging.getLogger(__name__)` in a job module:
+
+- A job loaded by file path (`jobs/iosxe/ospf/verify_neighbor_state.py`) is imported as `huginn_user_job_<stem>`, so `__name__` is `huginn_user_job_verify_neighbor_state`.
+- A job loaded by module path keeps its package name, such as `acme_jobs.ospf.verify_neighbor_state`.
+
+Records from these loggers never reach `huginn.log`. With no handler configured anywhere, Python's fallback handler prints records at WARNING and above to stderr and drops the rest.
 
 ### Test Author Experience
 
-Test authors don't need to know about `Output` internals. They use standard Python logging:
+Test authors have two ways to get diagnostics into the log file: call the `context.output.log_*` methods, or create a standard Python logger with a name under `huginn`:
 
 ```python
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("huginn.jobs.verify_bgp_peers")
 
 
 class VerifyBgpPeers(TestCase):
@@ -317,16 +310,17 @@ class VerifyBgpPeers(TestCase):
         logger.debug("Starting BGP peer verification")
 
         for device in context.targets:
-            logger.info(f"Checking BGP peers on {device.name}")
-            output = await context.broker.execute(device, "show ip bgp summary")
-            logger.debug(f"Raw output: {output[:200]}...")
+            logger.info("Checking BGP peers on %s", device.name)
+            result = await context.broker.execute(device, "show ip bgp summary")
+            logger.debug("Raw output: %s...", result.output[:200])
 
             # Use context.output for user-facing messages
-            context.output.status(f"Verified {device.name}: 5 peers established")
+            if context.output is not None:
+                context.output.status(f"Verified {device.name}: 5 peers established")
 ```
 
-- `logger.*` calls go to file (and console if `--show-logs`)
-- `context.output.*` calls go to Rich console (always)
+- `logger.*` calls on a `huginn.*` logger, and `context.output.log_*` calls, go to file (and console if `--show-logs`)
+- `context.output.status()` and the other console methods go to the Rich console (always)
 
 This separation remains clear: logging for diagnostics, output for user interface.
 

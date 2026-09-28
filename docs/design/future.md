@@ -113,29 +113,25 @@ ______________________________________________________________________
 
 ### Authentication Mechanisms
 
-The MVP supports username/password authentication only. Future releases should consider:
+Huginn already supports username/password authentication, SSH key authentication (`private_key` for the SSH and NETCONF brokers), and API token authentication (`token` for the HTTP broker); see [Credential Fields](../reference/testbed.md#credential-fields). Future releases should consider:
 
-- SSH key authentication
-- API token/key authentication
 - Certificate-based authentication
 - Integration with secrets management systems (HashiCorp Vault, AWS Secrets Manager)
 
 ### Custom Report Templates
 
-Support for user-defined report templates was descoped from MVP. Consider:
+Support for user-defined report templates was descoped from MVP. Integration with external reporting systems is already possible by writing a reporter plugin registered under the `huginn.reporters` entry point group, which receives the full `RunResult`. What remains is customizing the built-in HTML report without writing a plugin:
 
 - Jinja2 template support for HTML reports
 - Custom data transformations for report output
-- Integration with external reporting systems
 
 ### Inventory Plugin Merging
 
-The MVP supports inventory plugins as a complete replacement for the static testbed YAML file. Future releases could support merging plugin inventory with a testbed file:
+Inventory plugins are selected per run with `--inventory-plugin <name>:<config>` (for example `--inventory-plugin netbox:netbox.yaml`) and completely replace the static testbed YAML file: `--testbed` and `--inventory-plugin` are mutually exclusive. Future releases could support merging plugin inventory with a testbed file, for example with a hypothetical flag:
 
-```toml
-[tool.huginn]
-inventory_plugin = "huginn-netbox"
-inventory_merge = true  # Future: merge with testbed.yaml
+```bash
+# Future: not implemented
+huginn run --inventory-plugin netbox:netbox.yaml --testbed lab-overrides.yaml --merge-inventory
 ```
 
 **Use cases:**
