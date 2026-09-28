@@ -1,6 +1,6 @@
 # Test Plan Specification
 
-This document defines the YAML schema for Huginn test plan files. A test plan organizes tests into a three-tier hierarchy: phases contain test case groups, which reference test cases.
+This document defines the YAML schema for Huginn test plan files. A test plan organizes tests into a four-tier hierarchy: scenarios contain phases, phases reference test case groups, and test case groups reference test cases.
 
 ## Overview
 
@@ -8,7 +8,8 @@ The test plan is the orchestration layer. It defines:
 
 - **Test Cases**: First-class entities defining what to test, referencing jobs and parameters
 - **Test Case Groups**: Logical groupings of test case references
-- **Phases**: High-level stages of execution with dependencies
+- **Scenarios**: End-to-end validation workflows, each containing its own phases
+- **Phases**: Stages of execution within a scenario, with dependencies
 - **Targets**: Which devices, operating systems, or device groups each test applies to
 - **Tags**: Labels for filtering test execution
 
@@ -64,7 +65,7 @@ test_plan = "test_plan/"    # Trailing slash optional
 Or via CLI:
 
 ```bash
-huginn run --plan test_plan/
+huginn run --mode testing --plan test_plan/
 ```
 
 ### Top-Level Metadata
@@ -159,16 +160,18 @@ Duplicate test_cases key '3.0.0' defined in test_plan/routing/ospf.yaml and test
 
 Files are loaded in **alphabetical order** by path for determinism. Because all keys must be unique and merging is additive, load order does not affect the final result.
 
-### Excluded Directories
+### Excluded Files and Directories
 
-The framework skips files in directories whose names start with `_` or `.`. This allows storing drafts, scratch files, or work-in-progress content alongside the active test plan without affecting loading.
+The framework loads every `.yaml` and `.yml` file in the directory tree, skipping any file or directory whose name starts with `_` or `.`. This allows storing drafts, scratch files, or work-in-progress content alongside the active test plan without affecting loading.
 
 ```txt
 test_plan/
 ├── project.yaml                  # Loaded
 ├── scenarios.yaml                # Loaded
 ├── routing/
-│   └── ospf.yaml                 # Loaded
+│   ├── ospf.yaml                 # Loaded
+│   ├── bgp.yml                   # Loaded (.yml extension)
+│   └── _isis.yaml                # Excluded (underscore-prefixed file)
 ├── _drafts/
 │   └── wip.yaml                  # Excluded (underscore-prefixed directory)
 └── .scratch/
@@ -199,10 +202,12 @@ test_case_groups:                    # Required: groups referencing test cases
     tests: [<test-id>, ...]
     # Additional group fields...
 
-phases:                              # Required: execution phases
-  <phase-name>:
-    test_case_groups: [<group>, ...]
-    # Additional phase fields...
+scenarios:                           # Required: end-to-end workflows
+  <scenario-id>:
+    phases:                          # Required: execution phases
+      <phase-name>:
+        test_case_groups: [<group>, ...]
+        # Additional phase fields...
 ```
 
 ### Test Cases
@@ -246,13 +251,17 @@ test_cases:
 
 #### Test Case Fields
 
-| Field         | Type         | Required | Description                                           |
-| ------------- | ------------ | -------- | ----------------------------------------------------- |
-| `title`       | string       | Yes      | Human-readable test name                              |
-| `job`         | string       | Yes      | Job reference - see [Job References](#job-references) |
-| `description` | string       | No       | Detailed test description                             |
-| `tags`        | list[string] | No       | Labels for filtering                                  |
-| `target`      | dict         | No       | Targeting specification                               |
+| Field          | Type         | Required | Description                                           |
+| -------------- | ------------ | -------- | ----------------------------------------------------- |
+| `title`        | string       | Yes      | Human-readable test name                              |
+| `job`          | string       | Yes      | Job reference - see [Job References](#job-references) |
+| `description`  | string       | No       | Detailed test description                             |
+| `tags`         | list[string] | No       | Labels for filtering                                  |
+| `target`       | dict         | No       | Targeting specification                               |
+| `priority`     | string       | No       | Priority label (for example, `high`)                  |
+| `category`     | string       | No       | Category label (for example, `routing`)               |
+| `is_automated` | bool         | No       | Whether the test case is automated (default: `true`)  |
+| `metadata`     | dict         | No       | Free-form key/value metadata                          |
 
 #### Job References
 
@@ -358,7 +367,7 @@ async def test(self, context: Context) -> None:
     # Validate current state against expected...
 ```
 
-See [Test Authoring](context-api.md) for detailed patterns.
+See [Context API](context-api.md) for detailed patterns.
 
 ### Test Case Groups
 
@@ -385,16 +394,18 @@ test_case_groups:
 
 #### Test Case Group Fields
 
-| Field         | Type         | Required | Description                                                |
-| ------------- | ------------ | -------- | ---------------------------------------------------------- |
-| `description` | string       | No       | Group description                                          |
-| `tests`       | list[string] | No       | List of test case IDs                                      |
-| `groups`      | list[string] | No       | List of test case group names to include                   |
-| `tags`        | list[string] | No       | Group-level tags (additive with test case tags)            |
-| `target`      | dict         | No       | Group-level targeting (intersected with test case targets) |
-| `strategy`    | dict         | No       | Group test execution strategy (`serial` or `parallel`)     |
+| Field           | Type         | Required | Description                                                     |
+| --------------- | ------------ | -------- | --------------------------------------------------------------- |
+| `name`          | string       | No       | Display name (defaults to the group key)                        |
+| `description`   | string       | No       | Informational only; not read by the loader                      |
+| `tests`         | list[string] | No       | List of test case IDs                                           |
+| `groups`        | list[string] | No       | List of test case group names to include                        |
+| `exclude_tests` | list[string] | No       | Test case IDs to drop from the groups included through `groups` |
+| `tags`          | list[string] | No       | Group-level tags (additive with test case tags)                 |
+| `target`        | dict         | No       | Group-level targeting (intersected with test case targets)      |
+| `strategy`      | dict         | No       | Group test execution strategy (`serial` or `parallel`)          |
 
-At least one of `tests` or `groups` must be specified.
+At least one of `tests` or `groups` must be specified. `exclude_tests` only applies to test cases inherited through `groups`, so defining it without `groups` fails at load.
 
 #### Nested Test Case Groups
 
@@ -475,57 +486,95 @@ test_case_groups:
 - `strategy.parallel.maximum` optionally bounds concurrency.
 - If `strategy` is omitted, group execution defaults to unbounded parallel.
 
-### Phases
+### Scenarios
 
-Phases are the top-level organizational unit, representing stages of test execution. Phases declare dependencies on other phases to establish execution order.
+Scenarios are the top-level organizational unit. Each scenario is an end-to-end validation workflow, such as one configuration change with its pre-change and post-change checks, and contains its own set of phases. A test plan must define at least one scenario.
 
 ```yaml
-phases:
-  pre-change:
-    description: Validate state before making changes
-    test_case_groups: [connectivity-checks, pre-change-state]
+scenarios:
+  ospf-area-change:
+    name: OSPF Area Change
+    phases:
+      pre-change:
+        test_case_groups: [connectivity-checks, pre-change-state]
 
-  change:
-    description: Apply the configuration change
-    depends_on: [pre-change]
-    test_case_groups: [change-implementation]
+      change:
+        depends_on: [pre-change]
+        test_case_groups: [change-implementation]
 
-  post-change:
-    description: Validate state after changes
-    depends_on: [change]
-    test_case_groups: [connectivity-checks, post-change-state]
+      post-change:
+        depends_on: [change]
+        test_case_groups: [connectivity-checks, post-change-state]
+```
+
+#### Scenario Fields
+
+| Field    | Type   | Required | Description                                 |
+| -------- | ------ | -------- | ------------------------------------------- |
+| `phases` | dict   | Yes      | Non-empty mapping of phase names to phases  |
+| `name`   | string | No       | Display name (defaults to the scenario key) |
+
+Phase names are scoped to their scenario. Two scenarios can each define a `pre-change` phase, and `depends_on` can only reference phases in the same scenario. Referencing an undefined phase fails at load.
+
+### Phases
+
+Phases represent stages of test execution within a scenario. Phases declare dependencies on other phases to establish execution order.
+
+```yaml
+scenarios:
+  ospf-area-change:
+    phases:
+      pre-change:
+        description: Validate state before making changes
+        test_case_groups: [connectivity-checks, pre-change-state]
+
+      change:
+        description: Apply the configuration change
+        depends_on: [pre-change]
+        test_case_groups: [change-implementation]
+
+      post-change:
+        description: Validate state after changes
+        depends_on: [change]
+        test_case_groups: [connectivity-checks, post-change-state]
 ```
 
 #### Phase Fields
 
-| Field              | Type         | Required | Description                                                      |
-| ------------------ | ------------ | -------- | ---------------------------------------------------------------- |
-| `description`      | string       | No       | Phase description                                                |
-| `depends_on`       | list[string] | No       | Phases that must complete before this phase                      |
-| `test_case_groups` | list[string] | Yes      | Groups to execute in this phase                                  |
-| `target`           | dict         | No       | Phase-level targeting (intersected with group/test case targets) |
-| `strategy`         | dict         | No       | Group execution strategy within the phase (`serial`/`parallel`)  |
+| Field              | Type         | Required | Description                                                          |
+| ------------------ | ------------ | -------- | -------------------------------------------------------------------- |
+| `name`             | string       | No       | Display name (defaults to the phase key)                             |
+| `description`      | string       | No       | Phase description                                                    |
+| `depends_on`       | list[string] | No       | Phases in the same scenario that must complete before this phase     |
+| `test_case_groups` | list[string] | Yes      | Groups to execute in this phase                                      |
+| `target`           | dict         | No       | Phase-level targeting (intersected with group/test case targets)     |
+| `strategy`         | dict         | No       | Group execution strategy within the phase (`serial`/`parallel`)      |
+| `preserve_cache`   | bool         | No       | Keep the broker command cache from earlier phases (default: `false`) |
+
+By default, the broker command cache is cleared at the start of each phase, so every phase observes fresh device state. Set `preserve_cache: true` on a phase that can safely reuse command output collected by earlier phases.
 
 #### Phase Dependencies
 
 The `depends_on` field creates a directed acyclic graph (DAG) of phase execution:
 
 ```yaml
-phases:
-  A:
-    test_case_groups: [...]
+scenarios:
+  fabric-upgrade:
+    phases:
+      A:
+        test_case_groups: [...]
 
-  B:
-    depends_on: [A]      # B waits for A
-    test_case_groups: [...]
+      B:
+        depends_on: [A]      # B waits for A
+        test_case_groups: [...]
 
-  C:
-    depends_on: [A]      # C waits for A (can run parallel with B)
-    test_case_groups: [...]
+      C:
+        depends_on: [A]      # C waits for A (can run parallel with B)
+        test_case_groups: [...]
 
-  D:
-    depends_on: [B, C]   # D waits for both B and C
-    test_case_groups: [...]
+      D:
+        depends_on: [B, C]   # D waits for both B and C
+        test_case_groups: [...]
 ```
 
 Execution order: `A` → `B, C` (parallel) → `D`
@@ -538,44 +587,48 @@ If a phase fails (any test case fails):
 
 #### Reusing Test Case Groups Across Phases
 
+The same test case group can appear in multiple phases. This is the key pattern for change validation:
+
+```yaml
+scenarios:
+  ospf-area-change:
+    phases:
+      pre-change:
+        test_case_groups: [unchanged-state-checks]    # Run these tests
+
+      change:
+        depends_on: [pre-change]
+        test_case_groups: [apply-change]
+
+      post-change:
+        depends_on: [change]
+        test_case_groups: [unchanged-state-checks]    # Same tests again!
+```
+
 #### Phase Group Execution Strategy
 
 Phases can control how referenced test case groups execute:
 
 ```yaml
-phases:
-  pre-change:
-    strategy:
-      serial: {}
-    test_case_groups: [group-a, group-b]
+scenarios:
+  ospf-area-change:
+    phases:
+      pre-change:
+        strategy:
+          serial: {}
+        test_case_groups: [connectivity-checks, pre-change-state]
 
-  post-change:
-    strategy:
-      parallel:
-        maximum: 2
-    test_case_groups: [group-c, group-d, group-e]
+      post-change:
+        strategy:
+          parallel:
+            maximum: 2
+        test_case_groups: [connectivity-checks, bgp-checks, post-change-state]
 ```
 
 - `strategy.serial` executes groups in listed order.
 - `strategy.parallel` executes groups concurrently.
 - `strategy.parallel.maximum` optionally bounds concurrent groups.
 - If `strategy` is omitted, phase group execution defaults to unbounded parallel.
-
-The same test case group can appear in multiple phases. This is the key pattern for change validation:
-
-```yaml
-phases:
-  pre-change:
-    test_case_groups: [unchanged-state-checks]    # Run these tests
-
-  change:
-    depends_on: [pre-change]
-    test_case_groups: [apply-change]
-
-  post-change:
-    depends_on: [change]
-    test_case_groups: [unchanged-state-checks]    # Same tests again!
-```
 
 ### Targeting
 
@@ -585,7 +638,7 @@ The `target` field specifies which devices a test applies to. Targets can be spe
 - Test case group level
 - Test case level
 
-All applicable targets are intersected (AND logic).
+Within one selector, values are combined with OR: `groups: [spine, border]` matches a device in either group. Different selectors in the same `target` block, and `target` blocks at different levels, are combined with AND. Each selector must be a non-empty list of strings.
 
 #### By Device Name
 
@@ -617,14 +670,25 @@ target:
 # Targets: NX-OS devices that are also in the "leaf" device group
 ```
 
+#### Excluding Devices
+
+`exclude_devices` removes specific devices from whatever the other selectors matched. It is applied after `devices`, `groups` and `os`, and can be combined with any of them:
+
+```yaml
+target:
+  groups: [leaf]
+  exclude_devices: [leaf-04]
+# Targets: every device in the "leaf" device group except leaf-04
+```
+
 #### Explicit vs Dynamic Targeting
 
-For initial implementation, target selector modes are mutually exclusive:
+Target selector modes are mutually exclusive:
 
 - **Explicit targeting**: use `target.devices`
 - **Dynamic targeting**: use `target.groups` and/or `target.os`
 
-Mixing `devices` with `groups` or `os` in the same `target` block is invalid and should fail validation.
+Mixing `devices` with `groups` or `os` in the same `target` block fails at load with `cannot define target.devices together with target.groups and/or target.os`. `exclude_devices` is allowed in either mode.
 
 Invalid example:
 
@@ -659,13 +723,13 @@ CLI filtering:
 
 ```bash
 # Run only tests tagged "ospf"
-huginn run --tags ospf
+huginn run --mode testing --tags ospf
 
 # Run tests tagged "routing" but not "slow"
-huginn run --tags routing --exclude-tags slow
+huginn run --mode testing --tags routing --exclude-tags slow
 
 # Run tests tagged both "critical" and "fast"
-huginn run --tags critical,fast
+huginn run --mode testing --tags critical,fast
 ```
 
 **Important**: Filtered tests do not appear in results. If you filter to run only OSPF tests, only those tests appear in the report.
@@ -780,21 +844,23 @@ test_case_groups:
     description: Applies the OSPF configuration change
     tests: ["change-001"]
 
-phases:
-  pre-change:
-    description: Validate network state before making changes
-    test_case_groups: [pre-change-validation]
+scenarios:
+  ospf-area-change:
+    name: OSPF Area Change
+    phases:
+      pre-change:
+        description: Validate network state before making changes
+        test_case_groups: [pre-change-validation]
 
-  change:
-    description: Apply the OSPF configuration change
-    depends_on: [pre-change]
-    test_case_groups: [apply-change]
+      change:
+        description: Apply the OSPF configuration change
+        depends_on: [pre-change]
+        test_case_groups: [apply-change]
 
-  post-change:
-    description: Validate network state after changes
-    depends_on: [change]
-    test_case_groups: [post-change-validation]
-
+      post-change:
+        description: Validate network state after changes
+        depends_on: [change]
+        test_case_groups: [post-change-validation]
 ```
 
 ## Execution Order
@@ -802,35 +868,36 @@ phases:
 Given the above test plan, execution proceeds:
 
 ```txt
-1. pre-change
-   └── pre-change-validation
-       ├── connectivity-tests
-       │   ├── 1.0.0 Verify Management Connectivity
-       │   ├── 1.1.0 Verify NTP Synchronization
-       │   └── 1.2.0 Verify Syslog Configuration
-       ├── bgp-tests
-       │   └── 2.0.0 Verify BGP Neighbor State
-       └── ospf-tests-pre
-           ├── 3.0.0-pre Verify OSPF Neighbors (Pre-change)
-           └── 3.1.0-pre Verify OSPF Interface Config (Pre-change)
-   │
-   ▼
-2. change
-   └── apply-change
-       └── change-001 Apply OSPF Area Configuration
-   │
-   ▼
-3. post-change
-   └── post-change-validation
-       ├── connectivity-tests (same tests as pre-change!)
-       │   ├── 1.0.0 Verify Management Connectivity
-       │   ├── 1.1.0 Verify NTP Synchronization
-       │   └── 1.2.0 Verify Syslog Configuration
-       ├── bgp-tests (same tests as pre-change!)
-       │   └── 2.0.0 Verify BGP Neighbor State
-       └── ospf-tests-post
-           ├── 3.0.0-post Verify OSPF Neighbors (Post-change)
-           └── 3.1.0-post Verify OSPF Interface Config (Post-change)
+ospf-area-change
+    1. pre-change
+       └── pre-change-validation
+           ├── connectivity-tests
+           │   ├── 1.0.0 Verify Management Connectivity
+           │   ├── 1.1.0 Verify NTP Synchronization
+           │   └── 1.2.0 Verify Syslog Configuration
+           ├── bgp-tests
+           │   └── 2.0.0 Verify BGP Neighbor State
+           └── ospf-tests-pre
+               ├── 3.0.0-pre Verify OSPF Neighbors (Pre-change)
+               └── 3.1.0-pre Verify OSPF Interface Config (Pre-change)
+       │
+       ▼
+    2. change
+       └── apply-change
+           └── change-001 Apply OSPF Area Configuration
+       │
+       ▼
+    3. post-change
+       └── post-change-validation
+           ├── connectivity-tests (same tests as pre-change!)
+           │   ├── 1.0.0 Verify Management Connectivity
+           │   ├── 1.1.0 Verify NTP Synchronization
+           │   └── 1.2.0 Verify Syslog Configuration
+           ├── bgp-tests (same tests as pre-change!)
+           │   └── 2.0.0 Verify BGP Neighbor State
+           └── ospf-tests-post
+               ├── 3.0.0-post Verify OSPF Neighbors (Post-change)
+               └── 3.1.0-post Verify OSPF Interface Config (Post-change)
 ```
 
 Note that `connectivity-tests` and `bgp-tests` are included in both `pre-change-validation` and `post-change-validation`, validating that connectivity and BGP state remain consistent across the change.
@@ -840,33 +907,34 @@ Note that `connectivity-tests` and `bgp-tests` are included in both `pre-change-
 Results are organized hierarchically for easy navigation. Nested groups are shown in their hierarchy:
 
 ```txt
-Pre-change                                       [PASSED]  6/6
-└── pre-change-validation                        [PASSED]  6/6
-    ├── connectivity-tests                       [PASSED]  3/3
-    │   ├── 1.0.0 Verify Management              [PASSED]
-    │   ├── 1.1.0 Verify NTP Sync                [PASSED]
-    │   └── 1.2.0 Verify Syslog                  [PASSED]
-    ├── bgp-tests                                [PASSED]  1/1
-    │   └── 2.0.0 Verify BGP Neighbors           [PASSED]
-    └── ospf-tests-pre                           [PASSED]  2/2
-        ├── 3.0.0-pre Verify OSPF Neighbors      [PASSED]
-        └── 3.1.0-pre Verify OSPF Interfaces     [PASSED]
+OSPF Area Change                                     [PARTIAL] 12/13 (1 failed)
+    Pre-change                                       [PASSED]  6/6
+    └── pre-change-validation                        [PASSED]  6/6
+        ├── connectivity-tests                       [PASSED]  3/3
+        │   ├── 1.0.0 Verify Management              [PASSED]
+        │   ├── 1.1.0 Verify NTP Sync                [PASSED]
+        │   └── 1.2.0 Verify Syslog                  [PASSED]
+        ├── bgp-tests                                [PASSED]  1/1
+        │   └── 2.0.0 Verify BGP Neighbors           [PASSED]
+        └── ospf-tests-pre                           [PASSED]  2/2
+            ├── 3.0.0-pre Verify OSPF Neighbors      [PASSED]
+            └── 3.1.0-pre Verify OSPF Interfaces     [PASSED]
 
-Change                                           [PASSED]  1/1
-└── apply-change                                 [PASSED]  1/1
-    └── change-001 Apply OSPF Config             [PASSED]
+    Change                                           [PASSED]  1/1
+    └── apply-change                                 [PASSED]  1/1
+        └── change-001 Apply OSPF Config             [PASSED]
 
-Post-change                                      [PARTIAL] 5/6 (1 failed)
-└── post-change-validation                       [PARTIAL] 5/6 (1 failed)
-    ├── connectivity-tests                       [PASSED]  3/3
-    │   ├── 1.0.0 Verify Management              [PASSED]
-    │   ├── 1.1.0 Verify NTP Sync                [PASSED]
-    │   └── 1.2.0 Verify Syslog                  [PASSED]
-    ├── bgp-tests                                [PASSED]  1/1
-    │   └── 2.0.0 Verify BGP Neighbors           [PASSED]
-    └── ospf-tests-post                          [PARTIAL] 1/2 (1 failed)
-        ├── 3.0.0-post Verify OSPF Neighbors     [PASSED]
-        └── 3.1.0-post Verify OSPF Interfaces    [FAILED] ← Unexpected state
+    Post-change                                      [PARTIAL] 5/6 (1 failed)
+    └── post-change-validation                       [PARTIAL] 5/6 (1 failed)
+        ├── connectivity-tests                       [PASSED]  3/3
+        │   ├── 1.0.0 Verify Management              [PASSED]
+        │   ├── 1.1.0 Verify NTP Sync                [PASSED]
+        │   └── 1.2.0 Verify Syslog                  [PASSED]
+        ├── bgp-tests                                [PASSED]  1/1
+        │   └── 2.0.0 Verify BGP Neighbors           [PASSED]
+        └── ospf-tests-post                          [PARTIAL] 1/2 (1 failed)
+            ├── 3.0.0-post Verify OSPF Neighbors     [PASSED]
+            └── 3.1.0-post Verify OSPF Interfaces    [FAILED] ← Unexpected state
 ```
 
 ## CLI Filtering
@@ -874,24 +942,32 @@ Post-change                                      [PARTIAL] 5/6 (1 failed)
 The test plan can be filtered at runtime:
 
 ```bash
-# Run specific phase
-huginn run --phase pre-change
+# Run specific scenario
+huginn run --mode testing --scenario ospf-area-change
+
+# Run specific phase (requires --scenario)
+huginn run --mode testing --scenario ospf-area-change --phase pre-change
 
 # Run specific test case group
-huginn run --test-case-group unchanged-state
+huginn run --mode testing --test-case-group post-change-validation
 
-# Run specific test by ID
-huginn run --test-id 3.0.0-pre
+# Run specific tests by ID
+huginn run --mode testing --test-id 3.0.0-pre,3.1.0-pre
+
+# Run tests whose IDs match a regular expression
+huginn run --mode testing --test-id-pattern '-post$'
 
 # Run tests matching tags
-huginn run --tags ospf
+huginn run --mode testing --tags ospf
 
 # Exclude tests by tag
-huginn run --exclude-tags slow
+huginn run --mode testing --exclude-tags slow
 
 # Combine filters
-huginn run --phase post-change --tags ospf
+huginn run --mode testing --scenario ospf-area-change --phase post-change --tags ospf
 ```
+
+Every filter except `--test-id-pattern` accepts comma-separated values and can be repeated. `--scenario`, `--phase`, `--test-case-group` and `--test-id` match any listed value. `--tags` requires every listed tag, and `--exclude-tags` drops a test case that has any listed tag. `--phase` is rejected unless `--scenario` is also given, because phase names are scoped to a scenario.
 
 ## Validation
 
@@ -911,5 +987,5 @@ The framework validates test plans on load:
 
 - [Glossary](../concepts/glossary.md): Formal term definitions
 - [Testbed Specification](testbed.md): Device and device group definitions
-- [Test Authoring](context-api.md): Writing jobs
+- [Context API](context-api.md): Writing jobs
 - [Configuration](configuration.md): Default paths and settings
