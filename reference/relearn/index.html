@@ -1252,10 +1252,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-run-in-testing-mode" class="md-nav__link">
+  <a href="#run-in-testing-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Run in testing mode
+        Run in testing mode
       
     </span>
   </a>
@@ -1263,10 +1263,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-inspect-the-failures" class="md-nav__link">
+  <a href="#inspect-the-failures" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Inspect the failures
+        Inspect the failures
       
     </span>
   </a>
@@ -1274,10 +1274,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-re-learn-failed-tests" class="md-nav__link">
+  <a href="#re-learn-failed-tests" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Re-learn failed tests
+        Re-learn failed tests
       
     </span>
   </a>
@@ -1285,10 +1285,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-verify" class="md-nav__link">
+  <a href="#verify" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Verify
+        Verify
       
     </span>
   </a>
@@ -1750,10 +1750,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#1-run-in-testing-mode" class="md-nav__link">
+  <a href="#run-in-testing-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Run in testing mode
+        Run in testing mode
       
     </span>
   </a>
@@ -1761,10 +1761,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#2-inspect-the-failures" class="md-nav__link">
+  <a href="#inspect-the-failures" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Inspect the failures
+        Inspect the failures
       
     </span>
   </a>
@@ -1772,10 +1772,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#3-re-learn-failed-tests" class="md-nav__link">
+  <a href="#re-learn-failed-tests" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Re-learn failed tests
+        Re-learn failed tests
       
     </span>
   </a>
@@ -1783,10 +1783,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-verify" class="md-nav__link">
+  <a href="#verify" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Verify
+        Verify
       
     </span>
   </a>
@@ -1886,30 +1886,54 @@
 
 <h1 id="selective-re-learning">Selective Re-learning<a class="headerlink" href="#selective-re-learning" title="Permanent link">&para;</a></h1>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>When a testing run produces failures because learned parameters no longer reflect the current state of the environment, the <code>huginn relearn</code> command refreshes only the affected parameters. It parses the latest testing results, identifies test cases that are <code>failed</code>, <code>errored</code> or <code>lost_applicability</code>, and re-runs only those tests in learning mode to capture current device state as the new expected parameters -- without re-learning tests that are already passing.</p>
+<p>When a testing run produces failures because learned parameters no longer reflect the current state of the environment, the <code>huginn relearn</code> command refreshes only the affected parameters. It parses the latest testing results, identifies test cases that are <code>failed</code>, <code>errored</code> or <code>lost_applicability</code>, and re-runs only those tests in learning mode to capture current device state as the new expected parameters, without re-learning tests that are already passing.</p>
 <p>The command re-runs each failed test only in the exact scenario and phase where it failed, avoiding redundant device connections when the same test ID appears across many scenarios.</p>
 <h2 id="workflow">Workflow<a class="headerlink" href="#workflow" title="Permanent link">&para;</a></h2>
-<h3 id="1-run-in-testing-mode">1. Run in testing mode<a class="headerlink" href="#1-run-in-testing-mode" title="Permanent link">&para;</a></h3>
+<h3 id="run-in-testing-mode">Run in testing mode<a class="headerlink" href="#run-in-testing-mode" title="Permanent link">&para;</a></h3>
 <p>Execute the test plan against the live testbed. Some tests may fail due to parameter drift.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>--scenario<span class="w"> </span>link-shutdown-r1r2
 </code></pre></div>
 <p>Failures are recorded in <code>results/&lt;timestamp&gt;-testing/run.json</code>.</p>
-<h3 id="2-inspect-the-failures">2. Inspect the failures<a class="headerlink" href="#2-inspect-the-failures" title="Permanent link">&para;</a></h3>
+<h3 id="inspect-the-failures">Inspect the failures<a class="headerlink" href="#inspect-the-failures" title="Permanent link">&para;</a></h3>
 <p>Before re-learning, confirm that the failures reflect expected drift (stale parameters from an earlier learning pass) rather than real problems. The HTML report at <code>reports/latest/</code> provides detailed diffs between expected and actual values.</p>
-<h3 id="3-re-learn-failed-tests">3. Re-learn failed tests<a class="headerlink" href="#3-re-learn-failed-tests" title="Permanent link">&para;</a></h3>
+<h3 id="re-learn-failed-tests">Re-learn failed tests<a class="headerlink" href="#re-learn-failed-tests" title="Permanent link">&para;</a></h3>
 <p>Run the <code>relearn</code> command to refresh parameters for just the failed tests.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>huginn<span class="w"> </span>relearn<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>-t<span class="w"> </span>testbed.yaml
 </code></pre></div>
 <p>Example output:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Analyzing latest testing run for failures
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Using results from 2026-Jun-22-17-52-44-testing
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Re-learning 9 failed test context(s) (9 test(s) in 1 scenario(s), 1 phase(s)): link-shutdown-r1r2/pre-change/BGP-SUMMARY-NEIGHBOR-EXISTENCE, link-shutdown-r1r2/pre-change/BGP-SUMMARY-NEIGHBOR-TABLE-VERSION, ...
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Starting run in learning mode
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>Primed runtime connections in 2.846s
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>Re-learn complete: total=9 passed=9 failed=0 errored=0 not_applicable=0
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>Successfully re-learned parameters for 9 test(s)
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Using results from 2026-Sep-29-09-51-58-testing
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Re-learning 3 failed test context(s) (3 test(s) in 1 scenario(s), 1 phase(s)): link-shutdown-r1r2/pre-change/OSPF-NEIGHBOR-STATE, link-shutdown-r1r2/pre-change/BGP-SUMMARY-NEIGHBOR-EXISTENCE, link-shutdown-r1r2/pre-change/BGP-SUMMARY-TABLE-VERSION
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Loading inventory and test plan
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>Loaded inventory and test plan in 0.001s
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>Planning test execution
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>Planned test execution in 0.000s (tests=3 errors=0)
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>Execution order:
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  Scenario: link-shutdown-r1r2
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    Phase: pre-change
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>Priming runtime connections
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>Priming connection set: broker=RuntimeBroker methods=ssh targets=r1,r2
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>Primed connection set: broker=RuntimeBroker methods=ssh targets=r1,r2 duration=0.000s
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>Primed runtime connections in 0.000s
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>Executing scenarios and phases
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>Starting scenario: link-shutdown-r1r2
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>  Starting phase: pre-change
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>Starting test: OSPF-NEIGHBOR-STATE (Verify OSPF neighbor state)
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>Finished test: OSPF-NEIGHBOR-STATE status=passed
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>Starting test: BGP-SUMMARY-NEIGHBOR-EXISTENCE (Verify BGP neighbors exist)
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>Finished test: BGP-SUMMARY-NEIGHBOR-EXISTENCE status=passed
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>Starting test: BGP-SUMMARY-TABLE-VERSION (Verify BGP table version)
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>Finished test: BGP-SUMMARY-TABLE-VERSION status=passed
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>Phase complete: link-shutdown-r1r2.pre-change status=passed total=3 passed=3 failed=0 errored=0 not_applicable=0 lost_applicability=0 skipped=0 blocked=0
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>Finished phase execution in 0.002s
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>Finished all scenario execution in 0.002s
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>Report written to /home/netops/fabric-tests/reports/2026-Sep-29-09-51-59-learning/html/index.html
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>Run completed in 0.023s
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>Re-learn complete: total=3 passed=3 failed=0 errored=0 not_applicable=0
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>Successfully re-learned parameters for 3 test(s)
 </code></pre></div>
-<h3 id="4-verify">4. Verify<a class="headerlink" href="#4-verify" title="Permanent link">&para;</a></h3>
+<p>The lines between <code>Re-learning</code> and <code>Re-learn complete</code> are the progress output of the learning run, the same as <code>huginn run</code> prints. Each line is prefixed with a timestamp, omitted here.</p>
+<h3 id="verify">Verify<a class="headerlink" href="#verify" title="Permanent link">&para;</a></h3>
 <p>Run testing mode again to confirm the refreshed parameters resolve the failures.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>huginn<span class="w"> </span>run<span class="w"> </span>-m<span class="w"> </span>testing<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>--scenario<span class="w"> </span>link-shutdown-r1r2
 </code></pre></div>
@@ -1926,10 +1950,12 @@
 </code></pre></div>
 <h2 id="automatic-scoping">Automatic scoping<a class="headerlink" href="#automatic-scoping" title="Permanent link">&para;</a></h2>
 <p>The command does not simply filter by test ID. It records each failure as a scenario, phase, and test ID context, and re-runs each test only in the contexts where it failed. This prevents a test ID that appears in 50 scenarios from being re-learned in all 50 when only one had a failure.</p>
-<p>For example, if <code>BGP-SUMMARY-ROUTER-ID</code> failed only in the <code>link-shutdown-r1r2</code> scenario's <code>pre-change</code> phase, the relearn run will execute that test only in that specific scenario and phase context -- not across all scenarios that reference the same test ID. If another test failed only in a different scenario's <code>post-change</code> phase, <code>BGP-SUMMARY-ROUTER-ID</code> is not re-run there either. The summary line lists each context as <code>&lt;scenario&gt;/&lt;phase&gt;/&lt;test ID&gt;</code>.</p>
+<p>For example, if <code>BGP-SUMMARY-ROUTER-ID</code> failed only in the <code>link-shutdown-r1r2</code> scenario's <code>pre-change</code> phase, the relearn run will execute that test only in that specific scenario and phase context, not across all scenarios that reference the same test ID. If another test failed only in a different scenario's <code>post-change</code> phase, <code>BGP-SUMMARY-ROUTER-ID</code> is not re-run there either. The summary line lists each context as <code>&lt;scenario&gt;/&lt;phase&gt;/&lt;test ID&gt;</code>.</p>
 <p>Phases that contain no failures are not run. When a phase with failures depends on a phase without failures, the dependency is dropped and the phase runs on its own. When both phases contain failures, the dependency is kept, so the dependent phase is blocked if re-learning fails in the earlier phase. It is also blocked when the earlier phase has a change or action job, which learning mode skips (see <a href="../test-plan/#blocking-in-learning-mode">Blocking in learning mode</a>). Its parameters are then not updated, and the command still exits 0.</p>
 <h2 id="cli-reference">CLI reference<a class="headerlink" href="#cli-reference" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>huginn relearn [--plan &lt;path&gt;] [--testbed &lt;path&gt;] [--scenario &lt;id&gt;] [--phase &lt;id&gt;] [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>huginn relearn [--plan &lt;path&gt;] [--testbed &lt;path&gt; | --inventory-plugin &lt;name&gt;] [--scenario &lt;id&gt;] [--phase &lt;id&gt;]
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>               [--data-model &lt;path&gt;] [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;] [--output-dir &lt;path&gt;]
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>               [--debug] [--log-level &lt;level&gt;] [--show-logs] [--log-file &lt;path&gt;]
 </code></pre></div>
 <table>
 <thead>
@@ -1953,12 +1979,12 @@
 <tr>
 <td><code>--scenario</code></td>
 <td>all</td>
-<td>Re-learn only failures from the specified scenario.</td>
+<td>Re-learn only failures from the specified scenario. Also accepts <code>HUGINN_SCENARIO</code> env var.</td>
 </tr>
 <tr>
 <td><code>--phase</code></td>
 <td>all</td>
-<td>Re-learn only failures from the specified phase.</td>
+<td>Re-learn only failures from the specified phase. Does not require <code>--scenario</code>. Also accepts <code>HUGINN_PHASE</code> env var.</td>
 </tr>
 <tr>
 <td><code>--data-model</code>, <code>-d</code></td>
@@ -2009,7 +2035,7 @@
 </table>
 <h2 id="what-the-command-modifies">What the command modifies<a class="headerlink" href="#what-the-command-modifies" title="Permanent link">&para;</a></h2>
 <p>The relearn command overwrites parameter files in the <code>--parameters-dir</code> directory for each test that is re-learned. For example, if <code>BGP-SUMMARY-ROUTER-ID</code> fails and is re-learned, the file <code>parameters/BGP-SUMMARY-ROUTER-ID.json</code> is overwritten with freshly gathered device state.</p>
-<p>No test plan YAML files are modified. The test plan structure remains unchanged -- only the parameter values are refreshed.</p>
+<p>No test plan YAML files are modified. The test plan structure remains unchanged; only the parameter values are refreshed.</p>
 <h2 id="exit-codes">Exit codes<a class="headerlink" href="#exit-codes" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -2021,14 +2047,19 @@
 <tbody>
 <tr>
 <td>0</td>
-<td>No failures found, or no re-learned test case is <code>failed</code>, <code>errored</code> or <code>blocked</code>. Test cases blocked only because a phase was not run in learning mode do not count.</td>
+<td>No failures to re-learn, or no re-learned test case is <code>failed</code>, <code>errored</code> or <code>blocked</code>. Test cases blocked only because a phase was not run in learning mode do not count.</td>
 </tr>
 <tr>
 <td>1</td>
-<td>A re-learned test case is <code>failed</code>, <code>errored</code> or <code>blocked</code>, or a configuration error occurred.</td>
+<td>A re-learned test case is <code>failed</code>, <code>errored</code> or <code>blocked</code>; the results directory has no testing run; the testbed, test plan or data model could not be loaded; or a broker error occurred.</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="../cli/#usage-errors">Usage error</a>, such as passing both <code>--testbed</code> and <code>--inventory-plugin</code>; inventory plugin failure; phase dependencies in a scenario could not be resolved; or results or reports could not be written.</td>
 </tr>
 </tbody>
 </table>
+<p>A test case that learning mode skips, such as a change or action job, is not re-learned and does not cause a non-zero exit. If every failed test case is skipped this way, the command exits 0 and reports <code>Successfully re-learned parameters for 0 test(s)</code>.</p>
 <p>A non-zero exit during re-learning typically means the device could not be reached or a job raised an unexpected error. The parameter files for those tests will not have been updated.</p>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>

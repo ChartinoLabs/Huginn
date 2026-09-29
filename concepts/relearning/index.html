@@ -1741,18 +1741,18 @@
 
 
 <h1 id="re-learning">Re-learning<a class="headerlink" href="#re-learning" title="Permanent link">&para;</a></h1>
-<p>Re-learning is a convenience command that selectively refreshes baseline parameters for tests that are failing in a testing run. Rather than re-running the entire test plan in learning mode -- which would overwrite parameters for tests that are already passing -- it targets only the failures and re-learns just those.</p>
+<p>Re-learning is a convenience command that selectively refreshes baseline parameters for tests that are failing in a testing run. Rather than re-running the entire test plan in learning mode, which would overwrite parameters for tests that are already passing, it targets only the failures and re-learns just those.</p>
 <h2 id="the-problem-expected-drift-between-learning-and-testing">The problem: expected drift between learning and testing<a class="headerlink" href="#the-problem-expected-drift-between-learning-and-testing" title="Permanent link">&para;</a></h2>
 <p>Learned parameters represent device state at a specific point in time. Between when parameters are originally learned and when the test plan is next executed in testing mode, the environment may have changed in expected ways:</p>
 <ul>
 <li>
-<p><strong>The testbed was partially configured during initial learning.</strong> Parameters were captured against an incomplete environment -- perhaps BGP peers hadn't been configured yet, or OSPF adjacencies hadn't formed. Now that the testbed is fully built out, those original parameters no longer reflect reality.</p>
+<p><strong>The testbed was partially configured during initial learning.</strong> Parameters were captured against an incomplete environment: perhaps BGP peers hadn't been configured yet, or OSPF adjacencies hadn't formed. Now that the testbed is fully built out, those original parameters no longer reflect reality.</p>
 </li>
 <li>
-<p><strong>Time has passed and the environment has evolved.</strong> Changes have been applied to the environment since learning: new routes were added, interfaces were provisioned, software was upgraded. External factors have also shifted state -- the number of routes learned from the Internet has changed, LLDP neighbors have been added or removed as adjacent devices were modified, and so on.</p>
+<p><strong>Time has passed and the environment has evolved.</strong> Changes have been applied to the environment since learning: new routes were added, interfaces were provisioned, software was upgraded. External factors have also shifted state: the number of routes learned from the Internet has changed, LLDP neighbors have been added or removed as adjacent devices were modified, and so on.</p>
 </li>
 </ul>
-<p>In both cases, the test plan is being run in testing mode (typically in a pre-change or baseline phase where everything is expected to pass), and a subset of tests fail. The failures are not indicating real problems -- they reflect the fact that the learned parameters are stale for those specific tests.</p>
+<p>In both cases, the test plan is being run in testing mode (typically in a pre-change or baseline phase where everything is expected to pass), and a subset of tests fail. The failures are not indicating real problems; they reflect the fact that the learned parameters are stale for those specific tests.</p>
 <h2 id="what-re-learning-does">What re-learning does<a class="headerlink" href="#what-re-learning-does" title="Permanent link">&para;</a></h2>
 <p>The <code>huginn relearn</code> command identifies tests that are failing in the most recent testing run and re-runs only those tests in learning mode to capture the current device state as the new expected parameters. Tests that are already passing are left untouched.</p>
 <p>This is the key value: you do not need to re-learn the entire phase or test plan. If 300 tests pass and 9 fail, only those 9 are re-learned. The passing tests keep their existing parameters, which are still accurate.</p>
@@ -1808,7 +1808,7 @@
 </tr>
 </tbody>
 </table>
-<p>The key distinction: re-learning refreshes the <em>same</em> parameter file because the test's expected behavior hasn't changed -- only the specific values have drifted. Reconciliation creates <em>new</em> test variants because the post-change state is structurally different from baseline and both sets of expected values must coexist in the plan.</p>
+<p>The key distinction: re-learning refreshes the <em>same</em> parameter file because the test's expected behavior hasn't changed, only the specific values have drifted. Reconciliation creates <em>new</em> test variants because the post-change state is structurally different from baseline and both sets of expected values must coexist in the plan.</p>
 <h2 id="when-not-to-use-relearn">When NOT to use relearn<a class="headerlink" href="#when-not-to-use-relearn" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Failures indicate a real problem.</strong> If BGP neighbors are unexpectedly down, re-learning would capture the broken state as the new baseline, masking the issue.</li>

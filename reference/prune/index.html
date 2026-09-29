@@ -1435,6 +1435,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1453,6 +1464,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2000,6 +2022,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2018,6 +2051,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2080,7 +2124,7 @@
 <p>The <code>huginn prune</code> command reads learning results and narrows the test plan automatically:</p>
 <ul>
 <li><strong>Partially applicable tests</strong> (some devices are N/A): adds <code>target.exclude_devices</code> to the test case definition so those devices are skipped on future runs.</li>
-<li><strong>Fully non-applicable tests</strong> (all devices are N/A): removes the test from its group. Leaf groups have the test ID removed from <code>tests</code>; composite groups that use <code>groups</code> inheritance get an <code>exclude_tests</code> entry instead.</li>
+<li><strong>Fully non-applicable tests</strong> (all devices are N/A): removes the test from every group that includes it. Leaf groups have the test ID removed from <code>tests</code>; composite groups that use <code>groups</code> inheritance get an <code>exclude_tests</code> entry instead. A test in a leaf group that a composite group includes gets both changes.</li>
 <li><strong>Orphaned definitions</strong> (optional): with <code>--remove-orphans</code>, every test case definition that no group references is deleted entirely. This includes orphans left by earlier prune runs and test cases that were never placed in any group. See <a href="#orphan-removal">Orphan removal</a>.</li>
 </ul>
 <p>Prune is designed to be run once after an initial learning pass against a new testbed. It tightens test scope based on observed reality, eliminating noise from tests that can never pass on the current infrastructure.</p>
@@ -2104,17 +2148,27 @@
 </code></pre></div>
 <p>Example output:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Pruning non-applicable tests from test plan
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Using results from 2026-Apr-30-14-22-01-learning
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Using results from 2026-Sep-29-09-42-54-learning
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Found 3 partially applicable and 2 fully non-applicable test(s)
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Partially applicable tests (exclude_devices):
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  1.3.0: exclude spine-03
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  2.1.0: exclude leaf-04, leaf-05
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  3.0.0: exclude spine-01
 <a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>Fully non-applicable tests (remove from groups):
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  4.0.0
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>  4.1.0
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>Dry run complete: 3 test(s) would get exclude_devices, 2 test(s) would be removed from groups
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  3.2.0
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>  4.0.0
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>Applying exclude_devices to test cases:
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>  1.3.0: exclude_devices=[&#39;spine-03&#39;]
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>  2.1.0: exclude_devices=[&#39;leaf-04&#39;, &#39;leaf-05&#39;]
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>  3.0.0: exclude_devices=[&#39;spine-01&#39;]
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>Removing tests from groups:
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>  4.0.0 from bgp-tests
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>  3.2.0 from ospf-tests
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>  3.2.0 from pre-change-validation
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>  4.0.0 from pre-change-validation
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>Dry run complete: 3 test(s) would get exclude_devices, 4 test(s) would be removed from groups
 </code></pre></div>
+<p>The first two lists come from the learning results. The <code>Applying exclude_devices to test cases</code> and <code>Removing tests from groups</code> lists are the changes to the test plan, with one line per test case and one line per group membership. A test is removed from every group whose tests include it, so the removed-from-groups count in the last line counts group memberships, not distinct tests: 2 fully non-applicable tests here make 4 removals. Each line is prefixed with a timestamp, omitted here.</p>
 <h3 id="apply-the-prune">Apply the prune<a class="headerlink" href="#apply-the-prune" title="Permanent link">&para;</a></h3>
 <p>Run without <code>--dry-run</code> to modify the test plan files.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>huginn<span class="w"> </span>prune<span class="w"> </span>-p<span class="w"> </span>test_plan/
@@ -2130,6 +2184,7 @@
 <p>The dry-run output lists each definition that would be deleted under <code>Removing orphaned test case definitions</code>.</p>
 <h2 id="cli-reference">CLI reference<a class="headerlink" href="#cli-reference" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>huginn prune --plan &lt;path&gt; [--results-dir &lt;path&gt;] [--dry-run] [--remove-orphans]
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>             [--debug] [--log-level &lt;level&gt;] [--show-logs] [--log-file &lt;path&gt;]
 </code></pre></div>
 <table>
 <thead>
@@ -2200,37 +2255,39 @@
 <a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/verify_lldp_neighbors.py</span>
 <a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
 <a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">fabric-core</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">      </span><span class="nt">exclude_devices</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">spine-03</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">      </span><span class="nt">exclude_devices</span><span class="p">:</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spine-03</span>
 </code></pre></div>
 <p>If the test case already has <code>exclude_devices</code>, the prune command merges the new exclusions with the existing list. Devices already excluded are not duplicated.</p>
 <h3 id="full-non-applicability-group-removal">Full non-applicability: group removal<a class="headerlink" href="#full-non-applicability-group-removal" title="Permanent link">&para;</a></h3>
-<p>When all devices are non-applicable for a test, the test ID is removed from its group. The removal strategy depends on the group type.</p>
+<p>When all devices are non-applicable for a test, the test ID is removed from every group whose tests include it, directly or through nested <code>groups</code>. How it is removed depends on the group type, and a plan with nested groups usually gets both kinds of change at once.</p>
 <h4 id="leaf-groups">Leaf groups<a class="headerlink" href="#leaf-groups" title="Permanent link">&para;</a></h4>
-<p>Groups that directly list test IDs in <code>tests</code> have the test ID removed from the list.</p>
-<p>Before:</p>
+<p>Groups that list test IDs only in <code>tests</code>, with no <code>groups</code> key, have the test ID removed from the list.</p>
+<h4 id="composite-groups">Composite groups<a class="headerlink" href="#composite-groups" title="Permanent link">&para;</a></h4>
+<p>Groups that include other groups through <code>groups</code> have the test ID added to <code>exclude_tests</code>, rather than modifying the included group. This also applies to a test ID the composite group lists in its own <code>tests</code>.</p>
+<h4 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h4>
+<p>Before (3.2.0 and 4.0.0 are fully non-applicable):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">ospf-tests</span><span class="p">:</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;3.0.0&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;3.1.0&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;3.2.0&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="nt">bgp-tests</span><span class="p">:</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;4.0.0&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;4.1.0&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span><span class="nt">pre-change-validation</span><span class="p">:</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">bgp-tests</span><span class="p p-Indicator">]</span>
 </code></pre></div>
-<p>After (3.2.0 is fully non-applicable):</p>
+<p>After:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">ospf-tests</span><span class="p">:</span>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;3.0.0&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;3.1.0&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="nt">bgp-tests</span><span class="p">:</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;4.1.0&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span><span class="nt">pre-change-validation</span><span class="p">:</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">bgp-tests</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">    </span><span class="nt">exclude_tests</span><span class="p">:</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3.2.0</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4.0.0</span>
 </code></pre></div>
-<h4 id="composite-groups">Composite groups<a class="headerlink" href="#composite-groups" title="Permanent link">&para;</a></h4>
-<p>Groups that inherit from other groups via <code>groups</code> have the test ID added to <code>exclude_tests</code> rather than modifying the inherited group.</p>
-<p>Before:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">pre-change-validation</span><span class="p">:</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">bgp-tests</span><span class="p p-Indicator">]</span>
-</code></pre></div>
-<p>After (4.0.0 from bgp-tests is fully non-applicable):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nt">pre-change-validation</span><span class="p">:</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">bgp-tests</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="nt">exclude_tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;4.0.0&quot;</span><span class="p p-Indicator">]</span>
-</code></pre></div>
-<p>This preserves the inheritance structure. The <code>exclude_tests</code> mechanism is the same one used by the <a href="../reconcile/">reconcile command</a> to exclude baseline tests that diverge after a change.</p>
+<p>The leaf groups <code>ospf-tests</code> and <code>bgp-tests</code> lose the test IDs from <code>tests</code>. The composite group <code>pre-change-validation</code> gets them in <code>exclude_tests</code>, which preserves its inheritance structure. The <code>exclude_tests</code> mechanism is the same one used by the <a href="../reconcile/">reconcile command</a> to exclude baseline tests that diverge after a change.</p>
 <h3 id="orphan-removal">Orphan removal<a class="headerlink" href="#orphan-removal" title="Permanent link">&para;</a></h3>
 <p>When <code>--remove-orphans</code> is passed, the command checks every test case defined in the plan, whether or not the current run pruned it. A test case is referenced if at least one group's effective tests include it. A group's effective tests are:</p>
 <ol>
@@ -2245,6 +2302,29 @@
 <li>Any group counts, including a group that no scenario phase uses. A test case referenced only by such a group is kept.</li>
 </ul>
 <p>This is a destructive operation - the test case definition and its key are removed from the <code>test_cases</code> map. The associated parameter files in <code>parameters/</code> are not touched; remove those manually if desired.</p>
+<h2 id="exit-codes">Exit codes<a class="headerlink" href="#exit-codes" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>The prune was applied or previewed, there was nothing to prune, or the pruning was already applied.</td>
+</tr>
+<tr>
+<td>1</td>
+<td>The results directory does not exist or has no learning run, the test plan could not be loaded, or the pruned test plan failed validation.</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="../cli/#usage-errors">Usage error</a>, such as a missing <code>--plan</code> or a <code>--plan</code> path that does not exist.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="idempotency">Idempotency<a class="headerlink" href="#idempotency" title="Permanent link">&para;</a></h2>
 <p>Running <code>huginn prune</code> a second time against the same results is safe. The command detects tests that are already pruned (devices already in <code>exclude_devices</code>, tests already removed from groups) and skips them. A message reports how many tests were skipped.</p>
 <h2 id="directory-mode">Directory mode<a class="headerlink" href="#directory-mode" title="Permanent link">&para;</a></h2>
@@ -2252,8 +2332,8 @@
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../cli/">CLI Reference</a> - every <code>huginn</code> command, option and environment variable.</li>
-<li><a href="../test-plan/#targeting">Test Plan Specification - Targeting</a> - the <code>target</code> block and device filtering.</li>
-<li><a href="../test-plan/#test-case-groups">Test Plan Specification - Test Case Groups</a> - group structure, <code>tests</code>, <code>groups</code>, and <code>exclude_tests</code>.</li>
+<li><a href="../test-plan/#excluding-devices">Test Plan Specification - Excluding Devices</a> - the <code>target.exclude_devices</code> field that prune adds.</li>
+<li><a href="../test-plan/#test-case-group-fields">Test Plan Specification - Test Case Group Fields</a> - group structure, <code>tests</code>, <code>groups</code>, and <code>exclude_tests</code>.</li>
 <li><a href="../reconcile/">Parameter Reconciliation</a> - a related command that creates new test case variants after a network change.</li>
 <li><a href="../../authoring/static-validation/#handling-empty-gathered-state">Static Parameter Validation - Handling empty gathered state</a> - the <code>gather_state</code> pattern that produces <code>NOT_APPLICABLE</code> results consumed by prune.</li>
 <li><a href="../../authoring/#command-support">Authoring Jobs - Command Support</a> - the <code>check_command_support</code> pattern that produces <code>NOT_APPLICABLE</code> results consumed by prune.</li>

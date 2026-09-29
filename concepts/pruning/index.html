@@ -1754,7 +1754,7 @@
 <p>The <code>huginn prune</code> command inspects the most recent learning run and modifies the test plan to reflect observed reality:</p>
 <ul>
 <li><strong>Partially applicable tests</strong> - When some devices return data but others are N/A, the non-applicable devices are added to <code>target.exclude_devices</code> on the test case definition. The test remains in the plan but skips those specific devices.</li>
-<li><strong>Fully non-applicable tests</strong> - When all devices are N/A, the test is removed from its group entirely. It will not run in any future execution against this testbed.</li>
+<li><strong>Fully non-applicable tests</strong> - When all devices are N/A, the test is removed from every group that includes it, including composite groups that inherit it through <code>groups</code>. It will not run in any future execution against this testbed.</li>
 <li><strong>Orphaned definitions</strong> (optional) - Test case definitions that no group references can be deleted from the YAML. This covers tests pruned in this run or an earlier one, and also test cases that were never placed in any group. See <a href="../../reference/prune/#orphan-removal">Orphan removal</a>.</li>
 </ul>
 <p>The result is a tighter test plan that only validates what the infrastructure actually supports.</p>
