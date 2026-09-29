@@ -158,7 +158,7 @@ Inventory plugins do not read `config.<name>`. They take their configuration fro
 
 ## Hooks
 
-A hook plugin runs code at lifecycle points of `huginn run` and `huginn relearn`, such as before each test case or after the run, and can skip a phase, group or test case before it runs. Hook plugins are classes registered in the `huginn.hooks` entry point group of an installed package:
+A hook plugin runs code at lifecycle points of `huginn run` and `huginn relearn`, such as before each test case or after the run. It can skip a phase, group or test case before it runs, or stop the whole run, which then exits with code 1. Hook plugins are classes registered in the `huginn.hooks` entry point group of an installed package:
 
 ```toml
 # pyproject.toml of the package that provides the hook
@@ -176,9 +176,9 @@ hooks = ["change-window"]
 calendar = "network-changes"
 ```
 
-The hooks are loaded once per run. `hooks = []` disables them all. `huginn execute` does not dispatch hooks. A hook that raises prints a warning and the run continues with the same exit code.
+The hooks are loaded once per run. `hooks = []` disables them all. `huginn execute` does not dispatch hooks. A hook that raises prints a warning and the run continues with the same exit code. Plugin options are passed as written: `${VAR}` references are not expanded, so a plugin that needs a secret should take the name of an environment variable and read it itself.
 
-See [Hook Plugins](hooks.md) for the protocol, the events and their payloads, skipping, and a complete example plugin.
+See [Hook Plugins](hooks.md) for the protocol, the events and their payloads, [skipping and aborting](hooks.md#skipping-and-aborting), and [complete plugins](hooks.md#use-cases) for run notifications, a testbed lock and job telemetry.
 
 ## Environment variables
 

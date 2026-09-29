@@ -197,6 +197,8 @@ def _build_run_summary_payload(
         payload["completed_at"] = result.completed_at
     if result.elapsed_seconds is not None:
         payload["elapsed_seconds"] = result.elapsed_seconds
+    if result.aborted is not None:
+        payload["aborted"] = asdict(result.aborted)
     if payload["mode"] is None:
         payload.pop("mode")
     return payload

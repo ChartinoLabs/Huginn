@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from huginn.enums import StrEnum
+from huginn.models import RunAbort
 
 if TYPE_CHECKING:
     from huginn.output import Output
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 HOOK_ERROR_WARNING_CODE = "hook_error"
+HOOK_ABORT_IGNORED_WARNING_CODE = "hook_abort_ignored"
 
 
 class HookEvent(StrEnum):
@@ -50,6 +52,32 @@ class HookSkip:
     reason: str
 
 
+@dataclass(frozen=True)
+class HookAbort:
+    """Abort the whole run, recording ``reason``.
+
+    Valid on every event except ``run_end``. Test cases that are running
+    finish, nothing new starts, and every test case that has not started is
+    recorded BLOCKED with ``reason``. The ``*_end`` events of items that have
+    started, and ``run_end``, still fire.
+    """
+
+    reason: str
+
+
+@dataclass(frozen=True)
+class HookOutcome:
+    """What the hooks of one dispatched event asked for.
+
+    ``skip_reasons`` holds one reason per hook that skipped the item of an
+    influencing event. ``abort`` is the first ``HookAbort`` a hook returned,
+    or None.
+    """
+
+    skip_reasons: list[str]
+    abort: RunAbort | None = None
+
+
 INFLUENCING_EVENTS: set[HookEvent] = {
     HookEvent.TEST_CASE_START,
     HookEvent.PHASE_START,
@@ -74,7 +102,7 @@ class HookPlugin(Protocol):
         self,
         event: HookEvent,
         context: dict[str, Any],
-    ) -> HookSignal | HookSkip | None:
+    ) -> HookSignal | HookSkip | HookAbort | None:
         """Handle a lifecycle event.
 
         Args:
@@ -86,7 +114,8 @@ class HookPlugin(Protocol):
             For influencing events (PHASE_START, GROUP_START,
             TEST_CASE_START): return HookSignal.SKIP or HookSkip(reason) to
             skip the item, or HookSignal.CONTINUE / None to proceed normally.
-            For all other events: return value is ignored.
+            On any event except RUN_END: return HookAbort(reason) to stop the
+            run. Any other return value is ignored.
         """
         ...
 
@@ -154,28 +183,63 @@ class HookDispatcher:
     ) -> list[str]:
         """Dispatch event to all subscribed hooks and collect skip reasons.
 
-        Every subscribed hook is called, even after one requests a skip. A
-        hook that raises is reported as a warning and does not stop the others.
+        See ``dispatch_outcome``, which also returns a requested abort.
+
+        Returns:
+            One reason per hook that requested a skip, in hook order. Always
+            empty for events that are not influencing events.
+        """
+        outcome = await self.dispatch_outcome(event, **context)
+        return outcome.skip_reasons
+
+    async def dispatch_outcome(
+        self, event: HookEvent, **context: object
+    ) -> HookOutcome:
+        """Dispatch event to all subscribed hooks and collect what they request.
+
+        Every subscribed hook is called, even after one requests a skip or an
+        abort. A hook that raises is reported as a warning and does not stop
+        the others. When several hooks abort, the first one wins. An abort
+        from ``run_end`` is ignored with a warning.
 
         Args:
             event: The lifecycle event to dispatch.
             **context: Event-specific context passed to each hook.
 
         Returns:
-            One reason per hook that requested a skip, in hook order. Always
-            empty for events that are not influencing events.
+            The skip reasons, in hook order, and the first accepted abort.
         """
         reasons: list[str] = []
+        abort: RunAbort | None = None
         for hook in self._hooks_by_event.get(event, []):
             try:
                 result = await hook.on_event(event, context)
             except Exception as error:  # noqa: BLE001
                 self._warn_hook_error(hook, event, error)
                 continue
+            if isinstance(result, HookAbort):
+                abort = abort or self._accept_abort(hook, event, result)
+                continue
             reason = skip_reason(hook, result)
             if event in INFLUENCING_EVENTS and reason is not None:
                 reasons.append(reason)
-        return reasons
+        return HookOutcome(skip_reasons=reasons, abort=abort)
+
+    def _accept_abort(
+        self, hook: HookPlugin, event: HookEvent, result: HookAbort
+    ) -> RunAbort | None:
+        """Return the abort a hook requested, or None when ``event`` forbids it."""
+        if event != HookEvent.RUN_END:
+            return RunAbort(hook=hook.name, event=event.value, reason=result.reason)
+        logger.warning(
+            "Hook '%s' returned HookAbort from 'run_end'; ignored", hook.name
+        )
+        if self._output is not None:
+            self._output.warning(
+                f"WARNING [{HOOK_ABORT_IGNORED_WARNING_CODE}]: Hook '{hook.name}' "
+                "returned HookAbort from 'run_end', which cannot abort; ignored"
+            )
+        return None
 
     def _warn_hook_error(
         self, hook: HookPlugin, event: HookEvent, error: Exception

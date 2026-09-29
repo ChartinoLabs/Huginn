@@ -166,6 +166,28 @@ h3 {
   color: var(--navy-900);
 }
 
+.abort-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  align-items: baseline;
+  margin: 0 0 22px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  border-left: 4px solid var(--red-600);
+  background: var(--red-100);
+  color: var(--ink);
+}
+
+.abort-banner strong {
+  color: var(--red-600);
+}
+
+.abort-banner-event {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .summary-meta-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

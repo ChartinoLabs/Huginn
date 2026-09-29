@@ -35,6 +35,7 @@ from huginn.models import (
     ExecutedTestCase,
     ExecutedTestCaseGroup,
     Phase,
+    RunAbort,
     RunResult,
     RunSummary,
     Scenario,
@@ -131,7 +132,10 @@ async def run_test_plan(
 
     Hook plugins are resolved once from `registry` and receive every lifecycle
     event from `run_start`, after planning, to `run_end`, which also fires
-    when the run stops with an error. See `huginn.run_hooks`.
+    when the run stops with an error. See `huginn.run_hooks`. A hook that
+    returns `HookAbort` stops the run early: nothing new starts, every test
+    case that has not started is recorded BLOCKED, and results are written
+    as usual with the abort in `RunResult.aborted`.
     """
     run_started = perf_counter()
     started_at = datetime.now().astimezone()
@@ -283,7 +287,70 @@ async def _execute_and_persist(
     output: Output | None,
     hooks: RunHooks,
 ) -> RunResult:
-    """Connect, execute every scenario, disconnect, and write the results."""
+    """Connect, execute every scenario, disconnect, and write the results.
+
+    When a hook aborted the run at `run_start`, no broker is created and no
+    device is connected: every test case is recorded BLOCKED.
+    """
+    if hooks.aborted is not None:
+        executed_scenarios = [
+            _build_aborted_scenario(scenario, test_plan, hooks.aborted, output)
+            for scenario in test_plan.scenarios.values()
+        ]
+    else:
+        executed_scenarios = await _execute_with_broker(
+            mode=mode,
+            testbed=testbed,
+            test_plan=test_plan,
+            planned_executions=planned_executions,
+            planned_brokers=planned_brokers,
+            parameters_dir=parameters_dir,
+            output_dir=output_dir,
+            data_model=data_model,
+            broker_factory=broker_factory,
+            registry=registry,
+            output=output,
+            hooks=hooks,
+        )
+
+    summary = _build_summary(executed_scenarios)
+    completed_at = datetime.now().astimezone()
+    result = RunResult(
+        summary=summary,
+        scenarios=executed_scenarios,
+        mode=mode.value,
+        started_at=started_at.isoformat(timespec="seconds"),
+        completed_at=completed_at.isoformat(timespec="seconds"),
+        elapsed_seconds=completed_at.timestamp() - started_at.timestamp(),
+        aborted=hooks.aborted,
+    )
+    await _persist_and_report(
+        result=result,
+        run_dir=run_dir,
+        mode=mode,
+        project_root=project_root,
+        registry=registry,
+        output=output,
+    )
+    return result
+
+
+async def _execute_with_broker(
+    *,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    planned_brokers: set[str],
+    parameters_dir: Path,
+    output_dir: Path,
+    data_model: Mapping[str, object] | None,
+    broker_factory: Callable[[], RuntimeBroker] | None,
+    registry: PluginRegistry | None,
+    output: Output | None,
+    hooks: RunHooks,
+) -> list[ExecutedScenario]:
+    """Connect the runtime broker, execute every scenario, and disconnect."""
     runtime_broker = _create_broker(
         broker_factory=broker_factory,
         required_brokers=planned_brokers,
@@ -334,26 +401,7 @@ async def _execute_and_persist(
                 code=ErrorCode.BROKER_ERROR,
                 traceback_text=disconnect_traceback,
             )
-
-    summary = _build_summary(executed_scenarios)
-    completed_at = datetime.now().astimezone()
-    result = RunResult(
-        summary=summary,
-        scenarios=executed_scenarios,
-        mode=mode.value,
-        started_at=started_at.isoformat(timespec="seconds"),
-        completed_at=completed_at.isoformat(timespec="seconds"),
-        elapsed_seconds=completed_at.timestamp() - started_at.timestamp(),
-    )
-    await _persist_and_report(
-        result=result,
-        run_dir=run_dir,
-        mode=mode,
-        project_root=project_root,
-        registry=registry,
-        output=output,
-    )
-    return result
+    return executed_scenarios
 
 
 async def _persist_and_report(
@@ -463,6 +511,11 @@ async def _execute_scenarios(
     if mode == ExecutionMode.LEARNING:
         learning_execution_cache = {}
     for scenario in test_plan.scenarios.values():
+        if hooks.aborted is not None:
+            executed_scenarios.append(
+                _build_aborted_scenario(scenario, test_plan, hooks.aborted, output)
+            )
+            continue
         _emit_status(output, f"Starting scenario: {scenario.identifier}")
         await hooks.scenario_start(scenario)
         executed_scenario = await _execute_scenario(
@@ -528,7 +581,9 @@ async def _execute_scenario(
             )
 
         phase = scenario.phases[phase_name]
-        block = _dependency_block(scenario, phase, phase_results, blocks)
+        block = _abort_block(hooks) or _dependency_block(
+            scenario, phase, phase_results, blocks
+        )
         if block is not None:
             blocks[phase_name] = block
         elif not phase.preserve_cache:
@@ -606,7 +661,8 @@ async def _execute_ready_phase(
 
     A blocked phase dispatches no hook events. Otherwise ``phase_start`` is
     dispatched first, and ``phase_end`` after the phase finishes or after a
-    hook skipped it.
+    hook skipped it. A hook that aborts the run on ``phase_start`` blocks the
+    phase, and this takes precedence over any hook's skip.
     """
     if block is not None:
         return _build_dependency_blocked_phase(
@@ -618,7 +674,16 @@ async def _execute_ready_phase(
         )
 
     skip_reasons = await hooks.phase_start(scenario_name, phase)
-    if skip_reasons:
+    abort_block = _abort_block(hooks)
+    if abort_block is not None:
+        executed_phase = _build_dependency_blocked_phase(
+            scenario_name=scenario_name,
+            phase=phase,
+            test_plan=test_plan,
+            block=abort_block,
+            output=output,
+        )
+    elif skip_reasons:
         executed_phase = _build_hook_skipped_phase(
             scenario_name=scenario_name,
             phase=phase,
@@ -697,14 +762,16 @@ def _build_dependency_blocked_phase(
     block: _PhaseBlock,
     output: Output | None,
 ) -> ExecutedPhase:
-    """Build a blocked phase after a dependency that blocks it."""
-    _emit_status(
-        output,
-        f"Skipping phase: {phase.identifier} (blocked by dependencies)",
+    """Build a blocked phase after a dependency or a hook abort blocks it."""
+    cause = (
+        "run aborted by hook"
+        if block.kind == BlockKind.HOOK_ABORT
+        else "blocked by dependencies"
     )
+    _emit_status(output, f"Skipping phase: {phase.identifier} ({cause})")
     log_info(
         output,
-        "Phase blocked by dependencies",
+        "Phase blocked",
         scenario=scenario_name,
         phase=phase.identifier,
         depends_on=phase.depends_on,
@@ -1056,11 +1123,23 @@ async def _execute_group(
     """Execute one group, dispatching ``group_start`` and ``group_end`` around it.
 
     When a hook skips the group on ``group_start``, every test case in it is
-    recorded SKIPPED and ``group_end`` still fires.
+    recorded SKIPPED and ``group_end`` still fires. When the run is aborted,
+    before or on ``group_start``, every test case is recorded BLOCKED instead,
+    and only a group whose ``group_start`` fired dispatches ``group_end``.
     """
     group = test_plan.test_case_groups[group_name]
+    abort_block = _abort_block(hooks)
+    if abort_block is not None:
+        return _build_blocked_group(
+            scenario_name, phase.identifier, group, test_plan, abort_block
+        )
     skip_reasons = await hooks.group_start(scenario_name, phase.identifier, group)
-    if skip_reasons:
+    abort_block = _abort_block(hooks)
+    if abort_block is not None:
+        executed_group = _build_blocked_group(
+            scenario_name, phase.identifier, group, test_plan, abort_block
+        )
+    elif skip_reasons:
         reason = _hook_skip_reason(skip_reasons)
         _emit_status(output, f"Skipping group: {group.identifier} ({reason})")
         log_info(
@@ -1350,38 +1429,127 @@ def _build_blocked_phase(
     block: _PhaseBlock,
 ) -> ExecutedPhase:
     """Build blocked phase output when a scenario cannot progress."""
-    blocked_groups: list[ExecutedTestCaseGroup] = []
-    for group_name in phase.test_case_groups:
-        group = test_plan.test_case_groups[group_name]
-        blocked_tests = [
-            ExecutedTestCase(
-                scenario=scenario_name,
-                phase=phase.identifier,
-                group=group.identifier,
-                test_id=test_id,
-                title=test_plan.test_cases[test_id].title,
-                status=ResultStatus.BLOCKED.value,
-                error=block.reason,
-                block_kind=block.kind.value,
-            )
-            for test_id in group.tests
-        ]
-        blocked_groups.append(
-            ExecutedTestCaseGroup(
-                identifier=group.identifier,
-                status=ResultStatus.BLOCKED.value,
-                name=group.name,
-                description=group.description,
-                test_cases=blocked_tests,
-            )
-        )
-
     return ExecutedPhase(
         identifier=phase.identifier,
         status=ResultStatus.BLOCKED.value,
         name=phase.name,
         description=phase.description,
-        test_case_groups=blocked_groups,
+        test_case_groups=[
+            _build_blocked_group(
+                scenario_name,
+                phase.identifier,
+                test_plan.test_case_groups[group_name],
+                test_plan,
+                block,
+            )
+            for group_name in phase.test_case_groups
+        ],
+    )
+
+
+def _build_blocked_group(
+    scenario_name: str,
+    phase_name: str,
+    group: TestCaseGroup,
+    test_plan: TestPlan,
+    block: _PhaseBlock,
+) -> ExecutedTestCaseGroup:
+    """Record every test case of a group as BLOCKED for ``block``."""
+    return ExecutedTestCaseGroup(
+        identifier=group.identifier,
+        status=ResultStatus.BLOCKED.value,
+        name=group.name,
+        description=group.description,
+        test_cases=[
+            _blocked_test_case(
+                scenario_name,
+                phase_name,
+                group.identifier,
+                test_plan.test_cases[test_id],
+                block,
+            )
+            for test_id in group.tests
+        ],
+    )
+
+
+def _blocked_test_case(
+    scenario_name: str,
+    phase_name: str,
+    group_name: str,
+    definition: TestCaseDefinition,
+    block: _PhaseBlock,
+) -> ExecutedTestCase:
+    """Build one BLOCKED test case with the block's reason and kind."""
+    return ExecutedTestCase(
+        scenario=scenario_name,
+        phase=phase_name,
+        group=group_name,
+        test_id=definition.test_id,
+        title=definition.title,
+        status=ResultStatus.BLOCKED.value,
+        error=block.reason,
+        block_kind=block.kind.value,
+    )
+
+
+def _abort_block(hooks: RunHooks) -> _PhaseBlock | None:
+    """Return the block a hook abort imposes on items not started, or None."""
+    if hooks.aborted is None:
+        return None
+    return _PhaseBlock(reason=hooks.aborted.message, kind=BlockKind.HOOK_ABORT)
+
+
+def _build_aborted_scenario(
+    scenario: Scenario,
+    test_plan: TestPlan,
+    abort: RunAbort,
+    output: Output | None,
+) -> ExecutedScenario:
+    """Record every test case of a scenario that never started as BLOCKED."""
+    _emit_status(
+        output, f"Skipping scenario: {scenario.identifier} (run aborted by hook)"
+    )
+    block = _PhaseBlock(reason=abort.message, kind=BlockKind.HOOK_ABORT)
+    phases = [
+        _build_blocked_phase(
+            scenario_name=scenario.identifier,
+            phase=phase,
+            test_plan=test_plan,
+            block=block,
+        )
+        for phase in scenario.phases.values()
+    ]
+    return ExecutedScenario(
+        identifier=scenario.identifier,
+        status=_derive_scenario_status(phases).value,
+        name=scenario.name,
+        description=scenario.description,
+        phases=phases,
+    )
+
+
+def _build_aborted_test_case(
+    scenario_name: str,
+    phase: Phase,
+    group: TestCaseGroup,
+    definition: TestCaseDefinition,
+    abort: RunAbort,
+    output: Output | None,
+) -> ExecutedTestCase:
+    """Record a test case that did not start because the run was aborted."""
+    _emit_test_result(
+        output,
+        definition,
+        status=ResultStatus.BLOCKED.value,
+        detail=abort.message,
+    )
+    return _blocked_test_case(
+        scenario_name,
+        phase.identifier,
+        group.identifier,
+        definition,
+        _PhaseBlock(reason=abort.message, kind=BlockKind.HOOK_ABORT),
     )
 
 
@@ -1556,7 +1724,15 @@ async def _execute_test_case(
     run at all (no setup, test or cleanup) and the test case is recorded
     SKIPPED with the hooks' reasons. ``test_case_end`` fires either way,
     followed by ``on_failure`` or ``on_error`` for those outcomes.
+
+    When the run is aborted the job does not run either, and the test case is
+    recorded BLOCKED. An abort before ``test_case_start`` dispatches nothing;
+    an abort on it still dispatches ``test_case_end``.
     """
+    if hooks.aborted is not None:
+        return _build_aborted_test_case(
+            scenario_name, phase, group, definition, hooks.aborted, output
+        )
     skip_reasons = await hooks.test_case_start(
         scenario_id=scenario_name,
         phase_id=phase.identifier,
@@ -1569,7 +1745,11 @@ async def _execute_test_case(
             )[0]
         ],
     )
-    if skip_reasons:
+    if hooks.aborted is not None:
+        executed = _build_aborted_test_case(
+            scenario_name, phase, group, definition, hooks.aborted, output
+        )
+    elif skip_reasons:
         reason = _hook_skip_reason(skip_reasons)
         _emit_test_result(
             output, definition, status=ResultStatus.SKIPPED.value, detail=reason
@@ -2444,6 +2624,10 @@ def _derive_status_from_values(statuses: list[str]) -> ResultStatus:
     ranks below FAILED because a FAILED check found a real deviation in the
     state that was compared, which is the more specific result to surface; a
     lost device is still visible in its own check and in the summary count.
+
+    BLOCKED is otherwise left out of the rollup, but when every value is
+    BLOCKED the rollup is BLOCKED. Only a hook abort produces that, for
+    example at ``run_start``, when no test case ran at all.
     """
     if _contains_status(statuses, ResultStatus.ERRORED):
         return ResultStatus.ERRORED
@@ -2455,6 +2639,8 @@ def _derive_status_from_values(statuses: list[str]) -> ResultStatus:
         return ResultStatus.NOT_APPLICABLE
     if _all_statuses_match(statuses, ResultStatus.SKIPPED):
         return ResultStatus.SKIPPED
+    if _all_statuses_match(statuses, ResultStatus.BLOCKED):
+        return ResultStatus.BLOCKED
     return ResultStatus.PASSED
 
 

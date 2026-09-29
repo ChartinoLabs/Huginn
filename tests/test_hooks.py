@@ -6,11 +6,13 @@ import pytest
 
 from huginn.hooks import (
     INFLUENCING_EVENTS,
+    HookAbort,
     HookDispatcher,
     HookEvent,
     HookSignal,
     HookSkip,
 )
+from huginn.models import RunAbort
 from huginn.output import Output
 
 
@@ -171,7 +173,9 @@ def test_influencing_events_are_correct() -> None:
 class _ReasonHook:
     """Hook that skips with a reason on test_case_start."""
 
-    def __init__(self, name: str, result: HookSignal | HookSkip | None) -> None:
+    def __init__(
+        self, name: str, result: HookSignal | HookSkip | HookAbort | None
+    ) -> None:
         self._name = name
         self._result = result
 
@@ -184,7 +188,7 @@ class _ReasonHook:
 
     async def on_event(
         self, event: HookEvent, context: dict
-    ) -> HookSignal | HookSkip | None:
+    ) -> HookSignal | HookSkip | HookAbort | None:
         return self._result
 
 
@@ -259,3 +263,48 @@ def test_listens_reports_subscribed_events() -> None:
     assert dispatcher.listens(HookEvent.RUN_START)
     assert not dispatcher.listens(HookEvent.ON_ERROR)
     assert not HookDispatcher(hooks=[]).listens(HookEvent.RUN_START)
+
+
+@pytest.mark.asyncio
+async def test_dispatch_outcome_keeps_the_first_abort_and_calls_every_hook() -> None:
+    """The first HookAbort wins; later hooks still run and may still skip."""
+    dispatcher = HookDispatcher(
+        hooks=[
+            _ReasonHook("lock", HookAbort("Locked")),
+            _ReasonHook("other", HookAbort("Other")),
+            _ReasonHook("freeze", HookSkip("Change freeze")),
+        ]
+    )
+
+    outcome = await dispatcher.dispatch_outcome(HookEvent.TEST_CASE_START)
+
+    assert outcome.abort == RunAbort(
+        hook="lock", event="test_case_start", reason="Locked"
+    )
+    assert outcome.skip_reasons == ["Change freeze"]
+
+
+@pytest.mark.asyncio
+async def test_abort_from_run_end_is_ignored_with_a_warning() -> None:
+    """run_end cannot abort; the dispatcher warns through the output."""
+    output = _RecordingOutput()
+    dispatcher = HookDispatcher(
+        hooks=[_ReasonHook("lock", HookAbort("Too late"))],
+        output=cast(Output, output),
+    )
+
+    outcome = await dispatcher.dispatch_outcome(HookEvent.RUN_END)
+
+    assert outcome.abort is None
+    assert output.warnings == [
+        "WARNING [hook_abort_ignored]: Hook 'lock' returned HookAbort from "
+        "'run_end', which cannot abort; ignored"
+    ]
+
+
+def test_run_abort_message_names_the_hook() -> None:
+    """The recorded block reason names the hook, with or without a reason."""
+    assert RunAbort("lock", "run_start", "Busy").message == (
+        "Run aborted by hook 'lock': Busy"
+    )
+    assert RunAbort("lock", "run_start", "").message == "Run aborted by hook 'lock'"

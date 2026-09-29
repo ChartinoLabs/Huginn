@@ -58,7 +58,8 @@ class ResultStatus(StrEnum):
       failure.
     - SKIPPED: The test case did not execute because it was intentionally skipped.
     - BLOCKED: The test case could not run because a phase it depends on failed,
-      errored, or was not run in learning mode (see ``BlockKind``).
+      errored, or was not run in learning mode, or because a hook aborted the
+      run before it started (see ``BlockKind``).
 
     Test cases filtered out before execution (e.g., by tags) do not appear in
     results at all.
@@ -99,10 +100,13 @@ class BlockKind(StrEnum):
       failed or errored.
     - DEPENDENCY_NOT_LEARNED: a phase it depends on, directly or transitively,
       was not run in learning mode (see ``SkipKind.LEARNING_MODE_UNSUPPORTED``).
+    - HOOK_ABORT: a hook plugin aborted the run with ``HookAbort`` before the
+      test case started. Like DEPENDENCY_FAILED, it fails the run.
     """
 
     DEPENDENCY_FAILED = "dependency_failed"
     DEPENDENCY_NOT_LEARNED = "dependency_not_learned"
+    HOOK_ABORT = "hook_abort"
 
 
 class ConnectionProtocol(StrEnum):

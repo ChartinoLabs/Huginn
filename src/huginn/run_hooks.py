@@ -4,6 +4,13 @@ The runner calls one ``RunHooks`` method per lifecycle point. Each method
 builds the event's context from plain data (IDs, statuses, and lists and dicts
 copied from runner state), so a hook cannot change the run by mutating its
 context. Nothing is built when no hook subscribes to the event.
+
+``RunHooks`` also holds the run's abort state. The first ``HookAbort`` a hook
+returns is recorded, and the runner checks ``RunHooks.aborted`` before it
+starts each scenario, phase, group and test case. The runner is one asyncio
+event loop, and the check and the record never await, so concurrent parallel
+siblings see one consistent state: an item either started before the abort
+and finishes, or it sees the abort and does not start.
 """
 
 import copy
@@ -13,12 +20,14 @@ from dataclasses import asdict
 from pathlib import Path
 
 from huginn.enums import ExecutionMode, ResultStatus
-from huginn.hooks import HookDispatcher, HookEvent
+from huginn.hooks import HookDispatcher, HookEvent, HookOutcome
+from huginn.logging_helpers import log_warning
 from huginn.models import (
     ExecutedPhase,
     ExecutedTestCase,
     ExecutedTestCaseGroup,
     Phase,
+    RunAbort,
     RunResult,
     Scenario,
     TestCaseDefinition,
@@ -49,6 +58,12 @@ class RunHooks:
         self._dispatcher = dispatcher
         self._mode = mode.value
         self._output = output
+        self._abort: RunAbort | None = None
+
+    @property
+    def aborted(self) -> RunAbort | None:
+        """Return the first abort a hook requested in this run, or None."""
+        return self._abort
 
     async def run_start(self, *, plan_path: Path, test_plan: TestPlan) -> None:
         """Dispatch ``run_start`` once the plan is loaded, filtered and planned."""
@@ -83,6 +98,7 @@ class RunHooks:
                 ),
                 "run_dir": str(run_dir),
                 "error": error,
+                "aborted": asdict(self._abort) if self._abort is not None else None,
             },
         )
 
@@ -204,19 +220,43 @@ class RunHooks:
             await self._notify(HookEvent.ON_ERROR, lambda: _test_case_result(test_case))
 
     async def _notify(self, event: HookEvent, payload: Payload) -> None:
-        """Dispatch an event whose hook return values are ignored."""
+        """Dispatch an event that cannot skip, recording an abort."""
         await self._influence(event, payload)
 
     async def _influence(self, event: HookEvent, payload: Payload) -> list[str]:
-        """Dispatch an event, building its payload only when a hook listens."""
+        """Dispatch an event, building its payload only when a hook listens.
+
+        Returns the hooks' skip reasons. A requested abort is recorded in
+        ``aborted`` instead; callers check it before they start an item.
+        """
         if not self._dispatcher.listens(event):
             return []
-        return await self._dispatcher.dispatch_skip_reasons(
+        outcome = await self._dispatcher.dispatch_outcome(
             event,
             **payload(),
             mode=self._mode,
             output=self._output,
         )
+        self._record_abort(outcome)
+        return outcome.skip_reasons
+
+    def _record_abort(self, outcome: HookOutcome) -> None:
+        """Keep the first abort of the run and report it."""
+        if outcome.abort is None or self._abort is not None:
+            return
+        self._abort = outcome.abort
+        log_warning(
+            self._output,
+            "Run aborted by hook",
+            hook=outcome.abort.hook,
+            event=outcome.abort.event,
+            reason=outcome.abort.reason,
+        )
+        if self._output is not None:
+            self._output.warning(
+                f"{outcome.abort.message} during '{outcome.abort.event}'; "
+                "finishing running test cases and starting nothing new"
+            )
 
 
 def _status_counts(test_cases: Iterable[ExecutedTestCase]) -> dict[str, int]:

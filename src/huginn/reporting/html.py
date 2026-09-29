@@ -78,6 +78,7 @@ def write_standard_html_report(
         dashboard_path.write_text(
             _dashboard_template().render(
                 run_metadata=_build_run_metadata(result),
+                aborted=result.aborted,
                 stats=_build_dashboard_stats(result),
                 scenarios=_build_scenario_views(result, detail_paths),
             ),
