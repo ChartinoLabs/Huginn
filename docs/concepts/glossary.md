@@ -80,7 +80,7 @@ A high-level organizational unit within a scenario representing a stage of test 
 
 Phases provide structure for reporting (collapse/expand, filtering) and establish execution order through dependencies. Phases within a scenario run one at a time in dependency order, never concurrently. Concurrency lives inside a phase: its test case groups run in parallel by default, subject to the phase's `strategy`, and so do the tests within each group, subject to the group's `strategy`.
 
-A phase that finishes FAILED or ERRORED blocks the phases that depend on it, directly or through a chain of `depends_on`. Each blocked phase is recorded as BLOCKED with a reason that names the phase that failed, for example `Blocked because phase 'change' failed`. Phases that do not depend on it still run. In learning mode, a phase with any test case that was skipped because its job does not inherit `LearningTestCase`, such as a change or action job, also blocks the phases that depend on it, with a reason such as `Blocked because phase 'shutdown' was not run in learning mode`. The change did not happen, so learning the phases after it would record the unchanged network as their expected state. Otherwise, a phase that finishes NOT_APPLICABLE or SKIPPED does not block anything.
+A phase that finishes FAILED, ERRORED or LOST_APPLICABILITY blocks the phases that depend on it, directly or through a chain of `depends_on`. Each blocked phase is recorded as BLOCKED with a reason that names the phase that failed, for example `Blocked because phase 'change' failed`. Phases that do not depend on it still run. In learning mode, a phase with any test case that was skipped because its job does not inherit `LearningTestCase`, such as a change or action job, also blocks the phases that depend on it, with a reason such as `Blocked because phase 'shutdown' was not run in learning mode`. The change did not happen, so learning the phases after it would record the unchanged network as their expected state. Otherwise, a phase that finishes NOT_APPLICABLE or SKIPPED does not block anything.
 
 ### Test Plan
 
@@ -117,7 +117,7 @@ Dynamic non-applicability arises from two distinct situations:
 1. **Command not supported**: The device does not recognize the show command the job requires. Detected in `check_command_support()`.
 2. **Attribute absent**: The command succeeds but the specific attribute the job validates does not exist in the parsed output - either because the platform does not report it or because the feature is not configured. Detected in `gather_state()` when per-item extraction produces an empty result for a device.
 
-A device that is statically targeted but dynamically determined to lack command support is recorded with a NOT_APPLICABLE result and the reason for non-support. This happens whether or not learned parameters exist for the device; see [Lost Applicability](#lost-applicability) for the planned distinction.
+A device that is statically targeted but dynamically determined to lack command support is recorded with a NOT_APPLICABLE result and the reason for non-support. In testing mode, a device that the learned parameters contain is recorded as LOST_APPLICABILITY instead; see [Lost Applicability](#lost-applicability).
 
 ### CommandSupportResult
 
@@ -126,7 +126,7 @@ The return type of the `check_command_support()` method on `LearningTestCase` an
 - **applicable**: List of devices that support the required command(s).
 - **not_applicable**: Dictionary mapping device names to reasons why the device does not support the required command(s).
 
-`LearningTestCase.test()` calls `check_command_support()` after `setup()` has run, records NOT_APPLICABLE for each device that is not applicable, and narrows `context.targets` to the applicable devices before calling `gather_state()`. The runner itself only calls `setup()`, `test()`, and `cleanup()`.
+`LearningTestCase.test()` calls `check_command_support()` after `setup()` has run, records NOT_APPLICABLE or, in testing mode, LOST_APPLICABILITY for each device that is not applicable, and narrows `context.targets` to the applicable devices before calling `gather_state()`. The runner itself only calls `setup()`, `test()`, and `cleanup()`.
 
 ### Context
 
@@ -136,36 +136,42 @@ The object passed to jobs during execution. Contains access to the connection br
 
 The outcome of a test case execution. Every test case that runs, or is prevented from running, records exactly one of these statuses:
 
-| Status           | Meaning                                                                                                                                                                                                  |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PASSED`         | All assertions succeeded.                                                                                                                                                                                |
-| `FAILED`         | One or more assertions did not match expected state.                                                                                                                                                     |
-| `INFO`           | An informational check with no effect on pass/fail. Used for individual checks; it never becomes a test case's overall status.                                                                           |
-| `ERRORED`        | An exception or planning error prevented the test case from completing.                                                                                                                                  |
-| `NOT_APPLICABLE` | The test case was in scope but determined at runtime to be not applicable to its targets.                                                                                                                |
-| `SKIPPED`        | The test case did not execute, for example because no devices matched its target, or because the run is in learning mode and the job does not inherit `LearningTestCase`.                                |
-| `BLOCKED`        | The test case could not run because a phase it depends on, directly or transitively, failed or errored, or, in learning mode, was not run because it has a job that does not inherit `LearningTestCase`. |
+| Status               | Meaning                                                                                                                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PASSED`             | All assertions succeeded.                                                                                                                                                                                                    |
+| `FAILED`             | One or more assertions did not match expected state.                                                                                                                                                                         |
+| `LOST_APPLICABILITY` | In testing mode, a device that supported the job's command when parameters were learned no longer supports it. Counts as a failure; see [Lost Applicability](#lost-applicability).                                           |
+| `INFO`               | An informational check with no effect on pass/fail. Used for individual checks; it never becomes a test case's overall status.                                                                                               |
+| `ERRORED`            | An exception or planning error prevented the test case from completing.                                                                                                                                                      |
+| `NOT_APPLICABLE`     | The test case was in scope but determined at runtime to be not applicable to its targets.                                                                                                                                    |
+| `SKIPPED`            | The test case did not execute, for example because no devices matched its target, or because the run is in learning mode and the job does not inherit `LearningTestCase`.                                                    |
+| `BLOCKED`            | The test case could not run because a phase it depends on, directly or transitively, failed, errored or lost applicability, or, in learning mode, was not run because it has a job that does not inherit `LearningTestCase`. |
 
 A test case's status is derived from its individual checks in this order:
 
 1. `ERRORED` if any check errored.
 2. Otherwise `FAILED` if any check failed.
-3. Otherwise `NOT_APPLICABLE` if every non-`INFO` check is not applicable.
-4. Otherwise `SKIPPED` if every non-`INFO` check is skipped.
-5. Otherwise `PASSED`.
+3. Otherwise `LOST_APPLICABILITY` if any check lost applicability.
+4. Otherwise `NOT_APPLICABLE` if every non-`INFO` check is not applicable.
+5. Otherwise `SKIPPED` if every non-`INFO` check is skipped.
+6. Otherwise `PASSED`.
+
+`LOST_APPLICABILITY` ranks below `FAILED` because a failed check found a deviation in the state that was compared, which is the more specific result. A lost device still appears as its own check and in the `lost_applicability` count.
 
 Test cases filtered out before execution (e.g., by tags) do not appear in results at all. This is distinct from NOT_APPLICABLE, which appears in results with a reason.
 
 ### Lost Applicability
 
-`LOST_APPLICABILITY` is a planned status and is not recorded yet ([#254](https://github.com/ChartinoLabs/Huginn/issues/254)). It will cover a test case that was applicable when parameters were learned but is no longer applicable during testing. This indicates that something changed between learning and testing that caused a previously testable device to become untestable, so the status will fail the test.
+`LOST_APPLICABILITY` covers a device that was applicable when parameters were learned but is no longer applicable during testing. Something changed between learning and testing that made a previously testable device untestable, for example an upgrade that removed a feature, so the status fails the test instead of passing silently as `NOT_APPLICABLE`.
 
-Until it ships, both situations below are recorded as `NOT_APPLICABLE`:
+In testing mode, `LearningTestCase.test()` checks each device that `check_command_support()` reports as not applicable against the learned parameters:
 
-| Scenario                         | Learned Parameters Exist? | Result today     | Result once #254 ships |
-| -------------------------------- | ------------------------- | ---------------- | ---------------------- |
-| Device never applicable          | No                        | `NOT_APPLICABLE` | `NOT_APPLICABLE`       |
-| Device was applicable, now isn't | Yes                       | `NOT_APPLICABLE` | `LOST_APPLICABILITY`   |
+| Scenario                         | Device in learned parameters? | Result               |
+| -------------------------------- | ----------------------------- | -------------------- |
+| Device never applicable          | No                            | `NOT_APPLICABLE`     |
+| Device was applicable, now isn't | Yes                           | `LOST_APPLICABILITY` |
+
+By default a device is in the learned parameters when they have a `devices` mapping with an entry for it. Jobs with a different parameter schema override `learned_devices()`; see [Command support regression detection](../reference/context-api.md#command-support-regression-detection). Learning mode never records `LOST_APPLICABILITY`. A device that lost applicability is not listed in `not_applicable_devices`, so [`huginn prune`](../reference/prune.md) never excludes it.
 
 ### Aggregate Result
 
@@ -173,10 +179,11 @@ The computed outcome for a test case group, phase, scenario, or whole run, deriv
 
 1. `ERRORED` if anything contained errored.
 2. Otherwise `FAILED` if anything contained failed.
-3. Otherwise `NOT_APPLICABLE` if everything contained is not applicable.
-4. Otherwise `SKIPPED` if everything contained is skipped.
-5. Otherwise `PASSED`.
+3. Otherwise `LOST_APPLICABILITY` if anything contained lost applicability.
+4. Otherwise `NOT_APPLICABLE` if everything contained is not applicable.
+5. Otherwise `SKIPPED` if everything contained is skipped.
+6. Otherwise `PASSED`.
 
-A single failure therefore makes the aggregate `FAILED`, however many other test cases passed. `BLOCKED` is not part of the rollup: a blocked phase and its groups are recorded as `BLOCKED` directly. Because blocked entries never satisfy the all-`NOT_APPLICABLE` or all-`SKIPPED` checks, a scenario or run that contains blocked phases is `ERRORED` or `FAILED` if something in it errored or failed, and `PASSED` otherwise.
+A single failure therefore makes the aggregate `FAILED`, however many other test cases passed. A single lost device does the same with `LOST_APPLICABILITY`, which counts as a failure for the run's exit code and for phase blocking. `BLOCKED` is not part of the rollup: a blocked phase and its groups are recorded as `BLOCKED` directly. Because blocked entries never satisfy the all-`NOT_APPLICABLE` or all-`SKIPPED` checks, a scenario or run that contains blocked phases is `ERRORED`, `FAILED` or `LOST_APPLICABILITY` if something in it errored, failed or lost applicability, and `PASSED` otherwise.
 
-There is no partial status. Instead, the phase summary and the run summary report a count for each status alongside the aggregate result, for example `status=failed total=2000 passed=1995 failed=5 errored=0 not_applicable=0 skipped=0 blocked=0`, so the scope of any failure stays visible.
+There is no partial status. Instead, the phase summary and the run summary report a count for each status alongside the aggregate result, for example `status=failed total=2000 passed=1995 failed=5 errored=0 not_applicable=0 lost_applicability=0 skipped=0 blocked=0`, so the scope of any failure stays visible.

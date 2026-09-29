@@ -66,7 +66,9 @@ def test_write_standard_html_report_writes_dashboard_and_detail_pages(
     assert 'data-filter-action="toggle"' in dashboard
     assert 'data-filter-action="clear"' in dashboard
     assert 'data-filter-statuses="passed"' in dashboard
-    assert 'data-filter-statuses="failed,errored,blocked"' in dashboard
+    assert (
+        'data-filter-statuses="failed,errored,lost_applicability,blocked"' in dashboard
+    )
     assert 'data-filter-statuses="skipped,not_applicable"' in dashboard
     assert 'data-test-status="passed"' in dashboard
     assert 'data-test-status="failed"' in dashboard

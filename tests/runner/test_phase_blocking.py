@@ -75,11 +75,19 @@ def _only_case(phase: dict[str, Any]) -> dict[str, Any]:
     return phase["test_case_groups"][0]["test_cases"][0]
 
 
-@pytest.mark.parametrize("failing_status", ["failed", "errored"])
+@pytest.mark.parametrize(
+    ("failing_status", "outcome"),
+    [
+        ("failed", "failed"),
+        ("errored", "errored"),
+        ("lost_applicability", "lost applicability"),
+    ],
+)
 def test_failed_phase_does_not_block_independent_phase(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     failing_status: str,
+    outcome: str,
 ) -> None:
     """A phase that does not depend on a failed phase still runs."""
     _stage_plan(
@@ -100,7 +108,7 @@ def test_failed_phase_does_not_block_independent_phase(
     assert (tmp_path / "executed" / "passed-2").exists()
     assert not (tmp_path / "executed" / "passed-3").exists()
     assert _only_case(phases["dependent"])["error"] == (
-        f"Blocked because phase 'first' {failing_status}"
+        f"Blocked because phase 'first' {outcome}"
     )
 
 
@@ -169,6 +177,8 @@ def test_not_applicable_or_skipped_phase_does_not_block(
         (["passed-1", "failed-2"], 1),
         (["passed-1", "errored-2"], 1),
         (["not_applicable-1", "failed-2"], 1),
+        (["passed-1", "lost_applicability-2"], 1),
+        (["not_applicable-1", "lost_applicability-2"], 1),
     ],
     ids=[
         "passed",
@@ -179,6 +189,8 @@ def test_not_applicable_or_skipped_phase_does_not_block(
         "failed",
         "errored",
         "not-applicable-and-failed",
+        "lost-applicability",
+        "not-applicable-and-lost-applicability",
     ],
 )
 def test_run_exit_code_matrix(
@@ -187,7 +199,7 @@ def test_run_exit_code_matrix(
     tests: list[str],
     expected_exit_code: int,
 ) -> None:
-    """Only failed, errored or blocked test cases make the run exit 1."""
+    """Only failed, errored, lost or blocked test cases make the run exit 1."""
     _stage_plan(
         tmp_path,
         {f"phase-{index}": {"test": test} for index, test in enumerate(tests)},
@@ -204,16 +216,33 @@ def test_run_exit_code_matrix(
         ({"failed": 1}, True),
         ({"errored": 1}, True),
         ({"blocked": 1}, True),
+        ({"lost_applicability": 1}, True),
     ],
-    ids=["passed", "not-applicable-and-skipped", "failed", "errored", "blocked"],
+    ids=[
+        "passed",
+        "not-applicable-and-skipped",
+        "failed",
+        "errored",
+        "blocked",
+        "lost-applicability",
+    ],
 )
 def test_summary_has_failures_counts_blocked(
     counts: dict[str, int],
     expected: bool,
 ) -> None:
-    """Failed, errored and blocked counts each make a run fail on their own."""
+    """Failed, errored, lost and blocked counts each fail a run on their own."""
     fields = dict.fromkeys(
-        ("passed", "failed", "errored", "not_applicable", "skipped", "blocked"), 0
+        (
+            "passed",
+            "failed",
+            "errored",
+            "not_applicable",
+            "lost_applicability",
+            "skipped",
+            "blocked",
+        ),
+        0,
     )
     fields.update(counts)
     summary = RunSummary(status="passed", total=sum(counts.values()), **fields)

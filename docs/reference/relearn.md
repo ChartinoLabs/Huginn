@@ -2,7 +2,7 @@
 
 ## Overview
 
-When a testing run produces failures because learned parameters no longer reflect the current state of the environment, the `huginn relearn` command refreshes only the affected parameters. It parses the latest testing results, identifies failed and errored test cases, and re-runs only those tests in learning mode to capture current device state as the new expected parameters -- without re-learning tests that are already passing.
+When a testing run produces failures because learned parameters no longer reflect the current state of the environment, the `huginn relearn` command refreshes only the affected parameters. It parses the latest testing results, identifies test cases that are `failed`, `errored` or `lost_applicability`, and re-runs only those tests in learning mode to capture current device state as the new expected parameters -- without re-learning tests that are already passing.
 
 The command re-runs each failed test only in the exact scenario and phase where it failed, avoiding redundant device connections when the same test ID appears across many scenarios.
 

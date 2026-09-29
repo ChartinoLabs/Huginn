@@ -86,6 +86,16 @@ class PlannedExecution:
     skip_kind: SkipKind | None = None
 
 
+# Phase statuses that block the phases depending on them.
+_BLOCKING_STATUSES = frozenset(
+    {
+        ResultStatus.FAILED.value,
+        ResultStatus.ERRORED.value,
+        ResultStatus.LOST_APPLICABILITY.value,
+    }
+)
+
+
 @dataclass(frozen=True)
 class _PhaseBlock:
     """Why a phase is blocked, and which kind of block it is."""
@@ -300,6 +310,7 @@ async def _persist_and_report(
         failed=result.summary.failed,
         errored=result.summary.errored,
         not_applicable=result.summary.not_applicable,
+        lost_applicability=result.summary.lost_applicability,
         skipped=result.summary.skipped,
         blocked=result.summary.blocked,
     )
@@ -605,9 +616,10 @@ def _dependency_block(
 ) -> _PhaseBlock | None:
     """Return why a phase is blocked by its dependencies, or None to run it.
 
-    A FAILED or ERRORED dependency blocks the phase. So does a dependency with
-    any test case skipped because it cannot run in learning mode, because the
-    dependency's intended effect, such as a change, did not happen. A BLOCKED
+    A FAILED, ERRORED or LOST_APPLICABILITY dependency blocks the phase. So
+    does a dependency with any test case skipped because it cannot run in
+    learning mode, because the dependency's intended effect, such as a
+    change, did not happen. A BLOCKED
     dependency passes on its own block, so the reason always names the phase
     where blocking started. Other SKIPPED and NOT_APPLICABLE outcomes do not
     block. When several dependencies block, a failure takes precedence over a
@@ -639,9 +651,10 @@ def _block_from_dependency(
         return blocks[dependency]
     result = phase_results[dependency]
     identifier = scenario.phases[dependency].identifier
-    if result.status in {ResultStatus.FAILED.value, ResultStatus.ERRORED.value}:
+    if result.status in _BLOCKING_STATUSES:
+        outcome = result.status.replace("_", " ")
         return _PhaseBlock(
-            reason=f"Blocked because phase '{identifier}' {result.status}",
+            reason=f"Blocked because phase '{identifier}' {outcome}",
             kind=BlockKind.DEPENDENCY_FAILED,
         )
     if _phase_has_learning_mode_skip(result):
@@ -1861,6 +1874,7 @@ def _emit_phase_rollup(
         f"failed={counts[ResultStatus.FAILED.value]} "
         f"errored={counts[ResultStatus.ERRORED.value]} "
         f"not_applicable={counts[ResultStatus.NOT_APPLICABLE.value]} "
+        f"lost_applicability={counts[ResultStatus.LOST_APPLICABILITY.value]} "
         f"skipped={counts[ResultStatus.SKIPPED.value]} "
         f"blocked={counts[ResultStatus.BLOCKED.value]}",
     )
@@ -2058,10 +2072,19 @@ def _derive_phase_status(groups: list[ExecutedTestCaseGroup]) -> ResultStatus:
 
 
 def _derive_status_from_values(statuses: list[str]) -> ResultStatus:
+    """Roll statuses up into one, in precedence order.
+
+    LOST_APPLICABILITY is a failure, so it outranks every passing status. It
+    ranks below FAILED because a FAILED check found a real deviation in the
+    state that was compared, which is the more specific result to surface; a
+    lost device is still visible in its own check and in the summary count.
+    """
     if _contains_status(statuses, ResultStatus.ERRORED):
         return ResultStatus.ERRORED
     if _contains_status(statuses, ResultStatus.FAILED):
         return ResultStatus.FAILED
+    if _contains_status(statuses, ResultStatus.LOST_APPLICABILITY):
+        return ResultStatus.LOST_APPLICABILITY
     if _all_statuses_match(statuses, ResultStatus.NOT_APPLICABLE):
         return ResultStatus.NOT_APPLICABLE
     if _all_statuses_match(statuses, ResultStatus.SKIPPED):
@@ -2091,6 +2114,7 @@ def _build_summary(scenarios: list[ExecutedScenario]) -> RunSummary:
         failed=counts[ResultStatus.FAILED.value],
         errored=counts[ResultStatus.ERRORED.value],
         not_applicable=counts[ResultStatus.NOT_APPLICABLE.value],
+        lost_applicability=counts[ResultStatus.LOST_APPLICABILITY.value],
         skipped=counts[ResultStatus.SKIPPED.value],
         blocked=counts[ResultStatus.BLOCKED.value],
         learning_mode_blocked=sum(

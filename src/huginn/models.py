@@ -335,6 +335,7 @@ class RunSummary:
     not_applicable: int
     skipped: int
     blocked: int
+    lost_applicability: int = 0
     # Blocked test cases, included in ``blocked``, whose phase depends on a
     # phase that was not run in learning mode. They do not fail the run.
     learning_mode_blocked: int = 0

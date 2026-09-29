@@ -294,6 +294,17 @@ class TestParseFailedTestIds:
         result = parse_failed_test_ids(run_json, phase_filter="nonexistent")
         assert result.test_ids == []
 
+    def test_includes_lost_applicability_status(self, tmp_path: Path) -> None:
+        """LOST_APPLICABILITY tests are re-learned like failed ones."""
+        payload = _build_run_json()
+        group = payload["scenarios"][0]["phases"][0]["test_case_groups"][0]
+        group["test_cases"][0]["status"] = "lost_applicability"
+        run_json = _write_json(tmp_path / "run.json", payload)
+
+        result = parse_failed_test_ids(run_json)
+
+        assert ("scenario-1", "pre-change", "TEST-1") in result.contexts
+
     def test_includes_errored_status(self, tmp_path: Path) -> None:
         """Errored tests are included alongside failed ones."""
         run_json = _write_json(tmp_path / "run.json", _build_run_json())

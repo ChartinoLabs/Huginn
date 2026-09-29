@@ -110,13 +110,15 @@ See [Test Plan Specification - CLI Filtering](test-plan.md#cli-filtering) for ho
 
 ### Exit codes
 
-| Code | Meaning                                                                                                                                                     |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | No test case is `failed`, `errored` or `blocked`. This includes a run whose test cases are all `not_applicable` or `skipped`, and a run with no test cases. |
-| 1    | At least one test case is `failed`, `errored` or `blocked`; the testbed or test plan could not be loaded; or a broker error occurred.                       |
-| 2    | Usage error; inventory plugin failure; phase dependencies in a scenario could not be resolved; or results or reports could not be written.                  |
+| Code | Meaning                                                                                                                                                                           |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | No test case is `failed`, `errored`, `lost_applicability` or `blocked`. This includes a run whose test cases are all `not_applicable` or `skipped`, and a run with no test cases. |
+| 1    | At least one test case is `failed`, `errored`, `lost_applicability` or `blocked`; the testbed or test plan could not be loaded; or a broker error occurred.                       |
+| 2    | Usage error; inventory plugin failure; phase dependencies in a scenario could not be resolved; or results or reports could not be written.                                        |
 
-A test case that is `blocked` only because a phase it depends on was not run in learning mode does not count toward exit code 1. In learning mode, change and action jobs are skipped, and the phases after them are blocked (see [Blocking in learning mode](test-plan.md#blocking-in-learning-mode)). That is the expected outcome of learning a change-validation plan, so a learning run where only this happens exits 0. The run summary still counts these test cases as `blocked`, and the command prints how many of them were blocked this way. A test case blocked by a failed or errored phase still makes the run exit 1.
+A test case that is `blocked` only because a phase it depends on was not run in learning mode does not count toward exit code 1. In learning mode, change and action jobs are skipped, and the phases after them are blocked (see [Blocking in learning mode](test-plan.md#blocking-in-learning-mode)). That is the expected outcome of learning a change-validation plan, so a learning run where only this happens exits 0. The run summary still counts these test cases as `blocked`, and the command prints how many of them were blocked this way. A test case blocked by a failed, errored or lost-applicability phase still makes the run exit 1.
+
+After the run, the command prints the run status and a summary line with one count per status, for example `Summary: total=12 passed=10 failed=0 errored=0 not_applicable=1 lost_applicability=1 skipped=0 blocked=0`. `lost_applicability` counts test cases in which a device stopped supporting the job's command after its parameters were learned; see [Lost Applicability](../concepts/glossary.md#lost-applicability).
 
 An invalid `--test-id-pattern` regular expression is a [usage error](#usage-errors): the run does not start and the command exits 2.
 
@@ -305,7 +307,7 @@ See [Parameter Reconciliation](reconcile.md) for the full option table, exit cod
 
 ## relearn
 
-Re-learn parameters for the tests that failed or errored in the latest testing run, in the exact scenario and phase where each one failed.
+Re-learn parameters for the tests that failed, errored or lost applicability in the latest testing run, in the exact scenario and phase where each one failed.
 
 ```
 huginn relearn [--plan <path>] [--testbed <path> | --inventory-plugin <name>] [--scenario <id>] [--phase <id>]
