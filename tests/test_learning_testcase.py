@@ -13,6 +13,7 @@ from huginn import (
     ResultStatus,
 )
 from huginn.models import Device, MetadataSection
+from huginn.parameters import ParameterStoreError
 
 
 @dataclass
@@ -268,3 +269,157 @@ def test_learning_testcase_supports_generic_subscripts() -> None:
     test_case = _GenericLearningTest()
 
     assert isinstance(test_case, LearningTestCase)
+
+
+@dataclass
+class _MissingParameters(_FakeParameters):
+    async def load(self) -> dict[str, object]:
+        raise ParameterStoreError("No learned parameters found for test 'x'")
+
+
+@dataclass
+class _CollectingResults(_FakeResults):
+    not_applicable_devices: dict[str, str] = field(default_factory=dict)
+
+
+class _CustomSchemaLearningTest(_ApplicabilityLearningTest):
+    """Stores learned devices under ``nodes`` instead of ``devices``."""
+
+    def learned_devices(self, parameters: dict[str, object]) -> set[str]:
+        return set(cast(dict[str, object], parameters["nodes"]))
+
+
+def _two_leaf_context(
+    mode: ExecutionMode,
+    parameters: _FakeParameters,
+) -> _FakeContext:
+    return _FakeContext(
+        mode=mode,
+        targets=[_FakeDevice(name="leaf-01"), _FakeDevice(name="leaf-02")],
+        parameters=parameters,
+        results=_CollectingResults(),
+    )
+
+
+@pytest.mark.asyncio
+async def test_learning_testcase_reports_lost_applicability_for_learned_device() -> (
+    None
+):
+    """An unsupported device in the learned parameters lost applicability."""
+    test_case = _ApplicabilityLearningTest()
+    learned: dict[str, object] = {"devices": {"leaf-01": {}, "leaf-02": {}}}
+    context = _two_leaf_context(
+        ExecutionMode.TESTING,
+        _FakeParameters(loaded_payload=learned),
+    )
+
+    await test_case.test(cast(Context, context))
+
+    assert context.results.entries[0] == (
+        ResultStatus.LOST_APPLICABILITY,
+        "leaf-02: feature not enabled, but it was supported when parameters "
+        "were learned",
+    )
+    assert cast(_CollectingResults, context.results).not_applicable_devices == {}
+    assert test_case.compared == [(learned, {"current": True})]
+
+
+@pytest.mark.asyncio
+async def test_learning_testcase_keeps_never_supported_device_not_applicable() -> None:
+    """An unsupported device absent from the learned parameters stays N/A."""
+    test_case = _ApplicabilityLearningTest()
+    context = _two_leaf_context(
+        ExecutionMode.TESTING,
+        _FakeParameters(loaded_payload={"devices": {"leaf-01": {}}}),
+    )
+
+    await test_case.test(cast(Context, context))
+
+    assert context.results.entries[0] == (
+        ResultStatus.NOT_APPLICABLE,
+        "leaf-02: feature not enabled",
+    )
+    assert cast(_CollectingResults, context.results).not_applicable_devices == {
+        "leaf-02": "feature not enabled"
+    }
+
+
+@pytest.mark.asyncio
+async def test_learning_testcase_learned_devices_hook_supports_custom_schema() -> None:
+    """Overriding learned_devices() detects lost devices in another schema."""
+    test_case = _CustomSchemaLearningTest()
+    context = _two_leaf_context(
+        ExecutionMode.TESTING,
+        _FakeParameters(loaded_payload={"nodes": {"leaf-02": {}}}),
+    )
+
+    await test_case.test(cast(Context, context))
+
+    assert context.results.entries[0][0] == ResultStatus.LOST_APPLICABILITY
+
+
+@pytest.mark.asyncio
+async def test_learning_testcase_default_hook_ignores_other_schemas() -> None:
+    """Without a ``devices`` mapping, unsupported devices stay N/A."""
+    test_case = _ApplicabilityLearningTest()
+    context = _two_leaf_context(
+        ExecutionMode.TESTING,
+        _FakeParameters(loaded_payload={"nodes": {"leaf-02": {}}}),
+    )
+
+    await test_case.test(cast(Context, context))
+
+    assert context.results.entries[0][0] == ResultStatus.NOT_APPLICABLE
+
+
+@pytest.mark.asyncio
+async def test_learning_testcase_never_reports_lost_applicability_when_learning() -> (
+    None
+):
+    """Learning mode records N/A and does not read the old parameters."""
+    test_case = _ApplicabilityLearningTest()
+    parameters = _MissingParameters()
+    context = _two_leaf_context(ExecutionMode.LEARNING, parameters)
+
+    await test_case.test(cast(Context, context))
+
+    assert context.results.entries == [
+        (ResultStatus.NOT_APPLICABLE, "leaf-02: feature not enabled"),
+        (ResultStatus.PASSED, "Learned parameters saved successfully"),
+    ]
+    assert parameters.saved_payloads == [{"current": True}]
+
+
+@pytest.mark.asyncio
+async def test_learning_testcase_missing_parameters_still_raise_after_gather() -> None:
+    """Missing parameters keep raising, after gather_state() as before."""
+    test_case = _ApplicabilityLearningTest()
+    context = _two_leaf_context(ExecutionMode.TESTING, _MissingParameters())
+
+    with pytest.raises(ParameterStoreError, match="No learned parameters"):
+        await test_case.test(cast(Context, context))
+
+    assert test_case.gathered_target_names == ["leaf-01"]
+    assert context.results.entries == [
+        (ResultStatus.NOT_APPLICABLE, "leaf-02: feature not enabled"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_learning_testcase_all_lost_devices_skip_gather_and_compare() -> None:
+    """When every target lost applicability, nothing is gathered or compared."""
+    test_case = _NoApplicableLearningTest()
+    context = _FakeContext(
+        mode=ExecutionMode.TESTING,
+        targets=[_FakeDevice(name="leaf-01")],
+        parameters=_FakeParameters(loaded_payload={"devices": {"leaf-01": {}}}),
+        results=_CollectingResults(),
+    )
+
+    await test_case.test(cast(Context, context))
+
+    assert test_case.compared == []
+    assert [status for status, _ in context.results.entries] == [
+        ResultStatus.LOST_APPLICABILITY,
+        ResultStatus.INFO,
+    ]

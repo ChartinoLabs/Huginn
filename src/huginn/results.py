@@ -72,6 +72,8 @@ class ResultCollector:
             return ResultStatus.ERRORED
         if self._has_status(ResultStatus.FAILED):
             return ResultStatus.FAILED
+        if self._has_status(ResultStatus.LOST_APPLICABILITY):
+            return ResultStatus.LOST_APPLICABILITY
 
         non_info_checks = self._non_info_checks()
         if self._all_checks_match(non_info_checks, ResultStatus.NOT_APPLICABLE):

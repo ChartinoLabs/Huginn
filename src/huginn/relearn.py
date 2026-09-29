@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
 
-_FAILURE_STATUSES = frozenset({"failed", "errored"})
+_FAILURE_STATUSES = frozenset({"failed", "errored", "lost_applicability"})
 
 
 class RelearnError(ValueError):
@@ -28,7 +28,9 @@ def parse_failed_test_ids(
     phase_filter: str | None = None,
     scenario_filter: str | None = None,
 ) -> RelearnInput:
-    """Extract unique failed/errored test IDs from a testing run's run.json.
+    """Extract unique failed test IDs from a testing run's run.json.
+
+    Failed means FAILED, ERRORED or LOST_APPLICABILITY.
 
     Returns a RelearnInput containing the exact (scenario, phase, test_id)
     contexts that failed, plus the deduplicated test IDs, affected scenario IDs,
@@ -60,7 +62,7 @@ def _failed_contexts_in_phase(
     scenario_id: str,
     phase_filter: str | None,
 ) -> list[tuple[str, str, str]]:
-    """Return failed/errored (scenario, phase, test_id) contexts from one phase."""
+    """Return failed (scenario, phase, test_id) contexts from one phase."""
     phase_id = cast(str, phase["id"])
     if phase_filter is not None and phase_id != phase_filter:
         return []

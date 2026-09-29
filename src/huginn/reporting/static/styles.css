@@ -234,7 +234,8 @@ h3 {
 }
 
 .metric-failing,
-.metric-errored {
+.metric-errored,
+.metric-lost-applicability {
   background: var(--red-100);
   border-left-color: var(--red-600);
 }
@@ -579,6 +580,12 @@ h3 {
   color: var(--violet-600);
 }
 
+.status-pill-lost_applicability {
+  background: var(--red-100);
+  color: var(--red-600);
+  border-left-style: dashed;
+}
+
 .status-pill-blocked {
   background: var(--slate-100);
   color: var(--slate-600);
@@ -832,7 +839,8 @@ h3 {
 }
 
 .result-item-failed,
-.result-item-errored {
+.result-item-errored,
+.result-item-lost_applicability {
   background: linear-gradient(180deg, #ffffff 0%, var(--red-100) 100%);
 }
 

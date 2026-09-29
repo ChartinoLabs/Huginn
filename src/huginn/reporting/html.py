@@ -22,7 +22,7 @@ _TEMPLATE_ENV = Environment(autoescape=True, trim_blocks=True, lstrip_blocks=Tru
 _RESOURCE_ROOT = files("huginn.reporting")
 _STATUS_FILTER_GROUPS = (
     ("passed", "pass", ("passed",)),
-    ("failed", "fail", ("failed", "errored", "blocked")),
+    ("failed", "fail", ("failed", "errored", "lost_applicability", "blocked")),
     ("skipped", "skip", ("skipped", "not_applicable")),
 )
 
@@ -142,6 +142,7 @@ def _build_dashboard_stats(result: RunResult) -> list[dict[str, int | str]]:
         {"label": "Errored", "value": result.summary.errored},
         {"label": "Skipped", "value": result.summary.skipped},
         {"label": "Not Applicable", "value": result.summary.not_applicable},
+        {"label": "Lost Applicability", "value": result.summary.lost_applicability},
         {"label": "Blocked", "value": result.summary.blocked},
     ]
 
@@ -349,7 +350,7 @@ def _count_statuses(statuses: list[str]) -> dict[str, int]:
     for status in statuses:
         if status == "passed":
             counts["passed"] += 1
-        elif status in {"failed", "errored", "blocked"}:
+        elif status in {"failed", "errored", "lost_applicability", "blocked"}:
             counts["failed"] += 1
         elif status in {"skipped", "not_applicable"}:
             counts["skipped"] += 1

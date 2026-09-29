@@ -617,6 +617,79 @@ def test_operator_gather_state_returns_default_operator(tmp_path: Path) -> None:
     assert result == {"devices": {"R1": {"operator": "lt"}}}
 
 
+@dataclass(frozen=True)
+class _FakeCommandResult:
+    output: str
+
+
+@dataclass
+class _UnsupportedOnR2Broker:
+    async def execute(self, device: _FakeDevice, command: str) -> _FakeCommandResult:
+        output = "% Invalid input detected" if device.name == "R2" else "ok"
+        return _FakeCommandResult(output=output)
+
+
+@dataclass
+class _StaticParameters:
+    payload: dict[str, Any]
+
+    async def load(self) -> dict[str, Any]:
+        return self.payload
+
+
+@dataclass
+class _NaResults(_FakeResults):
+    not_applicable_devices: dict[str, str] = field(default_factory=dict)
+
+
+def test_operator_job_reports_lost_applicability_for_learned_device(
+    tmp_path: Path,
+) -> None:
+    """A learned device that stops supporting the command lost applicability."""
+    import asyncio
+
+    cls = _make_operator_job(
+        planned=[Observation(device="R1", series_key="k", value=1, raw="1")],
+    )
+    ctx = cast(
+        Any, _make_context(tmp_path, targets=[_FakeDevice("R1"), _FakeDevice("R2")])
+    )
+    ctx.results = _NaResults()
+    ctx.broker = _UnsupportedOnR2Broker()
+    ctx.parameters = _StaticParameters(
+        {"devices": {"R1": {"operator": "gte"}, "R2": {"operator": "gte"}}}
+    )
+
+    asyncio.run(cls().test(ctx))
+
+    statuses = {status for status, _ in ctx.results.entries}
+    assert ResultStatus.LOST_APPLICABILITY in statuses
+    assert ResultStatus.NOT_APPLICABLE not in statuses
+    assert ctx.results.not_applicable_devices == {}
+
+
+def test_operator_job_keeps_unlearned_device_not_applicable(tmp_path: Path) -> None:
+    """A device the operator parameters never covered stays NOT_APPLICABLE."""
+    import asyncio
+
+    cls = _make_operator_job(
+        planned=[Observation(device="R1", series_key="k", value=1, raw="1")],
+    )
+    ctx = cast(
+        Any, _make_context(tmp_path, targets=[_FakeDevice("R1"), _FakeDevice("R2")])
+    )
+    ctx.results = _NaResults()
+    ctx.broker = _UnsupportedOnR2Broker()
+    ctx.parameters = _StaticParameters({"devices": {"R1": {"operator": "gte"}}})
+
+    asyncio.run(cls().test(ctx))
+
+    statuses = {status for status, _ in ctx.results.entries}
+    assert ResultStatus.NOT_APPLICABLE in statuses
+    assert ResultStatus.LOST_APPLICABILITY not in statuses
+    assert set(ctx.results.not_applicable_devices) == {"R2"}
+
+
 def test_operator_failure_message_mentions_operator(tmp_path: Path) -> None:
     """Failure messages surface the operator framing."""
     import asyncio

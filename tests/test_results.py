@@ -51,6 +51,29 @@ def test_result_collector_returns_errored_when_errored_and_info_present() -> Non
     assert collector.derive_status() == ResultStatus.ERRORED
 
 
+def test_result_collector_lost_applicability_outranks_passing_statuses() -> None:
+    """A lost device fails the test case even when other checks passed."""
+    collector = ResultCollector()
+    collector.add_result(ResultStatus.PASSED, "leaf-01 matches")
+    collector.add_result(ResultStatus.NOT_APPLICABLE, "leaf-02 never supported")
+    collector.add_result(ResultStatus.LOST_APPLICABILITY, "leaf-03 lost support")
+
+    assert collector.derive_status() == ResultStatus.LOST_APPLICABILITY
+
+
+def test_result_collector_failed_outranks_lost_applicability() -> None:
+    """FAILED ranks above LOST_APPLICABILITY, and ERRORED above both."""
+    collector = ResultCollector()
+    collector.add_result(ResultStatus.LOST_APPLICABILITY, "leaf-03 lost support")
+    collector.add_result(ResultStatus.FAILED, "bgp session is down")
+
+    assert collector.derive_status() == ResultStatus.FAILED
+
+    collector.add_result(ResultStatus.ERRORED, "JSONDecodeError")
+
+    assert collector.derive_status() == ResultStatus.ERRORED
+
+
 def test_result_collector_records_command_execution_from_command_result() -> None:
     """CommandResult payloads are captured with output/cache metadata."""
     collector = ResultCollector()

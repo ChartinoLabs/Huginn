@@ -128,19 +128,18 @@ There is no `skip()` helper. Record a skip with `add_result(ResultStatus.SKIPPED
 
 ### ResultStatus enum
 
-| Status           | Meaning                                                                                                                                        | Counts as failure?                        |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `PASSED`         | The check succeeded.                                                                                                                           | No                                        |
-| `FAILED`         | The check did not match expected state.                                                                                                        | Yes                                       |
-| `ERRORED`        | An exception or error occurred.                                                                                                                | Yes                                       |
-| `NOT_APPLICABLE` | The check did not apply to the target at runtime.                                                                                              | No                                        |
-| `SKIPPED`        | The test case was intentionally not executed.                                                                                                  | No                                        |
-| `BLOCKED`        | The test case did not run because a phase it depends on failed or errored, or was not run in learning mode. Set by the framework, not by jobs. | Yes, unless blocked only by learning mode |
-| `INFO`           | Informational note. Ignored when deriving status.                                                                                              | No                                        |
+| Status               | Meaning                                                                                                                                                                                                                         | Counts as failure?                        |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `PASSED`             | The check succeeded.                                                                                                                                                                                                            | No                                        |
+| `FAILED`             | The check did not match expected state.                                                                                                                                                                                         | Yes                                       |
+| `LOST_APPLICABILITY` | In testing mode, the target no longer supports the job's command although the learned parameters contain it. Recorded by `LearningTestCase`; see [Command support regression detection](#command-support-regression-detection). | Yes                                       |
+| `ERRORED`            | An exception or error occurred.                                                                                                                                                                                                 | Yes                                       |
+| `NOT_APPLICABLE`     | The check did not apply to the target at runtime.                                                                                                                                                                               | No                                        |
+| `SKIPPED`            | The test case was intentionally not executed.                                                                                                                                                                                   | No                                        |
+| `BLOCKED`            | The test case did not run because a phase it depends on failed, errored or lost applicability, or was not run in learning mode. Set by the framework, not by jobs.                                                              | Yes, unless blocked only by learning mode |
+| `INFO`               | Informational note. Ignored when deriving status.                                                                                                                                                                               | No                                        |
 
-A test case's status is derived from its checks in this order: any `ERRORED` gives `ERRORED`; otherwise any `FAILED` gives `FAILED`; otherwise, ignoring `INFO` checks, all `NOT_APPLICABLE` gives `NOT_APPLICABLE` and all `SKIPPED` gives `SKIPPED`; anything else gives `PASSED`. The run status is derived from the test case statuses in the same order. `huginn run` exits with code 1 when any test case is `FAILED`, `ERRORED` or `BLOCKED`, except a test case blocked only because a phase it depends on was not run in learning mode. A run whose test cases are all `PASSED`, `NOT_APPLICABLE` or `SKIPPED` exits 0, even when none of them passed.
-
-A `LOST_APPLICABILITY` status is planned but not implemented; see [Command support regression detection](#command-support-regression-detection).
+A test case's status is derived from its checks in this order: any `ERRORED` gives `ERRORED`; otherwise any `FAILED` gives `FAILED`; otherwise any `LOST_APPLICABILITY` gives `LOST_APPLICABILITY`; otherwise, ignoring `INFO` checks, all `NOT_APPLICABLE` gives `NOT_APPLICABLE` and all `SKIPPED` gives `SKIPPED`; anything else gives `PASSED`. The run status is derived from the test case statuses in the same order. `huginn run` exits with code 1 when any test case is `FAILED`, `ERRORED`, `LOST_APPLICABILITY` or `BLOCKED`, except a test case blocked only because a phase it depends on was not run in learning mode. A run whose test cases are all `PASSED`, `NOT_APPLICABLE` or `SKIPPED` exits 0, even when none of them passed.
 
 ## Connection broker API
 
@@ -390,13 +389,13 @@ class VerifyOspfNeighbors(LearningTestCase[OspfParameters]):
 `LearningTestCase` provides no-op `setup()` and `cleanup()`, a default `check_command_support()` that accepts every target, and implements `test()` as:
 
 1. Call `check_command_support(context)`.
-2. Record a `NOT_APPLICABLE` check (`"<device>: <reason>"`) for each target not in `applicable`, and copy `not_applicable` into `context.results.not_applicable_devices`.
+2. For each target not in `applicable`, record a `NOT_APPLICABLE` check (`"<device>: <reason>"`) and list it in `context.results.not_applicable_devices`. In testing mode, a target that `learned_devices()` finds in the learned parameters is recorded as `LOST_APPLICABILITY` instead and is not listed; see [Command support regression detection](#command-support-regression-detection).
 3. If no target is applicable, record an `INFO` check (`No supported targets after command support check`) and return.
 4. Narrow `context.targets` to the applicable devices.
 5. Call `gather_state(context)`. If the result is a mapping with a `devices` mapping, every applicable target missing from it is added to `not_applicable_devices`.
 6. If the derived status is already `ERRORED`, return without saving or comparing.
 7. In learning mode, save the state with `context.parameters.save(...)`, record a `PASSED` check (`Learned parameters saved successfully`) unless every check so far is `NOT_APPLICABLE`, and return.
-8. In testing mode, load the expected state with `context.parameters.load()`, render the `DESCRIPTION`, `SETUP`, `PROCEDURE` and `PASS_FAIL_CRITERIA` class attributes as metadata sections, and call `compare_state(expected=..., current=..., context=...)`.
+8. In testing mode, load the expected state with `context.parameters.load()`, unless step 2 already loaded it, render the `DESCRIPTION`, `SETUP`, `PROCEDURE` and `PASS_FAIL_CRITERIA` class attributes as metadata sections, and call `compare_state(expected=..., current=..., context=...)`.
 
 The runner calls `setup()`, then `test()`, then `cleanup()`, so `check_command_support()` runs inside `test()` after `setup()`. A plain `TestCase` has no command support hook; its `test()` does whatever you write.
 
@@ -471,7 +470,39 @@ A target that is not in `applicable` and has no entry in `not_applicable` is rep
 
 ### Command support regression detection
 
-Planned; see [#254](https://github.com/ChartinoLabs/Huginn/issues/254). The intent is that a device which supported the command when parameters were learned, but no longer does during testing, is reported as a failing `LOST_APPLICABILITY` status. Today such a device is reported as `NOT_APPLICABLE`.
+In testing mode, `LearningTestCase.test()` checks each target that `check_command_support()` reports as not applicable against the learned parameters. A target the parameters contain supported the command when they were learned, so it is recorded as `LOST_APPLICABILITY` with the message `"<device>: <reason>, but it was supported when parameters were learned"`. The status counts as a failure: it fails the test case, makes `huginn run` exit 1 and blocks dependent phases. A target the parameters do not contain never supported the command and stays `NOT_APPLICABLE`.
+
+The learned parameters are loaded before any result is recorded, and only when at least one target is not applicable. If they cannot be loaded at that point, every such target is `NOT_APPLICABLE`, and the load after `gather_state()` raises the error as usual. Learning mode never records `LOST_APPLICABILITY`.
+
+A target that lost applicability is not added to `not_applicable_devices`, so [`huginn prune`](prune.md) never excludes it. [`huginn relearn`](relearn.md) treats the test case as failed and re-learns it.
+
+#### Custom parameter schemas
+
+`learned_devices(parameters)` returns the set of device names the learned parameters cover. The default returns the keys of `parameters["devices"]`, or an empty set when there is no `devices` mapping, which suits the standard `{"devices": {<name>: ...}}` schema, including `OperatorVolatileLearningTestCase`. Override it when a job stores devices elsewhere:
+
+```python
+from huginn import Context, LearningTestCase
+
+
+class VerifyFabricNodes(LearningTestCase[dict[str, object]]):
+    def learned_devices(self, parameters: dict[str, object]) -> set[str]:
+        nodes = parameters.get("nodes", {})
+        return set(nodes) if isinstance(nodes, dict) else set()
+
+    async def gather_state(self, context: Context) -> dict[str, object]:
+        return {"nodes": {device.name: {} for device in context.targets}}
+
+    async def compare_state(
+        self,
+        *,
+        expected: dict[str, object],
+        current: dict[str, object],
+        context: Context,
+    ) -> None:
+        return None
+```
+
+Return an empty set to opt a job out of the check.
 
 ## Async patterns
 

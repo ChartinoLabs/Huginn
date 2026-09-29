@@ -10,6 +10,7 @@ from jinja2 import Environment
 from huginn.context import Context
 from huginn.enums import BrokerType, ExecutionMode, ResultStatus
 from huginn.models import Device
+from huginn.parameters import ParameterStoreError
 
 _METADATA_TEMPLATE_ENV = Environment(
     autoescape=True,
@@ -61,22 +62,8 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
     async def test(self, context: Context) -> None:
         """Save state in learning mode or compare state in testing mode."""
         support = await self.check_command_support(context)
-        original_targets = list(context.targets)
         supported_targets = list(support.applicable)
-
-        for target in original_targets:
-            if target in supported_targets:
-                continue
-            reason = support.not_applicable.get(
-                target.name,
-                "Command not supported on this device",
-            )
-            context.results.add_result(
-                ResultStatus.NOT_APPLICABLE,
-                f"{target.name}: {reason}",
-            )
-
-        context.results.not_applicable_devices = dict(support.not_applicable)
+        expected_state = await self._record_command_support(context, support)
 
         if not supported_targets:
             context.results.add_result(
@@ -111,13 +98,91 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
                 )
             return
 
-        expected_state = cast(ParametersT, await context.parameters.load())
+        if expected_state is None:
+            expected_state = cast(ParametersT, await context.parameters.load())
         self._add_rendered_metadata_result(context=context, parameters=expected_state)
         await self.compare_state(
             expected=expected_state,
             current=current_state,
             context=context,
         )
+
+    async def _record_command_support(
+        self,
+        context: Context,
+        support: CommandSupportResult,
+    ) -> ParametersT | None:
+        """Record one result per unsupported target.
+
+        In testing mode, a target the learned parameters contain (see
+        ``learned_devices()``) lost applicability since learning, which fails
+        the test. It is left out of ``not_applicable_devices`` so prune never
+        excludes it. Any other unsupported target is NOT_APPLICABLE.
+
+        Returns the learned parameters when they were loaded for this check,
+        so ``test()`` does not load them twice.
+        """
+        unsupported = [t for t in context.targets if t not in support.applicable]
+        expected_state = await self._load_expected_for_support_check(
+            context,
+            unsupported,
+        )
+        learned = (
+            set() if expected_state is None else self.learned_devices(expected_state)
+        )
+        not_applicable = dict(support.not_applicable)
+        for target in unsupported:
+            reason = support.not_applicable.get(
+                target.name,
+                "Command not supported on this device",
+            )
+            if target.name in learned:
+                context.results.add_result(
+                    ResultStatus.LOST_APPLICABILITY,
+                    f"{target.name}: {reason}, but it was supported when "
+                    "parameters were learned",
+                )
+                not_applicable.pop(target.name, None)
+                continue
+            context.results.add_result(
+                ResultStatus.NOT_APPLICABLE,
+                f"{target.name}: {reason}",
+            )
+        context.results.not_applicable_devices = not_applicable
+        return expected_state
+
+    @staticmethod
+    async def _load_expected_for_support_check(
+        context: Context,
+        unsupported_targets: list[Device],
+    ) -> ParametersT | None:
+        """Load learned parameters when unsupported targets need classifying.
+
+        Only testing mode with at least one unsupported target loads early.
+        Parameters that cannot be loaded return None here, so the targets are
+        recorded as NOT_APPLICABLE. When supported targets remain, the load
+        in ``test()`` after ``gather_state()`` still raises the
+        ``ParameterStoreError``, as it did before this check existed.
+        """
+        if context.mode != ExecutionMode.TESTING or not unsupported_targets:
+            return None
+        try:
+            return cast(ParametersT, await context.parameters.load())
+        except ParameterStoreError:
+            return None
+
+    def learned_devices(self, parameters: ParametersT) -> set[str]:
+        """Return the names of the devices the learned parameters cover.
+
+        In testing mode, an unsupported target named here is recorded as
+        LOST_APPLICABILITY instead of NOT_APPLICABLE. The default reads the
+        keys of ``parameters["devices"]``. Override it for jobs whose
+        parameters use a different schema.
+        """
+        devices = parameters.get("devices")
+        if not isinstance(devices, Mapping):
+            return set()
+        return {str(name) for name in cast(Mapping[object, object], devices)}
 
     @staticmethod
     def _capture_gather_state_na(

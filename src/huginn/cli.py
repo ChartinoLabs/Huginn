@@ -422,6 +422,7 @@ def run(
         f"failed={result.summary.failed} "
         f"errored={result.summary.errored} "
         f"not_applicable={result.summary.not_applicable} "
+        f"lost_applicability={result.summary.lost_applicability} "
         f"skipped={result.summary.skipped} "
         f"blocked={result.summary.blocked}"
     )
@@ -651,14 +652,19 @@ def validate(
 
 
 def _summary_has_failures(summary: RunSummary) -> bool:
-    """Return True when a run has failed, errored or blocked test cases.
+    """Return True when a run has failed, errored, lost or blocked test cases.
 
     NOT_APPLICABLE and SKIPPED results do not make a run fail. Neither do test
     cases blocked only because a phase they depend on was not run in learning
     mode: that is the expected outcome of learning a change-validation plan.
     """
     failure_blocked = summary.blocked - summary.learning_mode_blocked
-    return summary.failed > 0 or summary.errored > 0 or failure_blocked > 0
+    return (
+        summary.failed > 0
+        or summary.errored > 0
+        or summary.lost_applicability > 0
+        or failure_blocked > 0
+    )
 
 
 def _report_learning_mode_blocks(summary: RunSummary, output: Output) -> None:
@@ -1131,10 +1137,10 @@ def relearn(
 ) -> None:
     """Re-learn parameters for failed tests from the latest testing run.
 
-    Analyzes the most recent testing run results, identifies failed and
-    errored test cases, then re-runs only those tests in learning mode to
-    refresh their baseline parameters. Each test is re-run only in the exact
-    scenario and phase where it failed.
+    Analyzes the most recent testing run results, identifies failed,
+    errored and lost-applicability test cases, then re-runs only those tests
+    in learning mode to refresh their baseline parameters. Each test is
+    re-run only in the exact scenario and phase where it failed.
 
     Examples:
         huginn relearn -p test_plan -t testbed.yaml

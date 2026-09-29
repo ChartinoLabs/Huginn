@@ -53,6 +53,9 @@ class ResultStatus(StrEnum):
     - INFO: Informational note with no impact on pass/fail.
     - ERRORED: An exception occurred during execution.
     - NOT_APPLICABLE: Check was out of scope for the target at runtime.
+    - LOST_APPLICABILITY: In testing mode, a target no longer supports the
+      job's command although the learned parameters contain it. Counts as a
+      failure.
     - SKIPPED: The test case did not execute because it was intentionally skipped.
     - BLOCKED: The test case could not run because a phase it depends on failed,
       errored, or was not run in learning mode (see ``BlockKind``).
@@ -66,6 +69,7 @@ class ResultStatus(StrEnum):
     INFO = "info"
     ERRORED = "errored"
     NOT_APPLICABLE = "not_applicable"
+    LOST_APPLICABILITY = "lost_applicability"
     SKIPPED = "skipped"
     BLOCKED = "blocked"
 
