@@ -6,10 +6,13 @@ from pathlib import Path
 import pytest
 import yaml
 
+from huginn.loaders import load_test_plan
 from huginn.models import (
+    Device,
     Phase,
     Scenario,
     TargetDefinition,
+    Testbed,
     TestCaseDefinition,
     TestCaseGroup,
     TestPlan,
@@ -25,6 +28,7 @@ from huginn.reconcile import (
     find_latest_testing_results,
     parse_failures_from_run,
 )
+from huginn.runner import resolve_targets
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -968,3 +972,236 @@ class TestCopyParameterFiles:
         assert copied == 2
         assert (params_dir / "2.0.0-scenario-1-post-change.json").is_file()
         assert (params_dir / "3.0.0-scenario-1-post-change.json").is_file()
+
+
+# ---------------------------------------------------------------------------
+# Round trip: group-level targets and tags survive reconciliation
+# ---------------------------------------------------------------------------
+
+_ROUND_TRIP_TESTBED = Testbed(
+    devices={
+        "leaf-nx": Device(name="leaf-nx", os="nxos", groups=["leaf"]),
+        "leaf-nx2": Device(name="leaf-nx2", os="nxos", groups=["leaf"]),
+        "leaf-eos": Device(name="leaf-eos", os="eos", groups=["leaf"]),
+        "spine-nx": Device(name="spine-nx", os="nxos", groups=["spine"]),
+        "spine-eos": Device(name="spine-eos", os="eos", groups=["spine"]),
+    }
+)
+
+
+class TestReconcileRoundTrip:
+    """A variant runs on the devices, and carries the tags, of its original."""
+
+    def _plan_data(
+        self,
+        groups: dict[str, dict],
+        *,
+        phase_target: dict | None = None,
+    ) -> dict:
+        """Build a plan whose ``pre`` and ``post`` phases both run ``grand``."""
+        phases: dict[str, dict[str, object]] = {}
+        for phase_name in ("pre", "post"):
+            phases[phase_name] = {"test_case_groups": ["grand"]}
+            if phase_target is not None:
+                phases[phase_name]["target"] = phase_target
+        return {
+            "test_cases": {
+                "lp-t1": {"title": "Leaf check", "job": "jobs/check.py"},
+                "p-t2": {"title": "Passing check", "job": "jobs/check.py"},
+            },
+            "test_case_groups": groups,
+            "scenarios": {"s1": {"phases": phases}},
+        }
+
+    def _reconcile(self, tmp_path: Path, output: Output, data: dict) -> TestPlan:
+        """Reconcile a failing ``lp-t1`` in ``post`` and reload the plan."""
+        plan_path = _write_yaml_file(tmp_path / "plan.yaml", data)
+        reconcile_input = ReconcileInput(
+            failing_tests=[FailingTestCase("lp-t1", "grand", "s1")],
+            passing_test_ids_by_group={"grand": []},
+            affected_group_ids={"grand"},
+            phase_name="post",
+            scenarios_with_phase=["s1"],
+        )
+        reconcile_plan = compute_reconcile_plan(
+            reconcile_input, load_test_plan(plan_path), "post", "s1"
+        )
+        apply_reconcile_plan(
+            plan_path=plan_path,
+            reconcile_plan=reconcile_plan,
+            phase_name="post",
+            output=output,
+        )
+        return load_test_plan(plan_path)
+
+    def _devices(self, plan: TestPlan, phase: str, test_id: str) -> set[str]:
+        """Resolve the devices ``test_id`` runs on in ``phase`` of ``s1``."""
+        phase_def = plan.scenarios["s1"].phases[phase]
+        (group_id,) = phase_def.test_case_groups
+        devices = resolve_targets(
+            testbed=_ROUND_TRIP_TESTBED,
+            phase=phase_def,
+            group=plan.test_case_groups[group_id],
+            test_case=plan.test_cases[test_id],
+        )
+        return {device.name for device in devices}
+
+    def _tag_sets(self, plan: TestPlan, phase: str, test_id: str) -> list[set[str]]:
+        """Return the group tags of each path that includes ``test_id``."""
+        (group_id,) = plan.scenarios["s1"].phases[phase].test_case_groups
+        group = plan.test_case_groups[group_id]
+        return sorted(
+            ({*group.tags, *path.tags} for path in group.paths_for(test_id)),
+            key=sorted,
+        )
+
+    def _assert_round_trip(self, plan: TestPlan, expected: set[str]) -> None:
+        """Assert the original in pre and the variant in post match."""
+        assert self._devices(plan, "pre", "lp-t1") == expected
+        assert self._devices(plan, "post", "lp-t1-s1-post") == expected
+        assert self._tag_sets(plan, "post", "lp-t1-s1-post") == self._tag_sets(
+            plan, "pre", "lp-t1"
+        )
+
+    def test_parent_group_target(self, tmp_path: Path, output: Output) -> None:
+        """Keep the target and tags of the group that lists the test."""
+        data = self._plan_data(
+            {
+                "grand": {
+                    "target": {"groups": ["leaf"]},
+                    "tags": ["fabric"],
+                    "tests": ["lp-t1", "p-t2"],
+                },
+            }
+        )
+
+        plan = self._reconcile(tmp_path, output, data)
+
+        leaves = {"leaf-nx", "leaf-nx2", "leaf-eos"}
+        self._assert_round_trip(plan, leaves)
+        assert self._tag_sets(plan, "post", "lp-t1-s1-post") == [{"fabric"}]
+        assert self._devices(plan, "post", "p-t2") == leaves
+
+    def test_nested_child_target(self, tmp_path: Path, output: Output) -> None:
+        """Keep the targets and tags of every group on the nested path."""
+        data = self._plan_data(
+            {
+                "child": {
+                    "target": {"os": ["nxos"]},
+                    "tags": ["nxos"],
+                    "tests": ["lp-t1", "p-t2"],
+                },
+                "grand": {"target": {"groups": ["leaf"]}, "groups": ["child"]},
+            }
+        )
+
+        plan = self._reconcile(tmp_path, output, data)
+
+        self._assert_round_trip(plan, {"leaf-nx", "leaf-nx2"})
+        assert self._tag_sets(plan, "post", "lp-t1-s1-post") == [{"nxos"}]
+
+    def test_multi_level_nested_targets(self, tmp_path: Path, output: Output) -> None:
+        """Apply the target of every level of a deeper nested path."""
+        data = self._plan_data(
+            {
+                "inner": {
+                    "target": {"exclude_devices": ["leaf-nx2"]},
+                    "tests": ["lp-t1"],
+                },
+                "middle": {"target": {"os": ["nxos"]}, "groups": ["inner"]},
+                "plain": {"groups": ["middle"]},
+                "grand": {"target": {"groups": ["leaf"]}, "groups": ["plain"]},
+            }
+        )
+
+        plan = self._reconcile(tmp_path, output, data)
+
+        self._assert_round_trip(plan, {"leaf-nx"})
+
+    def test_diamond_keeps_union_of_paths(self, tmp_path: Path, output: Output) -> None:
+        """A test reached through several paths keeps every path's devices."""
+        data = self._plan_data(
+            {
+                "nxos-checks": {
+                    "target": {"os": ["nxos"]},
+                    "tags": ["nxos"],
+                    "tests": ["lp-t1"],
+                },
+                "spine-checks": {
+                    "target": {"groups": ["spine"]},
+                    "tags": ["spine"],
+                    "tests": ["lp-t1"],
+                },
+                "grand": {
+                    "target": {"exclude_devices": ["leaf-nx2"]},
+                    "groups": ["nxos-checks", "spine-checks"],
+                },
+            }
+        )
+
+        plan = self._reconcile(tmp_path, output, data)
+
+        self._assert_round_trip(plan, {"leaf-nx", "spine-nx", "spine-eos"})
+        assert self._tag_sets(plan, "post", "lp-t1-s1-post") == [
+            {"nxos"},
+            {"spine"},
+        ]
+
+    def test_diamond_with_direct_inclusion(
+        self, tmp_path: Path, output: Output
+    ) -> None:
+        """A direct listing alongside a nested path keeps both device sets."""
+        data = self._plan_data(
+            {
+                "spine-checks": {
+                    "target": {"groups": ["spine"]},
+                    "tests": ["lp-t1"],
+                },
+                "grand": {
+                    "target": {"os": ["nxos"]},
+                    "groups": ["spine-checks"],
+                    "tests": ["lp-t1"],
+                },
+            }
+        )
+
+        plan = self._reconcile(tmp_path, output, data)
+
+        self._assert_round_trip(plan, {"leaf-nx", "leaf-nx2", "spine-nx"})
+
+    def test_phase_target_still_applies(self, tmp_path: Path, output: Output) -> None:
+        """The variant stays in the phase, so the phase target narrows it."""
+        data = self._plan_data(
+            {
+                "child": {"target": {"os": ["nxos"]}, "tests": ["lp-t1"]},
+                "grand": {"groups": ["child"]},
+            },
+            phase_target={"groups": ["spine"]},
+        )
+
+        plan = self._reconcile(tmp_path, output, data)
+
+        self._assert_round_trip(plan, {"spine-nx"})
+
+    def test_writes_nested_path_groups(self, tmp_path: Path, output: Output) -> None:
+        """Rebuild a nested path as a generated group the new group includes."""
+        data = self._plan_data(
+            {
+                "child": {"target": {"os": ["nxos"]}, "tests": ["lp-t1"]},
+                "grand": {"target": {"groups": ["leaf"]}, "groups": ["child"]},
+            }
+        )
+
+        self._reconcile(tmp_path, output, data)
+
+        written = yaml.safe_load((tmp_path / "plan.yaml").read_text())
+        groups = written["test_case_groups"]
+        assert groups["grand-s1-post"] == {
+            "groups": ["grand", "grand-s1-post-path1"],
+            "exclude_tests": ["lp-t1"],
+            "target": {"groups": ["leaf"]},
+        }
+        assert groups["grand-s1-post-path1"] == {
+            "tests": ["lp-t1-s1-post"],
+            "target": {"os": ["nxos"]},
+        }

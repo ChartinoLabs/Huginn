@@ -2,7 +2,7 @@
 
 import json
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import cast
@@ -10,7 +10,13 @@ from typing import cast
 import yaml
 
 from huginn.loaders import ConfigurationError, discover_yaml_files, load_test_plan
-from huginn.models import TestCaseDefinition, TestPlan
+from huginn.models import (
+    InclusionPath,
+    TargetDefinition,
+    TestCaseDefinition,
+    TestCaseGroup,
+    TestPlan,
+)
 from huginn.output import Output
 
 
@@ -40,11 +46,31 @@ class ReconcileInput:
 
 @dataclass(frozen=True)
 class NewGroupSpec:
-    """Specification for a new reconciled test case group."""
+    """Specification for a new reconciled test case group.
+
+    The group repeats the parent group's ``target`` and ``tags`` so that
+    variants listed in ``tests`` are narrowed and tagged like the originals
+    they replace. Variants the parent inherited through nested groups are
+    placed in the ``path_groups`` instead, which rebuild those nested groups'
+    targets and tags.
+    """
 
     parent_group: str
     exclude_tests: list[str]
     tests: list[str]
+    target: TargetDefinition | None = None
+    tags: list[str] = field(default_factory=list)
+    path_groups: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class PathGroupSpec:
+    """A generated group that rebuilds one link of a nested inclusion path."""
+
+    tests: list[str]
+    groups: list[str]
+    target: TargetDefinition | None = None
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -56,6 +82,7 @@ class ReconcilePlan:
     phase_group_replacements: dict[str, dict[str, str]]
     parameter_copies: list[tuple[str, str]]
     skipped_existing: list[str]
+    path_groups: dict[str, PathGroupSpec] = field(default_factory=dict)
 
 
 _FAILURE_STATUSES = frozenset({"failed", "errored"})
@@ -205,7 +232,7 @@ def compute_reconcile_plan(
     new_test_cases, parameter_copies, seen_failing_ids = _build_new_test_cases(
         reconcile_input, test_plan, phase_name, scenario_name, skipped_existing
     )
-    new_groups = _build_new_groups(
+    new_groups, path_groups = _build_new_groups(
         reconcile_input,
         test_plan,
         phase_name,
@@ -224,6 +251,7 @@ def compute_reconcile_plan(
         phase_group_replacements=phase_group_replacements,
         parameter_copies=parameter_copies,
         skipped_existing=skipped_existing,
+        path_groups=path_groups,
     )
 
 
@@ -272,19 +300,25 @@ def _serialize_test_case(
     }
     if original.tags:
         tc_entry["tags"] = list(original.tags)
-    if original.target is not None:
-        target_dict: dict[str, object] = {}
-        if original.target.devices is not None:
-            target_dict["devices"] = list(original.target.devices)
-        if original.target.groups is not None:
-            target_dict["groups"] = list(original.target.groups)
-        if original.target.os is not None:
-            target_dict["os"] = list(original.target.os)
-        if original.target.exclude_devices is not None:
-            target_dict["exclude_devices"] = list(original.target.exclude_devices)
-        if target_dict:
-            tc_entry["target"] = target_dict
+    _add_target(tc_entry, original.target)
     return tc_entry
+
+
+def _add_target(entry: dict[str, object], target: TargetDefinition | None) -> None:
+    """Add a raw ``target`` mapping to ``entry`` when a selector is set."""
+    if target is None:
+        return
+    target_dict: dict[str, object] = {}
+    if target.devices is not None:
+        target_dict["devices"] = list(target.devices)
+    if target.groups is not None:
+        target_dict["groups"] = list(target.groups)
+    if target.os is not None:
+        target_dict["os"] = list(target.os)
+    if target.exclude_devices is not None:
+        target_dict["exclude_devices"] = list(target.exclude_devices)
+    if target_dict:
+        entry["target"] = target_dict
 
 
 def _build_new_groups(
@@ -295,10 +329,11 @@ def _build_new_groups(
     new_test_cases: dict[str, dict[str, object]],
     seen_failing_ids: set[str],
     skipped_existing: list[str],
-) -> dict[str, NewGroupSpec]:
+) -> tuple[dict[str, NewGroupSpec], dict[str, PathGroupSpec]]:
     """Create new group specs for each affected group."""
     new_groups: dict[str, NewGroupSpec] = {}
-    for group_id in reconcile_input.affected_group_ids:
+    path_groups: dict[str, PathGroupSpec] = {}
+    for group_id in sorted(reconcile_input.affected_group_ids):
         new_group_id = _reconciled_id(group_id, scenario_name, phase_name)
         if new_group_id in test_plan.test_case_groups:
             skipped_existing.append(new_group_id)
@@ -308,22 +343,116 @@ def _build_new_groups(
         if original_group is None:
             continue
 
-        excluded: list[str] = []
-        reconciled_tests: list[str] = []
-        for tid in seen_failing_ids:
-            if tid not in original_group.tests:
+        variants: list[tuple[str, str]] = []
+        for tid in original_group.tests:
+            if tid not in seen_failing_ids:
                 continue
             candidate = _reconciled_id(tid, scenario_name, phase_name)
             if candidate in new_test_cases or candidate in test_plan.test_cases:
-                excluded.append(tid)
-                reconciled_tests.append(candidate)
+                variants.append((tid, candidate))
 
-        new_groups[new_group_id] = NewGroupSpec(
-            parent_group=group_id,
-            exclude_tests=excluded,
-            tests=reconciled_tests,
+        new_groups[new_group_id] = _build_group_spec(
+            original_group,
+            variants,
+            _PathGroupBuilder(new_group_id, test_plan.test_case_groups, path_groups),
         )
-    return new_groups
+    return new_groups, path_groups
+
+
+def _build_group_spec(
+    original_group: TestCaseGroup,
+    variants: list[tuple[str, str]],
+    path_groups: "_PathGroupBuilder",
+) -> NewGroupSpec:
+    """Build the reconciled group that swaps ``variants`` in for the originals.
+
+    ``variants`` pairs each failing test ID with its variant ID. A variant
+    replaces its original on every inclusion path the original had, so it
+    runs on the same devices and carries the same group tags.
+    """
+    direct_tests: list[str] = []
+    for test_id, variant_id in variants:
+        for path in original_group.paths_for(test_id):
+            if path.targets or path.tags:
+                path_groups.add(variant_id, path)
+            else:
+                direct_tests.append(variant_id)
+    return NewGroupSpec(
+        parent_group=original_group.identifier,
+        exclude_tests=[test_id for test_id, _ in variants],
+        tests=direct_tests,
+        target=original_group.target,
+        tags=list(original_group.tags),
+        path_groups=path_groups.heads(),
+    )
+
+
+class _PathGroupBuilder:
+    """Generate the groups that rebuild nested inclusion paths for variants.
+
+    Each distinct path becomes a chain with one group per target on the path,
+    outermost first, named ``<reconciled group>-path<N>`` and then
+    ``-path<N>-<level>`` for the inner levels. The innermost group lists the
+    variants reached through that path and carries the path's tags. Including
+    the chain from the reconciled group gives each variant the same path its
+    original had, so target resolution and tag filtering treat both alike. A
+    variant reached through several paths is listed in several chains, and
+    the loader again takes the union of their devices.
+    """
+
+    def __init__(
+        self,
+        group_id: str,
+        existing_groups: dict[str, TestCaseGroup],
+        generated: dict[str, PathGroupSpec],
+    ) -> None:
+        self._group_id = group_id
+        self._existing_groups = existing_groups
+        self._generated = generated
+        self._chains: list[tuple[InclusionPath, list[str]]] = []
+
+    def add(self, variant_id: str, path: InclusionPath) -> None:
+        """List ``variant_id`` in the chain for ``path``, creating it if new."""
+        for chain_path, names in self._chains:
+            if _same_path(chain_path, path):
+                self._generated[names[-1]].tests.append(variant_id)
+                return
+
+        targets = [target for _, target in path.targets] or [None]
+        names = self._chain_names(len(targets))
+        for index, (name, target) in enumerate(zip(names, targets, strict=True)):
+            innermost = index == len(names) - 1
+            self._generated[name] = PathGroupSpec(
+                tests=[variant_id] if innermost else [],
+                groups=[] if innermost else [names[index + 1]],
+                target=target,
+                tags=list(path.tags) if innermost else [],
+            )
+        self._chains.append((path, names))
+
+    def heads(self) -> list[str]:
+        """Return the outermost group of each chain, in creation order."""
+        return [names[0] for _, names in self._chains]
+
+    def _chain_names(self, length: int) -> list[str]:
+        """Return the first unused set of group IDs for a chain of ``length``."""
+        number = 1
+        while True:
+            head = f"{self._group_id}-path{number}"
+            names = [head, *(f"{head}-{level}" for level in range(2, length + 1))]
+            if not any(self._is_taken(name) for name in names):
+                return names
+            number += 1
+
+    def _is_taken(self, name: str) -> bool:
+        return name in self._existing_groups or name in self._generated
+
+
+def _same_path(first: InclusionPath, second: InclusionPath) -> bool:
+    """Return True when two paths apply the same targets and tags."""
+    return [target for _, target in first.targets] == [
+        target for _, target in second.targets
+    ] and set(first.tags) == set(second.tags)
 
 
 def _build_phase_replacements(
@@ -460,12 +589,7 @@ def _apply_directory(
 
     if reconcile_plan.new_groups:
         groups = cast(dict[str, object], existing_data.get("test_case_groups", {}))
-        groups.update(
-            {
-                group_id: _serialize_group_spec(spec)
-                for group_id, spec in reconcile_plan.new_groups.items()
-            }
-        )
+        groups.update(_serialize_new_groups(reconcile_plan))
         existing_data["test_case_groups"] = groups
 
     if existing_data:
@@ -512,18 +636,45 @@ def _inject_new_definitions(
 
     if reconcile_plan.new_groups:
         groups = cast(dict[str, object], data.get("test_case_groups", {}))
-        for group_id, spec in reconcile_plan.new_groups.items():
-            groups[group_id] = _serialize_group_spec(spec)
+        groups.update(_serialize_new_groups(reconcile_plan))
         data["test_case_groups"] = groups
+
+
+def _serialize_new_groups(reconcile_plan: ReconcilePlan) -> dict[str, object]:
+    """Return the raw YAML entries for the reconciled and path groups."""
+    entries: dict[str, object] = {
+        group_id: _serialize_group_spec(spec)
+        for group_id, spec in reconcile_plan.new_groups.items()
+    }
+    for group_id, spec in reconcile_plan.path_groups.items():
+        entries[group_id] = _serialize_path_group_spec(spec)
+    return entries
 
 
 def _serialize_group_spec(spec: NewGroupSpec) -> dict[str, object]:
     """Convert a NewGroupSpec into the raw YAML dictionary form."""
     entry: dict[str, object] = {
-        "groups": [spec.parent_group],
+        "groups": [spec.parent_group, *spec.path_groups],
         "exclude_tests": spec.exclude_tests,
-        "tests": spec.tests,
     }
+    if spec.tests:
+        entry["tests"] = spec.tests
+    if spec.tags:
+        entry["tags"] = list(spec.tags)
+    _add_target(entry, spec.target)
+    return entry
+
+
+def _serialize_path_group_spec(spec: PathGroupSpec) -> dict[str, object]:
+    """Convert a PathGroupSpec into the raw YAML dictionary form."""
+    entry: dict[str, object] = {}
+    if spec.groups:
+        entry["groups"] = list(spec.groups)
+    if spec.tests:
+        entry["tests"] = list(spec.tests)
+    if spec.tags:
+        entry["tags"] = list(spec.tags)
+    _add_target(entry, spec.target)
     return entry
 
 
