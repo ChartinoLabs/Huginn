@@ -25,6 +25,7 @@ from huginn.result_store import write_validation_result
 from huginn.runner import _resolve_targets
 from huginn.runtime_broker import RuntimeBrokerError, normalize_broker_key
 from huginn.testcase import TestCase
+from huginn.unknown_keys import UNKNOWN_KEY_WARNING_CODE, UnknownKeyWarning
 
 
 @dataclass
@@ -71,8 +72,14 @@ async def validate_inputs(
     results_dir: Path,
     output: Output | None = None,
     data_model_path: Path | None = None,
+    unknown_key_warnings: bool = True,
 ) -> ValidationResult:
-    """Validate configuration and emit a validation result."""
+    """Validate configuration and emit a validation result.
+
+    Unless `unknown_key_warnings` is false, each key in the testbed or test
+    plan that the loaders do not read is reported as an `unknown_key` warning.
+    Warnings never make the result invalid.
+    """
     log_info(
         output,
         "Validation starting",
@@ -80,13 +87,15 @@ async def validate_inputs(
         testbed=testbed_path,
         inventory_plugin=inventory_plugin,
     )
+    unknown_keys: list[UnknownKeyWarning] | None = [] if unknown_key_warnings else None
     try:
         testbed = await resolve_inventory_testbed(
             testbed_path=testbed_path,
             inventory_plugin=inventory_plugin,
             project_root=project_root,
+            unknown_keys=unknown_keys,
         )
-        loaded_plan = load_test_plan(plan_path)
+        loaded_plan = load_test_plan(plan_path, unknown_keys=unknown_keys)
         load_plan_data_model(
             plan_path=plan_path, test_plan=loaded_plan, override=data_model_path
         )
@@ -104,10 +113,13 @@ async def validate_inputs(
         )
     except (ConfigurationError, InventoryPluginError) as error:
         log_warning(output, "Validation configuration load failed", error=error)
-        result = _build_configuration_error_result(str(error))
+        result = _build_configuration_error_result(
+            str(error), _unknown_key_issues(unknown_keys, output)
+        )
         _write_result(result=result, results_dir=results_dir)
         return result
 
+    warnings = _unknown_key_issues(unknown_keys, output)
     errors: list[ValidationIssue] = []
     scenario_order, phase_order, order_errors = _resolve_phase_order(test_plan)
     log_debug(
@@ -135,6 +147,7 @@ async def validate_inputs(
         output=output,
     )
     errors.extend(target_errors)
+    warnings.extend(target_warnings)
 
     all_required = _collect_all_required_brokers(required_by_case)
     result = ValidationResult(
@@ -143,7 +156,7 @@ async def validate_inputs(
         phase_order=phase_order,
         required_brokers=all_required,
         test_cases=test_cases,
-        warnings=target_warnings,
+        warnings=warnings,
         errors=errors,
     )
     _write_result(result=result, results_dir=results_dir)
@@ -159,7 +172,30 @@ async def validate_inputs(
     return result
 
 
-def _build_configuration_error_result(error: str) -> ValidationResult:
+def _unknown_key_issues(
+    unknown_keys: list[UnknownKeyWarning] | None,
+    output: Output | None,
+) -> list[ValidationIssue]:
+    """Convert unknown-key warnings into warning-severity validation issues."""
+    issues: list[ValidationIssue] = []
+    for warning in unknown_keys or []:
+        log_warning(
+            output,
+            "Validation unknown key warning",
+            source=warning.source,
+            key_path=warning.key_path,
+            suggestion=warning.suggestion,
+        )
+        issues.append(
+            ValidationIssue(code=UNKNOWN_KEY_WARNING_CODE, message=str(warning))
+        )
+    return issues
+
+
+def _build_configuration_error_result(
+    error: str,
+    warnings: list[ValidationIssue],
+) -> ValidationResult:
     """Build a result for fatal configuration parse/load errors."""
     return ValidationResult(
         valid=False,
@@ -167,7 +203,7 @@ def _build_configuration_error_result(error: str) -> ValidationResult:
         phase_order=[],
         required_brokers=[],
         test_cases=[],
-        warnings=[],
+        warnings=warnings,
         errors=[
             ValidationIssue(
                 code=ErrorCode.CONFIGURATION_ERROR.value,

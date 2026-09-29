@@ -56,6 +56,7 @@ from huginn.runtime_broker import (
     normalize_broker_key,
 )
 from huginn.testcase import LearningTestCase, TestCase
+from huginn.unknown_keys import UnknownKeyWarning, emit_unknown_key_warnings
 
 
 class RunExecutionError(RuntimeError):
@@ -119,8 +120,13 @@ async def run_test_plan(
     broker_factory: Callable[[], RuntimeBroker] | None = None,
     registry: PluginRegistry | None = None,
     data_model_path: Path | None = None,
+    unknown_key_warnings: bool = True,
 ) -> RunResult:
-    """Execute a minimal test plan and persist run artifacts."""
+    """Execute a minimal test plan and persist run artifacts.
+
+    Unless `unknown_key_warnings` is false, each key in the testbed or test
+    plan that the loaders do not read is printed as a warning through `output`.
+    """
     run_started = perf_counter()
     started_at = datetime.now().astimezone()
 
@@ -138,14 +144,16 @@ async def run_test_plan(
     )
     _emit_status(output, "Loading inventory and test plan")
     load_started = perf_counter()
+    unknown_keys: list[UnknownKeyWarning] | None = [] if unknown_key_warnings else None
     try:
         testbed = await resolve_inventory_testbed(
             testbed_path=testbed_path,
             inventory_plugin=inventory_plugin,
             project_root=project_root,
             registry=registry,
+            unknown_keys=unknown_keys,
         )
-        loaded_plan = load_test_plan(plan_path)
+        loaded_plan = load_test_plan(plan_path, unknown_keys=unknown_keys)
         data_model = load_plan_data_model(
             plan_path=plan_path,
             test_plan=loaded_plan,
@@ -171,6 +179,8 @@ async def run_test_plan(
             code=ErrorCode.CONFIGURATION_ERROR,
             traceback_text=traceback.format_exc(),
         ) from error
+    finally:
+        emit_unknown_key_warnings(output, unknown_keys)
     _emit_status(
         output,
         f"Loaded inventory and test plan in {_format_elapsed(load_started)}",

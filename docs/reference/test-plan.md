@@ -1119,6 +1119,20 @@ Other problems pass the load. `huginn validate` reports them, and `huginn run` h
 
 `validate` resolves targets the same way `run` does, including the targets inherited from nested groups, so the targets it reports for each test case are the ones the run uses.
 
+### Unknown keys
+
+Every command that loads the test plan warns about each key that Huginn does not read, and suggests the closest recognized key when there is one:
+
+```txt
+WARNING [unknown_key]: Unknown key 'depend_on' at 'scenarios.migration.phases.post-change.depend_on' in test_plan/scenarios.yaml; did you mean 'depends_on'?
+```
+
+The key path is dotted, and a test case ID that contains dots is bracketed, as in `test_cases["1.0.0"].tag`. Keys are checked for the top level, test cases, test case groups, scenarios, phases, `target` blocks and `strategy` blocks, against the fields listed on this page. `description` on groups, scenarios and phases is recognized. Keys inside a test case's `metadata` and inside `data_model` are not checked.
+
+Unknown keys are warnings, not errors, because some projects keep data for other tools in the plan. `huginn validate` lists them as `unknown_key` warnings in its result and still exits 0 when nothing else is wrong. To turn them off, see [CLI Reference - Unknown key warnings](cli.md#unknown-key-warnings).
+
+The `defaults` key is still a load error, because it was removed. In directory mode, every YAML file in the plan directory is read as a plan file, so a data model directory inside it without the `_` prefix (see [Path Resolution](#path-resolution)) produces an unknown-key warning for each of its top-level keys.
+
 ## Related Documents
 
 - [Glossary](../concepts/glossary.md): Formal term definitions

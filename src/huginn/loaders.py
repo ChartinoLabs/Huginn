@@ -28,6 +28,11 @@ from huginn.models import (
     nested_inclusion_paths,
 )
 from huginn.read_only import freeze
+from huginn.unknown_keys import (
+    UnknownKeyWarning,
+    check_plan_keys,
+    check_testbed_keys,
+)
 
 # Upper bound on the distinct inclusion paths one flattened group may keep for
 # one test. Equivalent paths are merged, so only nested groups whose targets or
@@ -410,9 +415,20 @@ def _validate_target_selector_exclusivity(
     )
 
 
-def load_testbed(path: Path) -> Testbed:
-    """Load a testbed file, expanding `${VAR}` references before validation."""
+def load_testbed(
+    path: Path,
+    *,
+    unknown_keys: list[UnknownKeyWarning] | None = None,
+) -> Testbed:
+    """Load a testbed file, expanding `${VAR}` references before validation.
+
+    When `unknown_keys` is a list, a warning is appended to it for each key the
+    loader does not read. Warnings found before a `ConfigurationError` is
+    raised stay in the list.
+    """
     data = cast(dict[str, object], _expand_env_vars(_load_yaml(path), source=str(path)))
+    check_testbed_keys(data, path, unknown_keys)
+    name = _require_optional_string(data.get("name"), "Testbed 'name' must be a string")
     global_credentials = _load_credentials(data.get("credentials"))
     raw_devices = _require_mapping(
         data.get("devices"),
@@ -449,7 +465,7 @@ def load_testbed(path: Path) -> Testbed:
             metadata=_load_device_metadata(device_name, device_mapping.get("metadata")),
         )
 
-    return Testbed(devices=devices, credentials=global_credentials)
+    return Testbed(devices=devices, credentials=global_credentials, name=name)
 
 
 def _load_device_metadata(device_name: str, value: object) -> dict[str, object]:
@@ -470,17 +486,29 @@ def _merge_credentials(
     return merged
 
 
-def load_test_plan(path: Path) -> TestPlan:
-    """Load a test plan from a YAML file or a directory of YAML files."""
+def load_test_plan(
+    path: Path,
+    *,
+    unknown_keys: list[UnknownKeyWarning] | None = None,
+) -> TestPlan:
+    """Load a test plan from a YAML file or a directory of YAML files.
+
+    When `unknown_keys` is a list, a warning is appended to it for each key the
+    loader does not read, file by file. Warnings found before a
+    `ConfigurationError` is raised stay in the list.
+    """
     if path.is_dir():
-        return _load_test_plan_directory(path)
-    return _load_test_plan_file(path)
+        return _load_test_plan_directory(path, unknown_keys)
+    return _load_test_plan_file(path, unknown_keys)
 
 
-def _load_test_plan_file(path: Path) -> TestPlan:
+def _load_test_plan_file(
+    path: Path, unknown_keys: list[UnknownKeyWarning] | None
+) -> TestPlan:
     """Load a single-file test plan with validation."""
     data = _load_yaml(path)
     _reject_removed_keys(data, path)
+    check_plan_keys(data, path, unknown_keys)
 
     test_cases = _load_test_cases(data)
     groups = _load_test_case_groups(data)
@@ -635,7 +663,9 @@ def _merge_metadata_mapping(
         sources[key] = source_path
 
 
-def _load_test_plan_directory(directory: Path) -> TestPlan:
+def _load_test_plan_directory(
+    directory: Path, unknown_keys: list[UnknownKeyWarning] | None
+) -> TestPlan:
     """Load and merge a directory of YAML files into a single TestPlan."""
     yaml_files = discover_yaml_files(directory)
     if not yaml_files:
@@ -661,6 +691,7 @@ def _load_test_plan_directory(directory: Path) -> TestPlan:
     for yaml_path in yaml_files:
         data = _load_yaml(yaml_path)
         _reject_removed_keys(data, yaml_path)
+        check_plan_keys(data, yaml_path, unknown_keys)
 
         for section_key in _SECTION_KEYS:
             raw = data.get(section_key)

@@ -21,7 +21,7 @@ from huginn.execute import (
 )
 from huginn.inject import InjectPlan
 from huginn.loaders import ConfigurationError, load_test_plan
-from huginn.models import RunSummary
+from huginn.models import RunSummary, TestPlan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
 from huginn.plugin_registry import PluginRegistry
@@ -47,6 +47,7 @@ from huginn.reconcile import (
 )
 from huginn.relearn import RelearnError, RelearnInput, parse_failed_test_ids
 from huginn.runner import RunExecutionError, run_test_plan
+from huginn.unknown_keys import UnknownKeyWarning, emit_unknown_key_warnings
 from huginn.validation import validate_inputs
 
 app = typer.Typer(
@@ -54,6 +55,15 @@ app = typer.Typer(
     help="Async-first test automation framework for network infrastructure.",
     no_args_is_help=True,
 )
+
+NoUnknownKeyWarningsOption = Annotated[
+    bool,
+    typer.Option(
+        "--no-unknown-key-warnings",
+        help="Do not warn about unknown keys in the test plan or testbed.",
+        envvar="HUGINN_NO_UNKNOWN_KEY_WARNINGS",
+    ),
+]
 
 
 @app.callback()
@@ -72,12 +82,13 @@ def _load_project_defaults(ctx: typer.Context) -> None:
         raise typer.Exit(code=1) from error
     ctx.obj = project_config
     defaults = {
-        name: str(value) for name, value in project_config.cli_defaults().items()
+        name: str(value) if isinstance(value, Path) else value
+        for name, value in project_config.cli_defaults().items()
     }
     ctx.default_map = _apply_project_defaults(ctx.command, defaults)
 
 
-def _apply_project_defaults(command: object, defaults: dict[str, str]) -> dict:
+def _apply_project_defaults(command: object, defaults: dict[str, str | bool]) -> dict:
     """Map each (sub)command to the project defaults matching its options.
 
     Each matching option's ``--help`` default is labelled as coming from
@@ -99,8 +110,10 @@ def _apply_project_defaults(command: object, defaults: dict[str, str]) -> dict:
     return command_defaults
 
 
-def _display_default(value: str) -> str:
+def _display_default(value: str | bool) -> str:
     """Show a pyproject path default relative to the project directory."""
+    if isinstance(value, bool):
+        return "on" if value else "off"
     path = Path(value)
     if not path.is_absolute():
         return value
@@ -328,6 +341,7 @@ def run(
             envvar="HUGINN_OUTPUT_DIR",
         ),
     ] = None,
+    no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
 ) -> None:
     """Execute a test plan against infrastructure.
 
@@ -403,6 +417,7 @@ def run(
                 output=output,
                 registry=plugin_registry,
                 data_model_path=data_model,
+                unknown_key_warnings=not no_unknown_key_warnings,
             )
         )
     except ConfigurationError as error:
@@ -576,6 +591,7 @@ def validate(
             envvar="HUGINN_LOG_FILE",
         ),
     ] = None,
+    no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
 ) -> None:
     """Validate testbed/plan inputs without executing tests."""
     testbed, inventory_plugin = _drop_project_testbed_conflict(
@@ -628,6 +644,7 @@ def validate(
                 results_dir=Path.cwd() / "results",
                 output=output,
                 data_model_path=data_model,
+                unknown_key_warnings=not no_unknown_key_warnings,
             )
         )
     except ConfigurationError as error:
@@ -642,13 +659,13 @@ def validate(
     )
     output.status("Validation artifacts written to results/")
 
+    for warning in result.warnings:
+        output.warning(f"WARNING [{warning.code}]: {warning.message}")
+
     if not result.valid:
         for error in result.errors:
             output.error(f"ERROR [{error.code}]: {error.message}")
         raise typer.Exit(code=3)
-
-    for warning in result.warnings:
-        output.warning(f"WARNING [{warning.code}]: {warning.message}")
 
 
 def _summary_has_failures(summary: RunSummary) -> bool:
@@ -795,6 +812,25 @@ def _build_output(
     )
 
 
+def _unknown_key_collector(disabled: bool) -> list[UnknownKeyWarning] | None:
+    """Return a list to collect unknown-key warnings, or None when disabled."""
+    return None if disabled else []
+
+
+def _load_plan_for_command(
+    plan: Path,
+    output: Output,
+    *,
+    no_unknown_key_warnings: bool,
+) -> TestPlan:
+    """Load a test plan and print its unknown-key warnings, even if it fails."""
+    unknown_keys = _unknown_key_collector(no_unknown_key_warnings)
+    try:
+        return load_test_plan(plan, unknown_keys=unknown_keys)
+    finally:
+        emit_unknown_key_warnings(output, unknown_keys)
+
+
 def _run_reconcile(
     plan: Path,
     phase: str,
@@ -802,6 +838,8 @@ def _run_reconcile(
     results_dir: Path,
     parameters_dir: Path,
     output: "Output",
+    *,
+    no_unknown_key_warnings: bool = False,
 ) -> None:
     run_json_path = find_latest_testing_results(results_dir)
     output.status(f"Using results from {run_json_path.parent.name}")
@@ -827,7 +865,9 @@ def _run_reconcile(
         f"across {len(reconcile_input.affected_group_ids)} group(s)"
     )
 
-    test_plan = load_test_plan(plan)
+    test_plan = _load_plan_for_command(
+        plan, output, no_unknown_key_warnings=no_unknown_key_warnings
+    )
     plan_result = compute_reconcile_plan(
         reconcile_input, test_plan, phase, scenario_name
     )
@@ -956,6 +996,7 @@ def reconcile(
             envvar="HUGINN_LOG_FILE",
         ),
     ] = None,
+    no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
 ) -> None:
     """Reconcile failing test cases into new test case groups.
 
@@ -990,7 +1031,13 @@ def reconcile(
 
     try:
         _run_reconcile(
-            plan, phase, scenario, resolved_results_dir, resolved_parameters_dir, output
+            plan,
+            phase,
+            scenario,
+            resolved_results_dir,
+            resolved_parameters_dir,
+            output,
+            no_unknown_key_warnings=no_unknown_key_warnings,
         )
     except (ReconcileError, ConfigurationError) as error:
         output.error(f"ERROR: {error}")
@@ -1134,6 +1181,7 @@ def relearn(
             envvar="HUGINN_LOG_FILE",
         ),
     ] = None,
+    no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
 ) -> None:
     """Re-learn parameters for failed tests from the latest testing run.
 
@@ -1195,6 +1243,7 @@ def relearn(
             data_model_path=data_model,
             output=output,
             plugin_registry=_project_plugin_registry(ctx),
+            unknown_key_warnings=not no_unknown_key_warnings,
         )
 
     except (RelearnError, ReconcileError, ConfigurationError) as error:
@@ -1261,6 +1310,7 @@ def _execute_relearn(
     data_model_path: Path | None,
     output: Output,
     plugin_registry: PluginRegistry,
+    unknown_key_warnings: bool = True,
 ) -> None:
     """Run the failed tests in learning mode and report results."""
     filters = PlanFilterOptions(test_contexts=relearn_input.contexts)
@@ -1279,6 +1329,7 @@ def _execute_relearn(
             output=output,
             registry=plugin_registry,
             data_model_path=data_model_path,
+            unknown_key_warnings=unknown_key_warnings,
         )
     )
 
@@ -1495,6 +1546,7 @@ def prune(
             ),
         ),
     ] = False,
+    no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
 ) -> None:
     """Prune non-applicable tests and device targets from the test plan.
 
@@ -1504,7 +1556,9 @@ def prune(
     - For tests where SOME devices are non-applicable: adds exclude_devices
       to the test case's target definition.
     - For tests where ALL devices are non-applicable: removes the test
-      from its test case group(s) via exclude_tests.
+      from its test case group(s). A group that lists the test in tests
+      drops it from that list; a group that inherits it through groups
+      gets an exclude_tests entry instead.
 
     Examples:
         huginn prune -p test_plan/
@@ -1540,7 +1594,9 @@ def prune(
 
         _display_prune_input(prune_input, output)
 
-        test_plan_obj = load_test_plan(plan)
+        test_plan_obj = _load_plan_for_command(
+            plan, output, no_unknown_key_warnings=no_unknown_key_warnings
+        )
         plan_result = compute_prune_plan(
             prune_input,
             test_plan_obj,
@@ -1742,6 +1798,7 @@ def execute(
             envvar="HUGINN_LOG_FILE",
         ),
     ] = None,
+    no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
 ) -> None:
     """Execute ad-hoc commands on testbed devices.
 
@@ -1773,7 +1830,11 @@ def execute(
     try:
         from huginn.loaders import load_testbed
 
-        loaded_testbed = load_testbed(testbed)
+        unknown_keys = _unknown_key_collector(no_unknown_key_warnings)
+        try:
+            loaded_testbed = load_testbed(testbed, unknown_keys=unknown_keys)
+        finally:
+            emit_unknown_key_warnings(output, unknown_keys)
         output.status(f"Executing {len(specs)} command(s)")
         results = asyncio.run(
             execute_commands(
@@ -1871,6 +1932,7 @@ def inject_new(
             help="Preview changes without writing.",
         ),
     ] = False,
+    no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
 ) -> None:
     """Create a new test case group from job files.
 
@@ -1903,7 +1965,9 @@ def inject_new(
     resolved_phases = _split_csv_option_values(phase)
 
     try:
-        test_plan = load_test_plan(plan_path)
+        test_plan = _load_plan_for_command(
+            plan_path, output, no_unknown_key_warnings=no_unknown_key_warnings
+        )
     except ConfigurationError as exc:
         output.error(f"Failed to load test plan: {exc}")
         raise typer.Exit(code=1) from exc
@@ -2000,6 +2064,7 @@ def inject_into(
             help="Preview changes without writing.",
         ),
     ] = False,
+    no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
 ) -> None:
     """Add job files to an existing test case group.
 
@@ -2024,7 +2089,9 @@ def inject_into(
     resolved_tags = _split_csv_option_values(tags)
 
     try:
-        test_plan = load_test_plan(plan_path)
+        test_plan = _load_plan_for_command(
+            plan_path, output, no_unknown_key_warnings=no_unknown_key_warnings
+        )
     except ConfigurationError as exc:
         output.error(f"Failed to load test plan: {exc}")
         raise typer.Exit(code=1) from exc

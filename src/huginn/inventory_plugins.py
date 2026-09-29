@@ -9,6 +9,7 @@ from typing import Protocol
 from huginn.loaders import load_testbed
 from huginn.models import Testbed
 from huginn.plugin_registry import PluginRegistry, PluginResolutionError
+from huginn.unknown_keys import UnknownKeyWarning
 
 
 class InventoryPluginError(ValueError):
@@ -29,8 +30,16 @@ class FileInventoryPlugin:
 
     file_path: Path
 
-    async def resolve_testbed(self, project_root: Path) -> Testbed:
-        """Resolve plugin file path and load the resulting testbed."""
+    async def resolve_testbed(
+        self,
+        project_root: Path,
+        *,
+        unknown_keys: list[UnknownKeyWarning] | None = None,
+    ) -> Testbed:
+        """Resolve plugin file path and load the resulting testbed.
+
+        Unknown-key warnings are appended to `unknown_keys` when it is a list.
+        """
         if self.file_path.is_absolute():
             resolved_path = self.file_path
         else:
@@ -41,7 +50,7 @@ class FileInventoryPlugin:
                 f"Inventory plugin resolved missing testbed file: {resolved_path}"
             )
 
-        return load_testbed(resolved_path)
+        return load_testbed(resolved_path, unknown_keys=unknown_keys)
 
 
 async def resolve_inventory_testbed(
@@ -50,15 +59,21 @@ async def resolve_inventory_testbed(
     inventory_plugin: str | None,
     project_root: Path,
     registry: PluginRegistry | None = None,
+    unknown_keys: list[UnknownKeyWarning] | None = None,
 ) -> Testbed:
-    """Resolve testbed object from explicit file or inventory plugin spec."""
+    """Resolve testbed object from explicit file or inventory plugin spec.
+
+    When `unknown_keys` is a list, unknown-key warnings for a testbed file,
+    given directly or through the `file` plugin, are appended to it. Other
+    inventory plugins do not read a testbed file, so they add none.
+    """
     if testbed_path is not None and inventory_plugin is not None:
         raise InventoryPluginError(
             "--testbed and --inventory-plugin are mutually exclusive."
         )
 
     if testbed_path is not None:
-        return load_testbed(testbed_path)
+        return load_testbed(testbed_path, unknown_keys=unknown_keys)
 
     if inventory_plugin is None:
         raise InventoryPluginError(
@@ -66,6 +81,8 @@ async def resolve_inventory_testbed(
         )
 
     plugin = _parse_inventory_plugin_spec(inventory_plugin, registry=registry)
+    if isinstance(plugin, FileInventoryPlugin):
+        return await plugin.resolve_testbed(project_root, unknown_keys=unknown_keys)
     return await _resolve_plugin_testbed(plugin=plugin, project_root=project_root)
 
 

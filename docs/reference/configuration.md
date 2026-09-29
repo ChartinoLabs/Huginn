@@ -16,7 +16,7 @@ Execution behavior is not configured here. Concurrency comes from the `strategy`
 
 ## Project defaults in `[tool.huginn]`
 
-A repository can store its paths and logging settings in `[tool.huginn]`, so you don't have to pass `-p` and `-t` on every command:
+A repository can store its paths, logging and warning settings in `[tool.huginn]`, so you don't have to pass `-p` and `-t` on every command:
 
 ```toml
 [tool.huginn]
@@ -35,18 +35,21 @@ With this table in place, `huginn run -m testing` uses the plan, testbed and dir
 
 Each key sets the default for one CLI option. A command uses a key only if it has that option.
 
-| Key                | CLI option              | Commands                                                              |
-| ------------------ | ----------------------- | --------------------------------------------------------------------- |
-| `test_plan`        | `-p/--plan`             | `run`, `validate`, `relearn`, `reconcile`, `prune`, `inject new/into` |
-| `testbed`          | `-t/--testbed`          | `run`, `validate`, `relearn`, `execute`                               |
-| `inventory_plugin` | `-i/--inventory-plugin` | `run`, `validate`, `relearn`                                          |
-| `parameters_dir`   | `--parameters-dir`      | `run`, `relearn`, `reconcile`                                         |
-| `results_dir`      | `--results-dir`         | `run`, `relearn`, `reconcile`, `prune`                                |
-| `output_dir`       | `--output-dir`          | `run`, `relearn`                                                      |
-| `log_file`         | `--log-file`            | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`         |
-| `log_level`        | `--log-level`           | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`         |
+| Key                    | CLI option                  | Commands                                                                         |
+| ---------------------- | --------------------------- | -------------------------------------------------------------------------------- |
+| `test_plan`            | `-p/--plan`                 | `run`, `validate`, `relearn`, `reconcile`, `prune`, `inject new/into`            |
+| `testbed`              | `-t/--testbed`              | `run`, `validate`, `relearn`, `execute`                                          |
+| `inventory_plugin`     | `-i/--inventory-plugin`     | `run`, `validate`, `relearn`                                                     |
+| `parameters_dir`       | `--parameters-dir`          | `run`, `relearn`, `reconcile`                                                    |
+| `results_dir`          | `--results-dir`             | `run`, `relearn`, `reconcile`, `prune`                                           |
+| `output_dir`           | `--output-dir`              | `run`, `relearn`                                                                 |
+| `log_file`             | `--log-file`                | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`                    |
+| `log_level`            | `--log-level`               | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`                    |
+| `unknown_key_warnings` | `--no-unknown-key-warnings` | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`, `inject new/into` |
 
-Every value is a string. `log_level` must be one of `DEBUG`, `INFO`, `WARNING` or `ERROR`, in any case. `mode` is not supported, because a `learning` default would silently overwrite baselines.
+Every value is a string, except `unknown_key_warnings`, which is a TOML boolean (`true` or `false`, not quoted). `log_level` must be one of `DEBUG`, `INFO`, `WARNING` or `ERROR`, in any case. `mode` is not supported, because a `learning` default would silently overwrite baselines.
+
+`unknown_key_warnings = false` turns off the warnings for keys that Huginn does not read in the test plan and testbed (see [Test Plan Specification - Unknown keys](test-plan.md#unknown-keys)). It is the default for `--no-unknown-key-warnings`, so `HUGINN_NO_UNKNOWN_KEY_WARNINGS=false` turns the warnings back on for one shell or CI job. `true`, or leaving the key out, keeps them on.
 
 There is no key for the data model. Set `data_model.path` in the [test plan](test-plan.md#data-model), or pass `--data-model` on the command line.
 
@@ -84,7 +87,7 @@ Huginn validates `[tool.huginn]` before running any command except `version`. Th
 - `pyproject.toml` is not valid TOML
 - `[tool.huginn]` or `[tool.huginn.plugins]` is not a table
 - the table has a key that is not in the table above or `plugins`, for example `mode`, `parallel_tests` or `hooks`
-- a value is not a non-empty string
+- a value is not a non-empty string, or `unknown_key_warnings` is not a boolean
 - `log_level` is outside the accepted levels
 - both `testbed` and `inventory_plugin` are set
 
@@ -179,27 +182,28 @@ The runner does not load or dispatch hook plugins yet, so an installed hook plug
 
 Every `HUGINN_*` variable sets the CLI option of the same name on each command that has it. A flag given on the command line takes precedence over its variable, and the variable takes precedence over `[tool.huginn]`.
 
-| Variable                  | CLI option              | Commands                                                                        |
-| ------------------------- | ----------------------- | ------------------------------------------------------------------------------- |
-| `HUGINN_MODE`             | `-m/--mode`             | `run`                                                                           |
-| `HUGINN_PLAN`             | `-p/--plan`             | `run`, `validate`, `relearn`, `reconcile`, `prune`, `inject new`, `inject into` |
-| `HUGINN_TESTBED`          | `-t/--testbed`          | `run`, `validate`, `relearn`, `execute`                                         |
-| `HUGINN_INVENTORY_PLUGIN` | `-i/--inventory-plugin` | `run`, `validate`, `relearn`                                                    |
-| `HUGINN_DATA_MODEL`       | `-d/--data-model`       | `run`, `validate`, `relearn`                                                    |
-| `HUGINN_TAGS`             | `--tags`                | `run`, `validate`                                                               |
-| `HUGINN_EXCLUDE_TAGS`     | `--exclude-tags`        | `run`, `validate`                                                               |
-| `HUGINN_SCENARIO`         | `--scenario`            | `run`, `validate`, `relearn`, `reconcile`                                       |
-| `HUGINN_PHASE`            | `--phase`               | `run`, `validate`, `relearn`, `reconcile`                                       |
-| `HUGINN_TEST_CASE_GROUP`  | `--test-case-group`     | `run`, `validate`                                                               |
-| `HUGINN_TEST_ID`          | `--test-id`             | `run`, `validate`                                                               |
-| `HUGINN_TEST_ID_PATTERN`  | `--test-id-pattern`     | `run`, `validate`                                                               |
-| `HUGINN_RESULTS_DIR`      | `--results-dir`         | `run`, `relearn`, `reconcile`, `prune`                                          |
-| `HUGINN_PARAMETERS_DIR`   | `--parameters-dir`      | `run`, `relearn`, `reconcile`                                                   |
-| `HUGINN_OUTPUT_DIR`       | `--output-dir`          | `run`, `relearn`                                                                |
-| `HUGINN_DEBUG`            | `--debug`               | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`                   |
-| `HUGINN_LOG_LEVEL`        | `--log-level`           | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`                   |
-| `HUGINN_SHOW_LOGS`        | `--show-logs`           | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`                   |
-| `HUGINN_LOG_FILE`         | `--log-file`            | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`                   |
+| Variable                         | CLI option                  | Commands                                                                                   |
+| -------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------ |
+| `HUGINN_MODE`                    | `-m/--mode`                 | `run`                                                                                      |
+| `HUGINN_PLAN`                    | `-p/--plan`                 | `run`, `validate`, `relearn`, `reconcile`, `prune`, `inject new`, `inject into`            |
+| `HUGINN_TESTBED`                 | `-t/--testbed`              | `run`, `validate`, `relearn`, `execute`                                                    |
+| `HUGINN_INVENTORY_PLUGIN`        | `-i/--inventory-plugin`     | `run`, `validate`, `relearn`                                                               |
+| `HUGINN_DATA_MODEL`              | `-d/--data-model`           | `run`, `validate`, `relearn`                                                               |
+| `HUGINN_TAGS`                    | `--tags`                    | `run`, `validate`                                                                          |
+| `HUGINN_EXCLUDE_TAGS`            | `--exclude-tags`            | `run`, `validate`                                                                          |
+| `HUGINN_SCENARIO`                | `--scenario`                | `run`, `validate`, `relearn`, `reconcile`                                                  |
+| `HUGINN_PHASE`                   | `--phase`                   | `run`, `validate`, `relearn`, `reconcile`                                                  |
+| `HUGINN_TEST_CASE_GROUP`         | `--test-case-group`         | `run`, `validate`                                                                          |
+| `HUGINN_TEST_ID`                 | `--test-id`                 | `run`, `validate`                                                                          |
+| `HUGINN_TEST_ID_PATTERN`         | `--test-id-pattern`         | `run`, `validate`                                                                          |
+| `HUGINN_RESULTS_DIR`             | `--results-dir`             | `run`, `relearn`, `reconcile`, `prune`                                                     |
+| `HUGINN_PARAMETERS_DIR`          | `--parameters-dir`          | `run`, `relearn`, `reconcile`                                                              |
+| `HUGINN_OUTPUT_DIR`              | `--output-dir`              | `run`, `relearn`                                                                           |
+| `HUGINN_DEBUG`                   | `--debug`                   | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`                              |
+| `HUGINN_LOG_LEVEL`               | `--log-level`               | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`                              |
+| `HUGINN_SHOW_LOGS`               | `--show-logs`               | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`                              |
+| `HUGINN_LOG_FILE`                | `--log-file`                | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`                              |
+| `HUGINN_NO_UNKNOWN_KEY_WARNINGS` | `--no-unknown-key-warnings` | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`, `inject new`, `inject into` |
 
 See [CLI Reference - Environment variables](cli.md#environment-variables) for how boolean and repeatable values are written.
 
