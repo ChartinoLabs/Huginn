@@ -2,96 +2,27 @@
 
 import json
 from pathlib import Path
-from typing import Any
 
 import pytest
-import yaml
-from typer.testing import CliRunner, Result
+from typer.testing import Result
 
-from huginn.cli import _summary_has_failures, app
-from huginn.models import RunSummary
-
-from .conftest import load_report, stage_runner_fixture
-
-LEARN = "jobs/test_learn_state.py"
-CHANGE = "jobs/test_apply_change.py"
-NOT_LEARNED = "Blocked because phase '{}' was not run in learning mode"
-
-
-def _stage_plan(tmp_path: Path, phases: dict[str, dict[str, Any]]) -> None:
-    """Stage the fixture with one group per phase.
-
-    ``phases`` maps each phase name to its ``tests`` (test ID to job path),
-    optional ``depends_on`` and optional group ``target``.
-    """
-    stage_runner_fixture(tmp_path, "learning_phase_blocking")
-    groups: dict[str, Any] = {}
-    for name, spec in phases.items():
-        group: dict[str, Any] = {"tests": list(spec["tests"])}
-        if "target" in spec:
-            group["target"] = spec["target"]
-        groups[f"{name}-group"] = group
-    plan = {
-        "test_cases": {
-            test_id: {"title": test_id, "job": job}
-            for spec in phases.values()
-            for test_id, job in spec["tests"].items()
-        },
-        "test_case_groups": groups,
-        "scenarios": {
-            "scenario-1": {
-                "phases": {
-                    name: {
-                        "test_case_groups": [f"{name}-group"],
-                        "depends_on": spec.get("depends_on", []),
-                    }
-                    for name, spec in phases.items()
-                }
-            }
-        },
-    }
-    (tmp_path / "test_plan.yaml").write_text(yaml.safe_dump(plan), encoding="utf-8")
-
-
-def _change_plan() -> dict[str, dict[str, Any]]:
-    """Return a pre-change, change and post-change phase chain."""
-    return {
-        "pre": {"tests": {"pre-1": LEARN}},
-        "shut": {"tests": {"shut-1": CHANGE}, "depends_on": ["pre"]},
-        "post": {"tests": {"post-1": LEARN}, "depends_on": ["shut"]},
-    }
-
-
-def _invoke(tmp_path: Path, *args: str) -> Result:
-    """Invoke the CLI against the staged plan and testbed."""
-    return CliRunner().invoke(
-        app,
-        [
-            *args,
-            "--testbed",
-            str(tmp_path / "testbed.yaml"),
-            "--plan",
-            str(tmp_path / "test_plan.yaml"),
-        ],
-        catch_exceptions=False,
-    )
+from .conftest import (
+    CHANGE_JOB as CHANGE,
+    LEARN_STATE_JOB as LEARN,
+    NOT_LEARNED,
+    change_plan as _change_plan,
+    invoke_cli as _invoke,
+    load_report,
+    phase_cases as _cases,
+    phases_by_name as _phases_by_name,
+    stage_learning_plan as _stage_plan,
+)
 
 
 def _run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mode: str) -> Result:
     """Run the staged plan in the given mode."""
     monkeypatch.chdir(tmp_path)
     return _invoke(tmp_path, "run", "--mode", mode)
-
-
-def _phases_by_name(tmp_path: Path) -> dict[str, dict[str, Any]]:
-    """Return the report's phases for the only scenario, keyed by phase ID."""
-    report = load_report(tmp_path)
-    return {phase["id"]: phase for phase in report["scenarios"][0]["phases"]}
-
-
-def _cases(phase: dict[str, Any]) -> list[dict[str, Any]]:
-    """Return every test case in a phase."""
-    return [case for group in phase["test_case_groups"] for case in group["test_cases"]]
 
 
 def test_learning_mode_blocks_phases_after_a_skipped_change(
@@ -230,110 +161,3 @@ def test_learning_mode_failure_takes_precedence_over_a_learning_block(
     post_case = _cases(_phases_by_name(tmp_path)["post"])[0]
     assert post_case["error"] == "Blocked because phase 'broken' errored"
     assert post_case["block_kind"] == "dependency_failed"
-
-
-def _write_testing_run(tmp_path: Path, failures: dict[str, str]) -> None:
-    """Write a testing run.json of the change plan where ``failures`` failed.
-
-    ``failures`` maps phase ID to the test ID that failed in it.
-    """
-    phases = [
-        {
-            "id": phase_id,
-            "status": "failed" if phase_id in failures else "passed",
-            "test_case_groups": [
-                {
-                    "id": f"{phase_id}-group",
-                    "status": "failed" if phase_id in failures else "passed",
-                    "test_cases": [
-                        {
-                            "test_id": test_id,
-                            "title": test_id,
-                            "status": (
-                                "failed" if failures.get(phase_id) else "passed"
-                            ),
-                        }
-                    ],
-                }
-            ],
-        }
-        for phase_id, test_id in (
-            ("pre", "pre-1"),
-            ("shut", "shut-1"),
-            ("post", "post-1"),
-        )
-    ]
-    run_json = tmp_path / "results" / "2020-Jan-01-00-00-00-testing" / "run.json"
-    run_json.parent.mkdir(parents=True)
-    run_json.write_text(
-        json.dumps(
-            {
-                "mode": "testing",
-                "scenarios": [
-                    {"id": "scenario-1", "status": "failed", "phases": phases}
-                ],
-            }
-        ),
-        encoding="utf-8",
-    )
-
-
-def test_relearn_of_a_post_change_failure_runs_without_the_change_phase(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Relearn drops the unfailed change phase, so the post-change test learns."""
-    _stage_plan(tmp_path, _change_plan())
-    monkeypatch.chdir(tmp_path)
-    _write_testing_run(tmp_path, {"post": "post-1"})
-
-    result = _invoke(tmp_path, "relearn")
-
-    assert result.exit_code == 0, result.stdout
-    assert (tmp_path / "parameters" / "post-1.json").exists()
-    assert not (tmp_path / "executed" / "shut-1").exists()
-
-
-def test_relearn_blocks_a_post_change_failure_behind_a_relearned_change(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """When the change phase is re-learned too, its dependents are blocked."""
-    _stage_plan(tmp_path, _change_plan())
-    monkeypatch.chdir(tmp_path)
-    _write_testing_run(tmp_path, {"shut": "shut-1", "post": "post-1"})
-
-    result = _invoke(tmp_path, "relearn")
-
-    assert result.exit_code == 0, result.stdout
-    post_case = _cases(_phases_by_name(tmp_path)["post"])[0]
-    assert post_case["status"] == "blocked"
-    assert post_case["error"] == NOT_LEARNED.format("shut")
-    assert not (tmp_path / "parameters" / "post-1.json").exists()
-    assert "blocked because a phase" in (result.stdout)
-
-
-@pytest.mark.parametrize(
-    ("blocked", "learning_mode_blocked", "expected"),
-    [(2, 2, False), (2, 1, True), (1, 0, True)],
-    ids=["learning-only", "mixed", "failure-only"],
-)
-def test_summary_has_failures_ignores_learning_mode_blocks(
-    blocked: int,
-    learning_mode_blocked: int,
-    expected: bool,
-) -> None:
-    """Only blocked test cases not caused by learning mode fail the run."""
-    summary = RunSummary(
-        status="passed",
-        total=blocked,
-        passed=0,
-        failed=0,
-        errored=0,
-        not_applicable=0,
-        skipped=0,
-        blocked=blocked,
-        learning_mode_blocked=learning_mode_blocked,
-    )
-
-    assert _summary_has_failures(summary) is expected

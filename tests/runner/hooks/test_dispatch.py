@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-import yaml
 
 from huginn.hooks import HookEvent, HookSignal, HookSkip
 
@@ -593,40 +592,3 @@ def test_no_hooks_installed_dispatches_nothing(
     cases = _cases(tmp_path)
     assert cases["passed-1"]["status"] == "passed"
     assert cases["failed-1"]["status"] == "failed"
-
-
-def _documented_example_hook() -> type:
-    """Load the example plugin class from the hook reference page."""
-    page = Path(__file__).resolve().parents[2] / "docs" / "reference" / "hooks.md"
-    text = page.read_text(encoding="utf-8")
-    source = text.split("```python\n", 1)[1].split("```", 1)[0]
-    namespace: dict[str, Any] = {}
-    exec(compile(source, str(page), "exec"), namespace)  # noqa: S102
-    return namespace["ChangeWindowHook"]
-
-
-@pytest.mark.parametrize("allow", [False, True])
-def test_documented_example_hook_works(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, allow: bool
-) -> None:
-    """The example in docs/reference/hooks.md skips and reports as documented."""
-    _register("change-window", _documented_example_hook())
-    pyproject = (
-        "[tool.huginn.plugins.config.change-window]\nallow_disruptive = true\n"
-        if allow
-        else None
-    )
-    _stage_plan(tmp_path, _one_phase("passed-1", "failed-1"), pyproject=pyproject)
-    plan_path = tmp_path / "test_plan.yaml"
-    plan = yaml.safe_load(plan_path.read_text(encoding="utf-8"))
-    plan["test_cases"]["passed-1"]["tags"] = ["disruptive"]
-    plan_path.write_text(yaml.safe_dump(plan, sort_keys=False), encoding="utf-8")
-
-    result = _run(tmp_path, monkeypatch)
-
-    cases = _cases(tmp_path)
-    expected = "passed" if allow else "skipped"
-    assert cases["passed-1"]["status"] == expected
-    if not allow:
-        assert cases["passed-1"]["error"] == "Outside the change window"
-    assert "change-window: failed-1 failed" in " ".join(result.stdout.split())

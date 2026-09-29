@@ -1,0 +1,1 @@
+Reorganized the test suite so each module is named after what its tests cover, moved the hook integration tests into `tests/runner/hooks/`, and renamed the `tests/fixtures/first_slice_runner/` fixtures to `tests/fixtures/runner/`.
