@@ -82,10 +82,14 @@ class SkipKind(StrEnum):
       not inherit ``LearningTestCase``, so it did not run. A phase with such a
       test case blocks the phases that depend on it, because its intended
       effect (for example a change) did not happen.
+    - HOOK: a hook plugin skipped the test case, its group or its phase. The
+      skip reason is the hook's. Like other skips, it does not block the
+      phases that depend on it.
     """
 
     NO_MATCHING_TARGETS = "no_matching_targets"
     LEARNING_MODE_UNSUPPORTED = "learning_mode_unsupported"
+    HOOK = "hook"
 
 
 class BlockKind(StrEnum):

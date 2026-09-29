@@ -699,7 +699,7 @@ Learning mode skips a test case whose job does not inherit `LearningTestCase`, s
 
 The phase blocks even when its other test cases were learned, because the change it exists to make did not happen. Learning the phases after it would save the unchanged network's state as their expected post-change state.
 
-Other skips do not block. A test case skipped because no device matched its target, for example, does not block its phase's dependents.
+Other skips do not block. A test case skipped because no device matched its target, for example, does not block its phase's dependents, and neither does a phase, group or test case that a [hook plugin](hooks.md#skipping-items) skipped.
 
 A test case blocked this way does not make `huginn run` or `huginn relearn` exit non-zero. It is the expected result of learning a change-validation scenario, not a failure. When a phase is blocked both by a failure and by a phase that was not run in learning mode, the reason names the failure, and the run exits 1. See [Exit codes](cli.md#exit-codes).
 

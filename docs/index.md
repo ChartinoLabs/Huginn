@@ -7,7 +7,7 @@ Huginn is a Python-native, async-first test automation framework for validating 
 - **Python-native** - Write tests as real Python classes with full IDE support, type hints, and debugging.
 - **Async-first** - Concurrent device connections and test execution out of the box.
 - **Dual-mode execution** - Learning mode captures baseline state; testing mode detects drift.
-- **Plugin-extensible** - Inventory plugins, connection brokers, and reporting hooks are all pluggable.
+- **Plugin-extensible** - Inventory plugins, connection brokers, reporters and lifecycle hooks are all pluggable.
 - **Companion to Muninn** - Pair with the [Muninn](https://chartinolabs.github.io/Muninn/) parser library for structured CLI output parsing.
 
 ## Quick example
