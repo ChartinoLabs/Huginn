@@ -59,7 +59,12 @@ During a testing run, each test case:
 Inherit from `LearningTestCase` and implement two methods - `gather_state` and `compare_state`:
 
 ```python
+import muninn
+
 from huginn import Context, LearningTestCase, ResultStatus
+
+mn = muninn.Muninn()
+mn.load_builtin_parsers()
 
 
 class VerifyOSPFCost(LearningTestCase):
@@ -77,7 +82,8 @@ class VerifyOSPFCost(LearningTestCase):
         for device in context.targets:
             result = await context.broker.execute(device, self.command)
             parsed = mn.parse(os=device.os, command=self.command, output=result.output)
-            devices[device.name] = {"interfaces": parsed["interfaces"]}
+            costs = {intf: data["cost"] for intf, data in parsed["interfaces"].items()}
+            devices[device.name] = {"interfaces": costs}
         return {"devices": devices}
 
     async def compare_state(self, *, expected, current, context: Context) -> None:
@@ -107,46 +113,52 @@ The framework calls `gather_state` in both modes. In learning mode, it saves the
 
 ## Parameter storage
 
-Learned parameters are persisted as JSON files in the results directory. Each test case gets its own parameter file, named by its test case identifier:
+Learned parameters are persisted as JSON files in the parameters directory, `./parameters/` by default. Each test case gets one parameter file, named by its test case identifier:
 
 ```
-results/
-  2026-06-05-09-15-00-learning/
-    parameters/
-      OSPF-NEIGHBOR-STATE.json
-      BGP-SUMMARY-NEIGHBOR-STATE.json
-      ...
+parameters/
+  OSPF-NEIGHBOR-STATE.json
+  BGP-SUMMARY-NEIGHBOR-STATE.json
+  ...
 ```
 
-When testing mode runs, it loads parameters from the most recent learning run (or a specific run, if configured).
+Use `--parameters-dir` or the `parameters_dir` key in [`[tool.huginn]`](../reference/configuration.md#project-defaults-in-toolhuginn) to store them elsewhere. A learning run overwrites the file of each test case it learns. A testing run reads the current file of each test case it runs, and the test case is `errored` if that file is missing. Parameter files are not tied to a particular learning run.
+
+Run results are stored separately, in a timestamped directory per run under `./results/`, for example `results/2026-Jun-05-09-15-00-learning/`.
 
 ## Relationship to scenarios
 
-In a change-validation test plan with multiple scenarios, learning and testing modes operate within the context of phases:
+Execution mode is set for the whole run with `--mode`. Phases have no `mode` field. In a change-validation scenario, the same test case group appears in several phases:
 
 ```yaml
 scenarios:
   link-shutdown-r1r2:
     phases:
       pre-change:
-        mode: learning
         test_case_groups: [baseline]
       shutdown:
+        depends_on: [pre-change]
         test_case_groups: [shut-link]
       post-shutdown:
-        mode: testing
+        depends_on: [shutdown]
         test_case_groups: [baseline]
       normalize:
+        depends_on: [post-shutdown]
         test_case_groups: [normalize-link]
       post-normalize:
-        mode: testing
+        depends_on: [normalize]
         test_case_groups: [baseline]
 ```
 
-The same test cases run in `pre-change` (learning) and `post-shutdown` (testing). The pre-change phase captures expected state; the post-shutdown phase detects what changed. Only intentional deviations should appear - any unexpected drift is a failure.
+Using this scenario takes a learning run followed by a testing run:
+
+1. **Learning run** (`huginn run -m learning`) - `pre-change` captures the expected state of the `baseline` test cases. The `shut-link` and `normalize-link` jobs do not inherit `LearningTestCase`, so they are skipped, and every phase after `shutdown` is blocked rather than learned. The link is never shut, so the unchanged network is not saved as post-change state, and the blocked phases do not make the run exit non-zero. See [Blocking in learning mode](../reference/test-plan.md#blocking-in-learning-mode).
+2. **Testing run** (`huginn run -m testing`) - every phase runs in order. `post-shutdown` and `post-normalize` compare current state against the parameters learned in `pre-change`, so `post-shutdown` detects what the shutdown changed. Only intentional deviations should appear; any unexpected drift is a failure.
+
+When the post-change state is expected to differ from the baseline, [reconciliation](reconciliation.md) creates separate test case variants for the post-change phase so both sets of expected values can coexist.
 
 ## See also
 
 - [Job Archetypes](archetypes.md) - the four shapes a job can take, all built on this dual-mode foundation.
 - [Context API - Learning and Testing Modes](../reference/context-api.md#learning-and-testing-modes) - the API surface for mode-aware test logic.
-- [Reference - Test Plan Schema](../reference/test-plan.md) - how phases and scenarios reference execution modes.
+- [Reference - Test Plan Schema](../reference/test-plan.md) - how scenarios and phases are defined, including how learning mode blocks phases.

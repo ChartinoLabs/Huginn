@@ -7,7 +7,7 @@ After running in learning mode, some tests return `NOT_APPLICABLE` for certain d
 The `huginn prune` command reads learning results and narrows the test plan automatically:
 
 - **Partially applicable tests** (some devices are N/A): adds `target.exclude_devices` to the test case definition so those devices are skipped on future runs.
-- **Fully non-applicable tests** (all devices are N/A): removes the test from its group. Leaf groups have the test ID removed from `tests`; composite groups that use `groups` inheritance get an `exclude_tests` entry instead.
+- **Fully non-applicable tests** (all devices are N/A): removes the test from every group that includes it. Leaf groups have the test ID removed from `tests`; composite groups that use `groups` inheritance get an `exclude_tests` entry instead. A test in a leaf group that a composite group includes gets both changes.
 - **Orphaned definitions** (optional): with `--remove-orphans`, every test case definition that no group references is deleted entirely. This includes orphans left by earlier prune runs and test cases that were never placed in any group. See [Orphan removal](#orphan-removal).
 
 Prune is designed to be run once after an initial learning pass against a new testbed. It tightens test scope based on observed reality, eliminating noise from tests that can never pass on the current infrastructure.
@@ -52,17 +52,28 @@ Example output:
 
 ```
 Pruning non-applicable tests from test plan
-Using results from 2026-Apr-30-14-22-01-learning
+Using results from 2026-Sep-29-09-42-54-learning
 Found 3 partially applicable and 2 fully non-applicable test(s)
 Partially applicable tests (exclude_devices):
   1.3.0: exclude spine-03
   2.1.0: exclude leaf-04, leaf-05
   3.0.0: exclude spine-01
 Fully non-applicable tests (remove from groups):
+  3.2.0
   4.0.0
-  4.1.0
-Dry run complete: 3 test(s) would get exclude_devices, 2 test(s) would be removed from groups
+Applying exclude_devices to test cases:
+  1.3.0: exclude_devices=['spine-03']
+  2.1.0: exclude_devices=['leaf-04', 'leaf-05']
+  3.0.0: exclude_devices=['spine-01']
+Removing tests from groups:
+  4.0.0 from bgp-tests
+  3.2.0 from ospf-tests
+  3.2.0 from pre-change-validation
+  4.0.0 from pre-change-validation
+Dry run complete: 3 test(s) would get exclude_devices, 4 test(s) would be removed from groups
 ```
+
+The first two lists come from the learning results. The `Applying exclude_devices to test cases` and `Removing tests from groups` lists are the changes to the test plan, with one line per test case and one line per group membership. A test is removed from every group whose tests include it, so the removed-from-groups count in the last line counts group memberships, not distinct tests: 2 fully non-applicable tests here make 4 removals. Each line is prefixed with a timestamp, omitted here.
 
 ### Apply the prune
 
@@ -94,6 +105,7 @@ The dry-run output lists each definition that would be deleted under `Removing o
 
 ```
 huginn prune --plan <path> [--results-dir <path>] [--dry-run] [--remove-orphans]
+             [--debug] [--log-level <level>] [--show-logs] [--log-file <path>]
 ```
 
 | Option             | Default        | Description                                                                                         |
@@ -133,57 +145,54 @@ test_cases:
     job: tests/verify_lldp_neighbors.py
     target:
       groups: [fabric-core]
-      exclude_devices: [spine-03]
+      exclude_devices:
+      - spine-03
 ```
 
 If the test case already has `exclude_devices`, the prune command merges the new exclusions with the existing list. Devices already excluded are not duplicated.
 
 ### Full non-applicability: group removal
 
-When all devices are non-applicable for a test, the test ID is removed from its group. The removal strategy depends on the group type.
+When all devices are non-applicable for a test, the test ID is removed from every group whose tests include it, directly or through nested `groups`. How it is removed depends on the group type, and a plan with nested groups usually gets both kinds of change at once.
 
 #### Leaf groups
 
-Groups that directly list test IDs in `tests` have the test ID removed from the list.
+Groups that list test IDs only in `tests`, with no `groups` key, have the test ID removed from the list.
 
-Before:
+#### Composite groups
+
+Groups that include other groups through `groups` have the test ID added to `exclude_tests`, rather than modifying the included group. This also applies to a test ID the composite group lists in its own `tests`.
+
+#### Example
+
+Before (3.2.0 and 4.0.0 are fully non-applicable):
 
 ```yaml
 test_case_groups:
   ospf-tests:
     tests: ["3.0.0", "3.1.0", "3.2.0"]
+  bgp-tests:
+    tests: ["4.0.0", "4.1.0"]
+  pre-change-validation:
+    groups: [ospf-tests, bgp-tests]
 ```
 
-After (3.2.0 is fully non-applicable):
+After:
 
 ```yaml
 test_case_groups:
   ospf-tests:
     tests: ["3.0.0", "3.1.0"]
-```
-
-#### Composite groups
-
-Groups that inherit from other groups via `groups` have the test ID added to `exclude_tests` rather than modifying the inherited group.
-
-Before:
-
-```yaml
-test_case_groups:
+  bgp-tests:
+    tests: ["4.1.0"]
   pre-change-validation:
     groups: [ospf-tests, bgp-tests]
+    exclude_tests:
+    - 3.2.0
+    - 4.0.0
 ```
 
-After (4.0.0 from bgp-tests is fully non-applicable):
-
-```yaml
-test_case_groups:
-  pre-change-validation:
-    groups: [ospf-tests, bgp-tests]
-    exclude_tests: ["4.0.0"]
-```
-
-This preserves the inheritance structure. The `exclude_tests` mechanism is the same one used by the [reconcile command](reconcile.md) to exclude baseline tests that diverge after a change.
+The leaf groups `ospf-tests` and `bgp-tests` lose the test IDs from `tests`. The composite group `pre-change-validation` gets them in `exclude_tests`, which preserves its inheritance structure. The `exclude_tests` mechanism is the same one used by the [reconcile command](reconcile.md) to exclude baseline tests that diverge after a change.
 
 ### Orphan removal
 
@@ -201,6 +210,14 @@ Test case definitions that no group references are deleted from the YAML. Some c
 
 This is a destructive operation - the test case definition and its key are removed from the `test_cases` map. The associated parameter files in `parameters/` are not touched; remove those manually if desired.
 
+## Exit codes
+
+| Code | Meaning                                                                                                                                    |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0    | The prune was applied or previewed, there was nothing to prune, or the pruning was already applied.                                        |
+| 1    | The results directory does not exist or has no learning run, the test plan could not be loaded, or the pruned test plan failed validation. |
+| 2    | [Usage error](cli.md#usage-errors), such as a missing `--plan` or a `--plan` path that does not exist.                                     |
+
 ## Idempotency
 
 Running `huginn prune` a second time against the same results is safe. The command detects tests that are already pruned (devices already in `exclude_devices`, tests already removed from groups) and skips them. A message reports how many tests were skipped.
@@ -212,8 +229,8 @@ When the `--plan` argument points to a directory, the prune command locates the 
 ## See also
 
 - [CLI Reference](cli.md) - every `huginn` command, option and environment variable.
-- [Test Plan Specification - Targeting](test-plan.md#targeting) - the `target` block and device filtering.
-- [Test Plan Specification - Test Case Groups](test-plan.md#test-case-groups) - group structure, `tests`, `groups`, and `exclude_tests`.
+- [Test Plan Specification - Excluding Devices](test-plan.md#excluding-devices) - the `target.exclude_devices` field that prune adds.
+- [Test Plan Specification - Test Case Group Fields](test-plan.md#test-case-group-fields) - group structure, `tests`, `groups`, and `exclude_tests`.
 - [Parameter Reconciliation](reconcile.md) - a related command that creates new test case variants after a network change.
 - [Static Parameter Validation - Handling empty gathered state](../authoring/static-validation.md#handling-empty-gathered-state) - the `gather_state` pattern that produces `NOT_APPLICABLE` results consumed by prune.
 - [Authoring Jobs - Command Support](../authoring/index.md#command-support) - the `check_command_support` pattern that produces `NOT_APPLICABLE` results consumed by prune.
