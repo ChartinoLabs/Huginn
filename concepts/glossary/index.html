@@ -1403,6 +1403,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/hooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hook Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/package-jobs/" class="md-nav__link">
         
   
@@ -2279,11 +2307,11 @@
 </tr>
 <tr>
 <td><code>SKIPPED</code></td>
-<td>The test case did not execute, for example because no devices matched its target, or because the run is in learning mode and the job does not inherit <code>LearningTestCase</code>.</td>
+<td>The test case did not execute, for example because no devices matched its target, because the run is in learning mode and the job does not inherit <code>LearningTestCase</code>, or because a <a href="../../reference/hooks/#skipping-and-aborting">hook plugin</a> skipped it.</td>
 </tr>
 <tr>
 <td><code>BLOCKED</code></td>
-<td>The test case could not run because a phase it depends on, directly or transitively, failed, errored or lost applicability, or, in learning mode, was not run because it has a job that does not inherit <code>LearningTestCase</code>.</td>
+<td>The test case could not run because a phase it depends on, directly or transitively, failed, errored or lost applicability, or, in learning mode, was not run because it has a job that does not inherit <code>LearningTestCase</code>. Also recorded for every test case that had not started when a <a href="../../reference/hooks/#aborting-the-run">hook plugin aborted the run</a>.</td>
 </tr>
 </tbody>
 </table>

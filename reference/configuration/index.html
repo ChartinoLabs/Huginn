@@ -1309,6 +1309,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../hooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hook Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../package-jobs/" class="md-nav__link">
         
   
@@ -2121,7 +2149,7 @@
 <td><code>hooks</code></td>
 <td>list of strings</td>
 <td>Every discovered hook</td>
-<td>Hook plugins to activate. Not used until hooks are dispatched; see <a href="#hooks">Hooks</a>.</td>
+<td>Hook plugins that <code>run</code> and <code>relearn</code> call. An empty list disables all hooks; see <a href="#hooks">Hooks</a>.</td>
 </tr>
 <tr>
 <td><code>config</code></td>
@@ -2131,7 +2159,7 @@
 </tr>
 </tbody>
 </table>
-<p>Each name matches an entry point name, not a package name. <code>run</code> and <code>relearn</code> resolve brokers and reporters through this table. <code>validate</code> resolves only the built-in <code>file</code> inventory plugin, and <code>execute</code> uses the built-in brokers directly.</p>
+<p>Each name matches an entry point name, not a package name. <code>run</code> and <code>relearn</code> resolve brokers, reporters and hooks through this table. <code>validate</code> resolves only the built-in <code>file</code> inventory plugin, and <code>execute</code> uses the built-in brokers directly.</p>
 <h3 id="built-in-plugins">Built-in plugins<a class="headerlink" href="#built-in-plugins" title="Permanent link">&para;</a></h3>
 <p>Huginn registers these entry points itself:</p>
 <table>
@@ -2176,22 +2204,23 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[tool.huginn.plugins.config.html]</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;DC1 lab&quot;</span>
 </code></pre></div>
-<p>Huginn passes the table to the plugin unchanged. A reporter receives it as the <code>config</code> argument of <code>generate_report()</code>. Hook plugins are not loaded yet; see <a href="#hooks">Hooks</a>. The plugin decides which options it reads. The built-in <code>html</code> reporter reads no options, so a <code>config.html</code> table is accepted but has no effect today.</p>
+<p>Huginn passes the table to the plugin unchanged. A reporter receives it as the <code>config</code> argument of <code>generate_report()</code>, and a hook plugin as the <code>config</code> argument of its constructor. The plugin decides which options it reads. The built-in <code>html</code> reporter reads no options, so a <code>config.html</code> table is accepted but has no effect today.</p>
 <p>Inventory plugins do not read <code>config.&lt;name&gt;</code>. They take their configuration from the text after the colon in <code>--inventory-plugin</code> or <code>inventory_plugin</code>.</p>
 <h2 id="hooks">Hooks<a class="headerlink" href="#hooks" title="Permanent link">&para;</a></h2>
-<p>A hook plugin is a class that implements the <code>HookPlugin</code> protocol from <code>huginn.hooks</code>: a <code>name</code>, a <code>subscriptions()</code> method that returns the lifecycle events it listens to, and an async <code>on_event(event, context)</code> method. Hook plugins are registered in the <code>huginn.hooks</code> entry point group:</p>
+<p>A hook plugin runs code at lifecycle points of <code>huginn run</code> and <code>huginn relearn</code>, such as before each test case or after the run. It can skip a phase, group or test case before it runs, or stop the whole run, which then exits with code 1. Hook plugins are classes registered in the <code>huginn.hooks</code> entry point group of an installed package:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># pyproject.toml of the package that provides the hook</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;huginn.hooks&quot;</span><span class="k">]</span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">change-window</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;acme_hooks.change_window:ChangeWindowHook&quot;</span>
 </code></pre></div>
-<p>A project selects hook plugins with <code>hooks</code> under <code>[tool.huginn.plugins]</code> and passes them options with <code>config.&lt;name&gt;</code>:</p>
+<p>Every installed hook plugin is active by default. A project limits them with <code>hooks</code> under <code>[tool.huginn.plugins]</code> and passes them options with <code>config.&lt;name&gt;</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">[tool.huginn.plugins]</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">hooks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;change-window&quot;</span><span class="p">]</span>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">[tool.huginn.plugins.config.change-window]</span>
 <a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">calendar</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;network-changes&quot;</span>
 </code></pre></div>
-<p>The runner does not load or dispatch hook plugins yet, so an installed hook plugin is never called during a run, whatever <code>hooks</code> lists. Wiring hooks into the runner is tracked in <a href="https://github.com/ChartinoLabs/Huginn/issues/210">#210</a>.</p>
+<p>The hooks are loaded once per run. <code>hooks = []</code> disables them all. <code>huginn execute</code> does not dispatch hooks. A hook that raises prints a warning and the run continues with the same exit code. Plugin options are passed as written: <code>${VAR}</code> references are not expanded, so a plugin that needs a secret should take the name of an environment variable and read it itself.</p>
+<p>See <a href="../hooks/">Hook Plugins</a> for the protocol, the events and their payloads, <a href="../hooks/#skipping-and-aborting">skipping and aborting</a>, and <a href="../hooks/#use-cases">complete plugins</a> for run notifications, a testbed lock and job telemetry.</p>
 <h2 id="environment-variables">Environment variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h2>
 <p>Every <code>HUGINN_*</code> variable sets the CLI option of the same name on each command that has it. A flag given on the command line takes precedence over its variable, and the variable takes precedence over <code>[tool.huginn]</code>.</p>
 <table>

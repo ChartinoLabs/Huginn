@@ -1808,6 +1808,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../hooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hook Plugins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../package-jobs/" class="md-nav__link">
         
   
@@ -3716,7 +3744,7 @@ full discussion of packaged jobs.</p>
 <h5 id="blocking-in-learning-mode">Blocking in learning mode<a class="headerlink" href="#blocking-in-learning-mode" title="Permanent link">&para;</a></h5>
 <p>Learning mode skips a test case whose job does not inherit <code>LearningTestCase</code>, such as a change or action job. A phase with any test case skipped for this reason blocks the phases that depend on it, directly or transitively, in the same way as a failed phase. Their test cases are recorded as <code>BLOCKED</code> with a reason such as <code>Blocked because phase 'shutdown' was not run in learning mode</code>.</p>
 <p>The phase blocks even when its other test cases were learned, because the change it exists to make did not happen. Learning the phases after it would save the unchanged network's state as their expected post-change state.</p>
-<p>Other skips do not block. A test case skipped because no device matched its target, for example, does not block its phase's dependents.</p>
+<p>Other skips do not block. A test case skipped because no device matched its target, for example, does not block its phase's dependents, and neither does a phase, group or test case that a <a href="../hooks/#skipping-and-aborting">hook plugin</a> skipped.</p>
 <p>A test case blocked this way does not make <code>huginn run</code> or <code>huginn relearn</code> exit non-zero. It is the expected result of learning a change-validation scenario, not a failure. When a phase is blocked both by a failure and by a phase that was not run in learning mode, the reason names the failure, and the run exits 1. See <a href="../cli/#exit-codes">Exit codes</a>.</p>
 <p>To learn the phases after a change, apply the change first, then learn those phases on their own, for example with <code>--phase</code> or <code>--test-id</code>. <a href="../../concepts/reconciliation/">Reconciliation</a> describes this workflow.</p>
 <p>There is no partial status. A phase with one failed test case out of ten is <code>FAILED</code>, and the phase and run summaries report a count for each status. See <a href="../../concepts/glossary/#aggregate-result">Aggregate Result</a> for how statuses roll up.</p>
