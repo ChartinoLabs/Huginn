@@ -32,6 +32,7 @@ This does several things automatically:
   - Inherits from the original group (`post-shut-r1r2`)
   - Excludes the failing baseline test IDs
   - Includes the new reconciled variant test IDs
+  - Keeps the `target` and `tags` the original tests received from their groups (see [How targets and tags are preserved](#how-targets-and-tags-are-preserved))
 - Copies baseline parameter files to new `<id>-<scenario>-<phase>.json` parameter files as a starting point
 - Updates the phase in the scenario definition to reference the new reconciled group
 - Writes the new definitions to `reconciled-<phase>.yaml` (when using a directory-based test plan)
@@ -83,6 +84,38 @@ test_case_groups:
     # ...
 ```
 
+### How targets and tags are preserved
+
+A reconciled variant runs on exactly the devices its original ran on in that phase, and carries the same inherited tags for `--tags` and `--exclude-tags` filtering. Reconcile writes the targeting into the generated groups rather than onto the variant test case:
+
+- The reconciled group copies the `target` and `tags` of the original group, so a variant the original group lists in its own `tests` is narrowed and tagged the same way.
+- When the original group inherited the failing test through nested `groups`, the child groups' `target` and `tags` also applied to it. Reconcile rebuilds each such inclusion path as generated groups named `<reconciled-group>-path<N>`, with one group per `target` on the path (inner levels are suffixed `-2`, `-3`, and so on). The reconciled group includes these, and the innermost one lists the variant and carries the path's tags.
+- When the original was reachable through several paths with different targets, the variant gets one generated path per distinct path, so it again runs on the union of the devices those paths select.
+- The phase `target` still applies, because the reconciled group stays in the same phase.
+
+For example, if `grand` has `target: {groups: [leaf]}` and includes `child`, which has `target: {os: [nxos]}` and lists `lp-t1`, reconciling `lp-t1` in phase `post` of scenario `s1` writes:
+
+```yaml
+test_case_groups:
+  grand-s1-post:
+    groups:
+    - grand
+    - grand-s1-post-path1                       # rebuilds the path through child
+    exclude_tests:
+    - lp-t1
+    target:                                     # copied from grand
+      groups:
+      - leaf
+  grand-s1-post-path1:
+    tests:
+    - lp-t1-s1-post
+    target:                                     # copied from child
+      os:
+      - nxos
+```
+
+Targets are copied as selectors, never resolved into a `target.devices` list, so the reconciled plan keeps working when the testbed changes.
+
 The scenario name is part of every reconciled ID, so reconciling the same phase name in two scenarios produces separate variants. If a group ID is identical to the phase name, the redundant prefix is dropped and the reconciled group is named `<scenario>-<phase>`.
 
 ## CLI reference
@@ -125,7 +158,7 @@ Every file reconcile writes is re-serialized with PyYAML. Comments, blank lines,
 
 ### Reconciled test case contents
 
-Each variant keeps the original `job`, `tags`, and `target`. Its `title` gets a ` (<scenario> <phase>)` suffix, for example `Verify OSPF neighbor 10.1.1.1 (link-shutdown-r1r2 post-shutdown)`. The `description`, `priority`, `category`, `is_automated`, and `metadata` fields are not copied, so add them back by hand if the variant needs them.
+Each variant keeps the original `job`, `tags`, and `target`. The `target` and `tags` it inherited from its groups are kept by the generated groups, as described in [How targets and tags are preserved](#how-targets-and-tags-are-preserved). Its `title` gets a ` (<scenario> <phase>)` suffix, for example `Verify OSPF neighbor 10.1.1.1 (link-shutdown-r1r2 post-shutdown)`. The `description`, `priority`, `category`, `is_automated`, and `metadata` fields are not copied, so add them back by hand if the variant needs them.
 
 ### Parameter files
 
