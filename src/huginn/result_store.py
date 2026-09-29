@@ -215,6 +215,8 @@ def _build_scenario_payload(
             _build_phase_payload(phase, test_case_paths) for phase in scenario.phases
         ],
     }
+    if scenario.description is not None:
+        payload["description"] = scenario.description
     return payload
 
 
@@ -232,6 +234,8 @@ def _build_phase_payload(
             for group in phase.test_case_groups
         ],
     }
+    if phase.description is not None:
+        payload["description"] = phase.description
     return payload
 
 
@@ -249,6 +253,8 @@ def _build_group_payload(
             for test_case in group.test_cases
         ],
     }
+    if group.description is not None:
+        payload["description"] = group.description
     return payload
 
 

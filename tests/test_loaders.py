@@ -1,11 +1,14 @@
 """Unit tests for YAML loader helpers."""
 
+import copy
 import time
 from pathlib import Path
+from typing import cast
 
 import pytest
 import yaml
 
+from huginn import models
 from huginn.enums import ConnectionProtocol
 from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
 from huginn.models import ExecutionStrategy, InclusionPath, TargetDefinition
@@ -184,6 +187,92 @@ def test_load_test_plan_parses_optional_display_names() -> None:
     assert group.identifier == "state-baseline"
     assert group.name == "State Baseline Checks"
     assert group.display_name == "State Baseline Checks"
+
+
+_DESCRIBED_PLAN: dict[str, object] = {
+    "test_cases": {"1.0.0": {"title": "Verify BGP", "job": "jobs/verify_bgp.py"}},
+    "test_case_groups": {
+        "child": {"description": "Child group", "tests": ["1.0.0"]},
+        "parent": {"description": "Parent group", "groups": ["child"]},
+    },
+    "scenarios": {
+        "scenario-1": {
+            "description": "Scenario text",
+            "phases": {
+                "pre": {"description": "Phase text", "test_case_groups": ["parent"]},
+            },
+        }
+    },
+}
+
+
+def _assert_described_plan(plan: models.TestPlan) -> None:
+    """Assert the descriptions from ``_DESCRIBED_PLAN`` were loaded."""
+    scenario = plan.scenarios["scenario-1"]
+    assert scenario.description == "Scenario text"
+    assert scenario.phases["pre"].description == "Phase text"
+    assert plan.test_case_groups["child"].description == "Child group"
+    assert plan.test_case_groups["parent"].description == "Parent group"
+
+
+def test_load_test_plan_parses_descriptions(tmp_path: Path) -> None:
+    """Parse scenario, phase, and group descriptions from a single file."""
+    plan_file = tmp_path / "plan.yaml"
+    plan_file.write_text(yaml.safe_dump(_DESCRIBED_PLAN))
+
+    _assert_described_plan(load_test_plan(plan_file))
+
+
+def test_load_test_plan_directory_parses_descriptions(tmp_path: Path) -> None:
+    """Parse scenario, phase, and group descriptions from a directory plan."""
+    for section, value in _DESCRIBED_PLAN.items():
+        (tmp_path / f"{section}.yaml").write_text(yaml.safe_dump({section: value}))
+
+    _assert_described_plan(load_test_plan(tmp_path))
+
+
+def test_load_test_plan_defaults_descriptions_to_none() -> None:
+    """Descriptions are None when a plan does not set them."""
+    plan = load_test_plan(FIXTURES / "plan_with_names.yaml")
+
+    scenario = plan.scenarios["scenario-1"]
+    assert scenario.description is None
+    assert scenario.phases["steady-state"].description is None
+    assert plan.test_case_groups["state-baseline"].description is None
+
+
+@pytest.mark.parametrize(
+    ("keys", "message"),
+    [
+        (
+            ("scenarios", "scenario-1"),
+            r"Scenario 'scenario-1' description must be a string",
+        ),
+        (
+            ("scenarios", "scenario-1", "phases", "pre"),
+            r"Phase 'pre' in scenario 'scenario-1' description must be a string",
+        ),
+        (
+            ("test_case_groups", "child"),
+            r"Test case group 'child' description must be a string",
+        ),
+    ],
+    ids=["scenario", "phase", "group"],
+)
+def test_load_test_plan_rejects_non_string_description(
+    tmp_path: Path, keys: tuple[str, ...], message: str
+) -> None:
+    """Raise when a scenario, phase, or group description is not a string."""
+    data = copy.deepcopy(_DESCRIBED_PLAN)
+    entry: dict[str, object] = data
+    for key in keys:
+        entry = cast(dict[str, object], entry[key])
+    entry["description"] = ["not", "a", "string"]
+    plan_file = tmp_path / "plan.yaml"
+    plan_file.write_text(yaml.safe_dump(data))
+
+    with pytest.raises(ConfigurationError, match=message):
+        load_test_plan(plan_file)
 
 
 def test_load_test_plan_parses_execution_strategies() -> None:

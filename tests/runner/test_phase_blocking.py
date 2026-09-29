@@ -248,3 +248,34 @@ def test_summary_has_failures_counts_blocked(
     summary = RunSummary(status="passed", total=sum(counts.values()), **fields)
 
     assert _summary_has_failures(summary) is expected
+
+
+def test_run_json_carries_descriptions_for_run_and_blocked_phases(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Plan descriptions reach run.json for executed and blocked phases."""
+    _stage_plan(
+        tmp_path,
+        {
+            "first": {"test": "failed-1"},
+            "dependent": {"test": "passed-2", "depends_on": ["first"]},
+        },
+    )
+    plan_path = tmp_path / "test_plan.yaml"
+    plan = yaml.safe_load(plan_path.read_text(encoding="utf-8"))
+    scenario = plan["scenarios"]["scenario-1"]
+    scenario["description"] = "Scenario text"
+    for name in ("first", "dependent"):
+        scenario["phases"][name]["description"] = f"{name} phase"
+        plan["test_case_groups"][f"{name}-group"]["description"] = f"{name} group"
+    plan_path.write_text(yaml.safe_dump(plan), encoding="utf-8")
+
+    assert _run(tmp_path, monkeypatch) == 1
+
+    assert load_report(tmp_path)["scenarios"][0]["description"] == "Scenario text"
+    phases = _phases_by_name(tmp_path)
+    assert phases["dependent"]["status"] == "blocked"
+    for name in ("first", "dependent"):
+        assert phases[name]["description"] == f"{name} phase"
+        assert phases[name]["test_case_groups"][0]["description"] == f"{name} group"

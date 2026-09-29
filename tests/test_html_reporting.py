@@ -98,6 +98,51 @@ def test_write_standard_html_report_writes_dashboard_and_detail_pages(
     assert "12.50 ms" in detail
 
 
+def test_write_standard_html_report_renders_escaped_descriptions(
+    tmp_path: Path,
+) -> None:
+    """Scenario, phase, and group descriptions render as escaped plain text."""
+    result = _build_run_result()
+    scenario = result.scenarios[0]
+    scenario.description = "Scenario <script>alert(1)</script>"
+    scenario.phases[0].description = "Phase **not markdown**"
+    scenario.phases[0].test_case_groups[0].description = "Group & friends"
+
+    dashboard_path = write_standard_html_report(
+        result=result,
+        reports_dir=tmp_path / "reports",
+        results_run_dir=tmp_path / "results" / "2026-Mar-07-12-00-00-testing",
+        test_case_result_paths={
+            "scenario-1::phase-1::group-a::test-1": "test-cases/test-1/result.json",
+            "scenario-1::phase-1::group-a::test-2": "test-cases/test-2/result.json",
+        },
+    )
+
+    dashboard = dashboard_path.read_text(encoding="utf-8")
+    assert "<script>alert(1)</script>" not in dashboard
+    assert (
+        '<p class="object-description">'
+        "Scenario &lt;script&gt;alert(1)&lt;/script&gt;</p>"
+    ) in dashboard
+    assert '<p class="object-description">Phase **not markdown**</p>' in dashboard
+    assert '<p class="object-description">Group &amp; friends</p>' in dashboard
+
+
+def test_write_standard_html_report_omits_unset_descriptions(tmp_path: Path) -> None:
+    """No description element renders when descriptions are unset."""
+    dashboard_path = write_standard_html_report(
+        result=_build_run_result(),
+        reports_dir=tmp_path / "reports",
+        results_run_dir=tmp_path / "results" / "2026-Mar-07-12-00-00-testing",
+        test_case_result_paths={
+            "scenario-1::phase-1::group-a::test-1": "test-cases/test-1/result.json",
+            "scenario-1::phase-1::group-a::test-2": "test-cases/test-2/result.json",
+        },
+    )
+
+    assert "object-description" not in dashboard_path.read_text(encoding="utf-8")
+
+
 def test_write_standard_html_report_updates_latest_symlink(tmp_path: Path) -> None:
     """Later reports repoint reports/latest to the newest HTML output."""
     result = _build_run_result()

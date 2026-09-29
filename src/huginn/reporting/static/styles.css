@@ -442,6 +442,19 @@ h3 {
   color: var(--navy-900);
 }
 
+.object-description {
+  flex-basis: 100%;
+  margin: 6px 0 0;
+  padding-left: 10px;
+  color: var(--muted);
+  white-space: pre-line;
+}
+
+.group-summary-main .object-description {
+  margin-top: 0;
+  padding-left: 0;
+}
+
 .phase-heading-row {
   display: flex;
   flex-wrap: wrap;

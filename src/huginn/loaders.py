@@ -888,11 +888,16 @@ def _parse_test_case_group(
         group_mapping.get("name"),
         f"Test case group '{group_name}' name must be a string",
     )
+    description = _require_optional_string(
+        group_mapping.get("description"),
+        f"Test case group '{group_name}' description must be a string",
+    )
     return (
         TestCaseGroup(
             identifier=group_name,
             tests=tests,
             name=display_name,
+            description=description,
             tags=tags,
             target=target,
             strategy=strategy,
@@ -1015,6 +1020,7 @@ def _flatten_nested_test_case_groups(
             identifier=group.identifier,
             tests=flattened.tests,
             name=group.name,
+            description=group.description,
             tags=group.tags,
             target=group.target,
             strategy=group.strategy,
@@ -1161,7 +1167,16 @@ def _parse_scenario(scenario_name: object, raw_scenario: object) -> Scenario:
         scenario_mapping.get("name"),
         f"Scenario '{scenario_name}' name must be a string",
     )
-    return Scenario(identifier=scenario_name, phases=phases, name=display_name)
+    description = _require_optional_string(
+        scenario_mapping.get("description"),
+        f"Scenario '{scenario_name}' description must be a string",
+    )
+    return Scenario(
+        identifier=scenario_name,
+        phases=phases,
+        name=display_name,
+        description=description,
+    )
 
 
 def _parse_phase(
@@ -1197,6 +1212,13 @@ def _parse_phase(
         phase_mapping.get("name"),
         f"Phase '{phase_name}' in scenario '{scenario_name}' name must be a string",
     )
+    description = _require_optional_string(
+        phase_mapping.get("description"),
+        (
+            f"Phase '{phase_name}' in scenario '{scenario_name}' description "
+            "must be a string"
+        ),
+    )
     preserve_cache_raw = phase_mapping.get("preserve_cache", False)
     if not isinstance(preserve_cache_raw, bool):
         raise ConfigurationError(
@@ -1207,6 +1229,7 @@ def _parse_phase(
         identifier=phase_name,
         test_case_groups=test_case_groups,
         name=display_name,
+        description=description,
         depends_on=depends_on,
         target=target,
         strategy=strategy,

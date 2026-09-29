@@ -461,7 +461,7 @@ test_case_groups:
 | Field           | Type         | Required | Description                                                     |
 | --------------- | ------------ | -------- | --------------------------------------------------------------- |
 | `name`          | string       | No       | Display name (defaults to the group key)                        |
-| `description`   | string       | No       | Informational only; not read by the loader                      |
+| `description`   | string       | No       | Group description, shown in `run.json` and the HTML report      |
 | `tests`         | list[string] | No       | List of test case IDs                                           |
 | `groups`        | list[string] | No       | List of test case group names to include                        |
 | `exclude_tests` | list[string] | No       | Test case IDs to drop from the groups included through `groups` |
@@ -610,10 +610,11 @@ scenarios:
 
 #### Scenario Fields
 
-| Field    | Type   | Required | Description                                 |
-| -------- | ------ | -------- | ------------------------------------------- |
-| `phases` | dict   | Yes      | Non-empty mapping of phase names to phases  |
-| `name`   | string | No       | Display name (defaults to the scenario key) |
+| Field         | Type   | Required | Description                                                   |
+| ------------- | ------ | -------- | ------------------------------------------------------------- |
+| `phases`      | dict   | Yes      | Non-empty mapping of phase names to phases                    |
+| `name`        | string | No       | Display name (defaults to the scenario key)                   |
+| `description` | string | No       | Scenario description, shown in `run.json` and the HTML report |
 
 Phase names are scoped to their scenario. Two scenarios can each define a `pre-change` phase, and `depends_on` can only reference phases in the same scenario. Referencing an undefined phase fails at load.
 
@@ -645,7 +646,7 @@ scenarios:
 | Field              | Type         | Required | Description                                                          |
 | ------------------ | ------------ | -------- | -------------------------------------------------------------------- |
 | `name`             | string       | No       | Display name (defaults to the phase key)                             |
-| `description`      | string       | No       | Phase description                                                    |
+| `description`      | string       | No       | Phase description, shown in `run.json` and the HTML report           |
 | `depends_on`       | list[string] | No       | Phases in the same scenario that must complete before this phase     |
 | `test_case_groups` | list[string] | Yes      | Groups to execute in this phase                                      |
 | `target`           | dict         | No       | Phase-level targeting (intersected with group/test case targets)     |

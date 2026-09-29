@@ -116,6 +116,8 @@ test_case_groups:
 
 Targets are copied as selectors, never resolved into a `target.devices` list, so the reconciled plan keeps working when the testbed changes.
 
+The reconciled group copies the original group's `description`, if it has one.
+
 The scenario name is part of every reconciled ID, so reconciling the same phase name in two scenarios produces separate variants. If a group ID is identical to the phase name, the redundant prefix is dropped and the reconciled group is named `<scenario>-<phase>`.
 
 ## CLI reference

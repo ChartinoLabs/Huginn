@@ -1,0 +1,1 @@
+Scenarios, phases and test case groups now load their optional `description`, which appears in `run.json` and under each heading in the HTML report.

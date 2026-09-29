@@ -188,6 +188,7 @@ def _build_scenario_views(
             {
                 "id": scenario.identifier,
                 "name": scenario.display_name,
+                "description": scenario.description,
                 "status": scenario.status,
                 "status_class": _status_class(scenario.status),
                 "chips": _build_filter_chips(
@@ -216,6 +217,7 @@ def _build_phase_view(
     return {
         "id": phase.identifier,
         "name": phase.display_name,
+        "description": phase.description,
         "status": phase.status,
         "status_class": _status_class(phase.status),
         "chips": _build_filter_chips(total=len(phase_statuses), counts=counts),
@@ -235,6 +237,7 @@ def _build_group_view(
     return {
         "id": group.identifier,
         "name": group.display_name,
+        "description": group.description,
         "status": group.status,
         "status_class": _status_class(group.status),
         "chips": _build_filter_chips(total=len(group.test_cases), counts=counts),
