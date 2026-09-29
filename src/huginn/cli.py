@@ -21,7 +21,7 @@ from huginn.execute import (
 )
 from huginn.inject import InjectPlan
 from huginn.loaders import ConfigurationError, load_test_plan
-from huginn.models import RunSummary, TestPlan
+from huginn.models import RunResult, RunSummary, TestPlan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
 from huginn.plugin_registry import PluginRegistry
@@ -444,9 +444,10 @@ def run(
     if result.summary.total == 0:
         output.warning("No test cases were selected for execution")
     _report_learning_mode_blocks(result.summary, output)
+    _report_abort(result, output)
     output.status("Run artifacts written to results/")
     output.status("Run report written to reports/latest/")
-    if _summary_has_failures(result.summary):
+    if _run_has_failures(result):
         raise typer.Exit(code=1)
 
 
@@ -682,6 +683,24 @@ def _summary_has_failures(summary: RunSummary) -> bool:
         or summary.lost_applicability > 0
         or failure_blocked > 0
     )
+
+
+def _run_has_failures(result: RunResult) -> bool:
+    """Return True when the run failed, including when a hook aborted it.
+
+    Test cases blocked by a hook abort count as failure blocks. A run aborted
+    before any test case was selected still fails.
+    """
+    return result.aborted is not None or _summary_has_failures(result.summary)
+
+
+def _report_abort(result: RunResult, output: Output) -> None:
+    """Say which hook aborted the run, on which event and why."""
+    if result.aborted is not None:
+        output.error(
+            f"ERROR [hook_abort]: {result.aborted.message} "
+            f"(event '{result.aborted.event}')"
+        )
 
 
 def _report_learning_mode_blocks(summary: RunSummary, output: Output) -> None:
@@ -1342,8 +1361,9 @@ def _execute_relearn(
         f"not_applicable={result.summary.not_applicable}"
     )
     _report_learning_mode_blocks(result.summary, output)
+    _report_abort(result, output)
 
-    if _summary_has_failures(result.summary):
+    if _run_has_failures(result):
         output.error(
             "Some tests failed during re-learning -- "
             "parameters may not have been updated"

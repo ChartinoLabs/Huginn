@@ -358,6 +358,21 @@ class RunSummary:
     learning_mode_blocked: int = 0
 
 
+@dataclass(frozen=True)
+class RunAbort:
+    """A hook plugin that aborted the run, with the event and its reason."""
+
+    hook: str
+    event: str
+    reason: str
+
+    @property
+    def message(self) -> str:
+        """Return the reason recorded on every test case the abort blocked."""
+        message = f"Run aborted by hook '{self.hook}'"
+        return f"{message}: {self.reason}" if self.reason else message
+
+
 @dataclass
 class RunResult:
     """Top-level run result payload written to disk."""
@@ -368,3 +383,5 @@ class RunResult:
     started_at: str | None = None
     completed_at: str | None = None
     elapsed_seconds: float | None = None
+    # The hook abort that stopped the run early, or None.
+    aborted: RunAbort | None = None

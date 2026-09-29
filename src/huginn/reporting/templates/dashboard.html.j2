@@ -20,6 +20,13 @@
             <h2>Executive Summary</h2>
           </div>
         </div>
+        {% if aborted %}
+        <div class="abort-banner" role="alert">
+          <strong>Run aborted</strong>
+          <span>{{ aborted.message }}</span>
+          <span class="abort-banner-event">Event: <code>{{ aborted.event }}</code></span>
+        </div>
+        {% endif %}
         {% if run_metadata %}
         <dl class="summary-meta-row">
           {% for item in run_metadata %}

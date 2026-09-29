@@ -19,6 +19,7 @@ from huginn.enums import (
     ResultStatus,
     SkipKind,
 )
+from huginn.hooks import HookDispatcher
 from huginn.inventory_plugins import (
     InventoryPluginError,
     resolve_inventory_testbed,
@@ -34,6 +35,7 @@ from huginn.models import (
     ExecutedTestCase,
     ExecutedTestCaseGroup,
     Phase,
+    RunAbort,
     RunResult,
     RunSummary,
     Scenario,
@@ -50,6 +52,7 @@ from huginn.plugin_registry import PluginRegistry
 from huginn.reporting.html import ReportRenderError, write_standard_html_report
 from huginn.result_store import ResultWriteError, create_run_dir, write_run_result
 from huginn.results import ResultCollector
+from huginn.run_hooks import RunHooks
 from huginn.runtime_broker import (
     RuntimeBroker,
     RuntimeBrokerError,
@@ -126,6 +129,13 @@ async def run_test_plan(
 
     Unless `unknown_key_warnings` is false, each key in the testbed or test
     plan that the loaders do not read is printed as a warning through `output`.
+
+    Hook plugins are resolved once from `registry` and receive every lifecycle
+    event from `run_start`, after planning, to `run_end`, which also fires
+    when the run stops with an error. See `huginn.run_hooks`. A hook that
+    returns `HookAbort` stops the run early: nothing new starts, every test
+    case that has not started is recorded BLOCKED, and results are written
+    as usual with the abort in `RunResult.aborted`.
     """
     run_started = perf_counter()
     started_at = datetime.now().astimezone()
@@ -214,6 +224,133 @@ async def run_test_plan(
         ),
     )
     _emit_execution_order(output, test_plan)
+    hooks = _build_run_hooks(registry=registry, mode=mode, output=output)
+    await hooks.run_start(plan_path=plan_path, test_plan=test_plan)
+    try:
+        result = await _execute_and_persist(
+            mode=mode,
+            testbed=testbed,
+            test_plan=test_plan,
+            planned_executions=planned_executions,
+            planned_brokers=planned_brokers,
+            run_dir=run_dir,
+            project_root=project_root,
+            parameters_dir=parameters_dir,
+            output_dir=output_dir,
+            data_model=data_model,
+            started_at=started_at,
+            broker_factory=broker_factory,
+            registry=registry,
+            output=output,
+            hooks=hooks,
+        )
+    except Exception as error:
+        await hooks.run_end(run_dir=run_dir, error=str(error))
+        raise
+    await hooks.run_end(run_dir=run_dir, result=result)
+    _emit_status(output, f"Run completed in {_format_elapsed(run_started)}")
+    return result
+
+
+def _build_run_hooks(
+    *,
+    registry: PluginRegistry | None,
+    mode: ExecutionMode,
+    output: Output | None,
+) -> RunHooks:
+    """Resolve the run's hook plugins once and bind them to a dispatcher."""
+    plugins = registry.resolve_hooks() if registry is not None else []
+    if plugins:
+        log_info(
+            output,
+            "Hook plugins active",
+            hooks=sorted(plugin.name for plugin in plugins),
+        )
+    return RunHooks(HookDispatcher(plugins, output=output), mode=mode, output=output)
+
+
+async def _execute_and_persist(
+    *,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    planned_brokers: set[str],
+    run_dir: Path,
+    project_root: Path,
+    parameters_dir: Path,
+    output_dir: Path,
+    data_model: Mapping[str, object] | None,
+    started_at: datetime,
+    broker_factory: Callable[[], RuntimeBroker] | None,
+    registry: PluginRegistry | None,
+    output: Output | None,
+    hooks: RunHooks,
+) -> RunResult:
+    """Connect, execute every scenario, disconnect, and write the results.
+
+    When a hook aborted the run at `run_start`, no broker is created and no
+    device is connected: every test case is recorded BLOCKED.
+    """
+    if hooks.aborted is not None:
+        executed_scenarios = [
+            _build_aborted_scenario(scenario, test_plan, hooks.aborted, output)
+            for scenario in test_plan.scenarios.values()
+        ]
+    else:
+        executed_scenarios = await _execute_with_broker(
+            mode=mode,
+            testbed=testbed,
+            test_plan=test_plan,
+            planned_executions=planned_executions,
+            planned_brokers=planned_brokers,
+            parameters_dir=parameters_dir,
+            output_dir=output_dir,
+            data_model=data_model,
+            broker_factory=broker_factory,
+            registry=registry,
+            output=output,
+            hooks=hooks,
+        )
+
+    summary = _build_summary(executed_scenarios)
+    completed_at = datetime.now().astimezone()
+    result = RunResult(
+        summary=summary,
+        scenarios=executed_scenarios,
+        mode=mode.value,
+        started_at=started_at.isoformat(timespec="seconds"),
+        completed_at=completed_at.isoformat(timespec="seconds"),
+        elapsed_seconds=completed_at.timestamp() - started_at.timestamp(),
+        aborted=hooks.aborted,
+    )
+    await _persist_and_report(
+        result=result,
+        run_dir=run_dir,
+        mode=mode,
+        project_root=project_root,
+        registry=registry,
+        output=output,
+    )
+    return result
+
+
+async def _execute_with_broker(
+    *,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    planned_brokers: set[str],
+    parameters_dir: Path,
+    output_dir: Path,
+    data_model: Mapping[str, object] | None,
+    broker_factory: Callable[[], RuntimeBroker] | None,
+    registry: PluginRegistry | None,
+    output: Output | None,
+    hooks: RunHooks,
+) -> list[ExecutedScenario]:
+    """Connect the runtime broker, execute every scenario, and disconnect."""
     runtime_broker = _create_broker(
         broker_factory=broker_factory,
         required_brokers=planned_brokers,
@@ -247,6 +384,7 @@ async def run_test_plan(
             output_dir=output_dir,
             data_model=data_model,
             output=output,
+            hooks=hooks,
         )
         _emit_status(
             output,
@@ -263,27 +401,7 @@ async def run_test_plan(
                 code=ErrorCode.BROKER_ERROR,
                 traceback_text=disconnect_traceback,
             )
-
-    summary = _build_summary(executed_scenarios)
-    completed_at = datetime.now().astimezone()
-    result = RunResult(
-        summary=summary,
-        scenarios=executed_scenarios,
-        mode=mode.value,
-        started_at=started_at.isoformat(timespec="seconds"),
-        completed_at=completed_at.isoformat(timespec="seconds"),
-        elapsed_seconds=completed_at.timestamp() - started_at.timestamp(),
-    )
-    await _persist_and_report(
-        result=result,
-        run_dir=run_dir,
-        mode=mode,
-        project_root=project_root,
-        registry=registry,
-        output=output,
-    )
-    _emit_status(output, f"Run completed in {_format_elapsed(run_started)}")
-    return result
+    return executed_scenarios
 
 
 async def _persist_and_report(
@@ -380,6 +498,7 @@ async def _execute_scenarios(
     output_dir: Path,
     data_model: Mapping[str, object] | None,
     output: Output | None,
+    hooks: RunHooks,
 ) -> list[ExecutedScenario]:
     """Execute scenarios and their phases in declared order."""
     log_debug(
@@ -392,7 +511,13 @@ async def _execute_scenarios(
     if mode == ExecutionMode.LEARNING:
         learning_execution_cache = {}
     for scenario in test_plan.scenarios.values():
+        if hooks.aborted is not None:
+            executed_scenarios.append(
+                _build_aborted_scenario(scenario, test_plan, hooks.aborted, output)
+            )
+            continue
         _emit_status(output, f"Starting scenario: {scenario.identifier}")
+        await hooks.scenario_start(scenario)
         executed_scenario = await _execute_scenario(
             scenario=scenario,
             mode=mode,
@@ -405,7 +530,9 @@ async def _execute_scenarios(
             data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
+            hooks=hooks,
         )
+        await hooks.scenario_end(scenario.identifier, executed_scenario.status)
         executed_scenarios.append(executed_scenario)
     return executed_scenarios
 
@@ -423,6 +550,7 @@ async def _execute_scenario(
     data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
+    hooks: RunHooks,
 ) -> ExecutedScenario:
     """Execute one scenario's phases one at a time in dependency order.
 
@@ -453,7 +581,9 @@ async def _execute_scenario(
             )
 
         phase = scenario.phases[phase_name]
-        block = _dependency_block(scenario, phase, phase_results, blocks)
+        block = _abort_block(hooks) or _dependency_block(
+            scenario, phase, phase_results, blocks
+        )
         if block is not None:
             blocks[phase_name] = block
         elif not phase.preserve_cache:
@@ -472,6 +602,7 @@ async def _execute_scenario(
             data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
+            hooks=hooks,
             block=block,
         )
         phase_elapsed = perf_counter() - phase_started
@@ -523,9 +654,16 @@ async def _execute_ready_phase(
     data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
+    hooks: RunHooks,
     block: _PhaseBlock | None,
 ) -> ExecutedPhase:
-    """Execute one dependency-ready phase, or block it when a block is given."""
+    """Execute one dependency-ready phase, or block it when a block is given.
+
+    A blocked phase dispatches no hook events. Otherwise ``phase_start`` is
+    dispatched first, and ``phase_end`` after the phase finishes or after a
+    hook skipped it. A hook that aborts the run on ``phase_start`` blocks the
+    phase, and this takes precedence over any hook's skip.
+    """
     if block is not None:
         return _build_dependency_blocked_phase(
             scenario_name=scenario_name,
@@ -535,6 +673,61 @@ async def _execute_ready_phase(
             output=output,
         )
 
+    skip_reasons = await hooks.phase_start(scenario_name, phase)
+    abort_block = _abort_block(hooks)
+    if abort_block is not None:
+        executed_phase = _build_dependency_blocked_phase(
+            scenario_name=scenario_name,
+            phase=phase,
+            test_plan=test_plan,
+            block=abort_block,
+            output=output,
+        )
+    elif skip_reasons:
+        executed_phase = _build_hook_skipped_phase(
+            scenario_name=scenario_name,
+            phase=phase,
+            test_plan=test_plan,
+            reasons=skip_reasons,
+            output=output,
+        )
+    else:
+        executed_phase = await _run_phase(
+            scenario_name=scenario_name,
+            phase=phase,
+            mode=mode,
+            testbed=testbed,
+            test_plan=test_plan,
+            planned_executions=planned_executions,
+            broker=broker,
+            parameters_dir=parameters_dir,
+            output_dir=output_dir,
+            data_model=data_model,
+            learning_execution_cache=learning_execution_cache,
+            output=output,
+            hooks=hooks,
+        )
+    await hooks.phase_end(scenario_name, executed_phase)
+    return executed_phase
+
+
+async def _run_phase(
+    *,
+    scenario_name: str,
+    phase: Phase,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    broker: RuntimeBroker,
+    parameters_dir: Path,
+    output_dir: Path,
+    data_model: Mapping[str, object] | None,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
+    output: Output | None,
+    hooks: RunHooks,
+) -> ExecutedPhase:
+    """Execute one phase that is neither blocked nor skipped by a hook."""
     _emit_status(output, f"  Starting phase: {phase.identifier}")
     executed_phase = await _execute_phase(
         scenario_name=scenario_name,
@@ -549,6 +742,7 @@ async def _execute_ready_phase(
         data_model=data_model,
         learning_execution_cache=learning_execution_cache,
         output=output,
+        hooks=hooks,
     )
     log_info(
         output,
@@ -568,14 +762,16 @@ def _build_dependency_blocked_phase(
     block: _PhaseBlock,
     output: Output | None,
 ) -> ExecutedPhase:
-    """Build a blocked phase after a dependency that blocks it."""
-    _emit_status(
-        output,
-        f"Skipping phase: {phase.identifier} (blocked by dependencies)",
+    """Build a blocked phase after a dependency or a hook abort blocks it."""
+    cause = (
+        "run aborted by hook"
+        if block.kind == BlockKind.HOOK_ABORT
+        else "blocked by dependencies"
     )
+    _emit_status(output, f"Skipping phase: {phase.identifier} ({cause})")
     log_info(
         output,
-        "Phase blocked by dependencies",
+        "Phase blocked",
         scenario=scenario_name,
         phase=phase.identifier,
         depends_on=phase.depends_on,
@@ -700,6 +896,7 @@ async def _execute_phase(
     data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
+    hooks: RunHooks,
 ) -> ExecutedPhase:
     """Execute all groups and test cases for a phase."""
     log_debug(
@@ -725,6 +922,7 @@ async def _execute_phase(
             data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
+            hooks=hooks,
         )
     else:
         executed_groups = await _execute_phase_groups_parallel(
@@ -740,6 +938,7 @@ async def _execute_phase(
             data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
+            hooks=hooks,
         )
 
     phase_status = _derive_phase_status(executed_groups)
@@ -766,6 +965,7 @@ async def _execute_phase_groups_serial(
     data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
+    hooks: RunHooks,
 ) -> list[ExecutedTestCaseGroup]:
     """Execute test case groups in phase order, one at a time."""
     executed_groups: list[ExecutedTestCaseGroup] = []
@@ -785,6 +985,7 @@ async def _execute_phase_groups_serial(
                 data_model=data_model,
                 learning_execution_cache=learning_execution_cache,
                 output=output,
+                hooks=hooks,
             )
         )
     return executed_groups
@@ -804,6 +1005,7 @@ async def _execute_phase_groups_parallel(
     data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
+    hooks: RunHooks,
 ) -> list[ExecutedTestCaseGroup]:
     """Execute test case groups in parallel with optional max concurrency."""
     semaphore = _build_parallel_semaphore(phase.strategy.maximum)
@@ -828,6 +1030,7 @@ async def _execute_phase_groups_parallel(
                     data_model=data_model,
                     learning_execution_cache=learning_execution_cache,
                     output=output,
+                    hooks=hooks,
                 )
             )
         )
@@ -854,6 +1057,7 @@ async def _execute_group_with_optional_semaphore(
     data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
+    hooks: RunHooks,
 ) -> tuple[int, ExecutedTestCaseGroup]:
     """Execute one group with optional phase-level concurrency limiting."""
     if semaphore is None:
@@ -873,6 +1077,7 @@ async def _execute_group_with_optional_semaphore(
                 data_model=data_model,
                 learning_execution_cache=learning_execution_cache,
                 output=output,
+                hooks=hooks,
             ),
         )
 
@@ -893,6 +1098,7 @@ async def _execute_group_with_optional_semaphore(
                 data_model=data_model,
                 learning_execution_cache=learning_execution_cache,
                 output=output,
+                hooks=hooks,
             ),
         )
 
@@ -912,9 +1118,84 @@ async def _execute_group(
     data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
+    hooks: RunHooks,
 ) -> ExecutedTestCaseGroup:
-    """Execute one group using its configured strategy."""
+    """Execute one group, dispatching ``group_start`` and ``group_end`` around it.
+
+    When a hook skips the group on ``group_start``, every test case in it is
+    recorded SKIPPED and ``group_end`` still fires. When the run is aborted,
+    before or on ``group_start``, every test case is recorded BLOCKED instead,
+    and only a group whose ``group_start`` fired dispatches ``group_end``.
+    """
     group = test_plan.test_case_groups[group_name]
+    abort_block = _abort_block(hooks)
+    if abort_block is not None:
+        return _build_blocked_group(
+            scenario_name, phase.identifier, group, test_plan, abort_block
+        )
+    skip_reasons = await hooks.group_start(scenario_name, phase.identifier, group)
+    abort_block = _abort_block(hooks)
+    if abort_block is not None:
+        executed_group = _build_blocked_group(
+            scenario_name, phase.identifier, group, test_plan, abort_block
+        )
+    elif skip_reasons:
+        reason = _hook_skip_reason(skip_reasons)
+        _emit_status(output, f"Skipping group: {group.identifier} ({reason})")
+        log_info(
+            output,
+            "Group skipped by hook",
+            scenario=scenario_name,
+            phase=phase.identifier,
+            group=group.identifier,
+            reason=reason,
+        )
+        executed_group = _hook_skipped_group(
+            scenario_name=scenario_name,
+            phase_name=phase.identifier,
+            group=group,
+            test_plan=test_plan,
+            reason=reason,
+        )
+    else:
+        executed_group = await _run_group(
+            scenario_name=scenario_name,
+            phase=phase,
+            group=group,
+            mode=mode,
+            testbed=testbed,
+            test_plan=test_plan,
+            planned_executions=planned_executions,
+            broker=broker,
+            parameters_dir=parameters_dir,
+            output_dir=output_dir,
+            data_model=data_model,
+            learning_execution_cache=learning_execution_cache,
+            output=output,
+            hooks=hooks,
+        )
+    await hooks.group_end(scenario_name, phase.identifier, executed_group)
+    return executed_group
+
+
+async def _run_group(
+    *,
+    scenario_name: str,
+    phase: Phase,
+    group: TestCaseGroup,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    test_plan: TestPlan,
+    planned_executions: dict[str, PlannedExecution],
+    broker: RuntimeBroker,
+    parameters_dir: Path,
+    output_dir: Path,
+    data_model: Mapping[str, object] | None,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
+    output: Output | None,
+    hooks: RunHooks,
+) -> ExecutedTestCaseGroup:
+    """Execute one group's test cases using its configured strategy."""
     log_debug(
         output,
         "Group execution starting",
@@ -940,6 +1221,7 @@ async def _execute_group(
             data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
+            hooks=hooks,
         )
     else:
         executed_tests = await _execute_group_tests_parallel(
@@ -956,6 +1238,7 @@ async def _execute_group(
             data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
+            hooks=hooks,
         )
 
     group_status = _derive_group_status(executed_tests)
@@ -990,6 +1273,7 @@ async def _execute_group_tests_serial(
     data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
+    hooks: RunHooks,
 ) -> list[ExecutedTestCase]:
     """Execute tests in group order, one at a time."""
     executed_tests: list[ExecutedTestCase] = []
@@ -1010,6 +1294,7 @@ async def _execute_group_tests_serial(
                 data_model=data_model,
                 learning_execution_cache=learning_execution_cache,
                 output=output,
+                hooks=hooks,
             )
         )
     return executed_tests
@@ -1030,6 +1315,7 @@ async def _execute_group_tests_parallel(
     data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
+    hooks: RunHooks,
 ) -> list[ExecutedTestCase]:
     """Execute tests in parallel with optional max concurrency."""
     semaphore = _build_parallel_semaphore(group.strategy.maximum)
@@ -1055,6 +1341,7 @@ async def _execute_group_tests_parallel(
                     data_model=data_model,
                     learning_execution_cache=learning_execution_cache,
                     output=output,
+                    hooks=hooks,
                 )
             )
         )
@@ -1081,6 +1368,7 @@ async def _execute_test_case_with_optional_semaphore(
     data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
+    hooks: RunHooks,
 ) -> tuple[int, ExecutedTestCase]:
     """Execute one test case with optional group-level concurrency limiting."""
     if semaphore is None:
@@ -1100,6 +1388,7 @@ async def _execute_test_case_with_optional_semaphore(
                 data_model=data_model,
                 learning_execution_cache=learning_execution_cache,
                 output=output,
+                hooks=hooks,
             ),
         )
 
@@ -1120,6 +1409,7 @@ async def _execute_test_case_with_optional_semaphore(
                 data_model=data_model,
                 learning_execution_cache=learning_execution_cache,
                 output=output,
+                hooks=hooks,
             ),
         )
 
@@ -1139,38 +1429,196 @@ def _build_blocked_phase(
     block: _PhaseBlock,
 ) -> ExecutedPhase:
     """Build blocked phase output when a scenario cannot progress."""
-    blocked_groups: list[ExecutedTestCaseGroup] = []
-    for group_name in phase.test_case_groups:
-        group = test_plan.test_case_groups[group_name]
-        blocked_tests = [
-            ExecutedTestCase(
-                scenario=scenario_name,
-                phase=phase.identifier,
-                group=group.identifier,
-                test_id=test_id,
-                title=test_plan.test_cases[test_id].title,
-                status=ResultStatus.BLOCKED.value,
-                error=block.reason,
-                block_kind=block.kind.value,
-            )
-            for test_id in group.tests
-        ]
-        blocked_groups.append(
-            ExecutedTestCaseGroup(
-                identifier=group.identifier,
-                status=ResultStatus.BLOCKED.value,
-                name=group.name,
-                description=group.description,
-                test_cases=blocked_tests,
-            )
-        )
-
     return ExecutedPhase(
         identifier=phase.identifier,
         status=ResultStatus.BLOCKED.value,
         name=phase.name,
         description=phase.description,
-        test_case_groups=blocked_groups,
+        test_case_groups=[
+            _build_blocked_group(
+                scenario_name,
+                phase.identifier,
+                test_plan.test_case_groups[group_name],
+                test_plan,
+                block,
+            )
+            for group_name in phase.test_case_groups
+        ],
+    )
+
+
+def _build_blocked_group(
+    scenario_name: str,
+    phase_name: str,
+    group: TestCaseGroup,
+    test_plan: TestPlan,
+    block: _PhaseBlock,
+) -> ExecutedTestCaseGroup:
+    """Record every test case of a group as BLOCKED for ``block``."""
+    return ExecutedTestCaseGroup(
+        identifier=group.identifier,
+        status=ResultStatus.BLOCKED.value,
+        name=group.name,
+        description=group.description,
+        test_cases=[
+            _blocked_test_case(
+                scenario_name,
+                phase_name,
+                group.identifier,
+                test_plan.test_cases[test_id],
+                block,
+            )
+            for test_id in group.tests
+        ],
+    )
+
+
+def _blocked_test_case(
+    scenario_name: str,
+    phase_name: str,
+    group_name: str,
+    definition: TestCaseDefinition,
+    block: _PhaseBlock,
+) -> ExecutedTestCase:
+    """Build one BLOCKED test case with the block's reason and kind."""
+    return ExecutedTestCase(
+        scenario=scenario_name,
+        phase=phase_name,
+        group=group_name,
+        test_id=definition.test_id,
+        title=definition.title,
+        status=ResultStatus.BLOCKED.value,
+        error=block.reason,
+        block_kind=block.kind.value,
+    )
+
+
+def _abort_block(hooks: RunHooks) -> _PhaseBlock | None:
+    """Return the block a hook abort imposes on items not started, or None."""
+    if hooks.aborted is None:
+        return None
+    return _PhaseBlock(reason=hooks.aborted.message, kind=BlockKind.HOOK_ABORT)
+
+
+def _build_aborted_scenario(
+    scenario: Scenario,
+    test_plan: TestPlan,
+    abort: RunAbort,
+    output: Output | None,
+) -> ExecutedScenario:
+    """Record every test case of a scenario that never started as BLOCKED."""
+    _emit_status(
+        output, f"Skipping scenario: {scenario.identifier} (run aborted by hook)"
+    )
+    block = _PhaseBlock(reason=abort.message, kind=BlockKind.HOOK_ABORT)
+    phases = [
+        _build_blocked_phase(
+            scenario_name=scenario.identifier,
+            phase=phase,
+            test_plan=test_plan,
+            block=block,
+        )
+        for phase in scenario.phases.values()
+    ]
+    return ExecutedScenario(
+        identifier=scenario.identifier,
+        status=_derive_scenario_status(phases).value,
+        name=scenario.name,
+        description=scenario.description,
+        phases=phases,
+    )
+
+
+def _build_aborted_test_case(
+    scenario_name: str,
+    phase: Phase,
+    group: TestCaseGroup,
+    definition: TestCaseDefinition,
+    abort: RunAbort,
+    output: Output | None,
+) -> ExecutedTestCase:
+    """Record a test case that did not start because the run was aborted."""
+    _emit_test_result(
+        output,
+        definition,
+        status=ResultStatus.BLOCKED.value,
+        detail=abort.message,
+    )
+    return _blocked_test_case(
+        scenario_name,
+        phase.identifier,
+        group.identifier,
+        definition,
+        _PhaseBlock(reason=abort.message, kind=BlockKind.HOOK_ABORT),
+    )
+
+
+def _hook_skip_reason(reasons: list[str]) -> str:
+    """Join the reasons of every hook that skipped one item."""
+    return "; ".join(reasons)
+
+
+def _build_hook_skipped_phase(
+    *,
+    scenario_name: str,
+    phase: Phase,
+    test_plan: TestPlan,
+    reasons: list[str],
+    output: Output | None,
+) -> ExecutedPhase:
+    """Record every test case of a phase a hook skipped as SKIPPED."""
+    reason = _hook_skip_reason(reasons)
+    _emit_status(output, f"Skipping phase: {phase.identifier} ({reason})")
+    log_info(
+        output,
+        "Phase skipped by hook",
+        scenario=scenario_name,
+        phase=phase.identifier,
+        reason=reason,
+    )
+    return ExecutedPhase(
+        identifier=phase.identifier,
+        status=ResultStatus.SKIPPED.value,
+        name=phase.name,
+        description=phase.description,
+        test_case_groups=[
+            _hook_skipped_group(
+                scenario_name=scenario_name,
+                phase_name=phase.identifier,
+                group=test_plan.test_case_groups[group_name],
+                test_plan=test_plan,
+                reason=reason,
+            )
+            for group_name in phase.test_case_groups
+        ],
+    )
+
+
+def _hook_skipped_group(
+    *,
+    scenario_name: str,
+    phase_name: str,
+    group: TestCaseGroup,
+    test_plan: TestPlan,
+    reason: str,
+) -> ExecutedTestCaseGroup:
+    """Record every test case of a group a hook skipped as SKIPPED."""
+    return ExecutedTestCaseGroup(
+        identifier=group.identifier,
+        status=ResultStatus.SKIPPED.value,
+        name=group.name,
+        description=group.description,
+        test_cases=[
+            _skipped_test_case(
+                scenario_name,
+                phase_name,
+                group.identifier,
+                test_plan.test_cases[test_id],
+                reason=reason,
+                kind=SkipKind.HOOK,
+            )
+            for test_id in group.tests
+        ],
     )
 
 
@@ -1268,7 +1716,89 @@ async def _execute_test_case(
     data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
+    hooks: RunHooks,
 ) -> ExecutedTestCase:
+    """Execute one test case, dispatching ``test_case_start`` and ``test_case_end``.
+
+    When a hook skips the test case on ``test_case_start``, the job does not
+    run at all (no setup, test or cleanup) and the test case is recorded
+    SKIPPED with the hooks' reasons. ``test_case_end`` fires either way,
+    followed by ``on_failure`` or ``on_error`` for those outcomes.
+
+    When the run is aborted the job does not run either, and the test case is
+    recorded BLOCKED. An abort before ``test_case_start`` dispatches nothing;
+    an abort on it still dispatches ``test_case_end``.
+    """
+    if hooks.aborted is not None:
+        return _build_aborted_test_case(
+            scenario_name, phase, group, definition, hooks.aborted, output
+        )
+    skip_reasons = await hooks.test_case_start(
+        scenario_id=scenario_name,
+        phase_id=phase.identifier,
+        group_id=group.identifier,
+        definition=definition,
+        target_names=lambda: [
+            device.name
+            for device in _resolve_targets(
+                testbed=testbed, phase=phase, group=group, test_case=definition
+            )[0]
+        ],
+    )
+    if hooks.aborted is not None:
+        executed = _build_aborted_test_case(
+            scenario_name, phase, group, definition, hooks.aborted, output
+        )
+    elif skip_reasons:
+        reason = _hook_skip_reason(skip_reasons)
+        _emit_test_result(
+            output, definition, status=ResultStatus.SKIPPED.value, detail=reason
+        )
+        executed = _skipped_test_case(
+            scenario_name,
+            phase.identifier,
+            group.identifier,
+            definition,
+            reason=reason,
+            kind=SkipKind.HOOK,
+        )
+    else:
+        executed = await _run_test_case(
+            scenario_name=scenario_name,
+            phase=phase,
+            group=group,
+            definition=definition,
+            planned=planned,
+            mode=mode,
+            testbed=testbed,
+            broker=broker,
+            parameters_dir=parameters_dir,
+            output_dir=output_dir,
+            data_model=data_model,
+            learning_execution_cache=learning_execution_cache,
+            output=output,
+        )
+    await hooks.test_case_end(executed)
+    return executed
+
+
+async def _run_test_case(
+    *,
+    scenario_name: str,
+    phase: Phase,
+    group: TestCaseGroup,
+    definition: TestCaseDefinition,
+    planned: PlannedExecution,
+    mode: ExecutionMode,
+    testbed: Testbed,
+    broker: RuntimeBroker,
+    parameters_dir: Path,
+    output_dir: Path,
+    data_model: Mapping[str, object] | None,
+    learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
+    output: Output | None,
+) -> ExecutedTestCase:
+    """Execute one test case, reusing an earlier execution in learning mode."""
     if mode != ExecutionMode.LEARNING or learning_execution_cache is None:
         return await _execute_test_case_once(
             scenario_name=scenario_name,
@@ -2094,6 +2624,10 @@ def _derive_status_from_values(statuses: list[str]) -> ResultStatus:
     ranks below FAILED because a FAILED check found a real deviation in the
     state that was compared, which is the more specific result to surface; a
     lost device is still visible in its own check and in the summary count.
+
+    BLOCKED is otherwise left out of the rollup, but when every value is
+    BLOCKED the rollup is BLOCKED. Only a hook abort produces that, for
+    example at ``run_start``, when no test case ran at all.
     """
     if _contains_status(statuses, ResultStatus.ERRORED):
         return ResultStatus.ERRORED
@@ -2105,6 +2639,8 @@ def _derive_status_from_values(statuses: list[str]) -> ResultStatus:
         return ResultStatus.NOT_APPLICABLE
     if _all_statuses_match(statuses, ResultStatus.SKIPPED):
         return ResultStatus.SKIPPED
+    if _all_statuses_match(statuses, ResultStatus.BLOCKED):
+        return ResultStatus.BLOCKED
     return ResultStatus.PASSED
 
 

@@ -81,6 +81,7 @@ nav:
       - Test Plan Schema: reference/test-plan.md
       - Configuration: reference/configuration.md
       - Context API: reference/context-api.md
+      - Hook Plugins: reference/hooks.md
       - Package Jobs: reference/package-jobs.md
       - CLI Reference: reference/cli.md
       - CLI - reconcile: reference/reconcile.md

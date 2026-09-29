@@ -124,10 +124,10 @@ hooks = []
 | ----------- | --------------- | ------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `brokers`   | list of strings | Every discovered broker   | Connection brokers a run may use. Requiring a broker that is installed but not listed fails the run. |
 | `reporters` | list of strings | Every discovered reporter | Reporters that run after `run` and `relearn`. An empty list disables reporting.                      |
-| `hooks`     | list of strings | Every discovered hook     | Hook plugins to activate. Not used until hooks are dispatched; see [Hooks](#hooks).                  |
+| `hooks`     | list of strings | Every discovered hook     | Hook plugins that `run` and `relearn` call. An empty list disables all hooks; see [Hooks](#hooks).   |
 | `config`    | table of tables | No options                | Per-plugin options, one sub-table per plugin name, for example `[tool.huginn.plugins.config.html]`.  |
 
-Each name matches an entry point name, not a package name. `run` and `relearn` resolve brokers and reporters through this table. `validate` resolves only the built-in `file` inventory plugin, and `execute` uses the built-in brokers directly.
+Each name matches an entry point name, not a package name. `run` and `relearn` resolve brokers, reporters and hooks through this table. `validate` resolves only the built-in `file` inventory plugin, and `execute` uses the built-in brokers directly.
 
 ### Built-in plugins
 
@@ -152,13 +152,13 @@ An installed package adds plugins by registering entry points in the same groups
 title = "DC1 lab"
 ```
 
-Huginn passes the table to the plugin unchanged. A reporter receives it as the `config` argument of `generate_report()`. Hook plugins are not loaded yet; see [Hooks](#hooks). The plugin decides which options it reads. The built-in `html` reporter reads no options, so a `config.html` table is accepted but has no effect today.
+Huginn passes the table to the plugin unchanged. A reporter receives it as the `config` argument of `generate_report()`, and a hook plugin as the `config` argument of its constructor. The plugin decides which options it reads. The built-in `html` reporter reads no options, so a `config.html` table is accepted but has no effect today.
 
 Inventory plugins do not read `config.<name>`. They take their configuration from the text after the colon in `--inventory-plugin` or `inventory_plugin`.
 
 ## Hooks
 
-A hook plugin is a class that implements the `HookPlugin` protocol from `huginn.hooks`: a `name`, a `subscriptions()` method that returns the lifecycle events it listens to, and an async `on_event(event, context)` method. Hook plugins are registered in the `huginn.hooks` entry point group:
+A hook plugin runs code at lifecycle points of `huginn run` and `huginn relearn`, such as before each test case or after the run. It can skip a phase, group or test case before it runs, or stop the whole run, which then exits with code 1. Hook plugins are classes registered in the `huginn.hooks` entry point group of an installed package:
 
 ```toml
 # pyproject.toml of the package that provides the hook
@@ -166,7 +166,7 @@ A hook plugin is a class that implements the `HookPlugin` protocol from `huginn.
 change-window = "acme_hooks.change_window:ChangeWindowHook"
 ```
 
-A project selects hook plugins with `hooks` under `[tool.huginn.plugins]` and passes them options with `config.<name>`:
+Every installed hook plugin is active by default. A project limits them with `hooks` under `[tool.huginn.plugins]` and passes them options with `config.<name>`:
 
 ```toml
 [tool.huginn.plugins]
@@ -176,7 +176,9 @@ hooks = ["change-window"]
 calendar = "network-changes"
 ```
 
-The runner does not load or dispatch hook plugins yet, so an installed hook plugin is never called during a run, whatever `hooks` lists. Wiring hooks into the runner is tracked in [#210](https://github.com/ChartinoLabs/Huginn/issues/210).
+The hooks are loaded once per run. `hooks = []` disables them all. `huginn execute` does not dispatch hooks. A hook that raises prints a warning and the run continues with the same exit code. Plugin options are passed as written: `${VAR}` references are not expanded, so a plugin that needs a secret should take the name of an environment variable and read it itself.
+
+See [Hook Plugins](hooks.md) for the protocol, the events and their payloads, [skipping and aborting](hooks.md#skipping-and-aborting), and [complete plugins](hooks.md#use-cases) for run notifications, a testbed lock and job telemetry.
 
 ## Environment variables
 
