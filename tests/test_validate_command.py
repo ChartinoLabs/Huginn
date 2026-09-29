@@ -405,7 +405,7 @@ def test_validate_rejects_invalid_test_id_pattern_as_usage_error(
 
 def _stage_runner_fixture(tmp_path: Path, fixture_name: str) -> None:
     """Copy a first-slice fixture scenario into a temporary directory."""
-    fixture_root = Path(__file__).resolve().parent / "fixtures" / "first_slice_runner"
+    fixture_root = Path(__file__).resolve().parent / "fixtures" / "runner"
     source = fixture_root / fixture_name
     for source_path in source.rglob("*"):
         if source_path.is_dir():

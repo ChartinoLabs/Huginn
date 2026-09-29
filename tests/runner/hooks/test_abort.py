@@ -9,10 +9,9 @@ import yaml
 
 from huginn.hooks import HookAbort, HookEvent, HookSkip
 
+from ..conftest import _FakeRuntimeBroker, load_report
 from .conftest import (
-    _FakeRuntimeBroker,
     cases,
-    load_report,
     one_phase,
     ran,
     register,

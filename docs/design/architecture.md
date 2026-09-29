@@ -319,7 +319,7 @@ Because a `job` reference can be a module path, jobs can ship as ordinary Python
 
 ## Directory and output layout
 
-This tree comes from a real project: the `learning_testing_parameters` fixture under `tests/fixtures/first_slice_runner/`, run once in learning mode and once in testing mode with the fake broker from `tests/runner/conftest.py`:
+This tree comes from a real project: the `learning_testing_parameters` fixture under `tests/fixtures/runner/`, run once in learning mode and once in testing mode with the fake broker from `tests/runner/conftest.py`:
 
 ```txt
 project/

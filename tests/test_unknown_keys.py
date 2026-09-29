@@ -367,7 +367,7 @@ def project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Stage the passing runner fixture with a typo in the plan and testbed."""
     monkeypatch.delenv("HUGINN_NO_UNKNOWN_KEY_WARNINGS", raising=False)
     monkeypatch.setattr("huginn.runner.RuntimeBroker", _FakeRuntimeBroker)
-    source = FIXTURES / "first_slice_runner" / "passed"
+    source = FIXTURES / "runner" / "passed"
     shutil.copytree(source / "jobs", tmp_path / "jobs")
     plan = yaml.safe_load((source / "test_plan.yaml").read_text(encoding="utf-8"))
     plan["scenarios"]["scenario-1"]["phases"]["phase-1"]["depend_on"] = []
