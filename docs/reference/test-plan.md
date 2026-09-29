@@ -508,9 +508,46 @@ This pattern enables:
 - **Reuse**: Include the same feature group in multiple composite groups
 - **Maintainability**: Add a new OSPF test case once to `ospf-tests`, and it automatically runs in all phases that include that group
 
-**Nested Group Flattening**: When a group includes other groups, the framework flattens the hierarchy for execution. Test cases from included groups inherit the parent group's target specification (intersection logic applies).
+#### Nested Group Flattening
 
-**Circular Reference Detection**: The framework validates that group inclusions do not form cycles (e.g., group A includes B, B includes A).
+When a group includes other groups, the framework flattens the hierarchy at load time. The phase executes the flattened group, and results report every test under that group's ID. The included groups do not appear in results.
+
+A test case included from a child group keeps the child's `target` and `tags`:
+
+- **Target**: the child's `target` is intersected with the parent's, so a child can narrow the parent's device set but never widen it.
+- **Tags**: the child's `tags` are added to the parent's for filtering.
+- **Strategy**: the child's `strategy` is ignored. Only the `strategy` of the group a phase references applies.
+
+This holds through any number of levels. A test included from a grandchild is narrowed by the grandchild's, the child's and the parent's `target`, and carries all three groups' `tags`. Test cases the parent lists in its own `tests` are unaffected by its child groups.
+
+```yaml
+test_case_groups:
+  nxos-checks:
+    target:
+      os: [nxos]
+    tags: [nxos]
+    tests: ["6.0.0"]
+
+  spine-validation:
+    target:
+      groups: [spine]
+    groups: [nxos-checks]
+    tests: ["4.0.0"]
+# In spine-validation, 6.0.0 runs on NX-OS spines only and has the tag "nxos".
+# 4.0.0 runs on every spine.
+```
+
+When one group reaches the same test case through two different child groups, the test runs once, on the union of the devices each path selects. Each path keeps its own tags, so a tag or group filter keeps the test with only the paths it matches. For example, if `parent` includes both `nxos-checks` (`os: [nxos]`) and `leaf-checks` (`groups: [leaf]`), and both list `7.0.0`, then `7.0.0` in `parent` targets every NX-OS device and every leaf. With `--test-case-group leaf-checks`, it targets only the leaves.
+
+`exclude_tests` removes a test case from every child path.
+
+When one path references an unknown device in its `target.devices`, the test case is `ERRORED` in that group, even if its other paths are valid. The error names the child group on that path, for example `Unknown target device 'r9' in Test case group 'leaf-checks'`.
+
+Paths through different child groups that apply the same targets and carry the same tags are merged into one, so stacked diamonds of nested groups do not multiply the work at load time. A test case that one group still reaches through more than 256 paths with different targets or tags fails the load with a `ConfigurationError`.
+
+#### Circular Reference Detection
+
+The framework validates that group inclusions do not form cycles (e.g., group A includes B, B includes A).
 
 #### Group-Level Targeting
 
@@ -641,13 +678,33 @@ scenarios:
         test_case_groups: [...]
 ```
 
-Execution order: `A` → `B, C` (parallel) → `D`
+Execution order: `A` → `B` → `C` → `D`
 
-If a phase fails (any test case fails):
+Phases in a scenario run one at a time, never concurrently. When several phases have all their dependencies finished, the one listed first runs next. Here `B` and `C` both wait only for `A`, and `B` runs first because it is listed first. To run work concurrently, put it in test case groups within one phase and use the phase and group `strategy` settings (see [Phase Group Execution Strategy](#phase-group-execution-strategy)).
 
-- Dependent phases are marked as **BLOCKED**
-- Independent phases continue execution
-- Results show **Partial** status with pass/fail counts
+#### Failure Blocking
+
+A phase that finishes `FAILED` or `ERRORED` blocks every phase that depends on it, directly or through a chain of `depends_on`:
+
+- Dependent phases do not run. Their test cases are recorded as `BLOCKED` with a reason that names the phase that failed, for example `Blocked because phase 'A' failed`. A phase blocked by a blocked phase names the original failure.
+- Phases that do not depend on the failed phase still run.
+- A phase that finishes `NOT_APPLICABLE` or `SKIPPED` does not block its dependents, with one exception in learning mode, described below.
+
+In the example above, if `B` fails, `D` is blocked and `C` still runs. If `A` fails, `B`, `C` and `D` are all blocked.
+
+##### Blocking in learning mode
+
+Learning mode skips a test case whose job does not inherit `LearningTestCase`, such as a change or action job. A phase with any test case skipped for this reason blocks the phases that depend on it, directly or transitively, in the same way as a failed phase. Their test cases are recorded as `BLOCKED` with a reason such as `Blocked because phase 'shutdown' was not run in learning mode`.
+
+The phase blocks even when its other test cases were learned, because the change it exists to make did not happen. Learning the phases after it would save the unchanged network's state as their expected post-change state.
+
+Other skips do not block. A test case skipped because no device matched its target, for example, does not block its phase's dependents.
+
+A test case blocked this way does not make `huginn run` or `huginn relearn` exit non-zero. It is the expected result of learning a change-validation scenario, not a failure. When a phase is blocked both by a failure and by a phase that was not run in learning mode, the reason names the failure, and the run exits 1. See [Exit codes](cli.md#exit-codes).
+
+To learn the phases after a change, apply the change first, then learn those phases on their own, for example with `--phase` or `--test-id`. [Reconciliation](../concepts/reconciliation.md) describes this workflow.
+
+There is no partial status. A phase with one failed test case out of ten is `FAILED`, and the phase and run summaries report a count for each status. See [Aggregate Result](../concepts/glossary.md#aggregate-result) for how statuses roll up.
 
 #### Reusing Test Case Groups Across Phases
 
@@ -693,6 +750,8 @@ scenarios:
 - `strategy.parallel` executes groups concurrently.
 - `strategy.parallel.maximum` optionally bounds concurrent groups.
 - If `strategy` is omitted, phase group execution defaults to unbounded parallel.
+
+A phase's `strategy` controls the groups inside it, not other phases. Phases always run one at a time.
 
 ### Targeting
 
@@ -798,7 +857,7 @@ huginn run --mode testing --tags critical,fast
 
 **Important**: Filtered tests do not appear in results. If you filter to run only OSPF tests, only those tests appear in the report.
 
-Test case groups can also define `tags`. Effective filtering tags are the union of test-case tags and group tags for each execution context.
+Test case groups can also define `tags`. A test case's effective filtering tags are the union of its own tags, the tags of the group the phase references, and the tags of every nested group it was included through (see [Nested Group Flattening](#nested-group-flattening)).
 
 ## Complete Example
 
@@ -968,38 +1027,34 @@ Note that `connectivity-tests` and `bgp-tests` are included in both `pre-change-
 
 ## Report Structure
 
-Results are organized hierarchically for easy navigation. Nested groups are shown in their hierarchy:
+Results follow the scenario, phase, test case group and test case hierarchy. Nested groups are flattened at load, so each test case is reported under the group the phase references, and the included groups do not appear. Each level shows its aggregate status and counts:
 
 ```txt
-OSPF Area Change                                     [PARTIAL] 12/13 (1 failed)
-    Pre-change                                       [PASSED]  6/6
-    └── pre-change-validation                        [PASSED]  6/6
-        ├── connectivity-tests                       [PASSED]  3/3
-        │   ├── 1.0.0 Verify Management              [PASSED]
-        │   ├── 1.1.0 Verify NTP Sync                [PASSED]
-        │   └── 1.2.0 Verify Syslog                  [PASSED]
-        ├── bgp-tests                                [PASSED]  1/1
-        │   └── 2.0.0 Verify BGP Neighbors           [PASSED]
-        └── ospf-tests-pre                           [PASSED]  2/2
-            ├── 3.0.0-pre Verify OSPF Neighbors      [PASSED]
-            └── 3.1.0-pre Verify OSPF Interfaces     [PASSED]
+OSPF Area Change                                     [FAILED]  12/13 passed, 1 failed
+    Pre-change                                       [PASSED]  6/6 passed
+    └── pre-change-validation                        [PASSED]  6/6 passed
+        ├── 1.0.0 Verify Management                  [PASSED]
+        ├── 1.1.0 Verify NTP Sync                    [PASSED]
+        ├── 1.2.0 Verify Syslog                      [PASSED]
+        ├── 2.0.0 Verify BGP Neighbors               [PASSED]
+        ├── 3.0.0-pre Verify OSPF Neighbors          [PASSED]
+        └── 3.1.0-pre Verify OSPF Interfaces         [PASSED]
 
-    Change                                           [PASSED]  1/1
-    └── apply-change                                 [PASSED]  1/1
+    Change                                           [PASSED]  1/1 passed
+    └── apply-change                                 [PASSED]  1/1 passed
         └── change-001 Apply OSPF Config             [PASSED]
 
-    Post-change                                      [PARTIAL] 5/6 (1 failed)
-    └── post-change-validation                       [PARTIAL] 5/6 (1 failed)
-        ├── connectivity-tests                       [PASSED]  3/3
-        │   ├── 1.0.0 Verify Management              [PASSED]
-        │   ├── 1.1.0 Verify NTP Sync                [PASSED]
-        │   └── 1.2.0 Verify Syslog                  [PASSED]
-        ├── bgp-tests                                [PASSED]  1/1
-        │   └── 2.0.0 Verify BGP Neighbors           [PASSED]
-        └── ospf-tests-post                          [PARTIAL] 1/2 (1 failed)
-            ├── 3.0.0-post Verify OSPF Neighbors     [PASSED]
-            └── 3.1.0-post Verify OSPF Interfaces    [FAILED] ← Unexpected state
+    Post-change                                      [FAILED]  5/6 passed, 1 failed
+    └── post-change-validation                       [FAILED]  5/6 passed, 1 failed
+        ├── 1.0.0 Verify Management                  [PASSED]
+        ├── 1.1.0 Verify NTP Sync                    [PASSED]
+        ├── 1.2.0 Verify Syslog                      [PASSED]
+        ├── 2.0.0 Verify BGP Neighbors               [PASSED]
+        ├── 3.0.0-post Verify OSPF Neighbors         [PASSED]
+        └── 3.1.0-post Verify OSPF Interfaces        [FAILED] ← Unexpected state
 ```
+
+There is no partial status: a single failed test case makes its group, phase and scenario `FAILED`. The counts show the scope of the failure.
 
 ## CLI Filtering
 
@@ -1031,21 +1086,37 @@ huginn run --mode testing --exclude-tags slow
 huginn run --mode testing --scenario ospf-area-change --phase post-change --tags ospf
 ```
 
+`--test-case-group` also matches groups included through nesting. For example, `--test-case-group ospf-tests-post` selects the tests that `ospf-tests-post` contributes to `post-change-validation`. They run in the phases that reference `post-change-validation`, are reported under that group, and keep the targets they have there. `--tags` and `--exclude-tags` also see the tags of nested groups (see [Nested Group Flattening](#nested-group-flattening)).
+
 Every filter except `--test-id-pattern` accepts comma-separated values and can be repeated. `--scenario`, `--phase`, `--test-case-group` and `--test-id` match any listed value. `--tags` requires every listed tag, and `--exclude-tags` drops a test case that has any listed tag. `--phase` is rejected unless `--scenario` is also given, because phase names are scoped to a scenario.
 
 ## Validation
 
-The framework validates test plans on load:
+### Load-time checks
 
-- All test case IDs are unique
-- All referenced jobs exist
-- All test case IDs referenced in groups exist
-- All group names referenced in phases exist
-- All group names referenced in other groups exist (for nested groups)
-- Nested group references form a valid DAG (no cycles)
-- Phase dependencies form a valid DAG (no cycles)
-- Target specifications reference valid device groups/OS values
-- Required fields are present
+Loading a test plan is the first step of every command. It fails with a configuration error when:
+
+- A required field is missing, or a field has the wrong type
+- A test case ID is defined in more than one file of a directory-based plan
+- A group references a test case ID that is not defined
+- A phase references a group that is not defined
+- A group includes, through `groups`, a group that is not defined
+- Nested group includes form a cycle
+- A phase's `depends_on` references a phase that is not defined in the same scenario
+- A `target` block mixes `devices` with `groups` or `os`
+
+A test case ID defined twice in the same YAML file is not detected, because the YAML parser keeps the last definition.
+
+### Checks at validate and run time
+
+Other problems pass the load. `huginn validate` reports them, and `huginn run` handles them when it reaches them:
+
+- **Missing or unloadable jobs**: `validate` reports a `planning_error`, and `run` records the test case as `ERRORED`.
+- **Phase dependency cycles**: a plan whose `depends_on` entries form a cycle loads, but `validate` and `run` fail with `Unable to resolve phase dependencies`.
+- **Unknown devices in `target.devices`**: `validate` reports an error, and `run` records the test case as `ERRORED`.
+- **Device group and OS values**: `target.groups` and `target.os` values are not checked against the testbed. A value that matches no device only produces a `has no matched targets` warning from `validate`, and the test case is `SKIPPED` at run time.
+
+`validate` resolves targets the same way `run` does, including the targets inherited from nested groups, so the targets it reports for each test case are the ones the run uses.
 
 ## Related Documents
 

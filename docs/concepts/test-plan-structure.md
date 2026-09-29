@@ -70,7 +70,7 @@ scenarios:
           - interface-baseline
 ```
 
-The phases form a dependency chain: `pre-change` -> `shutdown` -> `gate-post-shutdown` -> `post-shutdown` -> `normalize` -> `post-normalize`. Each phase waits for its dependencies to complete before executing. If any phase finishes with a status other than passed, the remaining phases in the scenario are marked blocked (see [Phase](glossary.md#phase) in the glossary).
+The phases form a dependency chain: `pre-change` -> `shutdown` -> `gate-post-shutdown` -> `post-shutdown` -> `normalize` -> `post-normalize`. Phases run one at a time, and each waits for its dependencies to complete before executing. If a phase fails or errors, every phase after it in the chain is marked blocked. In learning mode, the `shutdown` change job is skipped, so every phase after it is blocked as well (see [Phase](glossary.md#phase) in the glossary).
 
 Notice that `version-baseline`, `bgp-summary-baseline`, `ospf-neighbor-baseline`, and `interface-baseline` appear in three different phases. The test case groups and their test cases are defined once and reused wherever needed.
 
@@ -191,7 +191,7 @@ The hierarchy enables several patterns that a flat list of tests cannot:
 
 - **Reuse** - The same validation groups run in pre-change, post-change, and post-normalize phases without duplicating test case definitions.
 - **Sequencing** - Phase dependencies guarantee that changes happen after baselines are captured, and verification happens after changes complete.
-- **Gating** - A gate phase that fails because convergence criteria aren't met blocks the rest of the scenario, preventing validation from running against an infrastructure that hasn't stabilized. This is not specific to gates: today any phase that doesn't pass blocks every remaining phase in its scenario. Blocking only the phases that depend on a failed or errored phase is planned in [#218](https://github.com/ChartinoLabs/Huginn/issues/218).
+- **Gating** - A gate phase that fails because convergence criteria aren't met blocks the phases that depend on it, preventing validation from running against an infrastructure that hasn't stabilized. This is not specific to gates: any phase that fails or errors blocks its direct and transitive dependents, while phases that don't depend on it still run.
 - **Reconciliation** - After a planned change, only the affected parameters need updating. The test plan structure makes it clear which phases use which groups, so reconciliation can target just the post-change variants.
 - **Scale** - A test plan with hundreds of test cases stays organized because the hierarchy provides natural grouping boundaries.
 

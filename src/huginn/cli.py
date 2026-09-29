@@ -21,6 +21,7 @@ from huginn.execute import (
 )
 from huginn.inject import InjectPlan
 from huginn.loaders import ConfigurationError, load_test_plan
+from huginn.models import RunSummary
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
 from huginn.plugin_registry import PluginRegistry
@@ -426,9 +427,10 @@ def run(
     )
     if result.summary.total == 0:
         output.warning("No test cases were selected for execution")
+    _report_learning_mode_blocks(result.summary, output)
     output.status("Run artifacts written to results/")
     output.status("Run report written to reports/latest/")
-    if result.summary.status != "passed":
+    if _summary_has_failures(result.summary):
         raise typer.Exit(code=1)
 
 
@@ -646,6 +648,26 @@ def validate(
 
     for warning in result.warnings:
         output.warning(f"WARNING [{warning.code}]: {warning.message}")
+
+
+def _summary_has_failures(summary: RunSummary) -> bool:
+    """Return True when a run has failed, errored or blocked test cases.
+
+    NOT_APPLICABLE and SKIPPED results do not make a run fail. Neither do test
+    cases blocked only because a phase they depend on was not run in learning
+    mode: that is the expected outcome of learning a change-validation plan.
+    """
+    failure_blocked = summary.blocked - summary.learning_mode_blocked
+    return summary.failed > 0 or summary.errored > 0 or failure_blocked > 0
+
+
+def _report_learning_mode_blocks(summary: RunSummary, output: Output) -> None:
+    """Say how many blocked test cases were blocked only by learning mode."""
+    if summary.learning_mode_blocked:
+        output.status(
+            f"{summary.learning_mode_blocked} test case(s) blocked because a phase "
+            "they depend on was not run in learning mode; this does not fail the run"
+        )
 
 
 def _exit_code_for_run_error(code: ErrorCode) -> int:
@@ -1262,8 +1284,9 @@ def _execute_relearn(
         f"errored={result.summary.errored} "
         f"not_applicable={result.summary.not_applicable}"
     )
+    _report_learning_mode_blocks(result.summary, output)
 
-    if result.summary.failed > 0 or result.summary.errored > 0:
+    if _summary_has_failures(result.summary):
         output.error(
             "Some tests failed during re-learning -- "
             "parameters may not have been updated"

@@ -1,10 +1,14 @@
 """Unit tests for target device resolution."""
 
+from pathlib import Path
+
 import pytest
 
+from huginn.loaders import load_test_plan
 from huginn.models import (
     Device,
     ExecutionStrategy,
+    InclusionPath,
     Phase,
     TargetDefinition,
     Testbed,
@@ -12,6 +16,13 @@ from huginn.models import (
     TestCaseGroup,
 )
 from huginn.runner import TargetResolutionError, resolve_targets
+
+NESTED_PLAN = (
+    Path(__file__).resolve().parent
+    / "fixtures"
+    / "loaders"
+    / "plan_with_nested_group_inheritance.yaml"
+)
 
 _SPINE = Device(name="spine-01", os="nxos", groups=["spine"])
 _LEAF = Device(name="leaf-01", os="nxos", groups=["leaf"])
@@ -122,3 +133,71 @@ def test_resolve_targets_applies_exclude_devices() -> None:
         ),
     )
     assert {d.name for d in devices} == {"spine-01", "leaf-01"}
+
+
+_SPINE_EOS = Device(name="spine-02", os="eos", groups=["spine"])
+_LEAF_EOS = Device(name="leaf-02", os="eos", groups=["leaf"])
+_NESTED_TESTBED = Testbed(
+    devices={
+        device.name: device
+        for device in (_SPINE, _SPINE_EOS, _LEAF, _LEAF_EOS, _ROUTER)
+    },
+)
+
+
+def _nested_targets(
+    test_id: str, *, phase_target: TargetDefinition | None = None
+) -> list[str]:
+    """Resolve a test in the nested-inheritance fixture's parent group."""
+    test_plan = load_test_plan(NESTED_PLAN)
+    devices = resolve_targets(
+        testbed=_NESTED_TESTBED,
+        phase=_phase(target=phase_target),
+        group=test_plan.test_case_groups["parent"],
+        test_case=test_plan.test_cases[test_id],
+    )
+    return [device.name for device in devices]
+
+
+def test_resolve_targets_intersects_nested_child_targets_at_every_level() -> None:
+    """A test two levels down is narrowed by both the child and grandchild."""
+    assert _nested_targets("2.0.0") == ["spine-01"]
+
+
+def test_resolve_targets_nested_child_target_only_narrows_the_parent() -> None:
+    """A child's target cannot widen what the phase already selected."""
+    leaf_phase = TargetDefinition(groups=["leaf"])
+    assert _nested_targets("2.0.0", phase_target=leaf_phase) == []
+
+
+def test_resolve_targets_ignores_nested_targets_for_direct_parent_tests() -> None:
+    """A test the parent lists itself is unaffected by its child groups."""
+    assert _nested_targets("1.0.0") == list(_NESTED_TESTBED.devices)
+
+
+def test_resolve_targets_unions_paths_for_a_diamond_test() -> None:
+    """A test reached through two children targets devices either path selects."""
+    assert _nested_targets("3.0.0") == ["spine-01", "leaf-01", "leaf-02"]
+
+
+def test_resolve_targets_reports_unknown_device_in_nested_child() -> None:
+    """An unknown device in a nested child's target names that child group."""
+    group = TestCaseGroup(
+        tests=["1.0.0"],
+        identifier="parent",
+        inclusion_paths={
+            "1.0.0": (
+                InclusionPath(
+                    groups=("child",),
+                    targets=(("child", TargetDefinition(devices=["missing-01"])),),
+                ),
+            )
+        },
+    )
+    with pytest.raises(
+        TargetResolutionError,
+        match="Unknown target device 'missing-01' in Test case group 'child'",
+    ):
+        resolve_targets(
+            testbed=_TESTBED, phase=_phase(), group=group, test_case=_test_case()
+        )

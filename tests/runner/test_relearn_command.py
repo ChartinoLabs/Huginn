@@ -125,3 +125,27 @@ def test_relearn_composes_exact_contexts_with_user_filters(staged: Path) -> None
     assert result.exit_code == 0, result.stdout
     assert "Re-learning 1 failed test context(s)" in result.stdout
     assert _executed_contexts(staged) == {("S1", "P2", "TB")}
+
+
+def test_relearn_exits_zero_when_relearned_tests_are_only_skipped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Skipped results during re-learning do not make relearn exit non-zero."""
+    # The "passed" fixture's job does not inherit LearningTestCase, so it is
+    # skipped in learning mode.
+    stage_runner_fixture(tmp_path, "passed")
+    monkeypatch.chdir(tmp_path)
+    failed_case = {"test_id": "1.0.0", "title": "1.0.0", "status": "failed"}
+    group = {"id": "group-1", "status": "failed", "test_cases": [failed_case]}
+    phase = {"id": "phase-1", "status": "failed", "test_case_groups": [group]}
+    scenario = {"id": "scenario-1", "status": "failed", "phases": [phase]}
+    run_json = tmp_path / "results" / _TESTING_RUN_DIR / "run.json"
+    run_json.parent.mkdir(parents=True)
+    run_json.write_text(
+        json.dumps({"mode": "testing", "scenarios": [scenario]}), encoding="utf-8"
+    )
+
+    result = _invoke_relearn(tmp_path)
+
+    assert result.exit_code == 0, result.stdout
+    assert load_report(tmp_path)["summary"]["skipped"] == 1

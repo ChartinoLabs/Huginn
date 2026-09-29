@@ -3,6 +3,7 @@
 import os
 import re
 from collections.abc import Mapping
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import NoReturn, cast
 
@@ -10,11 +11,13 @@ import yaml
 
 from huginn.enums import ConnectionProtocol
 from huginn.models import (
+    DIRECT_INCLUSION,
     ConnectionDefinition,
     CredentialFields,
     CredentialMap,
     Device,
     ExecutionStrategy,
+    InclusionPath,
     Phase,
     Scenario,
     TargetDefinition,
@@ -22,7 +25,13 @@ from huginn.models import (
     TestCaseDefinition,
     TestCaseGroup,
     TestPlan,
+    nested_inclusion_paths,
 )
+
+# Upper bound on the distinct inclusion paths one flattened group may keep for
+# one test. Equivalent paths are merged, so only nested groups whose targets or
+# tags differ at every level of a deep diamond stack can reach it.
+MAX_INCLUSION_PATHS = 256
 
 
 class ConfigurationError(ValueError):
@@ -974,40 +983,132 @@ def _flatten_nested_test_case_groups(
     groups: dict[str, TestCaseGroup],
     group_includes: dict[str, list[str]],
 ) -> dict[str, TestCaseGroup]:
-    """Expand nested group includes into flattened test id lists."""
-    cache: dict[str, list[str]] = {}
+    """Expand nested group includes into flattened test id lists.
 
-    def flatten(group_name: str) -> list[str]:
-        if group_name in cache:
-            return cache[group_name]
+    Each flattened group also records, for every test it inherits, the
+    nested-group paths that include the test, so the child groups' ``target``
+    and ``tags`` still apply to it.
+    """
+    cache: dict[str, _FlattenedGroup] = {}
 
-        group = groups[group_name]
-        excluded = set(group.exclude_tests)
-
-        flattened = list(group.tests)
-        seen = set(flattened)
-        for include in group_includes[group_name]:
-            for test_id in flatten(include):
-                if test_id in seen or test_id in excluded:
-                    continue
-                seen.add(test_id)
-                flattened.append(test_id)
-
-        cache[group_name] = flattened
-        return flattened
+    def flatten(group_name: str) -> "_FlattenedGroup":
+        if group_name not in cache:
+            included = [
+                (include, flatten(include)) for include in group_includes[group_name]
+            ]
+            cache[group_name] = _flatten_group(groups, groups[group_name], included)
+        return cache[group_name]
 
     resolved: dict[str, TestCaseGroup] = {}
     for group_name, group in groups.items():
+        flattened = flatten(group_name)
         resolved[group_name] = TestCaseGroup(
             identifier=group.identifier,
-            tests=flatten(group_name),
+            tests=flattened.tests,
             name=group.name,
             tags=group.tags,
             target=group.target,
             strategy=group.strategy,
             exclude_tests=group.exclude_tests,
+            inclusion_paths=nested_inclusion_paths(
+                {test_id: flattened.paths_for(test_id) for test_id in flattened.tests}
+            ),
         )
     return resolved
+
+
+# What an inclusion path means for target resolution and tag filtering: the
+# ordered target selectors it applies and its set of tags.
+_PathKey = tuple[tuple[tuple[tuple[str, ...] | None, ...], ...], frozenset[str]]
+
+
+@dataclass
+class _FlattenedGroup:
+    """A group's flattened test IDs and the inclusion paths for each test.
+
+    Paths that mean the same for target resolution and tag filtering are
+    merged, keeping the union of their group IDs for ``--test-case-group``.
+    Without the merge, stacked diamonds of nested groups would multiply the
+    paths at every level.
+    """
+
+    identifier: str
+    tests: list[str] = field(default_factory=list)
+    paths: dict[str, dict[_PathKey, InclusionPath]] = field(default_factory=dict)
+
+    def add(self, test_id: str, path: InclusionPath) -> None:
+        """Record one path to a test, keeping first-seen test order."""
+        test_paths = self.paths.get(test_id)
+        if test_paths is None:
+            self.tests.append(test_id)
+            test_paths = self.paths[test_id] = {}
+        key = _path_key(path)
+        existing = test_paths.get(key)
+        if existing is not None:
+            groups = tuple(dict.fromkeys((*existing.groups, *path.groups)))
+            test_paths[key] = replace(existing, groups=groups)
+            return
+        if len(test_paths) >= MAX_INCLUSION_PATHS:
+            raise ConfigurationError(
+                f"Test case group '{self.identifier}' includes test '{test_id}' "
+                f"through more than {MAX_INCLUSION_PATHS} nested-group paths with "
+                "different targets or tags; simplify the nested groups"
+            )
+        test_paths[key] = path
+
+    def paths_for(self, test_id: str) -> tuple[InclusionPath, ...]:
+        """Return the distinct inclusion paths recorded for a test."""
+        return tuple(self.paths[test_id].values())
+
+
+def _path_key(path: InclusionPath) -> _PathKey:
+    """Return the parts of a path that target resolution and filtering read."""
+    targets = tuple(
+        tuple(
+            None if value is None else tuple(value)
+            for value in (
+                target.devices,
+                target.groups,
+                target.os,
+                target.exclude_devices,
+            )
+        )
+        for _, target in path.targets
+    )
+    return targets, frozenset(path.tags)
+
+
+def _flatten_group(
+    groups: dict[str, TestCaseGroup],
+    group: TestCaseGroup,
+    included: list[tuple[str, _FlattenedGroup]],
+) -> _FlattenedGroup:
+    """Flatten one group from its direct tests and already-flattened includes."""
+    flattened = _FlattenedGroup(identifier=group.identifier)
+    for test_id in group.tests:
+        flattened.add(test_id, DIRECT_INCLUSION)
+
+    excluded = set(group.exclude_tests)
+    for include, child in included:
+        child_group = groups[include]
+        own_target = (
+            () if child_group.target is None else ((include, child_group.target),)
+        )
+        for test_id in child.tests:
+            if test_id in excluded:
+                continue
+            for child_path in child.paths_for(test_id):
+                flattened.add(
+                    test_id,
+                    InclusionPath(
+                        groups=(include, *child_path.groups),
+                        targets=(*own_target, *child_path.targets),
+                        tags=tuple(
+                            dict.fromkeys((*child_group.tags, *child_path.tags))
+                        ),
+                    ),
+                )
+    return flattened
 
 
 def _load_scenarios(data: dict[str, object]) -> dict[str, Scenario]:

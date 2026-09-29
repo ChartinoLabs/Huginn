@@ -110,11 +110,13 @@ See [Test Plan Specification - CLI Filtering](test-plan.md#cli-filtering) for ho
 
 ### Exit codes
 
-| Code | Meaning                                                                                                                                                 |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | The overall run status is `passed`, or no test cases were selected.                                                                                     |
-| 1    | The overall run status is `failed`, `errored`, `not_applicable` or `skipped`; the testbed or test plan could not be loaded; or a broker error occurred. |
-| 2    | Usage error; inventory plugin failure; phase dependencies in a scenario could not be resolved; or results or reports could not be written.              |
+| Code | Meaning                                                                                                                                                     |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | No test case is `failed`, `errored` or `blocked`. This includes a run whose test cases are all `not_applicable` or `skipped`, and a run with no test cases. |
+| 1    | At least one test case is `failed`, `errored` or `blocked`; the testbed or test plan could not be loaded; or a broker error occurred.                       |
+| 2    | Usage error; inventory plugin failure; phase dependencies in a scenario could not be resolved; or results or reports could not be written.                  |
+
+A test case that is `blocked` only because a phase it depends on was not run in learning mode does not count toward exit code 1. In learning mode, change and action jobs are skipped, and the phases after them are blocked (see [Blocking in learning mode](test-plan.md#blocking-in-learning-mode)). That is the expected outcome of learning a change-validation plan, so a learning run where only this happens exits 0. The run summary still counts these test cases as `blocked`, and the command prints how many of them were blocked this way. A test case blocked by a failed or errored phase still makes the run exit 1.
 
 An invalid `--test-id-pattern` regular expression is a [usage error](#usage-errors): the run does not start and the command exits 2.
 
@@ -310,7 +312,7 @@ huginn relearn [--plan <path>] [--testbed <path> | --inventory-plugin <name>] [-
                [--results-dir <path>] [--parameters-dir <path>] [--output-dir <path>] [logging options]
 ```
 
-The options match those of `run` with the same names and environment variables, including the `./test_plan` and `./testbed.yaml` defaults. `--scenario` and `--phase` take a single value each and filter the failures to re-learn; `--phase` does not require `--scenario`. `--data-model`/`-d` overrides the test plan's `data_model.path`, as for `run`. The command exits 0 when every test is re-learned or there are no failures, 1 when a test fails during re-learning, and 2 in the same run-level error cases as `run`.
+The options match those of `run` with the same names and environment variables, including the `./test_plan` and `./testbed.yaml` defaults. `--scenario` and `--phase` take a single value each and filter the failures to re-learn; `--phase` does not require `--scenario`. `--data-model`/`-d` overrides the test plan's `data_model.path`, as for `run`. The command exits 0 when there are no failures to re-learn or when no re-learned test case is `failed`, `errored` or `blocked`, 1 when one is, and 2 in the same run-level error cases as `run`. As for `run`, `not_applicable` and `skipped` results, and test cases blocked only because a phase was not run in learning mode, do not cause a non-zero exit.
 
 See [Selective Re-learning](relearn.md) for the full option table, exit codes and workflow.
 

@@ -1,0 +1,44 @@
+test_cases:
+  1.0.0:
+    title: Direct parent test
+    job: jobs/direct.py
+  2.0.0:
+    title: Grandchild test
+    job: jobs/grandchild.py
+    tags: [case]
+  3.0.0:
+    title: Test reached through two paths
+    job: jobs/diamond.py
+test_case_groups:
+  grandchild:
+    tests: [2.0.0]
+    target:
+      os: [nxos]
+    tags: [grandchild-tag]
+    strategy:
+      serial: {}
+  child:
+    groups: [grandchild]
+    target:
+      groups: [spine]
+    tags: [child-tag]
+  nxos-only:
+    tests: [3.0.0]
+    target:
+      os: [nxos]
+    tags: [nxos-tag]
+  leaf-only:
+    tests: [3.0.0]
+    target:
+      groups: [leaf]
+    tags: [leaf-tag]
+  parent:
+    tests: [1.0.0]
+    groups: [child, nxos-only, leaf-only]
+    tags: [parent-tag]
+scenarios:
+  scenario-1:
+    phases:
+      phase-1:
+        test_case_groups:
+        - parent

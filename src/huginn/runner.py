@@ -11,7 +11,14 @@ from pathlib import Path
 from time import perf_counter
 
 from huginn.context import Context
-from huginn.enums import BrokerType, ErrorCode, ExecutionMode, ResultStatus
+from huginn.enums import (
+    BlockKind,
+    BrokerType,
+    ErrorCode,
+    ExecutionMode,
+    ResultStatus,
+    SkipKind,
+)
 from huginn.inventory_plugins import (
     InventoryPluginError,
     resolve_inventory_testbed,
@@ -76,6 +83,15 @@ class PlannedExecution:
     planning_error: str | None
     planning_error_traceback: str | None = None
     skip_reason: str | None = None
+    skip_kind: SkipKind | None = None
+
+
+@dataclass(frozen=True)
+class _PhaseBlock:
+    """Why a phase is blocked, and which kind of block it is."""
+
+    reason: str
+    kind: BlockKind
 
 
 async def run_test_plan(
@@ -387,7 +403,13 @@ async def _execute_scenario(
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
 ) -> ExecutedScenario:
-    """Execute one scenario and halt on the first non-passing phase."""
+    """Execute one scenario's phases one at a time in dependency order.
+
+    A phase that ends FAILED or ERRORED blocks only the phases that depend on
+    it, directly or through a chain of ``depends_on``. So does a phase with a
+    test case skipped because it cannot run in learning mode. Independent
+    phases still run.
+    """
     log_debug(
         output,
         "Executing scenario phases",
@@ -395,6 +417,7 @@ async def _execute_scenario(
         phase_count=len(scenario.phases),
     )
     phase_results: dict[str, ExecutedPhase] = {}
+    blocks: dict[str, _PhaseBlock] = {}
     pending = set(scenario.phases.keys())
 
     while pending:
@@ -408,7 +431,10 @@ async def _execute_scenario(
             )
 
         phase = scenario.phases[phase_name]
-        if not phase.preserve_cache:
+        block = _dependency_block(scenario, phase, phase_results, blocks)
+        if block is not None:
+            blocks[phase_name] = block
+        elif not phase.preserve_cache:
             broker.clear_cache()
         phase_started = perf_counter()
         executed_phase = await _execute_ready_phase(
@@ -424,7 +450,7 @@ async def _execute_scenario(
             data_model=data_model,
             learning_execution_cache=learning_execution_cache,
             output=output,
-            phase_results=phase_results,
+            block=block,
         )
         phase_elapsed = perf_counter() - phase_started
         _record_phase_result(
@@ -436,16 +462,6 @@ async def _execute_scenario(
             output=output,
             elapsed=phase_elapsed,
         )
-
-        if _should_halt_scenario_after_phase(executed_phase):
-            _block_remaining_phases(
-                scenario=scenario,
-                failed_phase=phase,
-                pending=pending,
-                phase_results=phase_results,
-                test_plan=test_plan,
-            )
-            break
 
     executed_phases = [phase_results[name] for name in scenario.phases]
     return ExecutedScenario(
@@ -484,14 +500,15 @@ async def _execute_ready_phase(
     data_model: Mapping[str, object] | None,
     learning_execution_cache: dict[str, asyncio.Task[ExecutedTestCase]] | None,
     output: Output | None,
-    phase_results: dict[str, ExecutedPhase],
+    block: _PhaseBlock | None,
 ) -> ExecutedPhase:
-    """Execute or block one dependency-ready phase."""
-    if _is_blocked_by_dependencies(phase, phase_results):
+    """Execute one dependency-ready phase, or block it when a block is given."""
+    if block is not None:
         return _build_dependency_blocked_phase(
             scenario_name=scenario_name,
             phase=phase,
             test_plan=test_plan,
+            block=block,
             output=output,
         )
 
@@ -525,9 +542,10 @@ def _build_dependency_blocked_phase(
     scenario_name: str,
     phase: Phase,
     test_plan: TestPlan,
+    block: _PhaseBlock,
     output: Output | None,
 ) -> ExecutedPhase:
-    """Build a blocked phase after a failed dependency."""
+    """Build a blocked phase after a dependency that blocks it."""
     _emit_status(
         output,
         f"Skipping phase: {phase.identifier} (blocked by dependencies)",
@@ -538,12 +556,13 @@ def _build_dependency_blocked_phase(
         scenario=scenario_name,
         phase=phase.identifier,
         depends_on=phase.depends_on,
+        reason=block.reason,
     )
     return _build_blocked_phase(
         scenario_name=scenario_name,
         phase=phase,
         test_plan=test_plan,
-        reason="Blocked by failed phase dependency",
+        block=block,
     )
 
 
@@ -563,28 +582,6 @@ def _record_phase_result(
     pending.remove(phase_name)
 
 
-def _block_remaining_phases(
-    *,
-    scenario: Scenario,
-    failed_phase: Phase,
-    pending: set[str],
-    phase_results: dict[str, ExecutedPhase],
-    test_plan: TestPlan,
-) -> None:
-    """Mark all remaining phases as blocked after a failure halt."""
-    for remaining_phase_name in scenario.phases:
-        if remaining_phase_name not in pending:
-            continue
-        remaining_phase = scenario.phases[remaining_phase_name]
-        phase_results[remaining_phase_name] = _build_blocked_phase(
-            scenario_name=scenario.identifier,
-            phase=remaining_phase,
-            test_plan=test_plan,
-            reason=f"Blocked because phase '{failed_phase.identifier}' failed",
-        )
-    pending.clear()
-
-
 def _raise_unresolved_scenario_dependencies(
     scenario_name: str,
     pending: set[str],
@@ -600,19 +597,67 @@ def _raise_unresolved_scenario_dependencies(
     )
 
 
-def _is_blocked_by_dependencies(
+def _dependency_block(
+    scenario: Scenario,
     phase: Phase,
     phase_results: dict[str, ExecutedPhase],
-) -> bool:
-    """Return True when any dependency phase did not pass."""
-    blocking_statuses = {
-        ResultStatus.FAILED.value,
-        ResultStatus.ERRORED.value,
-        ResultStatus.BLOCKED.value,
-    }
-    return any(
-        phase_results[dependency].status in blocking_statuses
+    blocks: dict[str, _PhaseBlock],
+) -> _PhaseBlock | None:
+    """Return why a phase is blocked by its dependencies, or None to run it.
+
+    A FAILED or ERRORED dependency blocks the phase. So does a dependency with
+    any test case skipped because it cannot run in learning mode, because the
+    dependency's intended effect, such as a change, did not happen. A BLOCKED
+    dependency passes on its own block, so the reason always names the phase
+    where blocking started. Other SKIPPED and NOT_APPLICABLE outcomes do not
+    block. When several dependencies block, a failure takes precedence over a
+    phase that was not run in learning mode, so the failure still fails the
+    run.
+    """
+    found = [
+        block
         for dependency in phase.depends_on
+        if (
+            block := _block_from_dependency(scenario, dependency, phase_results, blocks)
+        )
+        is not None
+    ]
+    for block in found:
+        if block.kind == BlockKind.DEPENDENCY_FAILED:
+            return block
+    return found[0] if found else None
+
+
+def _block_from_dependency(
+    scenario: Scenario,
+    dependency: str,
+    phase_results: dict[str, ExecutedPhase],
+    blocks: dict[str, _PhaseBlock],
+) -> _PhaseBlock | None:
+    """Return the block one finished dependency imposes, or None."""
+    if dependency in blocks:
+        return blocks[dependency]
+    result = phase_results[dependency]
+    identifier = scenario.phases[dependency].identifier
+    if result.status in {ResultStatus.FAILED.value, ResultStatus.ERRORED.value}:
+        return _PhaseBlock(
+            reason=f"Blocked because phase '{identifier}' {result.status}",
+            kind=BlockKind.DEPENDENCY_FAILED,
+        )
+    if _phase_has_learning_mode_skip(result):
+        return _PhaseBlock(
+            reason=f"Blocked because phase '{identifier}' was not run in learning mode",
+            kind=BlockKind.DEPENDENCY_NOT_LEARNED,
+        )
+    return None
+
+
+def _phase_has_learning_mode_skip(phase: ExecutedPhase) -> bool:
+    """Return True when any test case in the phase was skipped by learning mode."""
+    return any(
+        test_case.skip_kind == SkipKind.LEARNING_MODE_UNSUPPORTED.value
+        for group in phase.test_case_groups
+        for test_case in group.test_cases
     )
 
 
@@ -1064,7 +1109,7 @@ def _build_blocked_phase(
     scenario_name: str,
     phase: Phase,
     test_plan: TestPlan,
-    reason: str,
+    block: _PhaseBlock,
 ) -> ExecutedPhase:
     """Build blocked phase output when a scenario cannot progress."""
     blocked_groups: list[ExecutedTestCaseGroup] = []
@@ -1078,7 +1123,8 @@ def _build_blocked_phase(
                 test_id=test_id,
                 title=test_plan.test_cases[test_id].title,
                 status=ResultStatus.BLOCKED.value,
-                error=reason,
+                error=block.reason,
+                block_kind=block.kind.value,
             )
             for test_id in group.tests
         ]
@@ -1116,17 +1162,20 @@ def _plan_executions(
             )
             required_brokers = _required_brokers_for_test_case_class(test_case_class)
             skip_reason: str | None = None
+            skip_kind: SkipKind | None = None
             if mode == ExecutionMode.LEARNING and not issubclass(
                 test_case_class,
                 LearningTestCase,
             ):
                 skip_reason = "Learning mode requires tests to inherit LearningTestCase"
+                skip_kind = SkipKind.LEARNING_MODE_UNSUPPORTED
             planned[test_case.test_id] = PlannedExecution(
                 test_case_class=test_case_class,
                 required_brokers=required_brokers,
                 planning_error=None,
                 planning_error_traceback=None,
                 skip_reason=skip_reason,
+                skip_kind=skip_kind,
             )
         except (JobLoadError, RuntimeBrokerError) as error:
             log_warning(
@@ -1329,6 +1378,7 @@ async def _execute_test_case_once(
             group_name=group.identifier,
             definition=definition,
             reason="No devices matched target selectors",
+            kind=SkipKind.NO_MATCHING_TARGETS,
         )
 
     result_collector = ResultCollector()
@@ -1388,6 +1438,7 @@ async def _execute_test_case_once(
             group_name=group.identifier,
             definition=definition,
             reason=planned.skip_reason,
+            kind=planned.skip_kind,
         )
     if planned.test_case_class is None:
         log_warning(
@@ -1533,6 +1584,7 @@ def _skipped_test_case(
     definition: TestCaseDefinition,
     *,
     reason: str,
+    kind: SkipKind | None,
 ) -> ExecutedTestCase:
     """Build a standardized skipped test case output."""
     return ExecutedTestCase(
@@ -1545,6 +1597,7 @@ def _skipped_test_case(
         metadata_sections=[],
         command_executions=[],
         error=reason,
+        skip_kind=kind.value if kind is not None else None,
     )
 
 
@@ -1882,14 +1935,40 @@ def _resolve_targets(
     group: TestCaseGroup,
     test_case: TestCaseDefinition,
 ) -> tuple[list[Device], str | None]:
-    """Resolve targets with phase -> group -> test-case selector intersection."""
-    devices = list(testbed.devices.values())
+    """Resolve targets with phase -> group -> test-case selector intersection.
 
-    for scope_name, target in (
-        (f"Phase '{phase.identifier}'", phase.target),
-        (f"Test case group '{group.identifier}'", group.target),
-        (f"Test case '{test_case.test_id}'", test_case.target),
-    ):
+    A test inherited through nested groups is also narrowed by the ``target``
+    of every group on its inclusion path. When several paths include the same
+    test, the result is the union of the devices each path selects.
+    """
+    devices: dict[str, Device] = {}
+    for path in group.paths_for(test_case.test_id):
+        path_devices, error = _resolve_path_targets(
+            testbed=testbed,
+            scopes=[
+                (f"Phase '{phase.identifier}'", phase.target),
+                (f"Test case group '{group.identifier}'", group.target),
+                *(
+                    (f"Test case group '{name}'", target)
+                    for name, target in path.targets
+                ),
+                (f"Test case '{test_case.test_id}'", test_case.target),
+            ],
+        )
+        if error is not None:
+            return [], error
+        devices.update((device.name, device) for device in path_devices)
+    return list(devices.values()), None
+
+
+def _resolve_path_targets(
+    *,
+    testbed: Testbed,
+    scopes: list[tuple[str, TargetDefinition | None]],
+) -> tuple[list[Device], str | None]:
+    """Intersect the testbed's devices with each target scope in turn."""
+    devices = list(testbed.devices.values())
+    for scope_name, target in scopes:
         devices, error = _apply_target_scope(
             devices=devices,
             testbed=testbed,
@@ -1898,7 +1977,6 @@ def _resolve_targets(
         )
         if error is not None:
             return [], error
-
     return devices, None
 
 
@@ -2002,7 +2080,8 @@ def _all_statuses_match(statuses: list[str], status: ResultStatus) -> bool:
 
 
 def _build_summary(scenarios: list[ExecutedScenario]) -> RunSummary:
-    statuses = _collect_test_case_statuses(scenarios)
+    test_cases = _collect_test_cases(scenarios)
+    statuses = [test_case.status for test_case in test_cases]
     counts = Counter(statuses)
     overall_status = _derive_status_from_values(statuses).value
     return RunSummary(
@@ -2014,25 +2093,24 @@ def _build_summary(scenarios: list[ExecutedScenario]) -> RunSummary:
         not_applicable=counts[ResultStatus.NOT_APPLICABLE.value],
         skipped=counts[ResultStatus.SKIPPED.value],
         blocked=counts[ResultStatus.BLOCKED.value],
+        learning_mode_blocked=sum(
+            test_case.block_kind == BlockKind.DEPENDENCY_NOT_LEARNED.value
+            for test_case in test_cases
+        ),
     )
 
 
-def _collect_test_case_statuses(scenarios: list[ExecutedScenario]) -> list[str]:
-    """Collect all test case statuses from executed scenario output."""
-    statuses: list[str] = []
-    for scenario in scenarios:
-        for phase in scenario.phases:
-            for group in phase.test_case_groups:
-                for test_case in group.test_cases:
-                    statuses.append(test_case.status)
-    return statuses
+def _collect_test_cases(scenarios: list[ExecutedScenario]) -> list[ExecutedTestCase]:
+    """Collect every executed test case from scenario output."""
+    return [
+        test_case
+        for scenario in scenarios
+        for phase in scenario.phases
+        for group in phase.test_case_groups
+        for test_case in group.test_cases
+    ]
 
 
 def _derive_scenario_status(phases: list[ExecutedPhase]) -> ResultStatus:
     """Derive one scenario status from its executed phases."""
     return _derive_status_from_values([phase.status for phase in phases])
-
-
-def _should_halt_scenario_after_phase(phase: ExecutedPhase) -> bool:
-    """Return True when a scenario should stop after this phase."""
-    return phase.status != ResultStatus.PASSED.value

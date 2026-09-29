@@ -124,7 +124,7 @@ def test_run_skips_test_case_when_no_targets_match(
         catch_exceptions=False,
     )
 
-    assert result.exit_code == 1
+    assert result.exit_code == 0
     assert not (tmp_path / "unexpected.execution").exists()
     report_data = load_report(tmp_path)
     test_case = first_test_case(report_data)
@@ -186,8 +186,45 @@ def test_run_skips_when_hierarchical_target_intersection_is_empty(
         catch_exceptions=False,
     )
 
-    assert result.exit_code == 1
+    assert result.exit_code == 0
     assert not (tmp_path / "hierarchy.unexpected").exists()
     report_data = load_report(tmp_path)
     test_case = first_test_case(report_data)
     assert test_case["status"] == "skipped"
+
+
+def test_run_applies_nested_group_targets(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Tests from nested groups run on the child-narrowed target set."""
+    stage_runner_fixture(tmp_path, "nested_group_targets")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            "--mode",
+            "testing",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report_data = load_report(tmp_path)
+    group = report_data["scenarios"][0]["phases"][0]["test_case_groups"][0]
+    assert group["id"] == "fabric"
+    selected = {
+        case["test_id"]: sorted(check["message"] for check in case["checks"])
+        for case in group["test_cases"]
+    }
+    assert selected == {
+        "1.0.0": ["selected:leaf-02"],
+        "2.0.0": ["selected:leaf-01", "selected:spine-01"],
+    }

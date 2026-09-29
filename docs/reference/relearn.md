@@ -78,7 +78,7 @@ The command does not simply filter by test ID. It records each failure as a scen
 
 For example, if `BGP-SUMMARY-ROUTER-ID` failed only in the `link-shutdown-r1r2` scenario's `pre-change` phase, the relearn run will execute that test only in that specific scenario and phase context -- not across all scenarios that reference the same test ID. If another test failed only in a different scenario's `post-change` phase, `BGP-SUMMARY-ROUTER-ID` is not re-run there either. The summary line lists each context as `<scenario>/<phase>/<test ID>`.
 
-Phases that contain no failures are not run. When a phase with failures depends on a phase without failures, the dependency is dropped and the phase runs on its own. When both phases contain failures, the dependency is kept, so the dependent phase is blocked if re-learning fails in the earlier phase.
+Phases that contain no failures are not run. When a phase with failures depends on a phase without failures, the dependency is dropped and the phase runs on its own. When both phases contain failures, the dependency is kept, so the dependent phase is blocked if re-learning fails in the earlier phase. It is also blocked when the earlier phase has a change or action job, which learning mode skips (see [Blocking in learning mode](test-plan.md#blocking-in-learning-mode)). Its parameters are then not updated, and the command still exits 0.
 
 ## CLI reference
 
@@ -110,10 +110,10 @@ No test plan YAML files are modified. The test plan structure remains unchanged 
 
 ## Exit codes
 
-| Code | Meaning                                                                  |
-| ---- | ------------------------------------------------------------------------ |
-| 0    | All tests re-learned successfully, or no failures found.                 |
-| 1    | Some tests failed during re-learning, or a configuration error occurred. |
+| Code | Meaning                                                                                                                                                               |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | No failures found, or no re-learned test case is `failed`, `errored` or `blocked`. Test cases blocked only because a phase was not run in learning mode do not count. |
+| 1    | A re-learned test case is `failed`, `errored` or `blocked`, or a configuration error occurred.                                                                        |
 
 A non-zero exit during re-learning typically means the device could not be reached or a job raised an unexpected error. The parameter files for those tests will not have been updated.
 

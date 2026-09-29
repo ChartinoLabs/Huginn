@@ -3,7 +3,15 @@
 import re
 from dataclasses import dataclass, replace
 
-from huginn.models import Phase, Scenario, TestCaseDefinition, TestCaseGroup, TestPlan
+from huginn.models import (
+    InclusionPath,
+    Phase,
+    Scenario,
+    TestCaseDefinition,
+    TestCaseGroup,
+    TestPlan,
+    nested_inclusion_paths,
+)
 
 
 @dataclass(frozen=True)
@@ -122,54 +130,90 @@ def _filter_groups(
     test_filter: set[str],
     test_id_regex: re.Pattern[str] | None = None,
 ) -> dict[str, TestCaseGroup]:
-    """Filter groups to only include tests matching active filters."""
+    """Filter groups to only include tests matching active filters.
+
+    Group and tag filters are applied to each nested-group path that includes
+    a test, so a group included through ``groups`` can be selected by name and
+    its tags count for the tests it contributes. A test is kept with the paths
+    that match, and dropped when none do.
+    """
     filtered_groups: dict[str, TestCaseGroup] = {}
     for group_name, group in test_plan.test_case_groups.items():
-        if group_filter and group_name not in group_filter:
-            continue
-
-        kept_tests = [
-            test_id
-            for test_id in group.tests
-            if _test_matches_filters(
-                test_case=test_plan.test_cases[test_id],
-                group=group,
-                include_tags=include_tags,
-                exclude_tags=exclude_tags,
-                test_filter=test_filter,
-                test_id_regex=test_id_regex,
+        kept_paths: dict[str, tuple[InclusionPath, ...]] = {}
+        for test_id in group.tests:
+            test_case = test_plan.test_cases[test_id]
+            if not _test_id_matches_filters(test_case, test_filter, test_id_regex):
+                continue
+            paths = tuple(
+                path
+                for path in group.paths_for(test_id)
+                if _path_matches_group_filter(group, path, group_filter)
+                and _tags_match_filters(
+                    _effective_tags(test_case, group, path),
+                    include_tags=include_tags,
+                    exclude_tags=exclude_tags,
+                )
             )
-        ]
-        if not kept_tests:
-            continue
-        filtered_groups[group_name] = replace(group, tests=kept_tests)
+            if paths:
+                kept_paths[test_id] = paths
+        if kept_paths:
+            filtered_groups[group_name] = _narrow_group(group, kept_paths)
     return filtered_groups
 
 
-def _test_matches_filters(
-    *,
-    test_case: TestCaseDefinition,
+def _narrow_group(
     group: TestCaseGroup,
-    include_tags: set[str],
-    exclude_tags: set[str],
+    kept_paths: dict[str, tuple[InclusionPath, ...]],
+) -> TestCaseGroup:
+    """Return ``group`` limited to the given tests and their inclusion paths."""
+    return replace(
+        group,
+        tests=list(kept_paths),
+        inclusion_paths=nested_inclusion_paths(kept_paths),
+    )
+
+
+def _test_id_matches_filters(
+    test_case: TestCaseDefinition,
     test_filter: set[str],
-    test_id_regex: re.Pattern[str] | None = None,
+    test_id_regex: re.Pattern[str] | None,
 ) -> bool:
-    """Return True when a test case passes id/tag include and exclude filters."""
+    """Return True when a test case passes the test ID and pattern filters."""
     if test_filter and test_case.test_id not in test_filter:
         return False
+    return test_id_regex is None or test_id_regex.search(test_case.test_id) is not None
 
-    if test_id_regex is not None and not test_id_regex.search(test_case.test_id):
-        return False
 
-    effective_tags = set(test_case.tags)
-    effective_tags.update(group.tags)
+def _path_matches_group_filter(
+    group: TestCaseGroup,
+    path: InclusionPath,
+    group_filter: set[str],
+) -> bool:
+    """Return True when the group, or a group on the path, is selected."""
+    if not group_filter or group.identifier in group_filter:
+        return True
+    return not group_filter.isdisjoint(path.groups)
 
+
+def _effective_tags(
+    test_case: TestCaseDefinition,
+    group: TestCaseGroup,
+    path: InclusionPath,
+) -> set[str]:
+    """Return the test's tags plus those of its group and inclusion path."""
+    return {*test_case.tags, *group.tags, *path.tags}
+
+
+def _tags_match_filters(
+    effective_tags: set[str],
+    *,
+    include_tags: set[str],
+    exclude_tags: set[str],
+) -> bool:
+    """Return True when effective tags pass the include and exclude filters."""
     if include_tags and not include_tags.issubset(effective_tags):
         return False
-    if exclude_tags and effective_tags.intersection(exclude_tags):
-        return False
-    return True
+    return not effective_tags.intersection(exclude_tags)
 
 
 def _filter_scenarios(
@@ -301,7 +345,9 @@ class _GroupVariants:
         if key is None:
             key = self._unused_key(group_name)
             self._keys[(group_name, tests)] = key
-            self.groups[key] = replace(source, tests=list(tests))
+            self.groups[key] = _narrow_group(
+                source, {test_id: source.paths_for(test_id) for test_id in tests}
+            )
         return key
 
     def _unused_key(self, group_name: str) -> str:

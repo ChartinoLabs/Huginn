@@ -132,6 +132,72 @@ def test_validate_filters_test_cases_by_tags(
     assert [case["test_id"] for case in report["test_cases"]] == ["1.0.0"]
 
 
+def test_validate_reports_targets_inherited_from_nested_groups(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validate narrows nested tests by every child group's target."""
+    _stage_runner_fixture(tmp_path, "nested_group_targets")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "validate",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report = _load_validate_report(tmp_path)
+    targets = {case["test_id"]: case["targets"] for case in report["test_cases"]}
+    assert targets == {"1.0.0": ["leaf-02"], "2.0.0": ["spine-01", "leaf-01"]}
+    assert {case["group"] for case in report["test_cases"]} == {"fabric"}
+
+
+@pytest.mark.parametrize(
+    ("option", "value"),
+    [("--test-case-group", "leaf-checks"), ("--tags", "nxos")],
+    ids=["test-case-group", "tags"],
+)
+def test_validate_selects_nested_group_by_name_and_tag(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    option: str,
+    value: str,
+) -> None:
+    """--test-case-group and --tags match groups included through nesting."""
+    _stage_runner_fixture(tmp_path, "nested_group_targets")
+    monkeypatch.chdir(tmp_path)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "validate",
+            "--testbed",
+            str(tmp_path / "testbed.yaml"),
+            "--plan",
+            str(tmp_path / "test_plan.yaml"),
+            option,
+            value,
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0
+    report = _load_validate_report(tmp_path)
+    assert [
+        (case["group"], case["test_id"], case["targets"])
+        for case in report["test_cases"]
+    ] == [("fabric", "1.0.0", ["leaf-02"])]
+
+
 def test_validate_with_unmatched_tags_has_empty_execution_set(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

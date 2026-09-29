@@ -1,5 +1,6 @@
 """Core data models for first-slice plan execution."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Literal, TypeAlias
 
@@ -74,6 +75,43 @@ class TestCaseDefinition:
     metadata: dict[str, object] | None = None
 
 
+@dataclass(frozen=True)
+class InclusionPath:
+    """How a flattened group includes a test through nested ``groups``.
+
+    ``targets`` pairs each included group that defines a ``target`` with that
+    target, from the group the parent names in its ``groups`` down to the
+    group that lists the test in ``tests``. ``tags`` holds the union of the
+    included groups' ``tags``. Target resolution and tag filtering read only
+    these two fields.
+
+    Paths with the same ``targets`` and the same set of ``tags`` select the
+    same devices and tags, so flattening merges them into one. ``groups`` then
+    holds every group ID on any of the merged paths, so that
+    ``--test-case-group`` selects the merged path when any of them includes a
+    selected group. An empty path means the parent group lists the test in its
+    own ``tests``.
+    """
+
+    groups: tuple[str, ...] = ()
+    targets: tuple[tuple[str, TargetDefinition], ...] = ()
+    tags: tuple[str, ...] = ()
+
+
+DIRECT_INCLUSION = InclusionPath()
+
+
+def nested_inclusion_paths(
+    paths: Mapping[str, tuple[InclusionPath, ...]],
+) -> dict[str, tuple[InclusionPath, ...]]:
+    """Return ``paths`` without the tests that are only directly included."""
+    return {
+        test_id: test_paths
+        for test_id, test_paths in paths.items()
+        if test_paths != (DIRECT_INCLUSION,)
+    }
+
+
 @dataclass
 class TestCaseGroup:
     """A group of test case identifiers from a test plan."""
@@ -87,6 +125,9 @@ class TestCaseGroup:
         default_factory=lambda: ExecutionStrategy(mode="parallel")
     )
     exclude_tests: list[str] = field(default_factory=list)
+    # Tests included through nested ``groups``, mapped to every path that
+    # includes them. Tests the group lists only in ``tests`` are absent.
+    inclusion_paths: dict[str, tuple[InclusionPath, ...]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Normalize identifier/name fallbacks for in-memory construction."""
@@ -99,6 +140,10 @@ class TestCaseGroup:
     def display_name(self) -> str:
         """Return the configured display name or fall back to the identifier."""
         return self.name or self.identifier
+
+    def paths_for(self, test_id: str) -> tuple[InclusionPath, ...]:
+        """Return the inclusion paths for a test, direct inclusion by default."""
+        return self.inclusion_paths.get(test_id, (DIRECT_INCLUSION,))
 
 
 @dataclass
@@ -206,6 +251,10 @@ class ExecutedTestCase:
     error: str | None = None
     error_code: str | None = None
     error_traceback: str | None = None
+    # A SkipKind value when status is SKIPPED, else None.
+    skip_kind: str | None = None
+    # A BlockKind value when status is BLOCKED, else None.
+    block_kind: str | None = None
 
 
 @dataclass
@@ -286,6 +335,9 @@ class RunSummary:
     not_applicable: int
     skipped: int
     blocked: int
+    # Blocked test cases, included in ``blocked``, whose phase depends on a
+    # phase that was not run in learning mode. They do not fail the run.
+    learning_mode_blocked: int = 0
 
 
 @dataclass
