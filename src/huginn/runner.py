@@ -439,6 +439,7 @@ async def _execute_scenario(
                 identifier=scenario.identifier,
                 status=ResultStatus.ERRORED.value,
                 name=scenario.name,
+                description=scenario.description,
             )
 
         phase = scenario.phases[phase_name]
@@ -479,6 +480,7 @@ async def _execute_scenario(
         identifier=scenario.identifier,
         status=_derive_scenario_status(executed_phases).value,
         name=scenario.name,
+        description=scenario.description,
         phases=executed_phases,
     )
 
@@ -735,6 +737,7 @@ async def _execute_phase(
         identifier=phase.identifier,
         status=phase_status.value,
         name=phase.name,
+        description=phase.description,
         test_case_groups=executed_groups,
     )
 
@@ -957,6 +960,7 @@ async def _execute_group(
         identifier=group.identifier,
         status=group_status.value,
         name=group.name,
+        description=group.description,
         test_cases=executed_tests,
     )
 
@@ -1146,6 +1150,7 @@ def _build_blocked_phase(
                 identifier=group.identifier,
                 status=ResultStatus.BLOCKED.value,
                 name=group.name,
+                description=group.description,
                 test_cases=blocked_tests,
             )
         )
@@ -1154,6 +1159,7 @@ def _build_blocked_phase(
         identifier=phase.identifier,
         status=ResultStatus.BLOCKED.value,
         name=phase.name,
+        description=phase.description,
         test_case_groups=blocked_groups,
     )
 

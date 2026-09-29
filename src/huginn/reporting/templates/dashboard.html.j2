@@ -53,6 +53,9 @@
                   {{ scenario.status }}
                 </span>
               </div>
+              {% if scenario.description %}
+              <p class="object-description">{{ scenario.description }}</p>
+              {% endif %}
             </div>
             <div class="phase-chip-row">
               {% for chip in scenario.chips %}
@@ -79,6 +82,9 @@
                   <span class="status-pill status-pill-{{ phase.status_class }}">
                     {{ phase.status }}
                   </span>
+                  {% if phase.description %}
+                  <p class="object-description">{{ phase.description }}</p>
+                  {% endif %}
                 </div>
                 <div class="phase-chip-row">
                   {% for chip in phase.chips %}
@@ -105,6 +111,9 @@
                       <span class="status-pill status-pill-{{ group.status_class }}">
                         {{ group.status }}
                       </span>
+                      {% if group.description %}
+                      <p class="object-description">{{ group.description }}</p>
+                      {% endif %}
                     </div>
                     <div class="phase-chip-row">
                       {% for chip in group.chips %}

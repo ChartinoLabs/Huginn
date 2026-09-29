@@ -61,6 +61,7 @@ class NewGroupSpec:
     target: TargetDefinition | None = None
     tags: list[str] = field(default_factory=list)
     path_groups: list[str] = field(default_factory=list)
+    description: str | None = None
 
 
 @dataclass(frozen=True)
@@ -384,6 +385,7 @@ def _build_group_spec(
         target=original_group.target,
         tags=list(original_group.tags),
         path_groups=path_groups.heads(),
+        description=original_group.description,
     )
 
 
@@ -662,6 +664,8 @@ def _serialize_group_spec(spec: NewGroupSpec) -> dict[str, object]:
     if spec.tags:
         entry["tags"] = list(spec.tags)
     _add_target(entry, spec.target)
+    if spec.description is not None:
+        entry["description"] = spec.description
     return entry
 
 

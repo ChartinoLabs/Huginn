@@ -578,10 +578,12 @@ def _fully_populated_plan() -> models.TestPlan:
             "scenario-1": models.Scenario(
                 identifier="scenario-1",
                 name="Scenario One",
+                description="Scenario description",
                 phases={
                     "pre": models.Phase(
                         identifier="pre",
                         name="Pre-change",
+                        description="Pre-change description",
                         test_case_groups=["core"],
                         target=target,
                         strategy=models.ExecutionStrategy(mode="serial", maximum=1),
@@ -590,6 +592,7 @@ def _fully_populated_plan() -> models.TestPlan:
                     "post": models.Phase(
                         identifier="post",
                         name="Post-change",
+                        description="Post-change description",
                         test_case_groups=["core"],
                         depends_on=["pre"],
                         target=target,
@@ -603,6 +606,7 @@ def _fully_populated_plan() -> models.TestPlan:
             "core": models.TestCaseGroup(
                 identifier="core",
                 name="Core checks",
+                description="Core description",
                 tests=["1.0.0", "2.0.0"],
                 tags=["core"],
                 target=target,

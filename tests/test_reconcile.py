@@ -675,6 +675,45 @@ class TestApplySingleFile:
         assert new_group["exclude_tests"] == ["2.0.0"]
         assert new_group["tests"] == ["2.0.0-scenario-1-post-change"]
 
+    @pytest.mark.parametrize("description", ["Connectivity checks", None])
+    def test_reconciled_group_copies_description(
+        self, tmp_path: Path, output: Output, description: str | None
+    ) -> None:
+        """Copy the original group's description, and write no null one."""
+        data = _build_plan_yaml_data()
+        if description is not None:
+            data["test_case_groups"]["connectivity"]["description"] = description
+        plan_path = _write_yaml_file(tmp_path / "plan.yaml", data)
+        reconcile_input = ReconcileInput(
+            failing_tests=[
+                FailingTestCase("2.0.0", "connectivity", "scenario-1"),
+            ],
+            passing_test_ids_by_group={"connectivity": ["1.0.0", "3.0.0"]},
+            affected_group_ids={"connectivity"},
+            phase_name="post-change",
+            scenarios_with_phase=["scenario-1"],
+        )
+        reconcile_plan = compute_reconcile_plan(
+            reconcile_input, load_test_plan(plan_path), "post-change", "scenario-1"
+        )
+
+        apply_reconcile_plan(
+            plan_path=plan_path,
+            reconcile_plan=reconcile_plan,
+            phase_name="post-change",
+            output=output,
+        )
+
+        assert "null" not in plan_path.read_text()
+        reloaded = yaml.safe_load(plan_path.read_text())
+        new_group = reloaded["test_case_groups"]["connectivity-scenario-1-post-change"]
+        assert new_group.get("description") == description
+        reloaded_plan = load_test_plan(plan_path)
+        reconciled = reloaded_plan.test_case_groups[
+            "connectivity-scenario-1-post-change"
+        ]
+        assert reconciled.description == description
+
     def test_updates_phase_group_references(
         self, tmp_path: Path, output: Output
     ) -> None:

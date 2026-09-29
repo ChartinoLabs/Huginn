@@ -129,6 +129,7 @@ class TestCaseGroup:
     tests: list[str]
     identifier: str = ""
     name: str | None = None
+    description: str | None = None
     tags: list[str] = field(default_factory=list)
     target: TargetDefinition | None = None
     strategy: ExecutionStrategy = field(
@@ -163,6 +164,7 @@ class Phase:
     test_case_groups: list[str]
     identifier: str = ""
     name: str | None = None
+    description: str | None = None
     depends_on: list[str] = field(default_factory=list)
     target: TargetDefinition | None = None
     strategy: ExecutionStrategy = field(
@@ -190,6 +192,7 @@ class Scenario:
     phases: dict[str, Phase]
     identifier: str = ""
     name: str | None = None
+    description: str | None = None
 
     def __post_init__(self) -> None:
         """Normalize identifier/name fallbacks for in-memory construction."""
@@ -274,6 +277,7 @@ class ExecutedTestCaseGroup:
     status: str
     identifier: str = ""
     name: str | None = None
+    description: str | None = None
     test_cases: list[ExecutedTestCase] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -296,6 +300,7 @@ class ExecutedPhase:
     status: str
     identifier: str = ""
     name: str | None = None
+    description: str | None = None
     test_case_groups: list[ExecutedTestCaseGroup] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -318,6 +323,7 @@ class ExecutedScenario:
     status: str
     identifier: str = ""
     name: str | None = None
+    description: str | None = None
     phases: list[ExecutedPhase] = field(default_factory=list)
 
     def __post_init__(self) -> None:

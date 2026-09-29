@@ -96,6 +96,44 @@ def test_write_run_result_writes_summary_and_test_case_json(tmp_path: Path) -> N
     assert test_case_payload["metadata_sections"][0]["heading"] == "Description"
 
 
+def test_write_run_result_includes_descriptions(tmp_path: Path) -> None:
+    """run.json carries scenario, phase, and group descriptions when set."""
+    result = _build_run_result_with_test_case()
+    scenario = result.scenarios[0]
+    scenario.description = "Scenario text"
+    scenario.phases[0].description = "Phase text"
+    scenario.phases[0].test_case_groups[0].description = "Group text"
+
+    run_files = write_run_result(
+        result=result,
+        run_dir=create_run_dir(tmp_path / "results", mode=ExecutionMode.TESTING),
+        mode=ExecutionMode.TESTING,
+    )
+
+    payload = json.loads(run_files.run_json_path.read_text(encoding="utf-8"))
+    scenario_payload = payload["scenarios"][0]
+    phase_payload = scenario_payload["phases"][0]
+    assert scenario_payload["description"] == "Scenario text"
+    assert phase_payload["description"] == "Phase text"
+    assert phase_payload["test_case_groups"][0]["description"] == "Group text"
+
+
+def test_write_run_result_omits_unset_descriptions(tmp_path: Path) -> None:
+    """run.json leaves out the description key when none is set."""
+    run_files = write_run_result(
+        result=_build_run_result_with_test_case(),
+        run_dir=create_run_dir(tmp_path / "results", mode=ExecutionMode.TESTING),
+        mode=ExecutionMode.TESTING,
+    )
+
+    payload = json.loads(run_files.run_json_path.read_text(encoding="utf-8"))
+    scenario_payload = payload["scenarios"][0]
+    phase_payload = scenario_payload["phases"][0]
+    assert "description" not in scenario_payload
+    assert "description" not in phase_payload
+    assert "description" not in phase_payload["test_case_groups"][0]
+
+
 def test_write_run_result_uses_scenario_and_phase_in_duplicate_test_paths(
     tmp_path: Path,
 ) -> None:
