@@ -1,1 +1,0 @@
-Corrected the installation docs and README to state the Python 3.10 minimum, the real `huginn version` output and the full runtime dependency list, and updated the project status on the docs landing page.

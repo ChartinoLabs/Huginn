@@ -1,1 +1,0 @@
-Raise the minimum supported `typer` version from 0.9.0 to 0.16.0, the oldest release that handles the CLI's `X | None` option annotations on Python 3.10 and supports Click 8.2.

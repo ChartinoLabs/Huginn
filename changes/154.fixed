@@ -1,1 +1,0 @@
-Fixed `huginn reconcile` not carrying over `exclude_devices` target constraints from parent test case definitions.

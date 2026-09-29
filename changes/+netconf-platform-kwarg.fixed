@@ -1,1 +1,0 @@
-NETCONF connections no longer fail with `TypeError: ... unexpected keyword argument 'platform'`, because the broker stopped passing `platform` to scrapli-netconf's `AsyncNetconfDriver`.

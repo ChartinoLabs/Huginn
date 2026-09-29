@@ -1,1 +1,0 @@
-Fixed the gate and change authoring examples so they run, and corrected the authoring guides on metadata templating, caching, empty-state handling, change-job preconditions and non-CLI actions.
