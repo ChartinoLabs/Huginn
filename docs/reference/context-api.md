@@ -45,6 +45,14 @@ The framework passes a `Context` object to every test method (`setup()`, `test()
 | `groups`      | `list[str]`                       | Groups the device belongs to.                                            |
 | `credentials` | `dict[str, dict[str, str]]`       | Resolved credentials available to this device, keyed by credential name. |
 | `connections` | `dict[str, ConnectionDefinition]` | Connection definitions, keyed by connection name.                        |
+| `metadata`    | `Mapping[str, object]`            | Read-only testbed `metadata` for the device. Empty when none is defined. |
+
+`metadata` holds the device's `metadata` mapping from the testbed. Like `context.data_model`, it is shared by every job and read-only: any change raises `TypeError`, and `copy.deepcopy()` returns a mutable copy. See [Testbed Specification - Metadata](testbed.md#metadata).
+
+```python
+for device in context.targets:
+    rack = device.metadata.get("rack", "unknown")
+```
 
 ### ConnectionDefinition
 
