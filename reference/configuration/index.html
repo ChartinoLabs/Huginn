@@ -1974,7 +1974,7 @@
 <p>A CLI flag overrides its environment variable, which overrides the <code>[tool.huginn]</code> key, which overrides the built-in default. See <a href="#precedence">Precedence</a>.</p>
 <p>Execution behavior is not configured here. Concurrency comes from the <code>strategy</code> of each group or phase in the <a href="../test-plan/#group-execution-strategy">test plan</a>, and connection timeouts and transport options come from each connection in the <a href="../testbed/#connection-types">testbed</a>.</p>
 <h2 id="project-defaults-in-toolhuginn">Project defaults in <code>[tool.huginn]</code><a class="headerlink" href="#project-defaults-in-toolhuginn" title="Permanent link">&para;</a></h2>
-<p>A repository can store its paths and logging settings in <code>[tool.huginn]</code>, so you don't have to pass <code>-p</code> and <code>-t</code> on every command:</p>
+<p>A repository can store its paths, logging and warning settings in <code>[tool.huginn]</code>, so you don't have to pass <code>-p</code> and <code>-t</code> on every command:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[tool.huginn]</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">test_plan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;test_plan&quot;</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">testbed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;inventory/lab.yaml&quot;</span>
@@ -2036,9 +2036,15 @@
 <td><code>--log-level</code></td>
 <td><code>run</code>, <code>validate</code>, <code>relearn</code>, <code>reconcile</code>, <code>prune</code>, <code>execute</code></td>
 </tr>
+<tr>
+<td><code>unknown_key_warnings</code></td>
+<td><code>--no-unknown-key-warnings</code></td>
+<td><code>run</code>, <code>validate</code>, <code>relearn</code>, <code>reconcile</code>, <code>prune</code>, <code>execute</code>, <code>inject new/into</code></td>
+</tr>
 </tbody>
 </table>
-<p>Every value is a string. <code>log_level</code> must be one of <code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code> or <code>ERROR</code>, in any case. <code>mode</code> is not supported, because a <code>learning</code> default would silently overwrite baselines.</p>
+<p>Every value is a string, except <code>unknown_key_warnings</code>, which is a TOML boolean (<code>true</code> or <code>false</code>, not quoted). <code>log_level</code> must be one of <code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code> or <code>ERROR</code>, in any case. <code>mode</code> is not supported, because a <code>learning</code> default would silently overwrite baselines.</p>
+<p><code>unknown_key_warnings = false</code> turns off the warnings for keys that Huginn does not read in the test plan and testbed (see <a href="../test-plan/#unknown-keys">Test Plan Specification - Unknown keys</a>). It is the default for <code>--no-unknown-key-warnings</code>, so <code>HUGINN_NO_UNKNOWN_KEY_WARNINGS=false</code> turns the warnings back on for one shell or CI job. <code>true</code>, or leaving the key out, keeps them on.</p>
 <p>There is no key for the data model. Set <code>data_model.path</code> in the <a href="../test-plan/#data-model">test plan</a>, or pass <code>--data-model</code> on the command line.</p>
 <h3 id="precedence">Precedence<a class="headerlink" href="#precedence" title="Permanent link">&para;</a></h3>
 <p>For each option, the first of these that is set wins:</p>
@@ -2066,7 +2072,7 @@
 <li><code>pyproject.toml</code> is not valid TOML</li>
 <li><code>[tool.huginn]</code> or <code>[tool.huginn.plugins]</code> is not a table</li>
 <li>the table has a key that is not in the table above or <code>plugins</code>, for example <code>mode</code>, <code>parallel_tests</code> or <code>hooks</code></li>
-<li>a value is not a non-empty string</li>
+<li>a value is not a non-empty string, or <code>unknown_key_warnings</code> is not a boolean</li>
 <li><code>log_level</code> is outside the accepted levels</li>
 <li>both <code>testbed</code> and <code>inventory_plugin</code> are set</li>
 </ul>
@@ -2291,6 +2297,11 @@
 <td><code>HUGINN_LOG_FILE</code></td>
 <td><code>--log-file</code></td>
 <td><code>run</code>, <code>validate</code>, <code>relearn</code>, <code>reconcile</code>, <code>prune</code>, <code>execute</code></td>
+</tr>
+<tr>
+<td><code>HUGINN_NO_UNKNOWN_KEY_WARNINGS</code></td>
+<td><code>--no-unknown-key-warnings</code></td>
+<td><code>run</code>, <code>validate</code>, <code>relearn</code>, <code>reconcile</code>, <code>prune</code>, <code>execute</code>, <code>inject new</code>, <code>inject into</code></td>
 </tr>
 </tbody>
 </table>

@@ -1709,6 +1709,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#unknown-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unknown keys
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2902,6 +2913,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#unknown-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unknown keys
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4044,6 +4066,13 @@ full discussion of packaged jobs.</p>
 <li><strong>Device group and OS values</strong>: <code>target.groups</code> and <code>target.os</code> values are not checked against the testbed. A value that matches no device only produces a <code>has no matched targets</code> warning from <code>validate</code>, and the test case is <code>SKIPPED</code> at run time.</li>
 </ul>
 <p><code>validate</code> resolves targets the same way <code>run</code> does, including the targets inherited from nested groups, so the targets it reports for each test case are the ones the run uses.</p>
+<h3 id="unknown-keys">Unknown keys<a class="headerlink" href="#unknown-keys" title="Permanent link">&para;</a></h3>
+<p>Every command that loads the test plan warns about each key that Huginn does not read, and suggests the closest recognized key when there is one:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a>WARNING [unknown_key]: Unknown key &#39;depend_on&#39; at &#39;scenarios.migration.phases.post-change.depend_on&#39; in test_plan/scenarios.yaml; did you mean &#39;depends_on&#39;?
+</code></pre></div>
+<p>The key path is dotted, and a test case ID that contains dots is bracketed, as in <code>test_cases["1.0.0"].tag</code>. Keys are checked for the top level, test cases, test case groups, scenarios, phases, <code>target</code> blocks and <code>strategy</code> blocks, against the fields listed on this page. <code>description</code> on groups, scenarios and phases is recognized. Keys inside a test case's <code>metadata</code> and inside <code>data_model</code> are not checked.</p>
+<p>Unknown keys are warnings, not errors, because some projects keep data for other tools in the plan. <code>huginn validate</code> lists them as <code>unknown_key</code> warnings in its result and still exits 0 when nothing else is wrong. To turn them off, see <a href="../cli/#unknown-key-warnings">CLI Reference - Unknown key warnings</a>.</p>
+<p>The <code>defaults</code> key is still a load error, because it was removed. In directory mode, every YAML file in the plan directory is read as a plan file, so a data model directory inside it without the <code>_</code> prefix (see <a href="#path-resolution">Path Resolution</a>) produces an unknown-key warning for each of its top-level keys.</p>
 <h2 id="related-documents">Related Documents<a class="headerlink" href="#related-documents" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../../concepts/glossary/">Glossary</a>: Formal term definitions</li>

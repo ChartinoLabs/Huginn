@@ -1240,6 +1240,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#unknown-key-warnings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unknown key warnings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#usage-errors" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1967,6 +1978,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#unknown-key-warnings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unknown key warnings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#usage-errors" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2343,6 +2365,9 @@
 </tr>
 </tbody>
 </table>
+<h3 id="unknown-key-warnings">Unknown key warnings<a class="headerlink" href="#unknown-key-warnings" title="Permanent link">&para;</a></h3>
+<p>Every command that loads a test plan or testbed warns about keys that Huginn does not read, such as <code>depend_on</code> instead of <code>depends_on</code>. Each warning names the file, the dotted key path and, when one is close, the recognized key you probably meant. Warnings never change the exit code. See <a href="../test-plan/#unknown-keys">Test Plan Specification - Unknown keys</a> and <a href="../testbed/#unknown-keys">Testbed Specification - Unknown keys</a>.</p>
+<p>To turn them off, pass <code>--no-unknown-key-warnings</code>, set <code>HUGINN_NO_UNKNOWN_KEY_WARNINGS=true</code>, or set <code>unknown_key_warnings = false</code> in <code>[tool.huginn]</code> (see <a href="../configuration/#supported-keys">Configuration - Supported keys</a>). The option is available on <code>run</code>, <code>validate</code>, <code>execute</code>, <code>inject new</code>, <code>inject into</code>, <code>reconcile</code>, <code>relearn</code> and <code>prune</code>.</p>
 <h3 id="usage-errors">Usage errors<a class="headerlink" href="#usage-errors" title="Permanent link">&para;</a></h3>
 <p>A missing required option, an invalid value, or a conflicting combination of options is reported as a usage error with exit code 2 before any work starts. This applies to every command, so the exit code tables below list code 2 only where a command also uses it for other failures.</p>
 <h2 id="run">run<a class="headerlink" href="#run" title="Permanent link">&para;</a></h2>
@@ -2351,7 +2376,7 @@
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>           [--tags &lt;tags&gt;] [--exclude-tags &lt;tags&gt;] [--scenario &lt;ids&gt;] [--phase &lt;ids&gt;]
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>           [--test-case-group &lt;ids&gt;] [--test-id &lt;ids&gt;] [--test-id-pattern &lt;regex&gt;]
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>           [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;] [--output-dir &lt;path&gt;]
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>           [logging options]
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>           [--no-unknown-key-warnings] [logging options]
 </code></pre></div>
 <table>
 <thead>
@@ -2470,6 +2495,13 @@
 <td>Directory for run artifacts.</td>
 </tr>
 <tr>
+<td><code>--no-unknown-key-warnings</code></td>
+<td></td>
+<td><code>HUGINN_NO_UNKNOWN_KEY_WARNINGS</code></td>
+<td>off</td>
+<td>Do not warn about unknown keys in the test plan or testbed. See <a href="#unknown-key-warnings">Unknown key warnings</a>.</td>
+</tr>
+<tr>
 <td>logging options</td>
 <td></td>
 <td></td>
@@ -2517,7 +2549,7 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>huginn validate --plan &lt;path&gt; [--testbed &lt;path&gt; | --inventory-plugin &lt;name&gt;]
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>                [--tags &lt;tags&gt;] [--exclude-tags &lt;tags&gt;] [--scenario &lt;ids&gt;] [--phase &lt;ids&gt;]
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>                [--test-case-group &lt;ids&gt;] [--test-id &lt;ids&gt;] [--test-id-pattern &lt;regex&gt;]
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>                [logging options]
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>                [--no-unknown-key-warnings] [logging options]
 </code></pre></div>
 <table>
 <thead>
@@ -2608,6 +2640,13 @@
 <td>Data model directory. Overrides the test plan's <code>data_model.path</code>. A relative path resolves against the current working directory.</td>
 </tr>
 <tr>
+<td><code>--no-unknown-key-warnings</code></td>
+<td></td>
+<td><code>HUGINN_NO_UNKNOWN_KEY_WARNINGS</code></td>
+<td>off</td>
+<td>Do not warn about unknown keys in the test plan or testbed. See <a href="#unknown-key-warnings">Unknown key warnings</a>.</td>
+</tr>
+<tr>
 <td>logging options</td>
 <td></td>
 <td></td>
@@ -2642,8 +2681,9 @@
 <p>An invalid <code>--test-id-pattern</code> regular expression is a <a href="#usage-errors">usage error</a>: validation does not start and the command exits 2.</p>
 <h2 id="execute">execute<a class="headerlink" href="#execute" title="Permanent link">&para;</a></h2>
 <p>Run ad-hoc commands on testbed devices and print the raw output. Single-command mode takes <code>--device</code> and <code>--command</code> together. Batch mode takes <code>--commands</code> with a YAML file and cannot be combined with <code>--device</code> or <code>--command</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>huginn execute --testbed &lt;path&gt; --device &lt;name&gt; --command &lt;command&gt; [--broker &lt;ssh|http|netconf&gt;] [--no-prompt] [logging options]
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>huginn execute --testbed &lt;path&gt; --commands &lt;path&gt; [--no-prompt] [logging options]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>huginn execute --testbed &lt;path&gt; --device &lt;name&gt; --command &lt;command&gt; [--broker &lt;ssh|http|netconf&gt;] [--no-prompt]
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>               [--no-unknown-key-warnings] [logging options]
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>huginn execute --testbed &lt;path&gt; --commands &lt;path&gt; [--no-prompt] [--no-unknown-key-warnings] [logging options]
 </code></pre></div>
 <table>
 <thead>
@@ -2699,6 +2739,13 @@
 <td>Hide the simulated device prompt line above command output.</td>
 </tr>
 <tr>
+<td><code>--no-unknown-key-warnings</code></td>
+<td></td>
+<td><code>HUGINN_NO_UNKNOWN_KEY_WARNINGS</code></td>
+<td>off</td>
+<td>Do not warn about unknown keys in the test plan or testbed. See <a href="#unknown-key-warnings">Unknown key warnings</a>.</td>
+</tr>
+<tr>
 <td>logging options</td>
 <td></td>
 <td></td>
@@ -2749,6 +2796,7 @@
 <p>Create a new test case group from job files. <code>inject new</code> discovers the job files in <code>PATH</code>, adds a test case for each one with an allocated ID, creates a group containing them, and wires the group into the plan through <code>--phase</code>, <code>--parent-group</code>, or both. At least one of the two is required.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>huginn inject new &lt;PATH&gt; (--phase &lt;ids&gt; | --parent-group &lt;id&gt;) [--plan &lt;dir&gt;] [--group &lt;id&gt;]
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>                  [--target-groups &lt;groups&gt;] [--tags &lt;tags&gt;] [--id-style &lt;style&gt;] [--dry-run]
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>                  [--no-unknown-key-warnings]
 </code></pre></div>
 <table>
 <thead>
@@ -2831,6 +2879,13 @@
 <td>off</td>
 <td>Print the planned changes without writing any files.</td>
 </tr>
+<tr>
+<td><code>--no-unknown-key-warnings</code></td>
+<td></td>
+<td><code>HUGINN_NO_UNKNOWN_KEY_WARNINGS</code></td>
+<td>off</td>
+<td>Do not warn about unknown keys in the test plan or testbed. See <a href="#unknown-key-warnings">Unknown key warnings</a>.</td>
+</tr>
 </tbody>
 </table>
 <h3 id="how-ids-and-names-are-derived">How IDs and names are derived<a class="headerlink" href="#how-ids-and-names-are-derived" title="Permanent link">&para;</a></h3>
@@ -2863,6 +2918,7 @@
 <h2 id="inject-into">inject into<a class="headerlink" href="#inject-into" title="Permanent link">&para;</a></h2>
 <p>Add job files to an existing test case group. <code>inject into</code> discovers the job files in <code>PATH</code>, adds a test case for each one with an allocated ID, and appends the new IDs to the <code>tests</code> list of <code>GROUP</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>huginn inject into &lt;GROUP&gt; &lt;PATH&gt; [--plan &lt;dir&gt;] [--target-groups &lt;groups&gt;] [--tags &lt;tags&gt;] [--id-style &lt;style&gt;] [--dry-run]
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>                  [--no-unknown-key-warnings]
 </code></pre></div>
 <table>
 <thead>
@@ -2928,6 +2984,13 @@
 <td>off</td>
 <td>Print the planned changes without writing any files.</td>
 </tr>
+<tr>
+<td><code>--no-unknown-key-warnings</code></td>
+<td></td>
+<td><code>HUGINN_NO_UNKNOWN_KEY_WARNINGS</code></td>
+<td>off</td>
+<td>Do not warn about unknown keys in the test plan or testbed. See <a href="#unknown-key-warnings">Unknown key warnings</a>.</td>
+</tr>
 </tbody>
 </table>
 <p>IDs are derived from <code>PATH</code> as described for <a href="#how-ids-and-names-are-derived"><code>inject new</code></a>. The group must be defined in a file under the plan's <code>groups/</code> directory.</p>
@@ -2955,22 +3018,24 @@
 </table>
 <h2 id="reconcile">reconcile<a class="headerlink" href="#reconcile" title="Permanent link">&para;</a></h2>
 <p>Create post-change variants of the test cases that failed in a phase of the latest testing run.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>huginn reconcile --plan &lt;path&gt; --phase &lt;phase-name&gt; [--scenario &lt;scenario-id&gt;] [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;] [logging options]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>huginn reconcile --plan &lt;path&gt; --phase &lt;phase-name&gt; [--scenario &lt;scenario-id&gt;] [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;]
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>                 [--no-unknown-key-warnings] [logging options]
 </code></pre></div>
-<p><code>--plan</code>/<code>-p</code> and <code>--phase</code> are required. <code>--plan</code> reads <code>HUGINN_PLAN</code>, <code>--phase</code> reads <code>HUGINN_PHASE</code>, <code>--scenario</code> reads <code>HUGINN_SCENARIO</code>, <code>--results-dir</code> reads <code>HUGINN_RESULTS_DIR</code>, and <code>--parameters-dir</code> reads <code>HUGINN_PARAMETERS_DIR</code>. Unlike <code>run</code>, <code>--phase</code> and <code>--scenario</code> take a single value each. The command exits 0 on success or when there is nothing to reconcile, and 1 when reconciliation cannot proceed.</p>
+<p><code>--plan</code>/<code>-p</code> and <code>--phase</code> are required. <code>--plan</code> reads <code>HUGINN_PLAN</code>, <code>--phase</code> reads <code>HUGINN_PHASE</code>, <code>--scenario</code> reads <code>HUGINN_SCENARIO</code>, <code>--results-dir</code> reads <code>HUGINN_RESULTS_DIR</code>, <code>--parameters-dir</code> reads <code>HUGINN_PARAMETERS_DIR</code>, and <code>--no-unknown-key-warnings</code> reads <code>HUGINN_NO_UNKNOWN_KEY_WARNINGS</code> (see <a href="#unknown-key-warnings">Unknown key warnings</a>). Unlike <code>run</code>, <code>--phase</code> and <code>--scenario</code> take a single value each. The command exits 0 on success or when there is nothing to reconcile, and 1 when reconciliation cannot proceed.</p>
 <p>See <a href="../reconcile/">Parameter Reconciliation</a> for the full option table, exit codes and workflow.</p>
 <h2 id="relearn">relearn<a class="headerlink" href="#relearn" title="Permanent link">&para;</a></h2>
 <p>Re-learn parameters for the tests that failed, errored or lost applicability in the latest testing run, in the exact scenario and phase where each one failed.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>huginn relearn [--plan &lt;path&gt;] [--testbed &lt;path&gt; | --inventory-plugin &lt;name&gt;] [--scenario &lt;id&gt;] [--phase &lt;id&gt;]
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>               [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;] [--output-dir &lt;path&gt;] [logging options]
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>               [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;] [--output-dir &lt;path&gt;]
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>               [--no-unknown-key-warnings] [logging options]
 </code></pre></div>
-<p>The options match those of <code>run</code> with the same names and environment variables, including the <code>./test_plan</code> and <code>./testbed.yaml</code> defaults. <code>--scenario</code> and <code>--phase</code> take a single value each and filter the failures to re-learn; <code>--phase</code> does not require <code>--scenario</code>. <code>--data-model</code>/<code>-d</code> overrides the test plan's <code>data_model.path</code>, as for <code>run</code>. The command exits 0 when there are no failures to re-learn or when no re-learned test case is <code>failed</code>, <code>errored</code> or <code>blocked</code>, 1 when one is, and 2 in the same run-level error cases as <code>run</code>. As for <code>run</code>, <code>not_applicable</code> and <code>skipped</code> results, and test cases blocked only because a phase was not run in learning mode, do not cause a non-zero exit.</p>
+<p>The options match those of <code>run</code> with the same names and environment variables, including <code>--no-unknown-key-warnings</code> and the <code>./test_plan</code> and <code>./testbed.yaml</code> defaults. <code>--scenario</code> and <code>--phase</code> take a single value each and filter the failures to re-learn; <code>--phase</code> does not require <code>--scenario</code>. <code>--data-model</code>/<code>-d</code> overrides the test plan's <code>data_model.path</code>, as for <code>run</code>. The command exits 0 when there are no failures to re-learn or when no re-learned test case is <code>failed</code>, <code>errored</code> or <code>blocked</code>, 1 when one is, and 2 in the same run-level error cases as <code>run</code>. As for <code>run</code>, <code>not_applicable</code> and <code>skipped</code> results, and test cases blocked only because a phase was not run in learning mode, do not cause a non-zero exit.</p>
 <p>See <a href="../relearn/">Selective Re-learning</a> for the full option table, exit codes and workflow.</p>
 <h2 id="prune">prune<a class="headerlink" href="#prune" title="Permanent link">&para;</a></h2>
 <p>Remove non-applicable tests and device targets from the test plan, based on the latest learning run.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>huginn prune --plan &lt;path&gt; [--results-dir &lt;path&gt;] [--dry-run] [--remove-orphans] [logging options]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>huginn prune --plan &lt;path&gt; [--results-dir &lt;path&gt;] [--dry-run] [--remove-orphans] [--no-unknown-key-warnings] [logging options]
 </code></pre></div>
-<p><code>--plan</code>/<code>-p</code> is required and reads <code>HUGINN_PLAN</code>; <code>--results-dir</code> reads <code>HUGINN_RESULTS_DIR</code>. <code>--dry-run</code> and <code>--remove-orphans</code> have no environment variable. The command exits 0 on success or when there is nothing to prune, and 1 when the results or test plan cannot be read or the pruned plan fails validation.</p>
+<p><code>--plan</code>/<code>-p</code> is required and reads <code>HUGINN_PLAN</code>; <code>--results-dir</code> reads <code>HUGINN_RESULTS_DIR</code>. <code>--no-unknown-key-warnings</code> reads <code>HUGINN_NO_UNKNOWN_KEY_WARNINGS</code> (see <a href="#unknown-key-warnings">Unknown key warnings</a>). <code>--dry-run</code> and <code>--remove-orphans</code> have no environment variable. The command exits 0 on success or when there is nothing to prune, and 1 when the results or test plan cannot be read or the pruned plan fails validation.</p>
 <p>See <a href="../prune/">Pruning Non-Applicable Tests</a> for the full option table and the changes each option makes.</p>
 <h2 id="version">version<a class="headerlink" href="#version" title="Permanent link">&para;</a></h2>
 <p>Print the installed Huginn version and exit 0. <code>version</code> takes no options.</p>

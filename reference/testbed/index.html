@@ -1361,6 +1361,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#unknown-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unknown keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#in-huginn-validate" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2283,6 +2294,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#unknown-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unknown keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#in-huginn-validate" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3102,6 +3124,7 @@
 <ul>
 <li>The file is not valid YAML, or its root is not a mapping</li>
 <li>An environment variable reference is malformed, or names a variable that is not set and has no default (see <a href="#environment-variable-substitution">Environment Variable Substitution</a>)</li>
+<li><code>name</code> is present but is not a string</li>
 <li><code>devices</code> is missing or empty</li>
 <li>A device does not define a non-empty <code>os</code></li>
 <li><code>groups</code> is present but is not a non-empty list of non-empty strings</li>
@@ -3111,6 +3134,13 @@
 <li>A connection <code>port</code> is not an integer or a string of digits, or <code>credential</code> is not a string</li>
 </ul>
 <p>The loader does not check which options a connection sets, whether a named credential exists, or whether <code>os</code> is supported by a broker. Duplicate device keys are not detected: the YAML parser keeps the last entry.</p>
+<h3 id="unknown-keys">Unknown keys<a class="headerlink" href="#unknown-keys" title="Permanent link">&para;</a></h3>
+<p>Every command that loads the testbed warns about each key that Huginn does not read, and suggests the closest recognized key when there is one:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>WARNING [unknown_key]: Unknown key &#39;group&#39; at &#39;devices.spine-01.group&#39; in testbed.yaml; did you mean &#39;groups&#39;?
+</code></pre></div>
+<p>Keys are checked for the top level (<code>name</code>, <code>credentials</code>, <code>devices</code>), each credential (<code>username</code>, <code>password</code>, <code>private_key</code>, <code>token</code>, <code>token_type</code>) and each device (<code>os</code>, <code>groups</code>, <code>credentials</code>, <code>connections</code>, <code>metadata</code>). Connections are not checked, because any key other than the four common fields is passed to the broker as an option. Keys inside <code>metadata</code> are not checked either.</p>
+<p>The top-level <code>name</code> must be a string. Huginn stores it but does not use it otherwise.</p>
+<p>Unknown keys are warnings, not errors, and <code>huginn validate</code> still exits 0 when nothing else is wrong. To turn them off, see <a href="../cli/#unknown-key-warnings">CLI Reference - Unknown key warnings</a>.</p>
 <h3 id="in-huginn-validate">In huginn validate<a class="headerlink" href="#in-huginn-validate" title="Permanent link">&para;</a></h3>
 <p><code>huginn validate</code> loads the testbed as above and then resolves each test case's targets against it. It reports an error for an unknown device named in <code>target.devices</code>, and a warning for a test case that matches no devices. It does not open connections, so it does not check credentials, <code>os</code> support, or reachability.</p>
 <h3 id="at-connect-time">At connect time<a class="headerlink" href="#at-connect-time" title="Permanent link">&para;</a></h3>
