@@ -1281,6 +1281,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Example: reconciled group structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-targets-and-tags-are-preserved" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How targets and tags are preserved
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1835,6 +1852,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Example: reconciled group structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-targets-and-tags-are-preserved" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How targets and tags are preserved
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1961,6 +1995,7 @@
 <li>Inherits from the original group (<code>post-shut-r1r2</code>)</li>
 <li>Excludes the failing baseline test IDs</li>
 <li>Includes the new reconciled variant test IDs</li>
+<li>Keeps the <code>target</code> and <code>tags</code> the original tests received from their groups (see <a href="#how-targets-and-tags-are-preserved">How targets and tags are preserved</a>)</li>
 <li>Copies baseline parameter files to new <code>&lt;id&gt;-&lt;scenario&gt;-&lt;phase&gt;.json</code> parameter files as a starting point</li>
 <li>Updates the phase in the scenario definition to reference the new reconciled group</li>
 <li>Writes the new definitions to <code>reconciled-&lt;phase&gt;.yaml</code> (when using a directory-based test plan)</li>
@@ -1995,9 +2030,36 @@
 <a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.7.0-link-shutdown-r1r2-post-shutdown</span>
 <a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">    </span><span class="c1"># ...</span>
 </code></pre></div>
+<h3 id="how-targets-and-tags-are-preserved">How targets and tags are preserved<a class="headerlink" href="#how-targets-and-tags-are-preserved" title="Permanent link">&para;</a></h3>
+<p>A reconciled variant runs on exactly the devices its original ran on in that phase, and carries the same inherited tags for <code>--tags</code> and <code>--exclude-tags</code> filtering. Reconcile writes the targeting into the generated groups rather than onto the variant test case:</p>
+<ul>
+<li>The reconciled group copies the <code>target</code> and <code>tags</code> of the original group, so a variant the original group lists in its own <code>tests</code> is narrowed and tagged the same way.</li>
+<li>When the original group inherited the failing test through nested <code>groups</code>, the child groups' <code>target</code> and <code>tags</code> also applied to it. Reconcile rebuilds each such inclusion path as generated groups named <code>&lt;reconciled-group&gt;-path&lt;N&gt;</code>, with one group per <code>target</code> on the path (inner levels are suffixed <code>-2</code>, <code>-3</code>, and so on). The reconciled group includes these, and the innermost one lists the variant and carries the path's tags.</li>
+<li>When the original was reachable through several paths with different targets, the variant gets one generated path per distinct path, so it again runs on the union of the devices those paths select.</li>
+<li>The phase <code>target</code> still applies, because the reconciled group stays in the same phase.</li>
+</ul>
+<p>For example, if <code>grand</code> has <code>target: {groups: [leaf]}</code> and includes <code>child</code>, which has <code>target: {os: [nxos]}</code> and lists <code>lp-t1</code>, reconciling <code>lp-t1</code> in phase <code>post</code> of scenario <code>s1</code> writes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">grand-s1-post</span><span class="p">:</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">grand</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">grand-s1-post-path1</span><span class="w">                       </span><span class="c1"># rebuilds the path through child</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="nt">exclude_tests</span><span class="p">:</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lp-t1</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w">                                     </span><span class="c1"># copied from grand</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">      </span><span class="nt">groups</span><span class="p">:</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">leaf</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">  </span><span class="nt">grand-s1-post-path1</span><span class="p">:</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lp-t1-s1-post</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w">                                     </span><span class="c1"># copied from child</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="w">      </span><span class="nt">os</span><span class="p">:</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nxos</span>
+</code></pre></div>
+<p>Targets are copied as selectors, never resolved into a <code>target.devices</code> list, so the reconciled plan keeps working when the testbed changes.</p>
 <p>The scenario name is part of every reconciled ID, so reconciling the same phase name in two scenarios produces separate variants. If a group ID is identical to the phase name, the redundant prefix is dropped and the reconciled group is named <code>&lt;scenario&gt;-&lt;phase&gt;</code>.</p>
 <h2 id="cli-reference">CLI reference<a class="headerlink" href="#cli-reference" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>huginn reconcile --plan &lt;path&gt; --phase &lt;phase-name&gt; [--scenario &lt;scenario-id&gt;] [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>huginn reconcile --plan &lt;path&gt; --phase &lt;phase-name&gt; [--scenario &lt;scenario-id&gt;] [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;]
 </code></pre></div>
 <table>
 <thead>
@@ -2085,7 +2147,7 @@
 <p>For a single-file test plan, reconcile edits that file in place. The new test cases and groups are appended to the existing <code>test_cases</code> and <code>test_case_groups</code> sections, and the phase reference is updated in the same file.</p>
 <p>Every file reconcile writes is re-serialized with PyYAML. Comments, blank lines, key quoting, and flow-style lists such as <code>tests: [1.1.0, 1.2.0]</code> are lost in those files. Commit the test plan before reconciling if you want to review or restore the original formatting.</p>
 <h3 id="reconciled-test-case-contents">Reconciled test case contents<a class="headerlink" href="#reconciled-test-case-contents" title="Permanent link">&para;</a></h3>
-<p>Each variant keeps the original <code>job</code>, <code>tags</code>, and <code>target</code>. Its <code>title</code> gets a <code>(&lt;scenario&gt; &lt;phase&gt;)</code> suffix, for example <code>Verify OSPF neighbor 10.1.1.1 (link-shutdown-r1r2 post-shutdown)</code>. The <code>description</code>, <code>priority</code>, <code>category</code>, <code>is_automated</code>, and <code>metadata</code> fields are not copied, so add them back by hand if the variant needs them.</p>
+<p>Each variant keeps the original <code>job</code>, <code>tags</code>, and <code>target</code>. The <code>target</code> and <code>tags</code> it inherited from its groups are kept by the generated groups, as described in <a href="#how-targets-and-tags-are-preserved">How targets and tags are preserved</a>. Its <code>title</code> gets a <code>(&lt;scenario&gt; &lt;phase&gt;)</code> suffix, for example <code>Verify OSPF neighbor 10.1.1.1 (link-shutdown-r1r2 post-shutdown)</code>. The <code>description</code>, <code>priority</code>, <code>category</code>, <code>is_automated</code>, and <code>metadata</code> fields are not copied, so add them back by hand if the variant needs them.</p>
 <h3 id="parameter-files">Parameter files<a class="headerlink" href="#parameter-files" title="Permanent link">&para;</a></h3>
 <p>For each variant, reconcile copies <code>&lt;parameters-dir&gt;/&lt;id&gt;.json</code> to <code>&lt;parameters-dir&gt;/&lt;id&gt;-&lt;scenario&gt;-&lt;phase&gt;.json</code>. A missing source file, or a destination that already exists, is skipped with a warning.</p>
 <h3 id="re-running-reconcile">Re-running reconcile<a class="headerlink" href="#re-running-reconcile" title="Permanent link">&para;</a></h3>
