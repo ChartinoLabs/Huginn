@@ -1846,6 +1846,7 @@
 <li>Saves the gathered state to a parameters file</li>
 </ol>
 <p>No comparison-based pass/fail judgement occurs (though a test case will still fail if it cannot successfully gather parameters). The output is a set of parameter files representing what the infrastructure looks like <em>right now</em>.</p>
+<p>Test cases whose job does not inherit <code>LearningTestCase</code>, such as change and action jobs, are skipped in learning mode. The phases that depend on a phase with such a test case are blocked, so a learning run never records the unchanged network as the expected state after a change. These blocked test cases do not make the run exit non-zero. See <a href="../../reference/test-plan/#blocking-in-learning-mode">Blocking in learning mode</a>.</p>
 <h3 id="when-to-run-in-learning-mode">When to run in learning mode<a class="headerlink" href="#when-to-run-in-learning-mode" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Initial deployment</strong> - capture the baseline after confirming the network is healthy</li>

@@ -1927,7 +1927,7 @@
 <h2 id="automatic-scoping">Automatic scoping<a class="headerlink" href="#automatic-scoping" title="Permanent link">&para;</a></h2>
 <p>The command does not simply filter by test ID. It records each failure as a scenario, phase, and test ID context, and re-runs each test only in the contexts where it failed. This prevents a test ID that appears in 50 scenarios from being re-learned in all 50 when only one had a failure.</p>
 <p>For example, if <code>BGP-SUMMARY-ROUTER-ID</code> failed only in the <code>link-shutdown-r1r2</code> scenario's <code>pre-change</code> phase, the relearn run will execute that test only in that specific scenario and phase context -- not across all scenarios that reference the same test ID. If another test failed only in a different scenario's <code>post-change</code> phase, <code>BGP-SUMMARY-ROUTER-ID</code> is not re-run there either. The summary line lists each context as <code>&lt;scenario&gt;/&lt;phase&gt;/&lt;test ID&gt;</code>.</p>
-<p>Phases that contain no failures are not run. When a phase with failures depends on a phase without failures, the dependency is dropped and the phase runs on its own. When both phases contain failures, the dependency is kept, so the dependent phase is blocked if re-learning fails in the earlier phase.</p>
+<p>Phases that contain no failures are not run. When a phase with failures depends on a phase without failures, the dependency is dropped and the phase runs on its own. When both phases contain failures, the dependency is kept, so the dependent phase is blocked if re-learning fails in the earlier phase. It is also blocked when the earlier phase has a change or action job, which learning mode skips (see <a href="../test-plan/#blocking-in-learning-mode">Blocking in learning mode</a>). Its parameters are then not updated, and the command still exits 0.</p>
 <h2 id="cli-reference">CLI reference<a class="headerlink" href="#cli-reference" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>huginn relearn [--plan &lt;path&gt;] [--testbed &lt;path&gt;] [--scenario &lt;id&gt;] [--phase &lt;id&gt;] [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;]
 </code></pre></div>
@@ -2021,11 +2021,11 @@
 <tbody>
 <tr>
 <td>0</td>
-<td>All tests re-learned successfully, or no failures found.</td>
+<td>No failures found, or no re-learned test case is <code>failed</code>, <code>errored</code> or <code>blocked</code>. Test cases blocked only because a phase was not run in learning mode do not count.</td>
 </tr>
 <tr>
 <td>1</td>
-<td>Some tests failed during re-learning, or a configuration error occurred.</td>
+<td>A re-learned test case is <code>failed</code>, <code>errored</code> or <code>blocked</code>, or a configuration error occurred.</td>
 </tr>
 </tbody>
 </table>

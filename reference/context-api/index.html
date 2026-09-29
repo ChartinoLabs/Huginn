@@ -2683,8 +2683,8 @@
 </tr>
 <tr>
 <td><code>BLOCKED</code></td>
-<td>The test case did not run because a phase it depends on did not pass. Set by the framework, not by jobs.</td>
-<td>No; the dependency that blocked it already failed</td>
+<td>The test case did not run because a phase it depends on failed or errored, or was not run in learning mode. Set by the framework, not by jobs.</td>
+<td>Yes, unless blocked only by learning mode</td>
 </tr>
 <tr>
 <td><code>INFO</code></td>
@@ -2693,7 +2693,7 @@
 </tr>
 </tbody>
 </table>
-<p>A test case's status is derived from its checks in this order: any <code>ERRORED</code> gives <code>ERRORED</code>; otherwise any <code>FAILED</code> gives <code>FAILED</code>; otherwise, ignoring <code>INFO</code> checks, all <code>NOT_APPLICABLE</code> gives <code>NOT_APPLICABLE</code> and all <code>SKIPPED</code> gives <code>SKIPPED</code>; anything else gives <code>PASSED</code>. The run status is derived from the test case statuses in the same order. <code>huginn run</code> exits with code 1 whenever the run status is not <code>passed</code>, including a run where every test case is <code>NOT_APPLICABLE</code> or <code>SKIPPED</code>.</p>
+<p>A test case's status is derived from its checks in this order: any <code>ERRORED</code> gives <code>ERRORED</code>; otherwise any <code>FAILED</code> gives <code>FAILED</code>; otherwise, ignoring <code>INFO</code> checks, all <code>NOT_APPLICABLE</code> gives <code>NOT_APPLICABLE</code> and all <code>SKIPPED</code> gives <code>SKIPPED</code>; anything else gives <code>PASSED</code>. The run status is derived from the test case statuses in the same order. <code>huginn run</code> exits with code 1 when any test case is <code>FAILED</code>, <code>ERRORED</code> or <code>BLOCKED</code>, except a test case blocked only because a phase it depends on was not run in learning mode. A run whose test cases are all <code>PASSED</code>, <code>NOT_APPLICABLE</code> or <code>SKIPPED</code> exits 0, even when none of them passed.</p>
 <p>A <code>LOST_APPLICABILITY</code> status is planned but not implemented; see <a href="#command-support-regression-detection">Command support regression detection</a>.</p>
 <h2 id="connection-broker-api">Connection broker API<a class="headerlink" href="#connection-broker-api" title="Permanent link">&para;</a></h2>
 <p>All device operations go through <code>context.broker</code>, a <code>RuntimeBroker</code>. It holds the connections the framework opened at the start of the run, serializes operations per device and connection, and caches <code>execute()</code> and <code>get()</code> results.</p>

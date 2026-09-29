@@ -2193,7 +2193,7 @@
 <h3 id="test-case-group">Test Case Group<a class="headerlink" href="#test-case-group" title="Permanent link">&para;</a></h3>
 <p>A logical grouping of test cases and/or other test case groups within a phase. Test case groups reference test cases by ID and can include other groups by name, enabling hierarchical organization. Groups can specify targets that apply to all contained test cases. By default the framework executes the test cases within a group in parallel; a group's <code>strategy</code> can make them serial or cap concurrency.</p>
 <p><strong>Nesting</strong>: Test case groups can be nested to create reusable, feature-specific groupings. For example, an "ospf-tests" group containing OSPF-related test cases can be included in both "pre-change-validation" and "post-change-validation" groups. This promotes reuse and keeps feature-specific tests organized together.</p>
-<p>When a phase references a parent group, the child groups' test cases are flattened into it and only the parent's <code>target</code>, <code>tags</code>, and <code>strategy</code> apply. The child's own <code>target</code> and <code>tags</code> are currently ignored for tests included this way. Carrying the child's <code>target</code> (intersected with the parent's) and <code>tags</code> (added to the parent's) through the parent is planned in <a href="https://github.com/ChartinoLabs/Huginn/issues/218">#218</a>.</p>
+<p>When a phase references a parent group, the child groups' test cases are flattened into it and reported under the parent group. Tests included from a child keep the child's <code>target</code>, intersected with the parent's so it can only narrow the device set, and the child's <code>tags</code>, added to the parent's. This applies through every level of nesting. The child's <code>strategy</code> is ignored: only the <code>strategy</code> of the group a phase references applies.</p>
 <h3 id="scenario">Scenario<a class="headerlink" href="#scenario" title="Permanent link">&para;</a></h3>
 <p>A complete end-to-end validation workflow within a test plan, such as shutting down a link and verifying the network converges. Each scenario contains one or more phases. Scenarios run one at a time, and a phase that does not pass in one scenario does not affect the others.</p>
 <h3 id="phase">Phase<a class="headerlink" href="#phase" title="Permanent link">&para;</a></h3>
@@ -2203,8 +2203,8 @@
 <li><strong>Change</strong>: Apply configuration or operational changes</li>
 <li><strong>Post-change</strong>: Validate state after changes</li>
 </ul>
-<p>Phases provide structure for reporting (collapse/expand, filtering) and establish execution order through dependencies. Phases within a scenario run one at a time; the test case groups within a phase run in parallel by default, subject to the phase's <code>strategy</code>.</p>
-<p>If a phase finishes with any status other than PASSED, every phase that has not yet run in that scenario is recorded as BLOCKED, whether or not it depends on the phase that did not pass. Changing this so that only a FAILED or ERRORED phase blocks, and only the phases that depend on it, is planned in <a href="https://github.com/ChartinoLabs/Huginn/issues/218">#218</a>.</p>
+<p>Phases provide structure for reporting (collapse/expand, filtering) and establish execution order through dependencies. Phases within a scenario run one at a time in dependency order, never concurrently. Concurrency lives inside a phase: its test case groups run in parallel by default, subject to the phase's <code>strategy</code>, and so do the tests within each group, subject to the group's <code>strategy</code>.</p>
+<p>A phase that finishes FAILED or ERRORED blocks the phases that depend on it, directly or through a chain of <code>depends_on</code>. Each blocked phase is recorded as BLOCKED with a reason that names the phase that failed, for example <code>Blocked because phase 'change' failed</code>. Phases that do not depend on it still run. In learning mode, a phase with any test case that was skipped because its job does not inherit <code>LearningTestCase</code>, such as a change or action job, also blocks the phases that depend on it, with a reason such as <code>Blocked because phase 'shutdown' was not run in learning mode</code>. The change did not happen, so learning the phases after it would record the unchanged network as their expected state. Otherwise, a phase that finishes NOT_APPLICABLE or SKIPPED does not block anything.</p>
 <h3 id="test-plan">Test Plan<a class="headerlink" href="#test-plan" title="Permanent link">&para;</a></h3>
 <p>A collection of test cases, test case groups, scenarios, and associated metadata defining how testing outcomes should be achieved. The test plan specifies:</p>
 <ul>
@@ -2279,7 +2279,7 @@
 </tr>
 <tr>
 <td><code>BLOCKED</code></td>
-<td>The test case could not run because an earlier phase in its scenario did not pass.</td>
+<td>The test case could not run because a phase it depends on, directly or transitively, failed or errored, or, in learning mode, was not run because it has a job that does not inherit <code>LearningTestCase</code>.</td>
 </tr>
 </tbody>
 </table>
