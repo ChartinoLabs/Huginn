@@ -1,1 +1,0 @@
-Jobs now receive the test plan's external data model as `context.data_model`: Huginn deep-merges the YAML files under `data_model.path` (or `--data-model` / `HUGINN_DATA_MODEL`) once per run for `run`, `validate` and `relearn`, and exposes it read-only.

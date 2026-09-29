@@ -1,1 +1,0 @@
-Reconciled test case variants now keep the `target` and `tags` their originals inherited from parent and nested test case groups, so they run on the same devices.

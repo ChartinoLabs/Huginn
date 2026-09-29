@@ -1,1 +1,0 @@
-Testbed files now expand `${VAR}` and `${VAR:-default}` environment variable references in string values at load time, and fail with an error naming the variable when one is not set.

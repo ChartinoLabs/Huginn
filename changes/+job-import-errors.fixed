@@ -1,1 +1,0 @@
-Job modules that raise while being imported, such as a job file importing a missing dependency, are now reported as a `planning_error` by `huginn validate` and `huginn run` instead of crashing the command.

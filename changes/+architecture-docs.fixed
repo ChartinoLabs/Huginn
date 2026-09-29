@@ -1,1 +1,0 @@
-Rewrote the architecture design page to match the implementation: the scenario hierarchy, the run lifecycle, the real modules and plugin entry points, and an output layout taken from a real run.

@@ -103,6 +103,11 @@ issue_format = "[#{issue}](https://github.com/ChartinoLabs/Huginn/pull/{issue})"
 underlines = ["", "", ""]
 
 [[tool.towncrier.type]]
+directory = "breaking"
+name = "Breaking Changes"
+showcontent = true
+
+[[tool.towncrier.type]]
 directory = "added"
 name = "Added"
 showcontent = true
@@ -115,11 +120,6 @@ showcontent = true
 [[tool.towncrier.type]]
 directory = "fixed"
 name = "Fixed"
-showcontent = true
-
-[[tool.towncrier.type]]
-directory = "breaking"
-name = "Breaking Changes"
 showcontent = true
 
 [[tool.towncrier.type]]

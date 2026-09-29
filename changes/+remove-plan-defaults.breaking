@@ -1,1 +1,0 @@
-Removed the unused test plan `defaults` block. A test plan that sets a top-level `defaults` key now fails to load; set `tags` or `target` on scenarios, phases or test case groups instead.

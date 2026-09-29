@@ -1,1 +1,0 @@
-Rewrote the configuration reference to document only the supported `[tool.huginn]` keys, `[tool.huginn.plugins]` schema and `HUGINN_*` environment variables, and updated the CLI, context API, relearn and glossary pages now that the data model is implemented.

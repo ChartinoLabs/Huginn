@@ -1,1 +1,0 @@
-Testbed device `metadata` is now loaded and exposed to jobs as a read-only `Device.metadata` mapping.
