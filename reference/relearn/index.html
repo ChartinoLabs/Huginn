@@ -1886,7 +1886,7 @@
 
 <h1 id="selective-re-learning">Selective Re-learning<a class="headerlink" href="#selective-re-learning" title="Permanent link">&para;</a></h1>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>When a testing run produces failures because learned parameters no longer reflect the current state of the environment, the <code>huginn relearn</code> command refreshes only the affected parameters. It parses the latest testing results, identifies failed and errored test cases, and re-runs only those tests in learning mode to capture current device state as the new expected parameters -- without re-learning tests that are already passing.</p>
+<p>When a testing run produces failures because learned parameters no longer reflect the current state of the environment, the <code>huginn relearn</code> command refreshes only the affected parameters. It parses the latest testing results, identifies test cases that are <code>failed</code>, <code>errored</code> or <code>lost_applicability</code>, and re-runs only those tests in learning mode to capture current device state as the new expected parameters -- without re-learning tests that are already passing.</p>
 <p>The command re-runs each failed test only in the exact scenario and phase where it failed, avoiding redundant device connections when the same test ID appears across many scenarios.</p>
 <h2 id="workflow">Workflow<a class="headerlink" href="#workflow" title="Permanent link">&para;</a></h2>
 <h3 id="1-run-in-testing-mode">1. Run in testing mode<a class="headerlink" href="#1-run-in-testing-mode" title="Permanent link">&para;</a></h3>

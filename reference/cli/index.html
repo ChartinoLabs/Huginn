@@ -2497,11 +2497,11 @@
 <tbody>
 <tr>
 <td>0</td>
-<td>No test case is <code>failed</code>, <code>errored</code> or <code>blocked</code>. This includes a run whose test cases are all <code>not_applicable</code> or <code>skipped</code>, and a run with no test cases.</td>
+<td>No test case is <code>failed</code>, <code>errored</code>, <code>lost_applicability</code> or <code>blocked</code>. This includes a run whose test cases are all <code>not_applicable</code> or <code>skipped</code>, and a run with no test cases.</td>
 </tr>
 <tr>
 <td>1</td>
-<td>At least one test case is <code>failed</code>, <code>errored</code> or <code>blocked</code>; the testbed or test plan could not be loaded; or a broker error occurred.</td>
+<td>At least one test case is <code>failed</code>, <code>errored</code>, <code>lost_applicability</code> or <code>blocked</code>; the testbed or test plan could not be loaded; or a broker error occurred.</td>
 </tr>
 <tr>
 <td>2</td>
@@ -2509,7 +2509,8 @@
 </tr>
 </tbody>
 </table>
-<p>A test case that is <code>blocked</code> only because a phase it depends on was not run in learning mode does not count toward exit code 1. In learning mode, change and action jobs are skipped, and the phases after them are blocked (see <a href="../test-plan/#blocking-in-learning-mode">Blocking in learning mode</a>). That is the expected outcome of learning a change-validation plan, so a learning run where only this happens exits 0. The run summary still counts these test cases as <code>blocked</code>, and the command prints how many of them were blocked this way. A test case blocked by a failed or errored phase still makes the run exit 1.</p>
+<p>A test case that is <code>blocked</code> only because a phase it depends on was not run in learning mode does not count toward exit code 1. In learning mode, change and action jobs are skipped, and the phases after them are blocked (see <a href="../test-plan/#blocking-in-learning-mode">Blocking in learning mode</a>). That is the expected outcome of learning a change-validation plan, so a learning run where only this happens exits 0. The run summary still counts these test cases as <code>blocked</code>, and the command prints how many of them were blocked this way. A test case blocked by a failed, errored or lost-applicability phase still makes the run exit 1.</p>
+<p>After the run, the command prints the run status and a summary line with one count per status, for example <code>Summary: total=12 passed=10 failed=0 errored=0 not_applicable=1 lost_applicability=1 skipped=0 blocked=0</code>. <code>lost_applicability</code> counts test cases in which a device stopped supporting the job's command after its parameters were learned; see <a href="../../concepts/glossary/#lost-applicability">Lost Applicability</a>.</p>
 <p>An invalid <code>--test-id-pattern</code> regular expression is a <a href="#usage-errors">usage error</a>: the run does not start and the command exits 2.</p>
 <h2 id="validate">validate<a class="headerlink" href="#validate" title="Permanent link">&para;</a></h2>
 <p>Validate the testbed and test plan without executing tests. Validation loads both inputs, applies the filters, resolves phase order, and checks that every test case can be loaded and targeted. No devices are contacted.</p>
@@ -2959,7 +2960,7 @@
 <p><code>--plan</code>/<code>-p</code> and <code>--phase</code> are required. <code>--plan</code> reads <code>HUGINN_PLAN</code>, <code>--phase</code> reads <code>HUGINN_PHASE</code>, <code>--scenario</code> reads <code>HUGINN_SCENARIO</code>, <code>--results-dir</code> reads <code>HUGINN_RESULTS_DIR</code>, and <code>--parameters-dir</code> reads <code>HUGINN_PARAMETERS_DIR</code>. Unlike <code>run</code>, <code>--phase</code> and <code>--scenario</code> take a single value each. The command exits 0 on success or when there is nothing to reconcile, and 1 when reconciliation cannot proceed.</p>
 <p>See <a href="../reconcile/">Parameter Reconciliation</a> for the full option table, exit codes and workflow.</p>
 <h2 id="relearn">relearn<a class="headerlink" href="#relearn" title="Permanent link">&para;</a></h2>
-<p>Re-learn parameters for the tests that failed or errored in the latest testing run, in the exact scenario and phase where each one failed.</p>
+<p>Re-learn parameters for the tests that failed, errored or lost applicability in the latest testing run, in the exact scenario and phase where each one failed.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>huginn relearn [--plan &lt;path&gt;] [--testbed &lt;path&gt; | --inventory-plugin &lt;name&gt;] [--scenario &lt;id&gt;] [--phase &lt;id&gt;]
 <a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>               [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;] [--output-dir &lt;path&gt;] [logging options]
 </code></pre></div>

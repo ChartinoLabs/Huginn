@@ -2091,6 +2091,7 @@
 <h3 id="empty-gathered-state-gather_state">Empty gathered state (<code>gather_state</code>)<a class="headerlink" href="#empty-gathered-state-gather_state" title="Permanent link">&para;</a></h3>
 <p>The command executes successfully, but the extracted data is empty for a device. For example, a <code>show ip ospf neighbor</code> command returns no neighbors because OSPF is not configured on that device. The job's <code>gather_state</code> method detects the empty result and emits a <code>NOT_APPLICABLE</code> result. See <a href="../../authoring/static-validation/#handling-empty-gathered-state">Static Parameter Validation - Handling empty gathered state</a> for the recommended pattern.</p>
 <p>Both sources produce the same <code>NOT_APPLICABLE</code> status in the learning results. The prune command does not distinguish between them - if a device is non-applicable, it is excluded.</p>
+<p>Prune acts only on <code>NOT_APPLICABLE</code> devices. A device recorded as <code>LOST_APPLICABILITY</code>, because it supported the command when parameters were learned but no longer does in testing, is a failure rather than a scope problem, so prune never excludes it. See <a href="../../concepts/glossary/#lost-applicability">Lost Applicability</a>.</p>
 <h2 id="workflow">Workflow<a class="headerlink" href="#workflow" title="Permanent link">&para;</a></h2>
 <p>The typical workflow is: learn, preview, apply.</p>
 <h3 id="run-in-learning-mode">Run in learning mode<a class="headerlink" href="#run-in-learning-mode" title="Permanent link">&para;</a></h3>

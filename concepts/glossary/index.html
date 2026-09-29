@@ -2204,7 +2204,7 @@
 <li><strong>Post-change</strong>: Validate state after changes</li>
 </ul>
 <p>Phases provide structure for reporting (collapse/expand, filtering) and establish execution order through dependencies. Phases within a scenario run one at a time in dependency order, never concurrently. Concurrency lives inside a phase: its test case groups run in parallel by default, subject to the phase's <code>strategy</code>, and so do the tests within each group, subject to the group's <code>strategy</code>.</p>
-<p>A phase that finishes FAILED or ERRORED blocks the phases that depend on it, directly or through a chain of <code>depends_on</code>. Each blocked phase is recorded as BLOCKED with a reason that names the phase that failed, for example <code>Blocked because phase 'change' failed</code>. Phases that do not depend on it still run. In learning mode, a phase with any test case that was skipped because its job does not inherit <code>LearningTestCase</code>, such as a change or action job, also blocks the phases that depend on it, with a reason such as <code>Blocked because phase 'shutdown' was not run in learning mode</code>. The change did not happen, so learning the phases after it would record the unchanged network as their expected state. Otherwise, a phase that finishes NOT_APPLICABLE or SKIPPED does not block anything.</p>
+<p>A phase that finishes FAILED, ERRORED or LOST_APPLICABILITY blocks the phases that depend on it, directly or through a chain of <code>depends_on</code>. Each blocked phase is recorded as BLOCKED with a reason that names the phase that failed, for example <code>Blocked because phase 'change' failed</code>. Phases that do not depend on it still run. In learning mode, a phase with any test case that was skipped because its job does not inherit <code>LearningTestCase</code>, such as a change or action job, also blocks the phases that depend on it, with a reason such as <code>Blocked because phase 'shutdown' was not run in learning mode</code>. The change did not happen, so learning the phases after it would record the unchanged network as their expected state. Otherwise, a phase that finishes NOT_APPLICABLE or SKIPPED does not block anything.</p>
 <h3 id="test-plan">Test Plan<a class="headerlink" href="#test-plan" title="Permanent link">&para;</a></h3>
 <p>A collection of test cases, test case groups, scenarios, and associated metadata defining how testing outcomes should be achieved. The test plan specifies:</p>
 <ul>
@@ -2233,14 +2233,14 @@
 <li><strong>Command not supported</strong>: The device does not recognize the show command the job requires. Detected in <code>check_command_support()</code>.</li>
 <li><strong>Attribute absent</strong>: The command succeeds but the specific attribute the job validates does not exist in the parsed output - either because the platform does not report it or because the feature is not configured. Detected in <code>gather_state()</code> when per-item extraction produces an empty result for a device.</li>
 </ol>
-<p>A device that is statically targeted but dynamically determined to lack command support is recorded with a NOT_APPLICABLE result and the reason for non-support. This happens whether or not learned parameters exist for the device; see <a href="#lost-applicability">Lost Applicability</a> for the planned distinction.</p>
+<p>A device that is statically targeted but dynamically determined to lack command support is recorded with a NOT_APPLICABLE result and the reason for non-support. In testing mode, a device that the learned parameters contain is recorded as LOST_APPLICABILITY instead; see <a href="#lost-applicability">Lost Applicability</a>.</p>
 <h3 id="commandsupportresult">CommandSupportResult<a class="headerlink" href="#commandsupportresult" title="Permanent link">&para;</a></h3>
 <p>The return type of the <code>check_command_support()</code> method on <code>LearningTestCase</code> and its subclasses. Contains:</p>
 <ul>
 <li><strong>applicable</strong>: List of devices that support the required command(s).</li>
 <li><strong>not_applicable</strong>: Dictionary mapping device names to reasons why the device does not support the required command(s).</li>
 </ul>
-<p><code>LearningTestCase.test()</code> calls <code>check_command_support()</code> after <code>setup()</code> has run, records NOT_APPLICABLE for each device that is not applicable, and narrows <code>context.targets</code> to the applicable devices before calling <code>gather_state()</code>. The runner itself only calls <code>setup()</code>, <code>test()</code>, and <code>cleanup()</code>.</p>
+<p><code>LearningTestCase.test()</code> calls <code>check_command_support()</code> after <code>setup()</code> has run, records NOT_APPLICABLE or, in testing mode, LOST_APPLICABILITY for each device that is not applicable, and narrows <code>context.targets</code> to the applicable devices before calling <code>gather_state()</code>. The runner itself only calls <code>setup()</code>, <code>test()</code>, and <code>cleanup()</code>.</p>
 <h3 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h3>
 <p>The object passed to jobs during execution. Contains access to the connection broker, target devices, results collector, file-based parameters, the data model (if configured), and execution metadata. The context is the primary interface between a job and the framework.</p>
 <h3 id="result">Result<a class="headerlink" href="#result" title="Permanent link">&para;</a></h3>
@@ -2262,6 +2262,10 @@
 <td>One or more assertions did not match expected state.</td>
 </tr>
 <tr>
+<td><code>LOST_APPLICABILITY</code></td>
+<td>In testing mode, a device that supported the job's command when parameters were learned no longer supports it. Counts as a failure; see <a href="#lost-applicability">Lost Applicability</a>.</td>
+</tr>
+<tr>
 <td><code>INFO</code></td>
 <td>An informational check with no effect on pass/fail. Used for individual checks; it never becomes a test case's overall status.</td>
 </tr>
@@ -2279,7 +2283,7 @@
 </tr>
 <tr>
 <td><code>BLOCKED</code></td>
-<td>The test case could not run because a phase it depends on, directly or transitively, failed or errored, or, in learning mode, was not run because it has a job that does not inherit <code>LearningTestCase</code>.</td>
+<td>The test case could not run because a phase it depends on, directly or transitively, failed, errored or lost applicability, or, in learning mode, was not run because it has a job that does not inherit <code>LearningTestCase</code>.</td>
 </tr>
 </tbody>
 </table>
@@ -2287,21 +2291,22 @@
 <ol>
 <li><code>ERRORED</code> if any check errored.</li>
 <li>Otherwise <code>FAILED</code> if any check failed.</li>
+<li>Otherwise <code>LOST_APPLICABILITY</code> if any check lost applicability.</li>
 <li>Otherwise <code>NOT_APPLICABLE</code> if every non-<code>INFO</code> check is not applicable.</li>
 <li>Otherwise <code>SKIPPED</code> if every non-<code>INFO</code> check is skipped.</li>
 <li>Otherwise <code>PASSED</code>.</li>
 </ol>
+<p><code>LOST_APPLICABILITY</code> ranks below <code>FAILED</code> because a failed check found a deviation in the state that was compared, which is the more specific result. A lost device still appears as its own check and in the <code>lost_applicability</code> count.</p>
 <p>Test cases filtered out before execution (e.g., by tags) do not appear in results at all. This is distinct from NOT_APPLICABLE, which appears in results with a reason.</p>
 <h3 id="lost-applicability">Lost Applicability<a class="headerlink" href="#lost-applicability" title="Permanent link">&para;</a></h3>
-<p><code>LOST_APPLICABILITY</code> is a planned status and is not recorded yet (<a href="https://github.com/ChartinoLabs/Huginn/issues/254">#254</a>). It will cover a test case that was applicable when parameters were learned but is no longer applicable during testing. This indicates that something changed between learning and testing that caused a previously testable device to become untestable, so the status will fail the test.</p>
-<p>Until it ships, both situations below are recorded as <code>NOT_APPLICABLE</code>:</p>
+<p><code>LOST_APPLICABILITY</code> covers a device that was applicable when parameters were learned but is no longer applicable during testing. Something changed between learning and testing that made a previously testable device untestable, for example an upgrade that removed a feature, so the status fails the test instead of passing silently as <code>NOT_APPLICABLE</code>.</p>
+<p>In testing mode, <code>LearningTestCase.test()</code> checks each device that <code>check_command_support()</code> reports as not applicable against the learned parameters:</p>
 <table>
 <thead>
 <tr>
 <th>Scenario</th>
-<th>Learned Parameters Exist?</th>
-<th>Result today</th>
-<th>Result once #254 ships</th>
+<th>Device in learned parameters?</th>
+<th>Result</th>
 </tr>
 </thead>
 <tbody>
@@ -2309,27 +2314,27 @@
 <td>Device never applicable</td>
 <td>No</td>
 <td><code>NOT_APPLICABLE</code></td>
-<td><code>NOT_APPLICABLE</code></td>
 </tr>
 <tr>
 <td>Device was applicable, now isn't</td>
 <td>Yes</td>
-<td><code>NOT_APPLICABLE</code></td>
 <td><code>LOST_APPLICABILITY</code></td>
 </tr>
 </tbody>
 </table>
+<p>By default a device is in the learned parameters when they have a <code>devices</code> mapping with an entry for it. Jobs with a different parameter schema override <code>learned_devices()</code>; see <a href="../../reference/context-api/#command-support-regression-detection">Command support regression detection</a>. Learning mode never records <code>LOST_APPLICABILITY</code>. A device that lost applicability is not listed in <code>not_applicable_devices</code>, so <a href="../../reference/prune/"><code>huginn prune</code></a> never excludes it.</p>
 <h3 id="aggregate-result">Aggregate Result<a class="headerlink" href="#aggregate-result" title="Permanent link">&para;</a></h3>
 <p>The computed outcome for a test case group, phase, scenario, or whole run, derived from the statuses it contains. The rollup uses this order:</p>
 <ol>
 <li><code>ERRORED</code> if anything contained errored.</li>
 <li>Otherwise <code>FAILED</code> if anything contained failed.</li>
+<li>Otherwise <code>LOST_APPLICABILITY</code> if anything contained lost applicability.</li>
 <li>Otherwise <code>NOT_APPLICABLE</code> if everything contained is not applicable.</li>
 <li>Otherwise <code>SKIPPED</code> if everything contained is skipped.</li>
 <li>Otherwise <code>PASSED</code>.</li>
 </ol>
-<p>A single failure therefore makes the aggregate <code>FAILED</code>, however many other test cases passed. <code>BLOCKED</code> is not part of the rollup: a blocked phase and its groups are recorded as <code>BLOCKED</code> directly. Because blocked entries never satisfy the all-<code>NOT_APPLICABLE</code> or all-<code>SKIPPED</code> checks, a scenario or run that contains blocked phases is <code>ERRORED</code> or <code>FAILED</code> if something in it errored or failed, and <code>PASSED</code> otherwise.</p>
-<p>There is no partial status. Instead, the phase summary and the run summary report a count for each status alongside the aggregate result, for example <code>status=failed total=2000 passed=1995 failed=5 errored=0 not_applicable=0 skipped=0 blocked=0</code>, so the scope of any failure stays visible.</p>
+<p>A single failure therefore makes the aggregate <code>FAILED</code>, however many other test cases passed. A single lost device does the same with <code>LOST_APPLICABILITY</code>, which counts as a failure for the run's exit code and for phase blocking. <code>BLOCKED</code> is not part of the rollup: a blocked phase and its groups are recorded as <code>BLOCKED</code> directly. Because blocked entries never satisfy the all-<code>NOT_APPLICABLE</code> or all-<code>SKIPPED</code> checks, a scenario or run that contains blocked phases is <code>ERRORED</code>, <code>FAILED</code> or <code>LOST_APPLICABILITY</code> if something in it errored, failed or lost applicability, and <code>PASSED</code> otherwise.</p>
+<p>There is no partial status. Instead, the phase summary and the run summary report a count for each status alongside the aggregate result, for example <code>status=failed total=2000 passed=1995 failed=5 errored=0 not_applicable=0 lost_applicability=0 skipped=0 blocked=0</code>, so the scope of any failure stays visible.</p>
 
 
 

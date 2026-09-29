@@ -1403,6 +1403,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Command support regression detection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#custom-parameter-schemas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom parameter schemas
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -2258,6 +2275,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Command support regression detection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#custom-parameter-schemas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom parameter schemas
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -2667,6 +2701,11 @@
 <td>Yes</td>
 </tr>
 <tr>
+<td><code>LOST_APPLICABILITY</code></td>
+<td>In testing mode, the target no longer supports the job's command although the learned parameters contain it. Recorded by <code>LearningTestCase</code>; see <a href="#command-support-regression-detection">Command support regression detection</a>.</td>
+<td>Yes</td>
+</tr>
+<tr>
 <td><code>ERRORED</code></td>
 <td>An exception or error occurred.</td>
 <td>Yes</td>
@@ -2683,7 +2722,7 @@
 </tr>
 <tr>
 <td><code>BLOCKED</code></td>
-<td>The test case did not run because a phase it depends on failed or errored, or was not run in learning mode. Set by the framework, not by jobs.</td>
+<td>The test case did not run because a phase it depends on failed, errored or lost applicability, or was not run in learning mode. Set by the framework, not by jobs.</td>
 <td>Yes, unless blocked only by learning mode</td>
 </tr>
 <tr>
@@ -2693,8 +2732,7 @@
 </tr>
 </tbody>
 </table>
-<p>A test case's status is derived from its checks in this order: any <code>ERRORED</code> gives <code>ERRORED</code>; otherwise any <code>FAILED</code> gives <code>FAILED</code>; otherwise, ignoring <code>INFO</code> checks, all <code>NOT_APPLICABLE</code> gives <code>NOT_APPLICABLE</code> and all <code>SKIPPED</code> gives <code>SKIPPED</code>; anything else gives <code>PASSED</code>. The run status is derived from the test case statuses in the same order. <code>huginn run</code> exits with code 1 when any test case is <code>FAILED</code>, <code>ERRORED</code> or <code>BLOCKED</code>, except a test case blocked only because a phase it depends on was not run in learning mode. A run whose test cases are all <code>PASSED</code>, <code>NOT_APPLICABLE</code> or <code>SKIPPED</code> exits 0, even when none of them passed.</p>
-<p>A <code>LOST_APPLICABILITY</code> status is planned but not implemented; see <a href="#command-support-regression-detection">Command support regression detection</a>.</p>
+<p>A test case's status is derived from its checks in this order: any <code>ERRORED</code> gives <code>ERRORED</code>; otherwise any <code>FAILED</code> gives <code>FAILED</code>; otherwise any <code>LOST_APPLICABILITY</code> gives <code>LOST_APPLICABILITY</code>; otherwise, ignoring <code>INFO</code> checks, all <code>NOT_APPLICABLE</code> gives <code>NOT_APPLICABLE</code> and all <code>SKIPPED</code> gives <code>SKIPPED</code>; anything else gives <code>PASSED</code>. The run status is derived from the test case statuses in the same order. <code>huginn run</code> exits with code 1 when any test case is <code>FAILED</code>, <code>ERRORED</code>, <code>LOST_APPLICABILITY</code> or <code>BLOCKED</code>, except a test case blocked only because a phase it depends on was not run in learning mode. A run whose test cases are all <code>PASSED</code>, <code>NOT_APPLICABLE</code> or <code>SKIPPED</code> exits 0, even when none of them passed.</p>
 <h2 id="connection-broker-api">Connection broker API<a class="headerlink" href="#connection-broker-api" title="Permanent link">&para;</a></h2>
 <p>All device operations go through <code>context.broker</code>, a <code>RuntimeBroker</code>. It holds the connections the framework opened at the start of the run, serializes operations per device and connection, and caches <code>execute()</code> and <code>get()</code> results.</p>
 <h3 id="declaring-required-brokers">Declaring required brokers<a class="headerlink" href="#declaring-required-brokers" title="Permanent link">&para;</a></h3>
@@ -3004,13 +3042,13 @@
 <p><code>LearningTestCase</code> provides no-op <code>setup()</code> and <code>cleanup()</code>, a default <code>check_command_support()</code> that accepts every target, and implements <code>test()</code> as:</p>
 <ol>
 <li>Call <code>check_command_support(context)</code>.</li>
-<li>Record a <code>NOT_APPLICABLE</code> check (<code>"&lt;device&gt;: &lt;reason&gt;"</code>) for each target not in <code>applicable</code>, and copy <code>not_applicable</code> into <code>context.results.not_applicable_devices</code>.</li>
+<li>For each target not in <code>applicable</code>, record a <code>NOT_APPLICABLE</code> check (<code>"&lt;device&gt;: &lt;reason&gt;"</code>) and list it in <code>context.results.not_applicable_devices</code>. In testing mode, a target that <code>learned_devices()</code> finds in the learned parameters is recorded as <code>LOST_APPLICABILITY</code> instead and is not listed; see <a href="#command-support-regression-detection">Command support regression detection</a>.</li>
 <li>If no target is applicable, record an <code>INFO</code> check (<code>No supported targets after command support check</code>) and return.</li>
 <li>Narrow <code>context.targets</code> to the applicable devices.</li>
 <li>Call <code>gather_state(context)</code>. If the result is a mapping with a <code>devices</code> mapping, every applicable target missing from it is added to <code>not_applicable_devices</code>.</li>
 <li>If the derived status is already <code>ERRORED</code>, return without saving or comparing.</li>
 <li>In learning mode, save the state with <code>context.parameters.save(...)</code>, record a <code>PASSED</code> check (<code>Learned parameters saved successfully</code>) unless every check so far is <code>NOT_APPLICABLE</code>, and return.</li>
-<li>In testing mode, load the expected state with <code>context.parameters.load()</code>, render the <code>DESCRIPTION</code>, <code>SETUP</code>, <code>PROCEDURE</code> and <code>PASS_FAIL_CRITERIA</code> class attributes as metadata sections, and call <code>compare_state(expected=..., current=..., context=...)</code>.</li>
+<li>In testing mode, load the expected state with <code>context.parameters.load()</code>, unless step 2 already loaded it, render the <code>DESCRIPTION</code>, <code>SETUP</code>, <code>PROCEDURE</code> and <code>PASS_FAIL_CRITERIA</code> class attributes as metadata sections, and call <code>compare_state(expected=..., current=..., context=...)</code>.</li>
 </ol>
 <p>The runner calls <code>setup()</code>, then <code>test()</code>, then <code>cleanup()</code>, so <code>check_command_support()</code> runs inside <code>test()</code> after <code>setup()</code>. A plain <code>TestCase</code> has no command support hook; its <code>test()</code> does whatever you write.</p>
 <p>When running <code>huginn run --mode learning</code>, only jobs inheriting <code>LearningTestCase</code> are executed. Jobs inheriting <code>TestCase</code> directly are reported as <code>SKIPPED</code> in learning mode.</p>
@@ -3083,82 +3121,107 @@
 </table>
 <p>A target that is not in <code>applicable</code> and has no entry in <code>not_applicable</code> is reported with the reason <code>Command not supported on this device</code>. See <a href="#learningtestcase-base-class">LearningTestCase base class</a> for how the result is applied.</p>
 <h3 id="command-support-regression-detection">Command support regression detection<a class="headerlink" href="#command-support-regression-detection" title="Permanent link">&para;</a></h3>
-<p>Planned; see <a href="https://github.com/ChartinoLabs/Huginn/issues/254">#254</a>. The intent is that a device which supported the command when parameters were learned, but no longer does during testing, is reported as a failing <code>LOST_APPLICABILITY</code> status. Today such a device is reported as <code>NOT_APPLICABLE</code>.</p>
+<p>In testing mode, <code>LearningTestCase.test()</code> checks each target that <code>check_command_support()</code> reports as not applicable against the learned parameters. A target the parameters contain supported the command when they were learned, so it is recorded as <code>LOST_APPLICABILITY</code> with the message <code>"&lt;device&gt;: &lt;reason&gt;, but it was supported when parameters were learned"</code>. The status counts as a failure: it fails the test case, makes <code>huginn run</code> exit 1 and blocks dependent phases. A target the parameters do not contain never supported the command and stays <code>NOT_APPLICABLE</code>.</p>
+<p>The learned parameters are loaded before any result is recorded, and only when at least one target is not applicable. If they cannot be loaded at that point, every such target is <code>NOT_APPLICABLE</code>, and the load after <code>gather_state()</code> raises the error as usual. Learning mode never records <code>LOST_APPLICABILITY</code>.</p>
+<p>A target that lost applicability is not added to <code>not_applicable_devices</code>, so <a href="../prune/"><code>huginn prune</code></a> never excludes it. <a href="../relearn/"><code>huginn relearn</code></a> treats the test case as failed and re-learns it.</p>
+<h4 id="custom-parameter-schemas">Custom parameter schemas<a class="headerlink" href="#custom-parameter-schemas" title="Permanent link">&para;</a></h4>
+<p><code>learned_devices(parameters)</code> returns the set of device names the learned parameters cover. The default returns the keys of <code>parameters["devices"]</code>, or an empty set when there is no <code>devices</code> mapping, which suits the standard <code>{"devices": {&lt;name&gt;: ...}}</code> schema, including <code>OperatorVolatileLearningTestCase</code>. Override it when a job stores devices elsewhere:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">LearningTestCase</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">VerifyFabricNodes</span><span class="p">(</span><span class="n">LearningTestCase</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]]):</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">learned_devices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>        <span class="n">nodes</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nodes&quot;</span><span class="p">,</span> <span class="p">{})</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>        <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nodes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="nb">set</span><span class="p">()</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;nodes&quot;</span><span class="p">:</span> <span class="p">{</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">}}</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">compare_state</span><span class="p">(</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>        <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>        <span class="n">expected</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>        <span class="n">current</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>        <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span>
+<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>        <span class="k">return</span> <span class="kc">None</span>
+</code></pre></div>
+<p>Return an empty set to opt a job out of the check.</p>
 <h2 id="async-patterns">Async patterns<a class="headerlink" href="#async-patterns" title="Permanent link">&para;</a></h2>
 <p>All test methods are async. Use <code>asyncio.gather</code> to query targets concurrently; the broker already serializes operations per device and connection. Huginn supports Python 3.10, so avoid <code>asyncio.TaskGroup</code> in jobs that must run there.</p>
 <h3 id="parallel-device-operations">Parallel device operations<a class="headerlink" href="#parallel-device-operations" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Device</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_versions</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_version</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">Device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>        <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">broker</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="s2">&quot;show version&quot;</span><span class="p">)</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>        <span class="k">return</span> <span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>
-<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="n">pairs</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">get_version</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">))</span>
-<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span>
-</code></pre></div>
-<h3 id="semaphore-for-rate-limiting">Semaphore for rate limiting<a class="headerlink" href="#semaphore-for-rate-limiting" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Device</span>
 <a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
 <a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_versions_rate_limited</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">semaphore</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Semaphore</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_version</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">Device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>        <span class="k">async</span> <span class="k">with</span> <span class="n">semaphore</span><span class="p">:</span>
-<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">broker</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="s2">&quot;show version&quot;</span><span class="p">)</span>
-<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>            <span class="k">return</span> <span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span>
-<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>
-<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>    <span class="n">pairs</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">get_version</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">))</span>
-<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_versions</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_version</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">Device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>        <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">broker</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="s2">&quot;show version&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>        <span class="k">return</span> <span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>    <span class="n">pairs</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">get_version</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">))</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="semaphore-for-rate-limiting">Semaphore for rate limiting<a class="headerlink" href="#semaphore-for-rate-limiting" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Device</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_versions_rate_limited</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="n">semaphore</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Semaphore</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_version</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">Device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>        <span class="k">async</span> <span class="k">with</span> <span class="n">semaphore</span><span class="p">:</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">broker</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="s2">&quot;show version&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>            <span class="k">return</span> <span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">output</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>    <span class="n">pairs</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="n">get_version</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">))</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="error-handling">Error handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
 <h3 id="graceful-failure">Graceful failure<a class="headerlink" href="#graceful-failure" title="Permanent link">&para;</a></h3>
 <p>Catch errors per device and record them, so the remaining devices are still checked:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">ResultStatus</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn.runtime_broker</span><span class="w"> </span><span class="kn">import</span> <span class="n">RuntimeBrokerError</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">check_each_device</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>        <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">broker</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="s2">&quot;show ip ospf neighbor&quot;</span><span class="p">)</span>
-<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>        <span class="k">except</span> <span class="n">RuntimeBrokerError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
-<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>            <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span><span class="n">ResultStatus</span><span class="o">.</span><span class="n">ERRORED</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>            <span class="k">continue</span>
-<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>        <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span>
-<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>            <span class="n">ResultStatus</span><span class="o">.</span><span class="n">PASSED</span><span class="p">,</span>
-<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: collected </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">splitlines</span><span class="p">())</span><span class="si">}</span><span class="s2"> lines&quot;</span><span class="p">,</span>
-<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>        <span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">ResultStatus</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn.runtime_broker</span><span class="w"> </span><span class="kn">import</span> <span class="n">RuntimeBrokerError</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">check_each_device</span><span class="p">(</span><span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>            <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">context</span><span class="o">.</span><span class="n">broker</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="s2">&quot;show ip ospf neighbor&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>        <span class="k">except</span> <span class="n">RuntimeBrokerError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>            <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span><span class="n">ResultStatus</span><span class="o">.</span><span class="n">ERRORED</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>            <span class="k">continue</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>        <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>            <span class="n">ResultStatus</span><span class="o">.</span><span class="n">PASSED</span><span class="p">,</span>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: collected </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">splitlines</span><span class="p">())</span><span class="si">}</span><span class="s2"> lines&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>        <span class="p">)</span>
 </code></pre></div>
 <h3 id="critical-failures">Critical failures<a class="headerlink" href="#critical-failures" title="Permanent link">&para;</a></h3>
 <p>An exception raised from <code>setup()</code> or <code>test()</code> aborts the test case. The runner still calls <code>cleanup()</code>, and records the test case as <code>ERRORED</code> with the exception message and traceback.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">LearningTestCase</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">VerifyBgpNeighbors</span><span class="p">(</span><span class="n">LearningTestCase</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]]):</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">device</span><span class="o">.</span><span class="n">os</span> <span class="o">==</span> <span class="s2">&quot;iosxe&quot;</span> <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">):</span>
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;VerifyBgpNeighbors requires at least one IOS-XE target&quot;</span><span class="p">)</span>
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
-<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;devices&quot;</span><span class="p">:</span> <span class="p">{}}</span>
-<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>
-<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">compare_state</span><span class="p">(</span>
-<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>        <span class="bp">self</span><span class="p">,</span>
-<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>        <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>        <span class="n">expected</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span>
-<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>        <span class="n">current</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span>
-<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>        <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span>
-<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a>        <span class="k">return</span> <span class="kc">None</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span><span class="p">,</span> <span class="n">LearningTestCase</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">VerifyBgpNeighbors</span><span class="p">(</span><span class="n">LearningTestCase</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]]):</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">device</span><span class="o">.</span><span class="n">os</span> <span class="o">==</span> <span class="s2">&quot;iosxe&quot;</span> <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">):</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;VerifyBgpNeighbors requires at least one IOS-XE target&quot;</span><span class="p">)</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;devices&quot;</span><span class="p">:</span> <span class="p">{}}</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">compare_state</span><span class="p">(</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>        <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>        <span class="n">expected</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a>        <span class="n">current</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span>
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a>        <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span>
+<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a>        <span class="k">return</span> <span class="kc">None</span>
 </code></pre></div>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
