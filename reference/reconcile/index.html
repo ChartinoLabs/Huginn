@@ -2057,6 +2057,7 @@
 <a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nxos</span>
 </code></pre></div>
 <p>Targets are copied as selectors, never resolved into a <code>target.devices</code> list, so the reconciled plan keeps working when the testbed changes.</p>
+<p>The reconciled group copies the original group's <code>description</code>, if it has one.</p>
 <p>The scenario name is part of every reconciled ID, so reconciling the same phase name in two scenarios produces separate variants. If a group ID is identical to the phase name, the redundant prefix is dropped and the reconciled group is named <code>&lt;scenario&gt;-&lt;phase&gt;</code>.</p>
 <h2 id="cli-reference">CLI reference<a class="headerlink" href="#cli-reference" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>huginn reconcile --plan &lt;path&gt; --phase &lt;phase-name&gt; [--scenario &lt;scenario-id&gt;] [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;]

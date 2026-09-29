@@ -3403,7 +3403,7 @@ full discussion of packaged jobs.</p>
 <td><code>description</code></td>
 <td>string</td>
 <td>No</td>
-<td>Informational only; not read by the loader</td>
+<td>Group description, shown in <code>run.json</code> and the HTML report</td>
 </tr>
 <tr>
 <td><code>tests</code></td>
@@ -3577,6 +3577,12 @@ full discussion of packaged jobs.</p>
 <td>No</td>
 <td>Display name (defaults to the scenario key)</td>
 </tr>
+<tr>
+<td><code>description</code></td>
+<td>string</td>
+<td>No</td>
+<td>Scenario description, shown in <code>run.json</code> and the HTML report</td>
+</tr>
 </tbody>
 </table>
 <p>Phase names are scoped to their scenario. Two scenarios can each define a <code>pre-change</code> phase, and <code>depends_on</code> can only reference phases in the same scenario. Referencing an undefined phase fails at load.</p>
@@ -3620,7 +3626,7 @@ full discussion of packaged jobs.</p>
 <td><code>description</code></td>
 <td>string</td>
 <td>No</td>
-<td>Phase description</td>
+<td>Phase description, shown in <code>run.json</code> and the HTML report</td>
 </tr>
 <tr>
 <td><code>depends_on</code></td>
