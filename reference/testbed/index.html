@@ -2571,7 +2571,7 @@
 <tr>
 <td><code>metadata</code></td>
 <td>dict</td>
-<td>Arbitrary key-value data accessible in tests</td>
+<td>Arbitrary key-value data, read by jobs as <code>device.metadata</code>. See <a href="#metadata">Metadata</a></td>
 </tr>
 <tr>
 <td><code>connections</code></td>
@@ -2820,7 +2820,7 @@
 </tbody>
 </table>
 <h3 id="metadata">Metadata<a class="headerlink" href="#metadata" title="Permanent link">&para;</a></h3>
-<p>Arbitrary key-value data attached to devices. Accessible in tests for conditional logic.</p>
+<p>Arbitrary key-value data attached to a device. Jobs read it as <code>device.metadata</code>, for example to choose expected values or skip checks by role or model.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nt">devices</span><span class="p">:</span>
 <a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">server-01</span><span class="p">:</span>
 <a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">linux</span>
@@ -2834,7 +2834,9 @@
 <a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">      </span><span class="nt">owner</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">network-team</span>
 <a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">      </span><span class="nt">criticality</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">high</span>
 </code></pre></div>
-<p>Metadata is not interpreted by the framework - it's passed through to tests.</p>
+<p><code>metadata</code> must be a mapping. Its values can be any YAML type, including nested mappings and lists. When it is omitted, <code>device.metadata</code> is an empty mapping. <code>${VAR}</code> references in its string values are expanded like the rest of the testbed; see <a href="#environment-variable-substitution">Environment Variable Substitution</a>.</p>
+<p>Huginn does not interpret metadata. It passes the mapping to jobs through <code>context.targets</code> and <code>context.testbed</code>.</p>
+<p>Every job in a run shares the same device objects, so <code>device.metadata</code> is read-only. Its mappings and lists behave like plain <code>dict</code> and <code>list</code> for reads, iteration, <code>isinstance()</code> checks and <code>json.dumps()</code>, but any change raises <code>TypeError</code>. Use <code>copy.deepcopy()</code> to get a mutable copy. See <a href="../context-api/#device">Context API - Device</a>.</p>
 <h2 id="complete-example">Complete Example<a class="headerlink" href="#complete-example" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># testbed.yaml</span>
 <a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nn">---</span>
@@ -3103,6 +3105,7 @@
 <li><code>devices</code> is missing or empty</li>
 <li>A device does not define a non-empty <code>os</code></li>
 <li><code>groups</code> is present but is not a non-empty list of non-empty strings</li>
+<li>A device <code>metadata</code> is present but is not a mapping</li>
 <li><code>credentials</code> (global or device) is not a mapping of names to mappings, or a credential field value is not a string</li>
 <li>A connection does not define <code>protocol</code> or <code>host</code>, or <code>protocol</code> is not one of <code>ssh</code>, <code>netconf</code>, <code>http</code>, <code>https</code>, or <code>rest</code></li>
 <li>A connection <code>port</code> is not an integer or a string of digits, or <code>credential</code> is not a string</li>
