@@ -5,7 +5,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import NoReturn, cast
+from typing import cast
 
 import yaml
 
@@ -27,6 +27,7 @@ from huginn.models import (
     TestPlan,
     nested_inclusion_paths,
 )
+from huginn.read_only import freeze
 
 # Upper bound on the distinct inclusion paths one flattened group may keep for
 # one test. Equivalent paths are merged, so only nested groups whose targets or
@@ -445,9 +446,17 @@ def load_testbed(path: Path) -> Testbed:
                 device_name,
                 device_mapping.get("connections"),
             ),
+            metadata=_load_device_metadata(device_name, device_mapping.get("metadata")),
         )
 
     return Testbed(devices=devices, credentials=global_credentials)
+
+
+def _load_device_metadata(device_name: str, value: object) -> dict[str, object]:
+    """Load an optional device `metadata` mapping; its values may be any type."""
+    if value is None:
+        return {}
+    return _require_mapping(value, f"Device '{device_name}' metadata must be a mapping")
 
 
 def _merge_credentials(
@@ -1403,7 +1412,7 @@ def load_data_model(directory: Path) -> Mapping[str, object]:
         _deep_merge_data_model(
             merged, data, source_path=yaml_path, sources=sources, key_path=()
         )
-    return cast(Mapping[str, object], _freeze(merged))
+    return cast(Mapping[str, object], freeze(merged))
 
 
 def _deep_merge_data_model(
@@ -1443,80 +1452,3 @@ def _data_model_source(
     while path not in sources:
         path = path[:-1]
     return sources[path]
-
-
-def _freeze(value: object) -> object:
-    """Recursively convert dicts and lists to their read-only counterparts."""
-    if isinstance(value, dict):
-        return _ReadOnlyDict({key: _freeze(item) for key, item in value.items()})
-    if isinstance(value, list):
-        return _ReadOnlyList(_freeze(item) for item in value)
-    return value
-
-
-def _thaw(value: object) -> object:
-    """Recursively convert read-only containers back to plain dicts and lists."""
-    if isinstance(value, dict):
-        return {key: _thaw(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [_thaw(item) for item in value]
-    return value
-
-
-def _read_only(*_args: object, **_kwargs: object) -> NoReturn:
-    """Reject a mutation of a shared data model container."""
-    raise TypeError(
-        "context.data_model is read-only and shared by every job; "
-        "use copy.deepcopy() to get a mutable copy"
-    )
-
-
-class _ReadOnlyDict(dict[str, object]):
-    """A dict that rejects mutation, used for the shared data model.
-
-    Reads, equality, `isinstance(..., dict)` and JSON serialization behave as
-    for a plain dict. `copy.copy` and `copy.deepcopy` return mutable copies.
-    """
-
-    __setitem__ = __delitem__ = __ior__ = _read_only
-    clear = pop = popitem = setdefault = update = _read_only
-
-    def __copy__(self) -> dict[str, object]:
-        """Return a shallow, mutable copy."""
-        return dict(self)
-
-    def __deepcopy__(self, memo: dict[int, object]) -> object:
-        """Return a deep, mutable copy."""
-        return _thaw(self)
-
-    def __reduce__(self) -> tuple[type[dict[str, object]], tuple[object]]:
-        """Pickle as a plain dict."""
-        return (dict, (_thaw(self),))
-
-
-class _ReadOnlyList(list[object]):
-    """A list that rejects mutation, used for the shared data model.
-
-    Reads, equality, `isinstance(..., list)` and JSON serialization behave as
-    for a plain list. `copy.copy` and `copy.deepcopy` return mutable copies.
-    """
-
-    __setitem__ = __delitem__ = __iadd__ = __imul__ = _read_only
-    append = extend = insert = pop = remove = clear = sort = reverse = _read_only
-
-    def __copy__(self) -> list[object]:
-        """Return a shallow, mutable copy."""
-        return list(self)
-
-    def __deepcopy__(self, memo: dict[int, object]) -> object:
-        """Return a deep, mutable copy."""
-        return _thaw(self)
-
-    def __reduce__(self) -> tuple[type[list[object]], tuple[object]]:
-        """Pickle as a plain list."""
-        return (list, (_thaw(self),))
-
-
-# Let `yaml.safe_dump` serialize the data model like plain dicts and lists.
-yaml.SafeDumper.add_representer(_ReadOnlyDict, yaml.SafeDumper.represent_dict)
-yaml.SafeDumper.add_representer(_ReadOnlyList, yaml.SafeDumper.represent_list)

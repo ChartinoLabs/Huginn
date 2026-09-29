@@ -199,12 +199,12 @@ devices:
 
 #### Optional Fields
 
-| Field         | Type         | Description                                  |
-| ------------- | ------------ | -------------------------------------------- |
-| `groups`      | list[string] | Group memberships for targeting              |
-| `credentials` | dict         | Device-specific named credentials            |
-| `metadata`    | dict         | Arbitrary key-value data accessible in tests |
-| `connections` | dict         | Named connection configurations              |
+| Field         | Type         | Description                                                                            |
+| ------------- | ------------ | -------------------------------------------------------------------------------------- |
+| `groups`      | list[string] | Group memberships for targeting                                                        |
+| `credentials` | dict         | Device-specific named credentials                                                      |
+| `metadata`    | dict         | Arbitrary key-value data, read by jobs as `device.metadata`. See [Metadata](#metadata) |
+| `connections` | dict         | Named connection configurations                                                        |
 
 ### Connection Types
 
@@ -373,7 +373,7 @@ Groups are arbitrary strings. Common patterns:
 
 ### Metadata
 
-Arbitrary key-value data attached to devices. Accessible in tests for conditional logic.
+Arbitrary key-value data attached to a device. Jobs read it as `device.metadata`, for example to choose expected values or skip checks by role or model.
 
 ```yaml
 devices:
@@ -390,7 +390,11 @@ devices:
       criticality: high
 ```
 
-Metadata is not interpreted by the framework - it's passed through to tests.
+`metadata` must be a mapping. Its values can be any YAML type, including nested mappings and lists. When it is omitted, `device.metadata` is an empty mapping. `${VAR}` references in its string values are expanded like the rest of the testbed; see [Environment Variable Substitution](#environment-variable-substitution).
+
+Huginn does not interpret metadata. It passes the mapping to jobs through `context.targets` and `context.testbed`.
+
+Every job in a run shares the same device objects, so `device.metadata` is read-only. Its mappings and lists behave like plain `dict` and `list` for reads, iteration, `isinstance()` checks and `json.dumps()`, but any change raises `TypeError`. Use `copy.deepcopy()` to get a mutable copy. See [Context API - Device](context-api.md#device).
 
 ## Complete Example
 
@@ -632,6 +636,7 @@ Commands that read a testbed, such as `huginn run`, `huginn validate`, and `hugi
 - `devices` is missing or empty
 - A device does not define a non-empty `os`
 - `groups` is present but is not a non-empty list of non-empty strings
+- A device `metadata` is present but is not a mapping
 - `credentials` (global or device) is not a mapping of names to mappings, or a credential field value is not a string
 - A connection does not define `protocol` or `host`, or `protocol` is not one of `ssh`, `netconf`, `http`, `https`, or `rest`
 - A connection `port` is not an integer or a string of digits, or `credential` is not a string

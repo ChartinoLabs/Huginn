@@ -2,9 +2,10 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Literal, TypeAlias
+from typing import Literal, TypeAlias, cast
 
 from huginn.enums import ConnectionProtocol
+from huginn.read_only import ReadOnlyDict, freeze
 
 CredentialFields: TypeAlias = dict[str, str]
 CredentialMap: TypeAlias = dict[str, CredentialFields]
@@ -27,6 +28,15 @@ class Device:
     groups: list[str] = field(default_factory=list)
     credentials: CredentialMap = field(default_factory=dict)
     connections: dict[str, "ConnectionDefinition"] = field(default_factory=dict)
+    # Arbitrary testbed data for jobs. It is shared by every job, so it is
+    # frozen read-only here, which also covers devices built by inventory
+    # plugins. Device is unhashable (a non-frozen dataclass), so this mapping
+    # takes part in equality only.
+    metadata: Mapping[str, object] = field(default_factory=ReadOnlyDict)
+
+    def __post_init__(self) -> None:
+        """Freeze `metadata` so jobs cannot change it for each other."""
+        self.metadata = cast(Mapping[str, object], freeze(dict(self.metadata)))
 
 
 @dataclass
