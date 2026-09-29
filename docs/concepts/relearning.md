@@ -1,16 +1,16 @@
 # Re-learning
 
-Re-learning is a convenience command that selectively refreshes baseline parameters for tests that are failing in a testing run. Rather than re-running the entire test plan in learning mode -- which would overwrite parameters for tests that are already passing -- it targets only the failures and re-learns just those.
+Re-learning is a convenience command that selectively refreshes baseline parameters for tests that are failing in a testing run. Rather than re-running the entire test plan in learning mode, which would overwrite parameters for tests that are already passing, it targets only the failures and re-learns just those.
 
 ## The problem: expected drift between learning and testing
 
 Learned parameters represent device state at a specific point in time. Between when parameters are originally learned and when the test plan is next executed in testing mode, the environment may have changed in expected ways:
 
-- **The testbed was partially configured during initial learning.** Parameters were captured against an incomplete environment -- perhaps BGP peers hadn't been configured yet, or OSPF adjacencies hadn't formed. Now that the testbed is fully built out, those original parameters no longer reflect reality.
+- **The testbed was partially configured during initial learning.** Parameters were captured against an incomplete environment: perhaps BGP peers hadn't been configured yet, or OSPF adjacencies hadn't formed. Now that the testbed is fully built out, those original parameters no longer reflect reality.
 
-- **Time has passed and the environment has evolved.** Changes have been applied to the environment since learning: new routes were added, interfaces were provisioned, software was upgraded. External factors have also shifted state -- the number of routes learned from the Internet has changed, LLDP neighbors have been added or removed as adjacent devices were modified, and so on.
+- **Time has passed and the environment has evolved.** Changes have been applied to the environment since learning: new routes were added, interfaces were provisioned, software was upgraded. External factors have also shifted state: the number of routes learned from the Internet has changed, LLDP neighbors have been added or removed as adjacent devices were modified, and so on.
 
-In both cases, the test plan is being run in testing mode (typically in a pre-change or baseline phase where everything is expected to pass), and a subset of tests fail. The failures are not indicating real problems -- they reflect the fact that the learned parameters are stale for those specific tests.
+In both cases, the test plan is being run in testing mode (typically in a pre-change or baseline phase where everything is expected to pass), and a subset of tests fail. The failures are not indicating real problems; they reflect the fact that the learned parameters are stale for those specific tests.
 
 ## What re-learning does
 
@@ -49,7 +49,7 @@ Re-learning and [reconciliation](reconciliation.md) both address test failures, 
 | **Lifecycle** | Ongoing maintenance                          | One-time during scenario development                    |
 | **Frequency** | As needed when baselines go stale            | Once per change-validation scenario                     |
 
-The key distinction: re-learning refreshes the *same* parameter file because the test's expected behavior hasn't changed -- only the specific values have drifted. Reconciliation creates *new* test variants because the post-change state is structurally different from baseline and both sets of expected values must coexist in the plan.
+The key distinction: re-learning refreshes the *same* parameter file because the test's expected behavior hasn't changed, only the specific values have drifted. Reconciliation creates *new* test variants because the post-change state is structurally different from baseline and both sets of expected values must coexist in the plan.
 
 ## When NOT to use relearn
 
