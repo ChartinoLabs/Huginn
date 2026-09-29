@@ -1,0 +1,1 @@
+Test plan and testbed files now produce a warning for each key Huginn does not read, with the file, the dotted key path and a "did you mean" suggestion; turn them off with `--no-unknown-key-warnings`, `HUGINN_NO_UNKNOWN_KEY_WARNINGS` or `[tool.huginn] unknown_key_warnings = false`. The testbed top-level `name` is now a validated string stored as `Testbed.name`.

@@ -67,6 +67,7 @@ class Testbed:
 
     devices: dict[str, Device]
     credentials: CredentialMap = field(default_factory=dict)
+    name: str | None = None
 
 
 @dataclass

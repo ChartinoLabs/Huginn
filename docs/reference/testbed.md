@@ -633,6 +633,7 @@ Commands that read a testbed, such as `huginn run`, `huginn validate`, and `hugi
 
 - The file is not valid YAML, or its root is not a mapping
 - An environment variable reference is malformed, or names a variable that is not set and has no default (see [Environment Variable Substitution](#environment-variable-substitution))
+- `name` is present but is not a string
 - `devices` is missing or empty
 - A device does not define a non-empty `os`
 - `groups` is present but is not a non-empty list of non-empty strings
@@ -642,6 +643,20 @@ Commands that read a testbed, such as `huginn run`, `huginn validate`, and `hugi
 - A connection `port` is not an integer or a string of digits, or `credential` is not a string
 
 The loader does not check which options a connection sets, whether a named credential exists, or whether `os` is supported by a broker. Duplicate device keys are not detected: the YAML parser keeps the last entry.
+
+### Unknown keys
+
+Every command that loads the testbed warns about each key that Huginn does not read, and suggests the closest recognized key when there is one:
+
+```txt
+WARNING [unknown_key]: Unknown key 'group' at 'devices.spine-01.group' in testbed.yaml; did you mean 'groups'?
+```
+
+Keys are checked for the top level (`name`, `credentials`, `devices`), each credential (`username`, `password`, `private_key`, `token`, `token_type`) and each device (`os`, `groups`, `credentials`, `connections`, `metadata`). Connections are not checked, because any key other than the four common fields is passed to the broker as an option. Keys inside `metadata` are not checked either.
+
+The top-level `name` must be a string. Huginn stores it but does not use it otherwise.
+
+Unknown keys are warnings, not errors, and `huginn validate` still exits 0 when nothing else is wrong. To turn them off, see [CLI Reference - Unknown key warnings](cli.md#unknown-key-warnings).
 
 ### In huginn validate
 

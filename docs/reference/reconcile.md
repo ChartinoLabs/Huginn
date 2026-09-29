@@ -126,17 +126,18 @@ The scenario name is part of every reconciled ID, so reconciling the same phase 
 huginn reconcile --plan <path> --phase <phase-name> [--scenario <scenario-id>] [--results-dir <path>] [--parameters-dir <path>]
 ```
 
-| Option             | Default         | Description                                                                                                                                       |
-| ------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--plan`, `-p`     | (required)      | Path to test plan YAML file or directory. Also accepts `HUGINN_PLAN` env var.                                                                     |
-| `--phase`          | (required)      | Phase whose failures to reconcile. Combined with the scenario name to form the `-<scenario>-<phase>` suffix. Also accepts `HUGINN_PHASE` env var. |
-| `--scenario`       | none            | Scenario to reconcile. Optional only when exactly one scenario in the results contains the phase. Also accepts `HUGINN_SCENARIO` env var.         |
-| `--results-dir`    | `./results/`    | Directory containing test run results. Also accepts `HUGINN_RESULTS_DIR` env var.                                                                 |
-| `--parameters-dir` | `./parameters/` | Directory containing parameter files. Also accepts `HUGINN_PARAMETERS_DIR` env var.                                                               |
-| `--debug`          | off             | Enable DEBUG-level logging. Also accepts `HUGINN_DEBUG` env var.                                                                                  |
-| `--log-level`      | `INFO`          | Logging level (DEBUG, INFO, WARNING, ERROR). Also accepts `HUGINN_LOG_LEVEL` env var.                                                             |
-| `--show-logs`      | off             | Stream logs to console in addition to file. Also accepts `HUGINN_SHOW_LOGS` env var.                                                              |
-| `--log-file`       | `./huginn.log`  | Path to log file. Also accepts `HUGINN_LOG_FILE` env var.                                                                                         |
+| Option                      | Default         | Description                                                                                                                                       |
+| --------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--plan`, `-p`              | (required)      | Path to test plan YAML file or directory. Also accepts `HUGINN_PLAN` env var.                                                                     |
+| `--phase`                   | (required)      | Phase whose failures to reconcile. Combined with the scenario name to form the `-<scenario>-<phase>` suffix. Also accepts `HUGINN_PHASE` env var. |
+| `--scenario`                | none            | Scenario to reconcile. Optional only when exactly one scenario in the results contains the phase. Also accepts `HUGINN_SCENARIO` env var.         |
+| `--results-dir`             | `./results/`    | Directory containing test run results. Also accepts `HUGINN_RESULTS_DIR` env var.                                                                 |
+| `--parameters-dir`          | `./parameters/` | Directory containing parameter files. Also accepts `HUGINN_PARAMETERS_DIR` env var.                                                               |
+| `--no-unknown-key-warnings` | off             | Do not warn about unknown keys in the test plan or testbed. Also accepts `HUGINN_NO_UNKNOWN_KEY_WARNINGS` env var.                                |
+| `--debug`                   | off             | Enable DEBUG-level logging. Also accepts `HUGINN_DEBUG` env var.                                                                                  |
+| `--log-level`               | `INFO`          | Logging level (DEBUG, INFO, WARNING, ERROR). Also accepts `HUGINN_LOG_LEVEL` env var.                                                             |
+| `--show-logs`               | off             | Stream logs to console in addition to file. Also accepts `HUGINN_SHOW_LOGS` env var.                                                              |
+| `--log-file`                | `./huginn.log`  | Path to log file. Also accepts `HUGINN_LOG_FILE` env var.                                                                                         |
 
 Reconcile reads the most recent `*-testing` directory under `--results-dir`. When more than one scenario in that run contains the phase and `--scenario` is omitted, the command stops with `Multiple scenarios contain phase '<phase>': [...]. Use --scenario to specify which one to reconcile.`
 

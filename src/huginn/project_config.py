@@ -1,8 +1,8 @@
 """Project defaults loaded from ``[tool.huginn]`` in ``pyproject.toml``.
 
 The CLI reads ``pyproject.toml`` from the current working directory once per
-invocation. Path and logging keys become defaults for the matching CLI
-options, below explicit flags and ``HUGINN_*`` environment variables. The
+invocation. Path, logging and warning keys become defaults for the matching
+CLI options, below explicit flags and ``HUGINN_*`` environment variables. The
 ``[tool.huginn.plugins]`` sub-table configures the plugin registry.
 """
 
@@ -30,8 +30,9 @@ _PATH_KEYS = (
     "log_file",
 )
 _STRING_KEYS = ("inventory_plugin", "log_level")
+_BOOL_KEYS = ("unknown_key_warnings",)
 _RESERVED_TABLES = ("plugins",)
-_ALLOWED_KEYS = frozenset(_PATH_KEYS + _STRING_KEYS + _RESERVED_TABLES)
+_ALLOWED_KEYS = frozenset(_PATH_KEYS + _STRING_KEYS + _BOOL_KEYS + _RESERVED_TABLES)
 _PLUGIN_KEYS = frozenset(("brokers", "reporters", "hooks", "config"))
 
 # Keys whose CLI parameter name differs from the pyproject key.
@@ -51,6 +52,8 @@ class ProjectConfig:
         output_dir: Default for ``--output-dir``.
         log_file: Default for ``--log-file``.
         log_level: Default for ``--log-level``.
+        unknown_key_warnings: ``False`` makes ``--no-unknown-key-warnings``
+            the default.
         plugins: Plugin configuration from ``[tool.huginn.plugins]``.
     """
 
@@ -62,15 +65,18 @@ class ProjectConfig:
     output_dir: Path | None = None
     log_file: Path | None = None
     log_level: str | None = None
+    unknown_key_warnings: bool | None = None
     plugins: PluginConfig = field(default_factory=PluginConfig)
 
-    def cli_defaults(self) -> dict[str, Path | str]:
+    def cli_defaults(self) -> dict[str, Path | str | bool]:
         """Return the set defaults keyed by CLI parameter name."""
-        defaults: dict[str, Path | str] = {}
+        defaults: dict[str, Path | str | bool] = {}
         for key in _PATH_KEYS + _STRING_KEYS:
             value = getattr(self, key)
             if value is not None:
                 defaults[_CLI_PARAMETER_NAMES.get(key, key)] = value
+        if self.unknown_key_warnings is not None:
+            defaults["no_unknown_key_warnings"] = not self.unknown_key_warnings
         return defaults
 
 
@@ -82,9 +88,11 @@ def load_project_config(project_root: Path) -> ProjectConfig:
 
     Raises:
         ConfigurationError: If the file is not valid TOML, the table holds an
-            unknown key or a value of the wrong type, ``log_level`` is not a
-            supported level, both ``testbed`` and ``inventory_plugin`` are set,
-            or ``[tool.huginn.plugins]`` holds an unknown key or a bad value.
+            unknown key or a value of the wrong type (a string for path and
+            logging keys, a boolean for ``unknown_key_warnings``),
+            ``log_level`` is not a supported level, both ``testbed`` and
+            ``inventory_plugin`` are set, or ``[tool.huginn.plugins]`` holds
+            an unknown key or a bad value.
     """
     table = _read_huginn_table(project_root / "pyproject.toml")
     unknown = sorted(set(table) - _ALLOWED_KEYS)
@@ -98,6 +106,14 @@ def load_project_config(project_root: Path) -> ProjectConfig:
             "exclusive."
         )
 
+    return ProjectConfig(
+        **_option_values(table, project_root),
+        plugins=_plugin_config(table.get("plugins", {})),
+    )
+
+
+def _option_values(table: dict[str, Any], project_root: Path) -> dict[str, Any]:
+    """Return the validated CLI-default keys of ``table`` by field name."""
     values: dict[str, Any] = {
         key: project_root / _string_value(table, key)
         for key in _PATH_KEYS
@@ -106,9 +122,10 @@ def load_project_config(project_root: Path) -> ProjectConfig:
     values.update(
         {key: _string_value(table, key) for key in _STRING_KEYS if key in table}
     )
+    values.update({key: _bool_value(table, key) for key in _BOOL_KEYS if key in table})
     if "log_level" in values:
         values["log_level"] = _log_level(values["log_level"])
-    return ProjectConfig(**values, plugins=_plugin_config(table.get("plugins", {})))
+    return values
 
 
 def _read_huginn_table(pyproject_path: Path) -> dict[str, Any]:
@@ -133,6 +150,17 @@ def _string_value(table: dict[str, Any], key: str) -> str:
     if not isinstance(value, str) or not value:
         raise ConfigurationError(
             f"[tool.huginn] key '{key}' must be a non-empty string, got {value!r}."
+        )
+    return value
+
+
+def _bool_value(table: dict[str, Any], key: str) -> bool:
+    """Return a boolean value from ``table`` or raise."""
+    value = table[key]
+    if not isinstance(value, bool):
+        raise ConfigurationError(
+            f"[tool.huginn] key '{key}' must be a boolean (true or false), "
+            f"got {value!r}."
         )
     return value
 

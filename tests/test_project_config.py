@@ -355,7 +355,7 @@ def test_execute_uses_project_testbed(
     _write_pyproject(project, _FULL_PYPROJECT)
     captured: dict[str, Any] = {}
 
-    def _fake_load_testbed(path: Path) -> None:
+    def _fake_load_testbed(path: Path, **_kwargs: object) -> None:
         captured["testbed"] = path
         raise _CapturedError
 
