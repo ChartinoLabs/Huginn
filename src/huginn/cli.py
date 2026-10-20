@@ -7,6 +7,7 @@ against infrastructure testbeds.
 import asyncio
 import json
 import re
+from dataclasses import replace
 from pathlib import Path
 from typing import Annotated
 
@@ -19,6 +20,9 @@ from huginn.catalog_import import (
     CatalogImportError,
     ImportOptions,
     ImportPlan,
+    Scope,
+    apply_import_plan,
+    check_import_plan,
     compute_import_plan,
     load_catalog,
     load_scope,
@@ -38,7 +42,7 @@ from huginn.execute import (
     load_command_specs,
 )
 from huginn.inject import InjectPlan
-from huginn.loaders import ConfigurationError, load_test_plan
+from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
 from huginn.models import RunResult, RunSummary, TestPlan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
@@ -2227,6 +2231,20 @@ def import_(
             envvar="HUGINN_CATALOG_TAXONOMY",
         ),
     ] = None,
+    testbed: Annotated[
+        Path | None,
+        typer.Option(
+            "--testbed",
+            "-t",
+            help="Testbed to check scoped device names against "
+            "(default: ./testbed.yaml if present; required with --target devices).",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            envvar="HUGINN_TESTBED",
+        ),
+    ] = None,
     plan: Annotated[
         Path | None,
         typer.Option(
@@ -2317,18 +2335,15 @@ def import_(
 
     Reads the catalog index and the scope file, selects the catalog jobs
     whose subfeature, feature or category matches a scoped feature on a
-    device of the same operating system, and reports each match and each
-    feature with no matching job (a gap).
+    device of the same operating system, and adds them to the test plan.
+    Reports each match and each feature with no matching job (a gap).
+    Use --dry-run to report without writing.
 
     Examples:
-        huginn import --catalog ./catalog --scope scope.yaml --dry-run
+        huginn import --catalog ./catalog --scope scope.yaml --phase pre-change
         huginn import --catalog my_catalog --scope scope.yaml --dry-run --format json
     """
     output = Output()
-    if not dry_run:
-        output.error("Writing the test plan is not implemented yet; run with --dry-run")
-        raise typer.Exit(code=1)
-
     plan_path = _resolve_plan_option(plan)
     options = ImportOptions(
         match_level=match_level,
@@ -2346,16 +2361,92 @@ def import_(
         test_plan = _load_plan_for_command(
             plan_path, output, no_unknown_key_warnings=no_unknown_key_warnings
         )
+        loaded_scope = _check_scope_devices(loaded_scope, testbed, target, output)
+        import_plan = compute_import_plan(
+            loaded_catalog, loaded_scope, test_plan, options
+        )
+        if not dry_run:
+            check_import_plan(plan_path, import_plan)
     except (CatalogImportError, ConfigurationError) as exc:
         output.error(f"ERROR: {exc}")
         raise typer.Exit(code=1) from exc
 
-    import_plan = compute_import_plan(loaded_catalog, loaded_scope, test_plan, options)
     if report_format is ReportFormat.JSON:
         typer.echo(json.dumps(import_plan.to_dict(), indent=2))
+    else:
+        _display_import_plan(import_plan, output)
+    if dry_run:
+        if report_format is ReportFormat.TEXT:
+            output.status("Dry run — no changes written")
         return
-    _display_import_plan(import_plan, output)
-    output.status("Dry run — no changes written")
+    _write_import_plan(
+        plan_path, import_plan, output, quiet=report_format is ReportFormat.JSON
+    )
+
+
+def _check_scope_devices(
+    scope: Scope, testbed: Path | None, target: TargetMode, output: Output
+) -> Scope:
+    """Check scoped device names against the testbed, when there is one.
+
+    With ``--target devices`` the names become test case targets, so a
+    testbed is required and unknown names are errors. Otherwise unknown
+    names are only warned about. Scoped devices found in the testbed are
+    targeted by the testbed's ``os`` for them.
+
+    Raises:
+        CatalogImportError: If device targeting has no testbed, or names a
+            device the testbed does not define.
+        ConfigurationError: If the testbed cannot be loaded.
+    """
+    if testbed is None:
+        default = Path.cwd() / "testbed.yaml"
+        testbed = default if default.is_file() else None
+    if testbed is None:
+        if target is TargetMode.DEVICES:
+            raise CatalogImportError(
+                "--target devices needs a testbed to check device names: "
+                "pass --testbed (no default ./testbed.yaml found)"
+            )
+        return scope
+    devices = load_testbed(testbed).devices
+    unknown = sorted({d.name for d in scope.devices} - set(devices))
+    if unknown:
+        message = f"Scoped device(s) not in testbed {testbed}: {', '.join(unknown)}"
+        if target is TargetMode.DEVICES:
+            raise CatalogImportError(message)
+        output.warning(f"WARNING: {message}")
+    return Scope(
+        devices=tuple(
+            replace(d, target_os=devices[d.name].os) if d.name in devices else d
+            for d in scope.devices
+        )
+    )
+
+
+def _write_import_plan(
+    plan_path: Path, import_plan: ImportPlan, output: Output, *, quiet: bool
+) -> None:
+    """Write an import plan, then check that the test plan still loads."""
+    if not import_plan.has_changes:
+        if not quiet:
+            output.success("Nothing to import -- the test plan is up to date")
+        return
+    try:
+        apply_import_plan(plan_path, import_plan)
+        load_test_plan(plan_path)
+    except CatalogImportError as exc:
+        output.error(f"Failed to apply: {exc}")
+        raise typer.Exit(code=1) from exc
+    except ConfigurationError as exc:
+        output.error(f"Imported test plan failed validation: {exc}")
+        raise typer.Exit(code=1) from exc
+    if not quiet:
+        output.success(
+            f"Imported {len(import_plan.new_test_cases)} test case(s) and "
+            f"widened {len(import_plan.target_updates)} target(s) under group "
+            f"'{import_plan.group_id}'"
+        )
 
 
 def _display_import_plan(import_plan: ImportPlan, output: Output) -> None:
