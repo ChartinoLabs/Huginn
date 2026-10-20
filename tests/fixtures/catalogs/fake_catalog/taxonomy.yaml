@@ -1,0 +1,19 @@
+categories:
+  routing:
+    features:
+      peering: [peer sessions, route tables]
+      link state: [area adjacency]
+  switching:
+    features:
+      bundling: [bundle members]
+      pairing: [pair keepalive]
+  platform:
+    features:
+      system: [device health]
+operating_systems:
+  alpha-os:
+    aliases: [alphaos, alpha]
+  beta-os:
+    aliases: [betaos, beta]
+always_include:
+  - device health

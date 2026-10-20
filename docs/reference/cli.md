@@ -11,6 +11,7 @@ The `huginn` command groups every Huginn operation under one entry point. Run `h
 | [`execute`](#execute)           | Run ad-hoc commands on testbed devices.                                  |
 | [`inject new`](#inject-new)     | Create a new test case group from job files.                             |
 | [`inject into`](#inject-into)   | Add job files to an existing test case group.                            |
+| [`import`](#import)             | Select catalog jobs that match the features scoped on each device.       |
 | [`reconcile`](#reconcile)       | Create post-change variants of test cases that failed in a phase.        |
 | [`relearn`](#relearn)           | Re-learn parameters for the tests that failed in the latest testing run. |
 | [`prune`](#prune)               | Remove non-applicable tests and devices from the test plan.              |
@@ -306,6 +307,51 @@ huginn inject into iosxe-vrf-detail jobs/iosxe/vrf_detail/verify_vrf_route_targe
 | ---- | ---------------------------------------------------------------------------------------------------------------- |
 | 0    | Test cases were injected, the dry run completed, or every job was already in the plan.                           |
 | 1    | The test plan could not be loaded, `GROUP` was not found, no job files were found, or a job could not be loaded. |
+
+## import
+
+Select the jobs in a catalog that match the features found on each device, and report the matches and the features no catalog job covers. In this release `import` only reports: `--dry-run` is required, and the command changes no files. Writing the selected jobs into the test plan comes in a later release.
+
+```
+huginn import --catalog <dir|package> --scope <file> --dry-run [--taxonomy <file>] [--plan <dir>]
+              [--features <names>] [--match-level <level>] [--archetype <names>] [--target <mode>]
+              [--group <id>] [--phase <ids>] [--parent-group <id>] [--tags <tags>] [--format <format>]
+              [--no-unknown-key-warnings]
+```
+
+| Option                      | Short | Env var                          | Default                                 | Description                                                                                                             |
+| --------------------------- | ----- | -------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `--catalog`                 |       | `HUGINN_CATALOG`                 | required                                | Catalog directory, or the name of an installed catalog package. The catalog index must be directly inside it.           |
+| `--scope`                   |       | `HUGINN_SCOPE`                   | required                                | Scope file listing the features found on each device.                                                                   |
+| `--taxonomy`                |       | `HUGINN_CATALOG_TAXONOMY`        | `taxonomy.yaml` beside the index        | Taxonomy file with category, feature and subfeature names, operating system aliases and always-included subfeatures.    |
+| `--plan`                    | `-p`  | `HUGINN_PLAN`                    | `./test_plan`                           | Path to the test plan directory. Jobs already in the plan are not selected again.                                       |
+| `--features`                |       |                                  | all                                     | Only consider these scoped features. Repeatable, comma-separated.                                                       |
+| `--match-level`             |       |                                  | `feature`                               | Broadest catalog field a feature may match: `subfeature`, `feature` or `category`.                                      |
+| `--archetype`               |       |                                  | `static-validation,volatile-validation` | Job archetypes to select. `change` and `gate` jobs are only selected when listed. Repeatable, comma-separated.          |
+| `--target`                  |       |                                  | `os`                                    | Target new test cases by operating system (`target.os`) or only at the devices that run the feature (`target.devices`). |
+| `--group`                   |       |                                  | `catalog-import`                        | Composite group that holds one child group per subfeature.                                                              |
+| `--phase`                   |       |                                  | none                                    | Phase(s) to add the import group to. Repeatable, comma-separated.                                                       |
+| `--parent-group`            |       |                                  | none                                    | Existing composite group to nest the import group under.                                                                |
+| `--tags`                    |       |                                  | none                                    | Tags to add to each new test case, after `catalog` and the subfeature. Repeatable, comma-separated.                     |
+| `--dry-run`                 |       |                                  | off                                     | Print the matches, gaps and planned changes without writing any files. Required in this release.                        |
+| `--format`                  |       |                                  | `text`                                  | Report format: `text`, or `json` for the full plan as one JSON object on stdout.                                        |
+| `--no-unknown-key-warnings` |       | `HUGINN_NO_UNKNOWN_KEY_WARNINGS` | off                                     | Do not warn about unknown keys in the test plan. See [Unknown key warnings](#unknown-key-warnings).                     |
+
+See [Catalog Import](catalog-import.md) for the catalog index, taxonomy and scope formats, and for how features are matched.
+
+```bash
+huginn import --catalog ./catalog --scope scope.yaml --dry-run
+huginn import --catalog my_catalog --scope scope.yaml --dry-run --match-level category
+huginn import --catalog ./catalog --scope scope.yaml --dry-run --format json --target devices
+```
+
+### Exit codes
+
+| Code | Meaning                                                                                                                |
+| ---- | ---------------------------------------------------------------------------------------------------------------------- |
+| 0    | The dry run completed, including when some scoped features have no matching catalog job.                               |
+| 1    | `--dry-run` was not given, or the catalog, its index, the taxonomy, the scope file or the test plan could not be read. |
+| 2    | Usage error, such as a missing required option or an invalid `--match-level`, `--target` or `--format` value.          |
 
 ## reconcile
 

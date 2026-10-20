@@ -12,6 +12,8 @@ The `huginn prune` command reads learning results and narrows the test plan auto
 
 Prune is designed to be run once after an initial learning pass against a new testbed. It tightens test scope based on observed reality, eliminating noise from tests that can never pass on the current infrastructure.
 
+Prune pairs with [catalog import](catalog-import.md): import selects catalog jobs by the features scoped on each device, a learning run shows which of them each device actually supports, and prune removes the rest.
+
 ## Why tests become non-applicable
 
 There are two distinct sources of `NOT_APPLICABLE` during learning:
