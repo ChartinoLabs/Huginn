@@ -1,0 +1,1 @@
+Added `huginn import --dry-run`, which selects catalog jobs by the features scoped on each device and reports matches, gaps and the test cases it would create.
