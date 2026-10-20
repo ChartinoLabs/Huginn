@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
-from typer.testing import CliRunner
+from typer.testing import CliRunner, Result
 
 from huginn.catalog_import import (
     Catalog,
@@ -17,6 +18,7 @@ from huginn.catalog_import import (
     ImportPlan,
     Scope,
     ScopedDevice,
+    apply_import_plan,
     compute_import_plan,
     load_catalog,
     load_scope,
@@ -25,6 +27,7 @@ from huginn.catalog_import import (
 from huginn.cli import app
 from huginn.enums import MatchLevel, TargetMode
 from huginn.jobs import load_test_case_class
+from huginn.loaders import load_test_plan
 from huginn.models import TargetDefinition, TestCaseDefinition, TestPlan
 
 CATALOGS = Path(__file__).resolve().parent / "fixtures" / "catalogs"
@@ -535,14 +538,25 @@ def test_to_dict_is_json_serializable(catalog: Catalog) -> None:
 def _write_cli_inputs(tmp_path: Path) -> tuple[Path, Path]:
     """Write a minimal test plan and a scope file, and return their paths."""
     plan_path = tmp_path / "test_plan"
-    plan_path.mkdir()
-    (plan_path / "test_plan.yaml").write_text(
+    (plan_path / "groups").mkdir(parents=True)
+    (plan_path / "test_cases.yaml").write_text(
+        yaml.safe_dump(
+            {"test_cases": {"1.0.0": {"title": "Ping", "job": "jobs/ping.py"}}}
+        )
+    )
+    (plan_path / "groups" / "base.yaml").write_text(
         yaml.safe_dump(
             {
-                "test_cases": {"1.0.0": {"title": "Ping", "job": "jobs/ping.py"}},
-                "test_case_groups": {"base": {"tests": ["1.0.0"]}},
-                "scenarios": {"s": {"phases": {"pre": {"test_case_groups": ["base"]}}}},
+                "test_case_groups": {
+                    "base": {"tests": ["1.0.0"]},
+                    "baseline": {"groups": ["base"]},
+                }
             }
+        )
+    )
+    (plan_path / "scenarios.yaml").write_text(
+        yaml.safe_dump(
+            {"scenarios": {"s": {"phases": {"pre": {"test_case_groups": ["base"]}}}}}
         )
     )
     scope_path = tmp_path / "scope.yaml"
@@ -560,6 +574,27 @@ def _write_cli_inputs(tmp_path: Path) -> tuple[Path, Path]:
         )
     )
     return plan_path, scope_path
+
+
+def _write_testbed(tmp_path: Path, devices: dict[str, str]) -> Path:
+    """Write a testbed with the given device names and operating systems."""
+    path = tmp_path / "testbed.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "devices": {
+                    name: {
+                        "os": os_name,
+                        "connections": {
+                            "cli": {"protocol": "ssh", "host": "192.0.2.1"}
+                        },
+                    }
+                    for name, os_name in devices.items()
+                }
+            }
+        )
+    )
+    return path
 
 
 def _cli_args(plan_path: Path, scope_path: Path, *extra: str) -> list[str]:
@@ -601,6 +636,8 @@ def test_cli_dry_run_json(tmp_path: Path) -> None:
             "json",
             "--target",
             "devices",
+            "--testbed",
+            str(_write_testbed(tmp_path, {"r1": "alpha-os"})),
             "--archetype",
             "static-validation",
         ),
@@ -613,14 +650,6 @@ def test_cli_dry_run_json(tmp_path: Path) -> None:
     assert all(tc["target"] == {"devices": ["r1"]} for tc in report["new_test_cases"])
 
 
-def test_cli_requires_dry_run_for_now(tmp_path: Path) -> None:
-    """Writing the plan is not implemented yet, so a real run is refused."""
-    plan_path, scope_path = _write_cli_inputs(tmp_path)
-    result = CliRunner().invoke(app, _cli_args(plan_path, scope_path))
-    assert result.exit_code == 1
-    assert "--dry-run" in result.output
-
-
 def test_cli_reports_bad_catalog(tmp_path: Path) -> None:
     """A catalog error exits 1 with the error message."""
     plan_path, scope_path = _write_cli_inputs(tmp_path)
@@ -629,3 +658,208 @@ def test_cli_reports_bad_catalog(tmp_path: Path) -> None:
     result = CliRunner().invoke(app, args)
     assert result.exit_code == 1
     assert "Catalog not found" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Writing
+# ---------------------------------------------------------------------------
+
+
+def _import(tmp_path: Path, *extra: str) -> Result:
+    """Run a writing import from ``tmp_path`` against the default inputs."""
+    plan_path = tmp_path / "test_plan"
+    return CliRunner().invoke(
+        app, _cli_args(plan_path, tmp_path / "scope.yaml", *extra)
+    )
+
+
+@pytest.fixture
+def project(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, importable_catalog: None
+) -> Path:
+    """A project directory with a plan and scope, used as the working directory."""
+    _write_cli_inputs(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    return tmp_path
+
+
+def _load(path: Path) -> Any:  # noqa: ANN401
+    return yaml.safe_load(path.read_text())
+
+
+def test_import_writes_cases_groups_and_wiring(project: Path) -> None:
+    """An import writes test cases and groups, and wires the group in."""
+    result = _import(project, "--phase", "pre", "--parent-group", "baseline")
+    assert result.exit_code == 0, result.output
+    assert "Imported 5 test case(s)" in result.output
+
+    plan_path = project / "test_plan"
+    cases = _load(plan_path / "test_cases" / "catalog-import.yaml")["test_cases"]
+    assert isinstance(cases, dict)
+    assert {tc["job"] for tc in cases.values()} == {
+        PEER_COUNT,
+        PEERS_UP,
+        RIB,
+        ROUTES,
+        UPTIME,
+    }
+    groups = _load(plan_path / "groups" / "catalog-import.yaml")["test_case_groups"]
+    assert isinstance(groups, dict)
+    assert groups["catalog-import"] == {
+        "groups": [
+            "catalog-import-device-health",
+            "catalog-import-peer-sessions",
+            "catalog-import-route-tables",
+        ]
+    }
+    assert groups["catalog-import-peer-sessions"]["name"] == "peer sessions"
+    base = _load(plan_path / "groups" / "base.yaml")["test_case_groups"]
+    assert base["baseline"]["groups"] == ["base", "catalog-import"]
+    scenarios = _load(plan_path / "scenarios.yaml")
+    assert scenarios["scenarios"]["s"]["phases"]["pre"]["test_case_groups"] == [
+        "base",
+        "catalog-import",
+    ]
+
+    loaded = load_test_plan(plan_path)
+    assert "catalog-import" in loaded.test_case_groups
+
+
+def test_import_twice_changes_nothing(project: Path) -> None:
+    """A second identical import reports nothing to do and writes nothing."""
+    assert _import(project, "--phase", "pre").exit_code == 0
+    files = {p: p.read_text() for p in (project / "test_plan").rglob("*.yaml")}
+    result = _import(project, "--phase", "pre")
+    assert result.exit_code == 0, result.output
+    assert "up to date" in result.output
+    assert {p: p.read_text() for p in (project / "test_plan").rglob("*.yaml")} == (
+        files
+    )
+
+
+def test_import_extends_existing_groups_and_widens_targets(project: Path) -> None:
+    """A later import adds to existing child groups and widens targets."""
+    first = _import(
+        project, "--features", "peering", "--archetype", "static-validation"
+    )
+    assert first.exit_code == 0, first.output
+    assert "Imported 4 test case(s)" in first.output
+
+    (project / "scope.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "platform_metadata": [
+                    {
+                        "device_name": "r1",
+                        "os_type": "alphaos",
+                        "features": ["peering"],
+                    },
+                    {"device_name": "r2", "os_type": "alpha", "features": ["peering"]},
+                ]
+            }
+        )
+    )
+    result = _import(project)
+    assert result.exit_code == 0, result.output
+    assert "Imported 1 test case(s) and widened 4 target(s)" in result.output
+
+    plan_path = project / "test_plan"
+    cases = _load(plan_path / "test_cases" / "catalog-import.yaml")["test_cases"]
+    assert isinstance(cases, dict)
+    by_job = {tc["job"]: (test_id, tc) for test_id, tc in cases.items()}
+    assert by_job[PEERS_UP][1]["target"] == {"os": ["alphaos", "alpha"]}
+    assert by_job[RIB][0] == "CATALOG-IMPORT-ROUTE-TABLES-2"
+    assert by_job[RIB][1]["target"] == {"os": ["alpha", "alphaos"]}
+    groups = _load(plan_path / "groups" / "catalog-import.yaml")["test_case_groups"]
+    assert isinstance(groups, dict)
+    assert groups["catalog-import-route-tables"]["tests"] == [
+        "CATALOG-IMPORT-ROUTE-TABLES-1",
+        "CATALOG-IMPORT-ROUTE-TABLES-2",
+    ]
+    assert groups["catalog-import"]["groups"] == [
+        "catalog-import-device-health",
+        "catalog-import-peer-sessions",
+        "catalog-import-route-tables",
+    ]
+    load_test_plan(plan_path)
+
+
+def test_import_targets_testbed_os_names(project: Path) -> None:
+    """With a testbed, OS targets use the testbed's name for each device."""
+    testbed = _write_testbed(project, {"r1": "alpha-os"})
+    result = _import(project, "--testbed", str(testbed), "--features", "peering")
+    assert result.exit_code == 0, result.output
+    cases = _load(project / "test_plan" / "test_cases" / "catalog-import.yaml")
+    targets = {tc["target"]["os"][0] for tc in cases["test_cases"].values()}
+    assert targets == {"alpha-os"}
+
+
+def test_import_warns_on_devices_missing_from_testbed(project: Path) -> None:
+    """OS targeting warns about scoped devices the testbed does not define."""
+    _write_testbed(project, {"other": "alpha-os"})
+    result = _import(project, "--dry-run")
+    assert result.exit_code == 0, result.output
+    assert "not in testbed" in result.output
+
+
+def test_device_targeting_rejects_unknown_devices(project: Path) -> None:
+    """Device targeting fails on scoped devices the testbed does not define."""
+    _write_testbed(project, {"other": "alpha-os"})
+    result = _import(project, "--target", "devices")
+    assert result.exit_code == 1
+    assert "not in testbed" in result.output
+    assert not (project / "test_plan" / "test_cases").exists()
+
+
+def test_import_checks_parent_and_scenarios_before_writing(project: Path) -> None:
+    """A missing parent group or scenarios file fails before any file changes."""
+    result = _import(project, "--parent-group", "nope")
+    assert result.exit_code == 1
+    assert "Parent group 'nope' not found" in result.output
+
+    (project / "test_plan" / "scenarios.yaml").rename(project / "elsewhere.yaml")
+    (project / "test_plan" / "groups" / "s.yaml").write_text(
+        yaml.safe_dump(
+            {"scenarios": {"s": {"phases": {"pre": {"test_case_groups": ["base"]}}}}}
+        )
+    )
+    result = _import(project, "--phase", "pre")
+    assert result.exit_code == 1
+    assert "No scenarios.yaml" in result.output
+    assert not (project / "test_plan" / "test_cases").exists()
+
+
+def test_import_json_report_then_write(project: Path) -> None:
+    """``--format json`` without ``--dry-run`` prints the report and writes."""
+    result = _import(project, "--format", "json")
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output)["new_test_cases"]
+    assert (project / "test_plan" / "test_cases" / "catalog-import.yaml").exists()
+
+
+def test_import_into_single_file_plan_is_refused(project: Path) -> None:
+    """Writing needs a plan directory, not a single plan file."""
+    single = project / "plan.yaml"
+    single.write_text(
+        yaml.safe_dump(
+            {
+                "test_cases": {"1": {"title": "P", "job": "jobs/p.py"}},
+                "test_case_groups": {"g": {"tests": ["1"]}},
+                "scenarios": {"s": {"phases": {"p": {"test_case_groups": ["g"]}}}},
+            }
+        )
+    )
+    plan = compute_import_plan(
+        load_catalog(CATALOG_DIR),
+        _scope(("r1", "alpha", ["peering"])),
+        load_test_plan(single),
+    )
+    with pytest.raises(CatalogImportError, match="must be a directory"):
+        apply_import_plan(single, plan)
+
+
+def test_apply_without_changes_writes_nothing(tmp_path: Path) -> None:
+    """An empty plan is a no-op, even for a missing directory."""
+    plan = compute_import_plan(load_catalog(CATALOG_DIR), _scope(), _plan())
+    apply_import_plan(tmp_path / "missing", plan)
+    assert not (tmp_path / "missing").exists()

@@ -5,12 +5,18 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import cast
-
-import yaml
 
 from huginn.jobs import JobLoadError, load_test_case_class
 from huginn.models import TestPlan
+from huginn.plan_writer import (
+    PlanWriteError,
+    add_group_to_phases,
+    cases_file_path,
+    extend_group,
+    groups_file_path,
+    write_group,
+    write_test_cases,
+)
 
 
 class InjectError(ValueError):
@@ -225,180 +231,38 @@ def apply_inject_plan(
     if not inject_plan.new_test_cases:
         return
 
-    _write_test_cases(plan_path, inject_plan)
+    try:
+        _apply(plan_path, inject_plan)
+    except PlanWriteError as exc:
+        raise InjectError(str(exc)) from exc
+
+
+def _apply(plan_path: Path, inject_plan: InjectPlan) -> None:
+    group_id = inject_plan.group_id
+    new_ids = list(inject_plan.new_test_cases)
+    write_test_cases(cases_file_path(plan_path, group_id), inject_plan.new_test_cases)
 
     if inject_plan.is_new_group:
-        _write_new_group(plan_path, inject_plan)
-    else:
-        _append_to_existing_group(plan_path, inject_plan)
+        write_group(
+            groups_file_path(plan_path, group_id),
+            group_id,
+            {"name": inject_plan.group_name, "tests": new_ids},
+        )
+    elif not extend_group(plan_path, group_id, tests=new_ids):
+        raise InjectError(
+            f"Group '{group_id}' not found in any "
+            f"groups file under {plan_path / 'groups'}"
+        )
 
-    if inject_plan.parent_group:
-        _add_to_parent_group(plan_path, inject_plan)
+    parent_id = inject_plan.parent_group
+    if parent_id and not extend_group(plan_path, parent_id, groups=[group_id]):
+        raise InjectError(
+            f"Parent group '{parent_id}' not found in any "
+            f"groups file under {plan_path / 'groups'}"
+        )
 
     if inject_plan.phase_updates:
-        _update_phase_references(plan_path, inject_plan)
-
-
-def _write_test_cases(plan_path: Path, inject_plan: InjectPlan) -> None:
-    """Write test case definitions to a YAML file."""
-    tc_file = plan_path / "test_cases" / f"{inject_plan.group_id}.yaml"
-
-    if tc_file.exists():
-        data = _load_raw_yaml(tc_file)
-    else:
-        data = {}
-
-    test_cases = cast(dict[str, object], data.get("test_cases", {}))
-    for test_id, tc_entry in inject_plan.new_test_cases.items():
-        test_cases[test_id] = tc_entry
-    data["test_cases"] = test_cases
-
-    _write_yaml(tc_file, data)
-
-
-def _write_new_group(plan_path: Path, inject_plan: InjectPlan) -> None:
-    """Write a new group definition file."""
-    group_file = plan_path / "groups" / f"{inject_plan.group_id}.yaml"
-
-    if group_file.exists():
-        data = _load_raw_yaml(group_file)
-    else:
-        data = {}
-
-    groups = cast(dict[str, object], data.get("test_case_groups", {}))
-    group_entry: dict[str, object] = {
-        "name": inject_plan.group_name,
-        "tests": list(inject_plan.new_test_cases.keys()),
-    }
-    groups[inject_plan.group_id] = group_entry
-    data["test_case_groups"] = groups
-
-    _write_yaml(group_file, data)
-
-
-def _append_to_existing_group(plan_path: Path, inject_plan: InjectPlan) -> None:
-    """Append new test IDs to an existing group's tests list."""
-    group_files = list((plan_path / "groups").glob("*.yaml")) + list(
-        (plan_path / "groups").glob("*.yml")
-    )
-
-    for gf in group_files:
-        data = _load_raw_yaml(gf)
-        raw_groups = data.get("test_case_groups")
-        if not isinstance(raw_groups, dict):
-            continue
-        groups_map = cast(dict[str, object], raw_groups)
-        if inject_plan.group_id not in groups_map:
-            continue
-
-        raw_group = groups_map[inject_plan.group_id]
-        if not isinstance(raw_group, dict):
-            continue
-        group_data = cast(dict[str, object], raw_group)
-        existing_tests: list[str] = list(cast(list[str], group_data.get("tests", [])))
-        existing_tests.extend(inject_plan.new_test_cases.keys())
-        group_data["tests"] = existing_tests
-
-        _write_yaml(gf, data)
-        return
-
-    raise InjectError(
-        f"Group '{inject_plan.group_id}' not found in any "
-        f"groups file under {plan_path / 'groups'}"
-    )
-
-
-def _add_to_parent_group(plan_path: Path, inject_plan: InjectPlan) -> None:
-    """Add the new group to a parent composite group's 'groups' list."""
-    parent_id = inject_plan.parent_group
-    if parent_id is None:
-        return
-
-    group_files = list((plan_path / "groups").glob("*.yaml")) + list(
-        (plan_path / "groups").glob("*.yml")
-    )
-
-    for gf in group_files:
-        data = _load_raw_yaml(gf)
-        raw_groups = data.get("test_case_groups")
-        if not isinstance(raw_groups, dict):
-            continue
-        groups_map = cast(dict[str, object], raw_groups)
-        if parent_id not in groups_map:
-            continue
-
-        raw_parent = groups_map[parent_id]
-        if not isinstance(raw_parent, dict):
-            continue
-        parent_data = cast(dict[str, object], raw_parent)
-        child_groups = parent_data.get("groups")
-        if isinstance(child_groups, list):
-            child_list = cast(list[str], child_groups)
-        else:
-            child_list: list[str] = []
-            parent_data["groups"] = child_list
-        if inject_plan.group_id not in child_list:
-            child_list.append(inject_plan.group_id)
-
-        _write_yaml(gf, data)
-        return
-
-    raise InjectError(
-        f"Parent group '{parent_id}' not found in any "
-        f"groups file under {plan_path / 'groups'}"
-    )
-
-
-def _update_phase_references(plan_path: Path, inject_plan: InjectPlan) -> None:
-    """Add the new group to specified phases in scenarios."""
-    scenarios_file = _find_scenarios_file(plan_path)
-
-    data = _load_raw_yaml(scenarios_file)
-    raw_scenarios = data.get("scenarios")
-    if not isinstance(raw_scenarios, dict):
-        raise InjectError("No scenarios mapping found in scenarios file")
-
-    for _scenario_id, scenario_data in cast(dict[str, object], raw_scenarios).items():
-        if not isinstance(scenario_data, dict):
-            continue
-        raw_phases = cast(dict[str, object], scenario_data).get("phases")
-        if not isinstance(raw_phases, dict):
-            continue
-        _inject_group_into_phases(raw_phases, inject_plan)
-
-    _write_yaml(scenarios_file, data)
-
-
-def _find_scenarios_file(plan_path: Path) -> Path:
-    """Locate the scenarios YAML file in the test plan."""
-    scenarios_file = plan_path / "scenarios.yaml"
-    if scenarios_file.exists():
-        return scenarios_file
-    candidates = list(plan_path.glob("scenarios*.yaml"))
-    if candidates:
-        return candidates[0]
-    raise InjectError("No scenarios.yaml found in test plan")
-
-
-def _inject_group_into_phases(
-    raw_phases: object,
-    inject_plan: InjectPlan,
-) -> None:
-    """Add the group to matching phases within a single scenario."""
-    phases_dict = cast(dict[str, object], raw_phases)
-    for phase_name in inject_plan.phase_updates:
-        raw_phase = phases_dict.get(phase_name)
-        if not isinstance(raw_phase, dict):
-            continue
-        phase_dict = cast(dict[str, object], raw_phase)
-        raw_group_list = phase_dict.get("test_case_groups")
-        if isinstance(raw_group_list, list):
-            group_list = cast(list[str], raw_group_list)
-        else:
-            group_list: list[str] = []
-        if inject_plan.group_id not in group_list:
-            group_list.append(inject_plan.group_id)
-            phase_dict["test_case_groups"] = group_list
+        add_group_to_phases(plan_path, group_id, inject_plan.phase_updates)
 
 
 def _humanize_prefix(prefix: str) -> str:
@@ -416,20 +280,3 @@ def _humanize_prefix(prefix: str) -> str:
         else:
             result.append(part.capitalize())
     return " ".join(result)
-
-
-def _load_raw_yaml(path: Path) -> dict[str, object]:
-    """Load a YAML file into a raw dictionary."""
-    loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if not isinstance(loaded, dict):
-        raise InjectError(f"Expected mapping at root of {path}")
-    return cast(dict[str, object], loaded)
-
-
-def _write_yaml(path: Path, data: dict[str, object]) -> None:
-    """Write a dictionary to a YAML file."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        yaml.dump(data, default_flow_style=False, sort_keys=False),
-        encoding="utf-8",
-    )

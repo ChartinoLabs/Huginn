@@ -5,7 +5,7 @@
 A catalog is a package of reusable jobs, shared by many test plans. `huginn import` selects the catalog jobs that apply to a testbed, using a scope file that lists the features found on each device. A job applies to a device when it covers one of the device's features and supports the device's operating system.
 
 ```bash
-huginn import --catalog ./catalog --scope scope.yaml --dry-run
+huginn import --catalog ./catalog --scope scope.yaml --phase pre-change
 ```
 
 The command reads three inputs:
@@ -14,7 +14,7 @@ The command reads three inputs:
 - An optional [taxonomy](#taxonomy), which groups subfeatures into features and categories and lists operating system aliases.
 - The [scope](#scope), which lists the features found on each device.
 
-It reports each match, each feature that no catalog job covers (a gap), and the test cases it would create. In this release `import` only reports, so `--dry-run` is required. See [CLI Reference - import](cli.md#import) for the options.
+It adds the selected jobs to the test plan as test cases, and reports each match and each feature that no catalog job covers (a gap). With `--dry-run` it reports the changes without making them. See [CLI Reference - import](cli.md#import) for the options.
 
 Huginn does not decide which features a device runs. The scope file comes from you or from another tool, for example one that reads device configurations. Import selects jobs by feature, and a learning run then shows which of them a device actually supports: run `huginn prune` afterwards to remove the rest. See [Pruning Non-Applicable Tests](prune.md).
 
@@ -119,18 +119,64 @@ Titles and commands are never searched, so every selection can be traced to a na
 
 By default only `static-validation` and `volatile-validation` jobs are selected. `change` and `gate` jobs alter devices or decide whether later phases run, so they are only selected when `--archetype` lists them.
 
-## Planned test cases
+## Writing the test plan
 
 Each selected job becomes one test case:
 
 - **ID:** the child group ID in upper case followed by a counter, for example `CATALOG-IMPORT-PEER-SESSIONS-1`, numbered after the highest counter already in the plan.
-- **Target:** `target.os` lists the operating systems of the devices the job was selected for, as the scope names them. With `--target devices`, `target.devices` lists the devices instead.
+- **Target:** see [Targets and the testbed](#targets-and-the-testbed).
 - **Tags:** `catalog`, the job's subfeature, and any `--tags`.
-- **Group:** one child group per subfeature, named after it, under the composite group given by `--group`.
+- **Group:** one child group per subfeature, named after it, inside the composite group given by `--group`.
 
-A job that the test plan already references is not added again. When the scope selects it for more operating systems or devices than its test case's `target.os` or `target.devices` lists, the report shows the targets that would be added. A test case targeted by `groups`, or with no target, is left as it is. Import never plans to remove a test case or a target.
+The files written are:
 
-Running the same import again on its own output plans no changes.
+| File                                    | Change                                                                                         |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `test_cases/<group>.yaml`               | New test cases are added.                                                                      |
+| `groups/<group>.yaml`                   | Each child group, and the composite group that lists them in `groups`, is created or extended. |
+| The file defining `--parent-group`      | The composite group is added to the parent's `groups`.                                         |
+| `scenarios.yaml`                        | The composite group is added to each phase named by `--phase`, in every scenario that has it.  |
+| The file defining an existing test case | Its `target.os` or `target.devices` is widened (see below).                                    |
+
+```yaml
+# groups/catalog-import.yaml
+test_case_groups:
+  catalog-import-peer-sessions:
+    name: peer sessions
+    tests:
+      - CATALOG-IMPORT-PEER-SESSIONS-1
+  catalog-import:
+    groups:
+      - catalog-import-peer-sessions
+
+# test_cases/catalog-import.yaml
+test_cases:
+  CATALOG-IMPORT-PEER-SESSIONS-1:
+    title: Verify Peers Up
+    job: catalog.routing.verify_peers_up
+    tags: [catalog, peer sessions]
+    target:
+      os: [alpha-os]
+```
+
+Before writing, the command checks that the plan is a directory, that the parent group is defined under `groups/`, and that a scenarios file exists when `--phase` is given. After writing, it loads the plan again, and exits 1 if it is no longer valid. Rewritten files are written with PyYAML, so comments in them are not kept.
+
+### Existing test cases
+
+A job the test plan already references is never added twice. When the scope selects it for operating systems or devices that its test case's `target.os` or `target.devices` does not list, those values are appended. A test case targeted only by `groups`, or with no target, is left as it is. Import never removes a test case, a target or a group.
+
+Running the same import again on its own output changes nothing. Running it with a larger scope adds the new jobs to the existing child groups and widens the existing targets.
+
+## Targets and the testbed
+
+With `--target os` (the default), `target.os` lists the operating systems of the devices each job was selected for. With `--target devices`, `target.devices` lists the devices instead.
+
+When a testbed is available, from `--testbed` or `./testbed.yaml`:
+
+- Scoped device names are checked against it. With `--target os`, a device the testbed does not define is a warning. With `--target devices` it is an error, because the name would become a target that matches nothing.
+- `target.os` uses the `os` the testbed gives each device, so test cases match the testbed even when the scope names operating systems differently. Devices the testbed does not define keep their scope name.
+
+`--target devices` requires a testbed.
 
 ## Reports
 
@@ -165,6 +211,7 @@ from pathlib import Path
 
 from huginn.catalog_import import (
     ImportOptions,
+    apply_import_plan,
     compute_import_plan,
     load_catalog,
     load_scope,
@@ -178,6 +225,7 @@ plan = compute_import_plan(
     ImportOptions(),
 )
 print(plan.to_dict())
+apply_import_plan(Path("test_plan"), plan)
 ```
 
-`compute_import_plan` reads and writes no files, so the same inputs always give the same plan.
+`compute_import_plan` reads and writes no files, so the same inputs always give the same plan. `apply_import_plan` writes it, and `check_import_plan` runs the same checks without writing. Set `ScopedDevice.target_os` to target a device's operating system by a name other than the one matched against the catalog.
