@@ -163,7 +163,12 @@ The command is a thin layer over `huginn.catalog_import`, which other tools can 
 ```python
 from pathlib import Path
 
-from huginn.catalog_import import ImportOptions, compute_import_plan, load_catalog, load_scope
+from huginn.catalog_import import (
+    ImportOptions,
+    compute_import_plan,
+    load_catalog,
+    load_scope,
+)
 from huginn.loaders import load_test_plan
 
 plan = compute_import_plan(
