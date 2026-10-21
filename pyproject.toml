@@ -31,6 +31,9 @@ netconf = "huginn.brokers.netconf:NETCONFBroker"
 [project.entry-points."huginn.inventory"]
 file = "huginn.inventory_plugins:FileInventoryPlugin"
 
+[project.entry-points."huginn.scope_providers"]
+file = "huginn.scope_providers:FileScopeProvider"
+
 [project.entry-points."huginn.reporters"]
 html = "huginn.reporting.html:HTMLReporterPlugin"
 

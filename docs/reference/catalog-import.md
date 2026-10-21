@@ -12,11 +12,11 @@ The command reads three inputs:
 
 - The [catalog index](#catalog-index), which describes each job in the catalog.
 - An optional [taxonomy](#taxonomy), which groups subfeatures into features and categories and lists operating system aliases.
-- The [scope](#scope), which lists the features found on each device.
+- The [scope](#scope), which lists the features found on each device. It comes from a scope file or a [scope provider](#scope-providers).
 
 It adds the selected jobs to the test plan as test cases, and reports each match and each feature that no catalog job covers (a gap). With `--dry-run` it reports the changes without making them. See [CLI Reference - import](cli.md#import) for the options.
 
-Huginn does not decide which features a device runs. The scope file comes from you or from another tool, for example one that reads device configurations. Import selects jobs by feature, and a learning run then shows which of them a device actually supports: run `huginn prune` afterwards to remove the rest. See [Pruning Non-Applicable Tests](prune.md).
+Huginn does not decide which features a device runs. The scope comes from you, from another tool that writes a scope file, or from a scope provider plugin, for example one that reads device configurations. Import selects jobs by feature, and a learning run then shows which of them a device actually supports: run `huginn prune` afterwards to remove the rest. See [Pruning Non-Applicable Tests](prune.md).
 
 ## Catalog index
 
@@ -104,6 +104,54 @@ platform_metadata:
 | `features`    | no       | Feature, subfeature or category names found on the device.          |
 
 Other per-device fields are ignored, so scope files produced by other tools can carry extra data.
+
+## Scope providers
+
+A scope provider is a plugin that returns the scope instead of a file. `--scope-provider <name>[:<config>]` selects one, in place of `--scope`:
+
+```bash
+huginn import --catalog ./catalog --scope-provider lab-configs:snapshots/2026-10 --dry-run
+```
+
+The built-in `file` provider reads a scope file, so `--scope-provider file:scope.yaml` is the same as `--scope scope.yaml`. A relative path is resolved against the current directory.
+
+Other providers are classes registered in the `huginn.scope_providers` entry point group of an installed package:
+
+```toml
+# pyproject.toml of the package that provides the scope provider
+[project.entry-points."huginn.scope_providers"]
+lab-configs = "acme_scope.provider:LabConfigScopeProvider"
+```
+
+Huginn constructs the class with `config`, the text after the colon (an empty string when there is none), and calls `resolve_scope`:
+
+```python
+from pathlib import Path
+
+from huginn.catalog_import import Scope, ScopedDevice
+from huginn.models import Testbed
+
+
+def find_features(config_file: Path) -> tuple[str, ...]:
+    """Return the feature names found in one device configuration."""
+    ...  # Your own logic: parse the file, apply your applicability rules.
+
+
+class LabConfigScopeProvider:
+    def __init__(self, config: str) -> None:
+        self.snapshot_dir = Path(config)
+
+    def resolve_scope(self, project_root: Path, testbed: Testbed | None) -> Scope:
+        devices = []
+        for device in testbed.devices.values() if testbed else []:
+            features = find_features(self.snapshot_dir / f"{device.name}.cfg")
+            devices.append(
+                ScopedDevice(name=device.name, os=device.os, features=features)
+            )
+        return Scope(devices=tuple(devices))
+```
+
+`testbed` is the testbed from `--testbed` or `./testbed.yaml`, or `None` when there is none. `resolve_scope` may also be `async`. It must return a `Scope`. If it raises, or returns anything else, the import exits 1 without writing. The scope it returns is checked against the testbed the same way as a scope file; see [Targets and the testbed](#targets-and-the-testbed).
 
 ## Matching
 
