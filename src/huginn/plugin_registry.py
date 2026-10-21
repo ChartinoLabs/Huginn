@@ -23,6 +23,7 @@ BROKER_GROUP = "huginn.brokers"
 INVENTORY_GROUP = "huginn.inventory"
 REPORTER_GROUP = "huginn.reporters"
 HOOK_GROUP = "huginn.hooks"
+SCOPE_PROVIDER_GROUP = "huginn.scope_providers"
 
 
 class PluginResolutionError(ValueError):
@@ -134,6 +135,27 @@ class PluginRegistry:
                 f"No inventory plugin found for '{plugin_name}'. Available: {available}"
             )
         return plugin_cls
+
+    def resolve_scope_provider_class(self, provider_name: str) -> type:
+        """Resolve a scope provider class by entry point name.
+
+        Args:
+            provider_name: The scope provider name.
+
+        Returns:
+            The scope provider class.
+
+        Raises:
+            PluginResolutionError: If the provider cannot be found.
+        """
+        classes = _load_entry_point_classes(SCOPE_PROVIDER_GROUP)
+        provider_cls = classes.get(provider_name)
+        if provider_cls is None:
+            available = sorted(["file", *classes.keys()])
+            raise PluginResolutionError(
+                f"No scope provider found for '{provider_name}'. Available: {available}"
+            )
+        return provider_cls
 
     def resolve_reporters(self) -> list[ReporterPlugin]:
         """Instantiate all active reporter plugins.
