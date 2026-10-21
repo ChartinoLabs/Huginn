@@ -7,7 +7,7 @@ against infrastructure testbeds.
 import asyncio
 import json
 import re
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Annotated
 
@@ -25,7 +25,6 @@ from huginn.catalog_import import (
     check_import_plan,
     compute_import_plan,
     load_catalog,
-    load_scope,
 )
 from huginn.enums import (
     ErrorCode,
@@ -43,7 +42,7 @@ from huginn.execute import (
 )
 from huginn.inject import InjectPlan
 from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
-from huginn.models import RunResult, RunSummary, TestPlan
+from huginn.models import RunResult, RunSummary, Testbed, TestPlan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
 from huginn.plugin_registry import PluginRegistry
@@ -69,6 +68,7 @@ from huginn.reconcile import (
 )
 from huginn.relearn import RelearnError, RelearnInput, parse_failed_test_ids
 from huginn.runner import RunExecutionError, run_test_plan
+from huginn.scope_providers import ScopeProviderError, resolve_scope
 from huginn.unknown_keys import UnknownKeyWarning, emit_unknown_key_warnings
 from huginn.validation import validate_inputs
 
@@ -2201,6 +2201,7 @@ def _display_inject_plan(inject_plan: "InjectPlan", output: Output) -> None:
 
 @app.command("import")
 def import_(
+    ctx: typer.Context,
     catalog: Annotated[
         str,
         typer.Option(
@@ -2210,7 +2211,7 @@ def import_(
         ),
     ],
     scope: Annotated[
-        Path,
+        Path | None,
         typer.Option(
             "--scope",
             help="Scope file listing the features found on each device.",
@@ -2219,7 +2220,15 @@ def import_(
             resolve_path=True,
             envvar="HUGINN_SCOPE",
         ),
-    ],
+    ] = None,
+    scope_provider: Annotated[
+        str | None,
+        typer.Option(
+            "--scope-provider",
+            help="Scope provider plugin as <name>[:<config>], instead of --scope.",
+            envvar="HUGINN_SCOPE_PROVIDER",
+        ),
+    ] = None,
     taxonomy: Annotated[
         Path | None,
         typer.Option(
@@ -2339,35 +2348,46 @@ def import_(
     Reports each match and each feature with no matching job (a gap).
     Use --dry-run to report without writing.
 
+    The scope comes from --scope, or from a scope provider plugin given
+    with --scope-provider.
+
     Examples:
         huginn import --catalog ./catalog --scope scope.yaml --phase pre-change
         huginn import --catalog my_catalog --scope scope.yaml --dry-run --format json
+        huginn import --catalog ./catalog --scope-provider my-provider:lab --dry-run
     """
     output = Output()
     plan_path = _resolve_plan_option(plan)
     options = ImportOptions(
         match_level=match_level,
-        archetypes=tuple(_split_csv_option_values(archetype) or DEFAULT_ARCHETYPES),
+        archetypes=_csv_tuple(archetype) or DEFAULT_ARCHETYPES,
         target_mode=target,
-        features=tuple(_split_csv_option_values(features) or ()),
+        features=_csv_tuple(features),
         group_id=group,
-        tags=tuple(_split_csv_option_values(tags) or ()),
-        phases=tuple(_split_csv_option_values(phase) or ()),
+        tags=_csv_tuple(tags),
+        phases=_csv_tuple(phase),
         parent_group=parent_group,
     )
+    if (scope is None) == (scope_provider is None):
+        raise typer.BadParameter("Pass exactly one of --scope or --scope-provider.")
     try:
-        loaded_catalog = load_catalog(catalog, taxonomy=taxonomy)
-        loaded_scope = load_scope(scope)
-        test_plan = _load_plan_for_command(
-            plan_path, output, no_unknown_key_warnings=no_unknown_key_warnings
-        )
-        loaded_scope = _check_scope_devices(loaded_scope, testbed, target, output)
-        import_plan = compute_import_plan(
-            loaded_catalog, loaded_scope, test_plan, options
+        import_plan = _compute_import(
+            _ImportInputs(
+                catalog=catalog,
+                taxonomy=taxonomy,
+                scope=scope,
+                scope_provider=scope_provider,
+                testbed=testbed,
+                plan_path=plan_path,
+                no_unknown_key_warnings=no_unknown_key_warnings,
+            ),
+            options,
+            output,
+            registry=_project_plugin_registry(ctx),
         )
         if not dry_run:
             check_import_plan(plan_path, import_plan)
-    except (CatalogImportError, ConfigurationError) as exc:
+    except (CatalogImportError, ConfigurationError, ScopeProviderError) as exc:
         output.error(f"ERROR: {exc}")
         raise typer.Exit(code=1) from exc
 
@@ -2384,19 +2404,61 @@ def import_(
     )
 
 
-def _check_scope_devices(
-    scope: Scope, testbed: Path | None, target: TargetMode, output: Output
-) -> Scope:
-    """Check scoped device names against the testbed, when there is one.
+def _csv_tuple(values: list[str] | None) -> tuple[str, ...]:
+    """Split comma-separated option values into a tuple, empty when none."""
+    return tuple(_split_csv_option_values(values) or ())
 
-    With ``--target devices`` the names become test case targets, so a
-    testbed is required and unknown names are errors. Otherwise unknown
-    names are only warned about. Scoped devices found in the testbed are
-    targeted by the testbed's ``os`` for them.
+
+@dataclass(frozen=True)
+class _ImportInputs:
+    """Where `huginn import` reads its catalog, scope, testbed and plan from."""
+
+    catalog: str
+    taxonomy: Path | None
+    scope: Path | None
+    scope_provider: str | None
+    testbed: Path | None
+    plan_path: Path
+    no_unknown_key_warnings: bool
+
+
+def _compute_import(
+    inputs: _ImportInputs,
+    options: ImportOptions,
+    output: Output,
+    *,
+    registry: PluginRegistry,
+) -> ImportPlan:
+    """Load every import input and compute the import plan.
 
     Raises:
-        CatalogImportError: If device targeting has no testbed, or names a
-            device the testbed does not define.
+        CatalogImportError: If the catalog, testbed check or scope is bad.
+        ConfigurationError: If the test plan or testbed cannot be loaded.
+        ScopeProviderError: If the scope provider cannot be found or fails.
+    """
+    loaded_catalog = load_catalog(inputs.catalog, taxonomy=inputs.taxonomy)
+    test_plan = _load_plan_for_command(
+        inputs.plan_path, output, no_unknown_key_warnings=inputs.no_unknown_key_warnings
+    )
+    testbed = _load_import_testbed(inputs.testbed, options.target_mode)
+    scope = asyncio.run(
+        resolve_scope(
+            scope_path=inputs.scope,
+            scope_provider=inputs.scope_provider,
+            project_root=Path.cwd(),
+            testbed=testbed,
+            registry=registry,
+        )
+    )
+    scope = _check_scope_devices(scope, testbed, options.target_mode, output)
+    return compute_import_plan(loaded_catalog, scope, test_plan, options)
+
+
+def _load_import_testbed(testbed: Path | None, target: TargetMode) -> Testbed | None:
+    """Load the testbed for an import, defaulting to ``./testbed.yaml``.
+
+    Raises:
+        CatalogImportError: If ``--target devices`` has no testbed.
         ConfigurationError: If the testbed cannot be loaded.
     """
     if testbed is None:
@@ -2408,11 +2470,29 @@ def _check_scope_devices(
                 "--target devices needs a testbed to check device names: "
                 "pass --testbed (no default ./testbed.yaml found)"
             )
+        return None
+    return load_testbed(testbed)
+
+
+def _check_scope_devices(
+    scope: Scope, testbed: Testbed | None, target: TargetMode, output: Output
+) -> Scope:
+    """Check scoped device names against the testbed, when there is one.
+
+    With ``--target devices`` the names become test case targets, so unknown
+    names are errors. Otherwise they are only warned about. Scoped devices
+    found in the testbed are targeted by the testbed's ``os`` for them.
+
+    Raises:
+        CatalogImportError: If device targeting names a device the testbed
+            does not define.
+    """
+    if testbed is None:
         return scope
-    devices = load_testbed(testbed).devices
+    devices = testbed.devices
     unknown = sorted({d.name for d in scope.devices} - set(devices))
     if unknown:
-        message = f"Scoped device(s) not in testbed {testbed}: {', '.join(unknown)}"
+        message = f"Scoped device(s) not in testbed: {', '.join(unknown)}"
         if target is TargetMode.DEVICES:
             raise CatalogImportError(message)
         output.warning(f"WARNING: {message}")

@@ -1,0 +1,1 @@
+Added the `huginn.scope_providers` plugin group and `huginn import --scope-provider`, so an installed package can supply the features found on each device instead of a scope file.
