@@ -60,7 +60,7 @@ dev = [
     "towncrier==26.9.0",
     "ty==0.0.84",
     "xenon==0.9.3",
-    "xmlschema==4.1.0",
+    "xmlschema==4.3.2",
 ]
 docs = [
     "mdformat==0.7.22",
