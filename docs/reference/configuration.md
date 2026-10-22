@@ -140,6 +140,7 @@ Huginn registers these entry points itself:
 | `huginn.brokers`   | `netconf` | NETCONF broker                                          |
 | `huginn.inventory` | `file`    | Loads a testbed YAML file                               |
 | `huginn.reporters` | `html`    | HTML dashboard written under `reports/`, with `latest/` |
+| `huginn.reporters` | `junit`   | JUnit XML written to `results/<run>/junit.xml`          |
 
 An installed package adds plugins by registering entry points in the same groups. See [Connection Broker - Plugin Discovery](../design/connection-broker.md#plugin-discovery) for how brokers are resolved.
 
@@ -152,7 +153,7 @@ An installed package adds plugins by registering entry points in the same groups
 title = "DC1 lab"
 ```
 
-Huginn passes the table to the plugin unchanged. A reporter receives it as the `config` argument of `generate_report()`, and a hook plugin as the `config` argument of its constructor. The plugin decides which options it reads. The built-in `html` reporter reads no options, so a `config.html` table is accepted but has no effect today.
+Huginn passes the table to the plugin unchanged. A reporter receives it as the `config` argument of `generate_report()`, and a hook plugin as the `config` argument of its constructor. The plugin decides which options it reads. The built-in `html` reporter reads no options, so a `config.html` table is accepted but has no effect today. The built-in `junit` reporter reads `path`; see [Reporting - JUnit XML options](reporting.md#options).
 
 Inventory plugins do not read `config.<name>`. They take their configuration from the text after the colon in `--inventory-plugin` or `inventory_plugin`.
 
@@ -260,7 +261,7 @@ brokers = ["ssh", "netconf"]
 reporters = ["html"]
 ```
 
-From the project root, `huginn run -m testing` then runs `plans/full-validation/` against `inventory/production.yaml`, reads parameters from `state/parameters/`, writes results under `state/results/`, and logs to `logs/huginn.log`. Only the SSH and NETCONF brokers are available, and the HTML report is written under `reports/`.
+From the project root, `huginn run -m testing` then runs `plans/full-validation/` against `inventory/production.yaml`, reads parameters from `state/parameters/`, writes results under `state/results/`, and logs to `logs/huginn.log`. Only the SSH and NETCONF brokers are available, and the HTML report is written under `reports/`. The JUnit reporter is not listed in `reporters`, so no `junit.xml` is written.
 
 ## Related Documents
 

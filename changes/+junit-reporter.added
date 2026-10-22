@@ -1,0 +1,1 @@
+Added a built-in `junit` reporter that writes `results/<run>/junit.xml` for CI systems such as Jenkins and GitHub Actions, and recorded each test case's `elapsed_seconds` in `run.json` and `result.json`.

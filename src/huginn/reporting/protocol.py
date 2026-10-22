@@ -6,6 +6,10 @@ from typing import Any, Protocol, runtime_checkable
 from huginn.models import RunResult
 
 
+class ReportRenderError(ValueError):
+    """Raised when a built-in reporter cannot write its report files."""
+
+
 @runtime_checkable
 class ReporterPlugin(Protocol):
     """Protocol for report generation plugins.

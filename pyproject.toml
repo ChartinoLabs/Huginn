@@ -33,6 +33,7 @@ file = "huginn.inventory_plugins:FileInventoryPlugin"
 
 [project.entry-points."huginn.reporters"]
 html = "huginn.reporting.html:HTMLReporterPlugin"
+junit = "huginn.reporting.junit:JUnitReporterPlugin"
 
 [build-system]
 requires = ["hatchling", "hatch-vcs"]
@@ -59,6 +60,7 @@ dev = [
     "towncrier==26.9.0",
     "ty==0.0.84",
     "xenon==0.9.3",
+    "xmlschema==4.1.0",
 ]
 docs = [
     "mdformat==0.7.22",

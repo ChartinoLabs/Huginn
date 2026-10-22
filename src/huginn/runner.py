@@ -49,7 +49,8 @@ from huginn.output import Output
 from huginn.parameters import ParameterManager
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
 from huginn.plugin_registry import PluginRegistry
-from huginn.reporting.html import ReportRenderError, write_standard_html_report
+from huginn.reporting.html import write_standard_html_report
+from huginn.reporting.protocol import ReportRenderError
 from huginn.result_store import ResultWriteError, create_run_dir, write_run_result
 from huginn.results import ResultCollector
 from huginn.run_hooks import RunHooks
@@ -1763,6 +1764,7 @@ async def _execute_test_case(
             kind=SkipKind.HOOK,
         )
     else:
+        started = perf_counter()
         executed = await _run_test_case(
             scenario_name=scenario_name,
             phase=phase,
@@ -1778,6 +1780,7 @@ async def _execute_test_case(
             learning_execution_cache=learning_execution_cache,
             output=output,
         )
+        executed.elapsed_seconds = perf_counter() - started
     await hooks.test_case_end(executed)
     return executed
 
