@@ -1337,6 +1337,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reporting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../package-jobs/" class="md-nav__link">
         
   
@@ -2196,6 +2224,11 @@
 <td><code>html</code></td>
 <td>HTML dashboard written under <code>reports/</code>, with <code>latest/</code></td>
 </tr>
+<tr>
+<td><code>huginn.reporters</code></td>
+<td><code>junit</code></td>
+<td>JUnit XML written to <code>results/&lt;run&gt;/junit.xml</code></td>
+</tr>
 </tbody>
 </table>
 <p>An installed package adds plugins by registering entry points in the same groups. See <a href="../../design/connection-broker/#plugin-discovery">Connection Broker - Plugin Discovery</a> for how brokers are resolved.</p>
@@ -2204,7 +2237,7 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[tool.huginn.plugins.config.html]</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;DC1 lab&quot;</span>
 </code></pre></div>
-<p>Huginn passes the table to the plugin unchanged. A reporter receives it as the <code>config</code> argument of <code>generate_report()</code>, and a hook plugin as the <code>config</code> argument of its constructor. The plugin decides which options it reads. The built-in <code>html</code> reporter reads no options, so a <code>config.html</code> table is accepted but has no effect today.</p>
+<p>Huginn passes the table to the plugin unchanged. A reporter receives it as the <code>config</code> argument of <code>generate_report()</code>, and a hook plugin as the <code>config</code> argument of its constructor. The plugin decides which options it reads. The built-in <code>html</code> reporter reads no options, so a <code>config.html</code> table is accepted but has no effect today. The built-in <code>junit</code> reporter reads <code>path</code>; see <a href="../reporting/#options">Reporting - JUnit XML options</a>.</p>
 <p>Inventory plugins do not read <code>config.&lt;name&gt;</code>. They take their configuration from the text after the colon in <code>--inventory-plugin</code> or <code>inventory_plugin</code>.</p>
 <h2 id="hooks">Hooks<a class="headerlink" href="#hooks" title="Permanent link">&para;</a></h2>
 <p>A hook plugin runs code at lifecycle points of <code>huginn run</code> and <code>huginn relearn</code>, such as before each test case or after the run. It can skip a phase, group or test case before it runs, or stop the whole run, which then exits with code 1. Hook plugins are classes registered in the <code>huginn.hooks</code> entry point group of an installed package:</p>
@@ -2379,7 +2412,7 @@
 <a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="n">brokers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;ssh&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;netconf&quot;</span><span class="p">]</span>
 <a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="n">reporters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;html&quot;</span><span class="p">]</span>
 </code></pre></div>
-<p>From the project root, <code>huginn run -m testing</code> then runs <code>plans/full-validation/</code> against <code>inventory/production.yaml</code>, reads parameters from <code>state/parameters/</code>, writes results under <code>state/results/</code>, and logs to <code>logs/huginn.log</code>. Only the SSH and NETCONF brokers are available, and the HTML report is written under <code>reports/</code>.</p>
+<p>From the project root, <code>huginn run -m testing</code> then runs <code>plans/full-validation/</code> against <code>inventory/production.yaml</code>, reads parameters from <code>state/parameters/</code>, writes results under <code>state/results/</code>, and logs to <code>logs/huginn.log</code>. Only the SSH and NETCONF brokers are available, and the HTML report is written under <code>reports/</code>. The JUnit reporter is not listed in <code>reporters</code>, so no <code>junit.xml</code> is written.</p>
 <h2 id="related-documents">Related Documents<a class="headerlink" href="#related-documents" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../cli/">CLI Reference</a>: Every command, option and environment variable</li>

@@ -1113,6 +1113,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reporting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/package-jobs/" class="md-nav__link">
         
   
@@ -2733,7 +2761,7 @@
 <a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>  │               brokers/ssh.py, brokers/http.py, brokers/netconf.py                 │
 <a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>  │                                                                                   │
 <a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>  │  RunResult ─► result_store.py (results/&lt;run&gt;/run.json, result.json)               │
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>  │            ─► reporter plugins (reporting/html.py ─► reports/&lt;run&gt;/html)          │
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>  │            ─► reporter plugins (html ─► reports/&lt;run&gt;/html, junit ─► junit.xml)   │
 <a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>  └───────────────────────────────────────────────────────────────────────────────────┘
 <a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>
 <a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>  Commands that work on results or the plan without running jobs:
@@ -2784,7 +2812,7 @@
 <p>The protocol brokers implement <code>ConnectionBrokerProtocolV1</code> from <code>brokers/protocol.py</code>: <code>SSHBroker</code> (<code>brokers/ssh.py</code>, Scrapli), <code>HTTPBroker</code> (<code>brokers/http.py</code>, aiohttp) and <code>NETCONFBroker</code> (<code>brokers/netconf.py</code>, scrapli-netconf). <code>brokers/null.py</code> holds <code>NullBroker</code>, a no-op placeholder that is not registered as an entry point and that the runner does not use. <a href="../connection-broker/">Connection Broker Plugin Architecture</a> covers the protocol, the exception hierarchy and broker plugins.</p>
 <p>Centralizing connections is what lets Huginn scale to thousands of small test cases. A plan with 1,000 test cases on 20 devices opens 20 SSH sessions instead of 1,000, and 20 test cases that need <code>show ip ospf neighbor</code> on the same device run it once.</p>
 <h3 id="plugin-registry">Plugin registry<a class="headerlink" href="#plugin-registry" title="Permanent link">&para;</a></h3>
-<p><code>plugin_registry.py</code> discovers plugins through Python entry points in four groups, <code>huginn.brokers</code>, <code>huginn.inventory</code>, <code>huginn.reporters</code> and <code>huginn.hooks</code>, and filters them with the <code>brokers</code>, <code>reporters</code> and <code>hooks</code> lists of <code>[tool.huginn.plugins]</code>. <code>get_plugin_config</code> returns a plugin's <code>[tool.huginn.plugins.config.&lt;name&gt;]</code> table. An entry point that fails to import, or a reporter or hook class that fails to instantiate, is logged and left out. Huginn registers its own built-ins in its <code>pyproject.toml</code>: <code>ssh</code>, <code>http</code> and <code>netconf</code> brokers, the <code>file</code> inventory plugin and the <code>html</code> reporter. See <a href="../../reference/configuration/#plugins-in-toolhuginnplugins">Configuration - Plugins</a>.</p>
+<p><code>plugin_registry.py</code> discovers plugins through Python entry points in four groups, <code>huginn.brokers</code>, <code>huginn.inventory</code>, <code>huginn.reporters</code> and <code>huginn.hooks</code>, and filters them with the <code>brokers</code>, <code>reporters</code> and <code>hooks</code> lists of <code>[tool.huginn.plugins]</code>. <code>get_plugin_config</code> returns a plugin's <code>[tool.huginn.plugins.config.&lt;name&gt;]</code> table. An entry point that fails to import, or a reporter or hook class that fails to instantiate, is logged and left out. Huginn registers its own built-ins in its <code>pyproject.toml</code>: <code>ssh</code>, <code>http</code> and <code>netconf</code> brokers, the <code>file</code> inventory plugin and the <code>html</code> and <code>junit</code> reporters. See <a href="../../reference/configuration/#plugins-in-toolhuginnplugins">Configuration - Plugins</a>.</p>
 <h3 id="inventory-plugins">Inventory plugins<a class="headerlink" href="#inventory-plugins" title="Permanent link">&para;</a></h3>
 <p><code>inventory_plugins.py</code> produces the run's <code>Testbed</code>. <code>resolve_inventory_testbed</code> loads the file given with <code>--testbed</code>, or parses an <code>--inventory-plugin</code> spec of the form <code>&lt;plugin&gt;:&lt;config&gt;</code>. <code>--testbed</code> and <code>--inventory-plugin</code> are mutually exclusive, and so are the <code>testbed</code> and <code>inventory_plugin</code> keys of <code>[tool.huginn]</code>. When one comes from the command line or environment and the other from <code>pyproject.toml</code>, the CLI drops the <code>pyproject.toml</code> one.</p>
 <p>The built-in <code>file</code> plugin, <code>FileInventoryPlugin</code>, loads the testbed file named after the colon, relative to the project root. Any other name is resolved from the <code>huginn.inventory</code> entry-point group and instantiated as <code>cls(config=&lt;text after the colon&gt;)</code>. Its <code>resolve_testbed(project_root)</code> may be sync or async and must return a <code>Testbed</code>. Inventory plugins do not read <code>[tool.huginn.plugins.config.&lt;name&gt;]</code>. <code>validate</code> resolves only the <code>file</code> plugin.</p>
@@ -2807,7 +2835,7 @@
 <p><code>results.py</code> holds <code>ResultCollector</code>, which a job reaches as <code>context.results</code>. It records checks, rendered metadata sections, command executions and <code>not_applicable_devices</code>, and <code>derive_status()</code> turns the checks into the test case status. The runner copies them into an <code>ExecutedTestCase</code>.</p>
 <p><code>result_store.py</code> writes results to disk. <code>create_run_dir</code> creates <code>results/&lt;timestamp&gt;-&lt;mode&gt;/</code> when the run starts, so jobs have an artifacts directory before any result exists. <code>write_run_result</code> writes one <code>test-cases/&lt;scenario&gt;-&lt;phase&gt;-&lt;test_id&gt;/result.json</code> per executed test case, with every check, command execution, error and traceback, and then <code>run.json</code> with the summary, the scenario tree and a <code>result_path</code> for each test case. The JSON files are written by the runner itself, not by a reporter, so they exist even when reporting is disabled. <a href="#directory-and-output-layout">Directory and output layout</a> shows a real tree.</p>
 <h3 id="reporting">Reporting<a class="headerlink" href="#reporting" title="Permanent link">&para;</a></h3>
-<p>After the results are written, the runner calls every active reporter plugin with the <code>RunResult</code>, the run directory, <code>reports/</code> and the paths of the <code>result.json</code> files. The only built-in reporter is <code>html</code>, <code>HTMLReporterPlugin</code> in <code>reporting/html.py</code>. It renders <code>reports/&lt;run&gt;/html/index.html</code> and one page per test case from the Jinja2 templates in <code>reporting/templates/</code>, and points the <code>reports/latest</code> symlink at the newest report. <code>reporters = []</code> in <code>[tool.huginn.plugins]</code> disables reporting. <code>ReporterPlugin</code> is defined in <code>reporting/protocol.py</code>.</p>
+<p>After the results are written, the runner calls every active reporter plugin with the <code>RunResult</code>, the run directory, <code>reports/</code> and the paths of the <code>result.json</code> files. There are two built-in reporters. <code>html</code>, <code>HTMLReporterPlugin</code> in <code>reporting/html.py</code>, renders <code>reports/&lt;run&gt;/html/index.html</code> and one page per test case from the Jinja2 templates in <code>reporting/templates/</code>, and points the <code>reports/latest</code> symlink at the newest report. <code>junit</code>, <code>JUnitReporterPlugin</code> in <code>reporting/junit.py</code>, writes <code>results/&lt;run&gt;/junit.xml</code> with one <code>&lt;testsuite&gt;</code> per group in each phase of each scenario, or the file named by its <code>path</code> option. See <a href="../../reference/reporting/">Reporting</a>. <code>reporters = []</code> in <code>[tool.huginn.plugins]</code> disables reporting. <code>ReporterPlugin</code> is defined in <code>reporting/protocol.py</code>.</p>
 <h3 id="hooks">Hooks<a class="headerlink" href="#hooks" title="Permanent link">&para;</a></h3>
 <p><code>hooks.py</code> defines the <code>HookPlugin</code> protocol, the <code>HookEvent</code> values, the <code>HookSkip</code> and <code>HookAbort</code> results and <code>HookDispatcher</code>, which calls the hooks subscribed to each event one at a time. <code>run_hooks.py</code> defines <code>RunHooks</code>, which the runner calls at each lifecycle point. It builds each event's payload from plain copies of runner state, so a hook cannot change the run by mutating its context, and it builds nothing when no hook subscribes. It also records the first abort, which the runner checks before it starts each scenario, phase, group and test case. See <a href="../../reference/hooks/">Hook Plugins</a>.</p>
 <h3 id="commands-around-the-run">Commands around the run<a class="headerlink" href="#commands-around-the-run" title="Permanent link">&para;</a></h3>
@@ -2966,35 +2994,38 @@
 <a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>├── results/
 <a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>│   ├── 2026-Sep-29-13-21-24-learning/
 <a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>│   │   ├── artifacts/
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>│   │   ├── run.json
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>│   │   └── test-cases/
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>│   │       └── scenario-1-phase-1-1.0.0/
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>│   │           └── result.json
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>│   └── 2026-Sep-29-13-21-24-testing/
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>│       ├── artifacts/
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>│       ├── run.json
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>│       └── test-cases/
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>│           └── scenario-1-phase-1-1.0.0/
-<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>│               └── result.json
-<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>├── reports/
-<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>│   ├── 2026-Sep-29-13-21-24-learning/
-<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>│   │   └── html/
-<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>│   │       ├── index.html
-<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>│   │       ├── styles.css
-<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>│   │       └── test-cases/
-<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>│   │           └── scenario-1-phase-1-1.0.0.html
-<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>│   ├── 2026-Sep-29-13-21-24-testing/
-<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>│   │   └── html/
-<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>│   │       ├── index.html
-<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>│   │       ├── styles.css
-<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>│   │       └── test-cases/
-<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a>│   │           └── scenario-1-phase-1-1.0.0.html
-<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>│   └── latest -&gt; 2026-Sep-29-13-21-24-testing/html
-<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a>└── huginn.log
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>│   │   ├── junit.xml
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>│   │   ├── run.json
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>│   │   └── test-cases/
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>│   │       └── scenario-1-phase-1-1.0.0/
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>│   │           └── result.json
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>│   └── 2026-Sep-29-13-21-24-testing/
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>│       ├── artifacts/
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>│       ├── junit.xml
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>│       ├── run.json
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>│       └── test-cases/
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>│           └── scenario-1-phase-1-1.0.0/
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>│               └── result.json
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>├── reports/
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>│   ├── 2026-Sep-29-13-21-24-learning/
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>│   │   └── html/
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>│   │       ├── index.html
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>│   │       ├── styles.css
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>│   │       └── test-cases/
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>│   │           └── scenario-1-phase-1-1.0.0.html
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>│   ├── 2026-Sep-29-13-21-24-testing/
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>│   │   └── html/
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>│   │       ├── index.html
+<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a>│   │       ├── styles.css
+<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>│   │       └── test-cases/
+<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a>│   │           └── scenario-1-phase-1-1.0.0.html
+<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a>│   └── latest -&gt; 2026-Sep-29-13-21-24-testing/html
+<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a>└── huginn.log
 </code></pre></div>
 <ul>
 <li><code>results/&lt;timestamp&gt;-&lt;mode&gt;/</code> is one run. A second run that starts in the same second gets a <code>-01</code> suffix. <code>--results-dir</code> moves the whole tree.</li>
-<li><code>run.json</code> holds the summary, with one count per status, and the scenario, phase, group and test case tree, where each test case has its status, any error, and the <code>result_path</code> of its <code>result.json</code>.</li>
+<li><code>run.json</code> holds the summary, with one count per status, and the scenario, phase, group and test case tree, where each test case has its status, any error, its <code>elapsed_seconds</code> when its job ran, and the <code>result_path</code> of its <code>result.json</code>.</li>
+<li><code>junit.xml</code> is written by the <code>junit</code> reporter for CI systems. See <a href="../../reference/reporting/#junit-xml">Reporting - JUnit XML</a>.</li>
 <li><code>test-cases/&lt;scenario&gt;-&lt;phase&gt;-&lt;test_id&gt;/result.json</code> holds everything the test case recorded. A test case that appears twice in one phase, through two groups, gets a <code>-01</code> suffix on its second directory.</li>
 <li><code>artifacts/</code> is <code>context.output_dir</code>, where jobs write files. Volatile jobs keep their observation logs here. <code>--output-dir</code> points it elsewhere.</li>
 <li><code>reports/&lt;run&gt;/html/</code> is written by the <code>html</code> reporter, and <code>reports/latest</code> points at the newest one.</li>
