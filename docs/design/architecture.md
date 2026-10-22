@@ -37,7 +37,7 @@ This page explains how Huginn is put together and why: the modules under `src/hu
   │               brokers/ssh.py, brokers/http.py, brokers/netconf.py                 │
   │                                                                                   │
   │  RunResult ─► result_store.py (results/<run>/run.json, result.json)               │
-  │            ─► reporter plugins (reporting/html.py ─► reports/<run>/html)          │
+  │            ─► reporter plugins (html ─► reports/<run>/html, junit ─► junit.xml)   │
   └───────────────────────────────────────────────────────────────────────────────────┘
 
   Commands that work on results or the plan without running jobs:
@@ -107,7 +107,7 @@ Centralizing connections is what lets Huginn scale to thousands of small test ca
 
 ### Plugin registry
 
-`plugin_registry.py` discovers plugins through Python entry points in four groups, `huginn.brokers`, `huginn.inventory`, `huginn.reporters` and `huginn.hooks`, and filters them with the `brokers`, `reporters` and `hooks` lists of `[tool.huginn.plugins]`. `get_plugin_config` returns a plugin's `[tool.huginn.plugins.config.<name>]` table. An entry point that fails to import, or a reporter or hook class that fails to instantiate, is logged and left out. Huginn registers its own built-ins in its `pyproject.toml`: `ssh`, `http` and `netconf` brokers, the `file` inventory plugin and the `html` reporter. See [Configuration - Plugins](../reference/configuration.md#plugins-in-toolhuginnplugins).
+`plugin_registry.py` discovers plugins through Python entry points in four groups, `huginn.brokers`, `huginn.inventory`, `huginn.reporters` and `huginn.hooks`, and filters them with the `brokers`, `reporters` and `hooks` lists of `[tool.huginn.plugins]`. `get_plugin_config` returns a plugin's `[tool.huginn.plugins.config.<name>]` table. An entry point that fails to import, or a reporter or hook class that fails to instantiate, is logged and left out. Huginn registers its own built-ins in its `pyproject.toml`: `ssh`, `http` and `netconf` brokers, the `file` inventory plugin and the `html` and `junit` reporters. See [Configuration - Plugins](../reference/configuration.md#plugins-in-toolhuginnplugins).
 
 ### Inventory plugins
 
@@ -143,7 +143,7 @@ A reference is a module path when it has no `/` and no `.py` suffix. Without `:C
 
 ### Reporting
 
-After the results are written, the runner calls every active reporter plugin with the `RunResult`, the run directory, `reports/` and the paths of the `result.json` files. The only built-in reporter is `html`, `HTMLReporterPlugin` in `reporting/html.py`. It renders `reports/<run>/html/index.html` and one page per test case from the Jinja2 templates in `reporting/templates/`, and points the `reports/latest` symlink at the newest report. `reporters = []` in `[tool.huginn.plugins]` disables reporting. `ReporterPlugin` is defined in `reporting/protocol.py`.
+After the results are written, the runner calls every active reporter plugin with the `RunResult`, the run directory, `reports/` and the paths of the `result.json` files. There are two built-in reporters. `html`, `HTMLReporterPlugin` in `reporting/html.py`, renders `reports/<run>/html/index.html` and one page per test case from the Jinja2 templates in `reporting/templates/`, and points the `reports/latest` symlink at the newest report. `junit`, `JUnitReporterPlugin` in `reporting/junit.py`, writes `results/<run>/junit.xml` with one `<testsuite>` per group in each phase of each scenario, or the file named by its `path` option. See [Reporting](../reference/reporting.md). `reporters = []` in `[tool.huginn.plugins]` disables reporting. `ReporterPlugin` is defined in `reporting/protocol.py`.
 
 ### Hooks
 
@@ -332,12 +332,14 @@ project/
 ├── results/
 │   ├── 2026-Sep-29-13-21-24-learning/
 │   │   ├── artifacts/
+│   │   ├── junit.xml
 │   │   ├── run.json
 │   │   └── test-cases/
 │   │       └── scenario-1-phase-1-1.0.0/
 │   │           └── result.json
 │   └── 2026-Sep-29-13-21-24-testing/
 │       ├── artifacts/
+│       ├── junit.xml
 │       ├── run.json
 │       └── test-cases/
 │           └── scenario-1-phase-1-1.0.0/
@@ -360,7 +362,8 @@ project/
 ```
 
 - `results/<timestamp>-<mode>/` is one run. A second run that starts in the same second gets a `-01` suffix. `--results-dir` moves the whole tree.
-- `run.json` holds the summary, with one count per status, and the scenario, phase, group and test case tree, where each test case has its status, any error, and the `result_path` of its `result.json`.
+- `run.json` holds the summary, with one count per status, and the scenario, phase, group and test case tree, where each test case has its status, any error, its `elapsed_seconds` when its job ran, and the `result_path` of its `result.json`.
+- `junit.xml` is written by the `junit` reporter for CI systems. See [Reporting - JUnit XML](../reference/reporting.md#junit-xml).
 - `test-cases/<scenario>-<phase>-<test_id>/result.json` holds everything the test case recorded. A test case that appears twice in one phase, through two groups, gets a `-01` suffix on its second directory.
 - `artifacts/` is `context.output_dir`, where jobs write files. Volatile jobs keep their observation logs here. `--output-dir` points it elsewhere.
 - `reports/<run>/html/` is written by the `html` reporter, and `reports/latest` points at the newest one.

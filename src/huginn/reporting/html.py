@@ -16,6 +16,7 @@ from huginn.models import (
     ExecutedTestCaseGroup,
     RunResult,
 )
+from huginn.reporting.protocol import ReportRenderError
 from huginn.result_store import _test_case_execution_key
 
 _TEMPLATE_ENV = Environment(autoescape=True, trim_blocks=True, lstrip_blocks=True)
@@ -25,10 +26,6 @@ _STATUS_FILTER_GROUPS = (
     ("failed", "fail", ("failed", "errored", "lost_applicability", "blocked")),
     ("skipped", "skip", ("skipped", "not_applicable")),
 )
-
-
-class ReportRenderError(ValueError):
-    """Raised when the HTML report renderer cannot write report files."""
 
 
 @dataclass(frozen=True)

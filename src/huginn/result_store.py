@@ -275,4 +275,6 @@ def _build_test_case_summary_payload(
         payload["error"] = test_case.error
     if test_case.error_code is not None:
         payload["error_code"] = test_case.error_code
+    if test_case.elapsed_seconds is not None:
+        payload["elapsed_seconds"] = test_case.elapsed_seconds
     return payload

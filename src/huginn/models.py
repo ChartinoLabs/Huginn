@@ -269,6 +269,9 @@ class ExecutedTestCase:
     skip_kind: str | None = None
     # A BlockKind value when status is BLOCKED, else None.
     block_kind: str | None = None
+    # Wall-clock seconds the test case took to run, or None when its job did
+    # not run (skipped by a hook, blocked or aborted).
+    elapsed_seconds: float | None = None
 
 
 @dataclass
