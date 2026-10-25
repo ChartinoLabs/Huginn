@@ -1,1 +1,0 @@
-Fixed job loading growing memory quadratically with the number of jobs: job-class discovery no longer calls `issubclass()` against the `TestCase` ABC, whose negative cache held about 240 MB for an 800-job test plan.
