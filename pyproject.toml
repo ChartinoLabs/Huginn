@@ -61,7 +61,7 @@ dev = [
     "ruff==0.16.9",
     "tomli==2.4.1; python_version < '3.11'",
     "towncrier==26.9.0",
-    "ty==0.0.84",
+    "ty==0.0.90",
     "xenon==0.9.3",
     "xmlschema==4.1.0",
 ]
