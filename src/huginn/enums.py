@@ -43,6 +43,40 @@ class IdStyle(StrEnum):
     PREFIX_COUNTER = "prefix-counter"
 
 
+class MatchLevel(StrEnum):
+    """Broadest catalog field `huginn import` matches a scoped feature against.
+
+    Levels are tried from narrowest to broadest, up to and including the
+    chosen level, and the first level with a match is used.
+
+    - SUBFEATURE: the feature names a catalog entry's subfeature.
+    - FEATURE: the feature names a catalog entry's feature.
+    - CATEGORY: the feature names a catalog entry's category.
+    """
+
+    SUBFEATURE = "subfeature"
+    FEATURE = "feature"
+    CATEGORY = "category"
+
+
+class TargetMode(StrEnum):
+    """How `huginn import` targets the test cases it creates.
+
+    - OS: `target.os`, listing the operating systems of the matched devices.
+    - DEVICES: `target.devices`, listing only the matched devices.
+    """
+
+    OS = "os"
+    DEVICES = "devices"
+
+
+class ReportFormat(StrEnum):
+    """Report format for commands that print a plan of changes."""
+
+    TEXT = "text"
+    JSON = "json"
+
+
 class ResultStatus(StrEnum):
     """The outcome of a test case execution.
 
