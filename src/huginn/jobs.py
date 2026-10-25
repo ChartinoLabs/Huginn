@@ -108,6 +108,20 @@ def _describe_exception(exc: Exception) -> str:
     return f"{type(exc).__name__}: {exc}"
 
 
+def _is_test_case_class(value: object) -> bool:
+    """Return True when ``value`` is a class that inherits from TestCase.
+
+    This reads the MRO rather than calling ``issubclass``. TestCase is an ABC,
+    and ``ABCMeta.__subclasscheck__`` caches every negative answer on TestCase
+    and on each subclass it recurses into. Job discovery tests every class a
+    job module defines, so with N jobs loaded those caches hold O(N^2)
+    entries, about 240 MB for an 800-job plan. Classes only registered
+    virtually with ``TestCase.register()`` are not accepted, which matches
+    what the runner can execute.
+    """
+    return isinstance(value, type) and TestCase in value.__mro__
+
+
 def _load_explicit_class(
     module: ModuleType,
     class_name: str,
@@ -116,7 +130,7 @@ def _load_explicit_class(
     class_obj = getattr(module, class_name, None)
     if class_obj is None:
         raise JobLoadError(f"Job class '{class_name}' not found in '{raw_job}'")
-    if not isinstance(class_obj, type) or not issubclass(class_obj, TestCase):
+    if not _is_test_case_class(class_obj):
         raise JobLoadError(
             f"Job class '{class_name}' in '{raw_job}' must inherit from TestCase"
         )
@@ -129,8 +143,7 @@ def _load_first_test_case_class(module: ModuleType, raw_job: str) -> type[TestCa
     candidates: list[type[TestCase]] = []
     for value in vars(module).values():
         if (
-            isinstance(value, type)
-            and issubclass(value, TestCase)
+            _is_test_case_class(value)
             and value is not TestCase
             and value.__module__ == module.__name__
             and not isabstract(value)
