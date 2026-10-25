@@ -1413,10 +1413,38 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#planned-test-cases" class="md-nav__link">
+  <a href="#writing-the-test-plan" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Planned test cases
+        Writing the test plan
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Writing the test plan">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#existing-test-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Existing test cases
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#targets-and-the-testbed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Targets and the testbed
       
     </span>
   </a>
@@ -1850,10 +1878,38 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#planned-test-cases" class="md-nav__link">
+  <a href="#writing-the-test-plan" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Planned test cases
+        Writing the test plan
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Writing the test plan">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#existing-test-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Existing test cases
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#targets-and-the-testbed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Targets and the testbed
       
     </span>
   </a>
@@ -1905,7 +1961,7 @@
 <h1 id="catalog-import">Catalog Import<a class="headerlink" href="#catalog-import" title="Permanent link">&para;</a></h1>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>A catalog is a package of reusable jobs, shared by many test plans. <code>huginn import</code> selects the catalog jobs that apply to a testbed, using a scope file that lists the features found on each device. A job applies to a device when it covers one of the device's features and supports the device's operating system.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>./catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--dry-run
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>./catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--phase<span class="w"> </span>pre-change
 </code></pre></div>
 <p>The command reads three inputs:</p>
 <ul>
@@ -1913,7 +1969,7 @@
 <li>An optional <a href="#taxonomy">taxonomy</a>, which groups subfeatures into features and categories and lists operating system aliases.</li>
 <li>The <a href="#scope">scope</a>, which lists the features found on each device.</li>
 </ul>
-<p>It reports each match, each feature that no catalog job covers (a gap), and the test cases it would create. In this release <code>import</code> only reports, so <code>--dry-run</code> is required. See <a href="../cli/#import">CLI Reference - import</a> for the options.</p>
+<p>It adds the selected jobs to the test plan as test cases, and reports each match and each feature that no catalog job covers (a gap). With <code>--dry-run</code> it reports the changes without making them. See <a href="../cli/#import">CLI Reference - import</a> for the options.</p>
 <p>Huginn does not decide which features a device runs. The scope file comes from you or from another tool, for example one that reads device configurations. Import selects jobs by feature, and a learning run then shows which of them a device actually supports: run <code>huginn prune</code> afterwards to remove the rest. See <a href="../prune/">Pruning Non-Applicable Tests</a>.</p>
 <h2 id="catalog-index">Catalog index<a class="headerlink" href="#catalog-index" title="Permanent link">&para;</a></h2>
 <p>The catalog directory, or installed package, holds an index file directly inside it: <code>index.json</code>, <code>index.yaml</code> or <code>index.yml</code>, tried in that order. The index maps each job file, relative to the catalog directory, to a description of the job.</p>
@@ -2070,57 +2126,119 @@
 <p>The first level with a match is used, and levels broader than <code>--match-level</code> are not tried. A feature with no match at any allowed level is a gap. Gaps are reported, and do not make the command fail.</p>
 <p>Titles and commands are never searched, so every selection can be traced to a name in the index or the taxonomy.</p>
 <p>By default only <code>static-validation</code> and <code>volatile-validation</code> jobs are selected. <code>change</code> and <code>gate</code> jobs alter devices or decide whether later phases run, so they are only selected when <code>--archetype</code> lists them.</p>
-<h2 id="planned-test-cases">Planned test cases<a class="headerlink" href="#planned-test-cases" title="Permanent link">&para;</a></h2>
+<h2 id="writing-the-test-plan">Writing the test plan<a class="headerlink" href="#writing-the-test-plan" title="Permanent link">&para;</a></h2>
 <p>Each selected job becomes one test case:</p>
 <ul>
 <li><strong>ID:</strong> the child group ID in upper case followed by a counter, for example <code>CATALOG-IMPORT-PEER-SESSIONS-1</code>, numbered after the highest counter already in the plan.</li>
-<li><strong>Target:</strong> <code>target.os</code> lists the operating systems of the devices the job was selected for, as the scope names them. With <code>--target devices</code>, <code>target.devices</code> lists the devices instead.</li>
+<li><strong>Target:</strong> see <a href="#targets-and-the-testbed">Targets and the testbed</a>.</li>
 <li><strong>Tags:</strong> <code>catalog</code>, the job's subfeature, and any <code>--tags</code>.</li>
-<li><strong>Group:</strong> one child group per subfeature, named after it, under the composite group given by <code>--group</code>.</li>
+<li><strong>Group:</strong> one child group per subfeature, named after it, inside the composite group given by <code>--group</code>.</li>
 </ul>
-<p>A job that the test plan already references is not added again. When the scope selects it for more operating systems or devices than its test case's <code>target.os</code> or <code>target.devices</code> lists, the report shows the targets that would be added. A test case targeted by <code>groups</code>, or with no target, is left as it is. Import never plans to remove a test case or a target.</p>
-<p>Running the same import again on its own output plans no changes.</p>
+<p>The files written are:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>test_cases/&lt;group&gt;.yaml</code></td>
+<td>New test cases are added.</td>
+</tr>
+<tr>
+<td><code>groups/&lt;group&gt;.yaml</code></td>
+<td>Each child group, and the composite group that lists them in <code>groups</code>, is created or extended.</td>
+</tr>
+<tr>
+<td>The file defining <code>--parent-group</code></td>
+<td>The composite group is added to the parent's <code>groups</code>.</td>
+</tr>
+<tr>
+<td><code>scenarios.yaml</code></td>
+<td>The composite group is added to each phase named by <code>--phase</code>, in every scenario that has it.</td>
+</tr>
+<tr>
+<td>The file defining an existing test case</td>
+<td>Its <code>target.os</code> or <code>target.devices</code> is widened (see below).</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># groups/catalog-import.yaml</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">catalog-import-peer-sessions</span><span class="p">:</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">peer sessions</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CATALOG-IMPORT-PEER-SESSIONS-1</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="nt">catalog-import</span><span class="p">:</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">catalog-import-peer-sessions</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1"># test_cases/catalog-import.yaml</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="nt">test_cases</span><span class="p">:</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">  </span><span class="nt">CATALOG-IMPORT-PEER-SESSIONS-1</span><span class="p">:</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify Peers Up</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">catalog.routing.verify_peers_up</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">    </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">catalog</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">peer sessions</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">      </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">alpha-os</span><span class="p p-Indicator">]</span>
+</code></pre></div>
+<p>Before writing, the command checks that the plan is a directory, that the parent group is defined under <code>groups/</code>, and that a scenarios file exists when <code>--phase</code> is given. After writing, it loads the plan again, and exits 1 if it is no longer valid. Rewritten files are written with PyYAML, so comments in them are not kept.</p>
+<h3 id="existing-test-cases">Existing test cases<a class="headerlink" href="#existing-test-cases" title="Permanent link">&para;</a></h3>
+<p>A job the test plan already references is never added twice. When the scope selects it for operating systems or devices that its test case's <code>target.os</code> or <code>target.devices</code> does not list, those values are appended. A test case targeted only by <code>groups</code>, or with no target, is left as it is. Import never removes a test case, a target or a group.</p>
+<p>Running the same import again on its own output changes nothing. Running it with a larger scope adds the new jobs to the existing child groups and widens the existing targets.</p>
+<h2 id="targets-and-the-testbed">Targets and the testbed<a class="headerlink" href="#targets-and-the-testbed" title="Permanent link">&para;</a></h2>
+<p>With <code>--target os</code> (the default), <code>target.os</code> lists the operating systems of the devices each job was selected for. With <code>--target devices</code>, <code>target.devices</code> lists the devices instead.</p>
+<p>When a testbed is available, from <code>--testbed</code> or <code>./testbed.yaml</code>:</p>
+<ul>
+<li>Scoped device names are checked against it. With <code>--target os</code>, a device the testbed does not define is a warning. With <code>--target devices</code> it is an error, because the name would become a target that matches nothing.</li>
+<li><code>target.os</code> uses the <code>os</code> the testbed gives each device, so test cases match the testbed even when the scope names operating systems differently. Devices the testbed does not define keep their scope name.</li>
+</ul>
+<p><code>--target devices</code> requires a testbed.</p>
 <h2 id="reports">Reports<a class="headerlink" href="#reports" title="Permanent link">&para;</a></h2>
 <p>The text report lists the matched features, the gaps, the jobs already in the plan, the target changes and the new test cases. <code>--format json</code> prints the same information as one JSON object:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;group&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;catalog-import&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;phases&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;parent_group&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;matches&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;device&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;router-1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;os&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;alphaos&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;feature&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;peering&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feature&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">     </span><span class="nt">&quot;jobs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;catalog.routing.verify_peers_up&quot;</span><span class="p">]}</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span><span class="nt">&quot;gaps&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">&quot;feature&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;telemetry&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;os&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;alphaos&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;devices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;router-1&quot;</span><span class="p">]}],</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">  </span><span class="nt">&quot;new_test_cases&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CATALOG-IMPORT-PEER-SESSIONS-1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;group&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;catalog-import-peer-sessions&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">     </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Verify Peers Up&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;job&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;catalog.routing.verify_peers_up&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">     </span><span class="nt">&quot;tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;catalog&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;peer sessions&quot;</span><span class="p">],</span><span class="w"> </span><span class="nt">&quot;target&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;os&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;alphaos&quot;</span><span class="p">]}}</span>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">  </span><span class="nt">&quot;target_updates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">  </span><span class="nt">&quot;skipped_jobs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;group&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;catalog-import&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">&quot;phases&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">&quot;parent_group&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">&quot;matches&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;device&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;router-1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;os&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;alphaos&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;feature&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;peering&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;feature&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">     </span><span class="nt">&quot;jobs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;catalog.routing.verify_peers_up&quot;</span><span class="p">]}</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">  </span><span class="nt">&quot;gaps&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">&quot;feature&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;telemetry&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;os&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;alphaos&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;devices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;router-1&quot;</span><span class="p">]}],</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">  </span><span class="nt">&quot;new_test_cases&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CATALOG-IMPORT-PEER-SESSIONS-1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;group&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;catalog-import-peer-sessions&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">     </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Verify Peers Up&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;job&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;catalog.routing.verify_peers_up&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">     </span><span class="nt">&quot;tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;catalog&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;peer sessions&quot;</span><span class="p">],</span><span class="w"> </span><span class="nt">&quot;target&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;os&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;alphaos&quot;</span><span class="p">]}}</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="w">  </span><span class="nt">&quot;target_updates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="w">  </span><span class="nt">&quot;skipped_jobs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="p">}</span>
 </code></pre></div>
 <h2 id="library-use">Library use<a class="headerlink" href="#library-use" title="Permanent link">&para;</a></h2>
 <p>The command is a thin layer over <code>huginn.catalog_import</code>, which other tools can call directly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn.catalog_import</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">ImportOptions</span><span class="p">,</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">compute_import_plan</span><span class="p">,</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">load_catalog</span><span class="p">,</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">load_scope</span><span class="p">,</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="p">)</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn.loaders</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_test_plan</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="n">plan</span> <span class="o">=</span> <span class="n">compute_import_plan</span><span class="p">(</span>
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">load_catalog</span><span class="p">(</span><span class="s2">&quot;catalog&quot;</span><span class="p">),</span>
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="n">load_scope</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;scope.yaml&quot;</span><span class="p">)),</span>
-<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="n">load_test_plan</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;test_plan&quot;</span><span class="p">)),</span>
-<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    <span class="n">ImportOptions</span><span class="p">(),</span>
-<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="p">)</span>
-<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">to_dict</span><span class="p">())</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn.catalog_import</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">ImportOptions</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">apply_import_plan</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">compute_import_plan</span><span class="p">,</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">load_catalog</span><span class="p">,</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">load_scope</span><span class="p">,</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="p">)</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn.loaders</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_test_plan</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="n">plan</span> <span class="o">=</span> <span class="n">compute_import_plan</span><span class="p">(</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="n">load_catalog</span><span class="p">(</span><span class="s2">&quot;catalog&quot;</span><span class="p">),</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="n">load_scope</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;scope.yaml&quot;</span><span class="p">)),</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="n">load_test_plan</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;test_plan&quot;</span><span class="p">)),</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="n">ImportOptions</span><span class="p">(),</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="p">)</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="nb">print</span><span class="p">(</span><span class="n">plan</span><span class="o">.</span><span class="n">to_dict</span><span class="p">())</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="n">apply_import_plan</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;test_plan&quot;</span><span class="p">),</span> <span class="n">plan</span><span class="p">)</span>
 </code></pre></div>
-<p><code>compute_import_plan</code> reads and writes no files, so the same inputs always give the same plan.</p>
+<p><code>compute_import_plan</code> reads and writes no files, so the same inputs always give the same plan. <code>apply_import_plan</code> writes it, and <code>check_import_plan</code> runs the same checks without writing. Set <code>ScopedDevice.target_os</code> to target a device's operating system by a name other than the one matched against the catalog.</p>
 
 
 

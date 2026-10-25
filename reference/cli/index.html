@@ -3161,11 +3161,11 @@
 </tbody>
 </table>
 <h2 id="import">import<a class="headerlink" href="#import" title="Permanent link">&para;</a></h2>
-<p>Select the jobs in a catalog that match the features found on each device, and report the matches and the features no catalog job covers. In this release <code>import</code> only reports: <code>--dry-run</code> is required, and the command changes no files. Writing the selected jobs into the test plan comes in a later release.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>huginn import --catalog &lt;dir|package&gt; --scope &lt;file&gt; --dry-run [--taxonomy &lt;file&gt;] [--plan &lt;dir&gt;]
+<p>Select the jobs in a catalog that match the features found on each device, and add them to the test plan. The command reports each match and each feature no catalog job covers (a gap). With <code>--dry-run</code> it reports without changing any files.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>huginn import --catalog &lt;dir|package&gt; --scope &lt;file&gt; [--taxonomy &lt;file&gt;] [--testbed &lt;file&gt;] [--plan &lt;dir&gt;]
 <a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>              [--features &lt;names&gt;] [--match-level &lt;level&gt;] [--archetype &lt;names&gt;] [--target &lt;mode&gt;]
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>              [--group &lt;id&gt;] [--phase &lt;ids&gt;] [--parent-group &lt;id&gt;] [--tags &lt;tags&gt;] [--format &lt;format&gt;]
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>              [--no-unknown-key-warnings]
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>              [--group &lt;id&gt;] [--phase &lt;ids&gt;] [--parent-group &lt;id&gt;] [--tags &lt;tags&gt;] [--dry-run]
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>              [--format &lt;format&gt;] [--no-unknown-key-warnings]
 </code></pre></div>
 <table>
 <thead>
@@ -3200,11 +3200,18 @@
 <td>Taxonomy file with category, feature and subfeature names, operating system aliases and always-included subfeatures.</td>
 </tr>
 <tr>
+<td><code>--testbed</code></td>
+<td><code>-t</code></td>
+<td><code>HUGINN_TESTBED</code></td>
+<td><code>./testbed.yaml</code> if present</td>
+<td>Testbed to check scoped device names against. Required with <code>--target devices</code>. See <a href="../catalog-import/#targets-and-the-testbed">Targets and the testbed</a>.</td>
+</tr>
+<tr>
 <td><code>--plan</code></td>
 <td><code>-p</code></td>
 <td><code>HUGINN_PLAN</code></td>
 <td><code>./test_plan</code></td>
-<td>Path to the test plan directory. Jobs already in the plan are not selected again.</td>
+<td>Path to the test plan directory. Jobs already in the plan are not added again.</td>
 </tr>
 <tr>
 <td><code>--features</code></td>
@@ -3246,14 +3253,14 @@
 <td></td>
 <td></td>
 <td>none</td>
-<td>Phase(s) to add the import group to. Repeatable, comma-separated.</td>
+<td>Phase(s) to add the import group to, in every scenario that has a phase with that name. Repeatable, comma-separated.</td>
 </tr>
 <tr>
 <td><code>--parent-group</code></td>
 <td></td>
 <td></td>
 <td>none</td>
-<td>Existing composite group to nest the import group under.</td>
+<td>Existing composite group to nest the import group under, through its <code>groups</code> list.</td>
 </tr>
 <tr>
 <td><code>--tags</code></td>
@@ -3267,7 +3274,7 @@
 <td></td>
 <td></td>
 <td>off</td>
-<td>Print the matches, gaps and planned changes without writing any files. Required in this release.</td>
+<td>Print the matches, gaps and planned changes without writing any files.</td>
 </tr>
 <tr>
 <td><code>--format</code></td>
@@ -3281,14 +3288,16 @@
 <td></td>
 <td><code>HUGINN_NO_UNKNOWN_KEY_WARNINGS</code></td>
 <td>off</td>
-<td>Do not warn about unknown keys in the test plan. See <a href="#unknown-key-warnings">Unknown key warnings</a>.</td>
+<td>Do not warn about unknown keys in the test plan or testbed. See <a href="#unknown-key-warnings">Unknown key warnings</a>.</td>
 </tr>
 </tbody>
 </table>
-<p>See <a href="../catalog-import/">Catalog Import</a> for the catalog index, taxonomy and scope formats, and for how features are matched.</p>
+<p>The plan must be a directory. New test cases go to <code>test_cases/&lt;group&gt;.yaml</code>, and the import group and its child groups to <code>groups/&lt;group&gt;.yaml</code>. The parent group and the scenarios file are updated in place. The parent group and scenarios file are checked before anything is written, and the plan is loaded again afterwards to confirm it is still valid.</p>
+<p>See <a href="../catalog-import/">Catalog Import</a> for the catalog index, taxonomy and scope formats, how features are matched, and how existing test cases are updated.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>./catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--dry-run
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>my_catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--dry-run<span class="w"> </span>--match-level<span class="w"> </span>category
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>./catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--dry-run<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span>--target<span class="w"> </span>devices
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>./catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--phase<span class="w"> </span>pre-change
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>my_catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--parent-group<span class="w"> </span>state-baseline<span class="w"> </span>--match-level<span class="w"> </span>category
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>./catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--target<span class="w"> </span>devices<span class="w"> </span>--testbed<span class="w"> </span>testbed.yaml<span class="w"> </span>--format<span class="w"> </span>json
 </code></pre></div>
 <h3 id="exit-codes_5">Exit codes<a class="headerlink" href="#exit-codes_5" title="Permanent link">&para;</a></h3>
 <table>
@@ -3301,11 +3310,11 @@
 <tbody>
 <tr>
 <td>0</td>
-<td>The dry run completed, including when some scoped features have no matching catalog job.</td>
+<td>The import was written, the dry run completed, or the test plan already holds every selected job. Gaps do not change the exit code.</td>
 </tr>
 <tr>
 <td>1</td>
-<td><code>--dry-run</code> was not given, or the catalog, its index, the taxonomy, the scope file or the test plan could not be read.</td>
+<td>The catalog, its index, the taxonomy, the scope file, the testbed or the test plan could not be read; the plan is not a directory; the parent group or scenarios file was not found; <code>--target devices</code> was given without a testbed or with scoped devices the testbed does not define; or the updated plan failed validation.</td>
 </tr>
 <tr>
 <td>2</td>
