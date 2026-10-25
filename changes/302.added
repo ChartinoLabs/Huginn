@@ -1,1 +1,0 @@
-`huginn import` now writes the selected catalog jobs into the test plan, extending existing import groups and widening the targets of test cases it added before.

@@ -1,1 +1,0 @@
-Moved the YAML writing used by `huginn inject` into a shared `huginn.plan_writer` module, also used by `huginn import`.
