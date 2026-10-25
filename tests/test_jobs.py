@@ -1,13 +1,17 @@
 """Unit tests for job loading helpers."""
 
+import abc
 import sys
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
+from huginn import TestCase
 from huginn.jobs import (
     JobLoadError,
     _is_module_path,
+    _load_explicit_class,
     _split_job,
     extract_test_case_metadata,
     load_test_case_class,
@@ -76,6 +80,36 @@ def test_load_test_case_class_explicit_class_must_inherit() -> None:
             job="test_non_testcase.py:NotATestCase",
             project_root=FIXTURES,
         )
+
+
+def test_load_test_case_class_explicit_class_rejects_virtual_subclass() -> None:
+    """A class only registered with TestCase.register() is not a loadable job."""
+
+    class Registered:
+        pass
+
+    module = ModuleType("virtual_job")
+    module.__dict__["Registered"] = Registered
+    TestCase.register(Registered)
+    with pytest.raises(JobLoadError, match="must inherit from TestCase"):
+        _load_explicit_class(module, "Registered", "virtual_job:Registered")
+
+
+def test_load_test_case_class_does_not_grow_abc_negative_cache() -> None:
+    """Job discovery leaves TestCase's ABC negative cache untouched.
+
+    ABCMeta caches every failed issubclass() check on TestCase and on each
+    subclass it recurses into, so scanning every class in every job module
+    grew those caches quadratically with the number of loaded jobs.
+    """
+    abc._reset_caches(TestCase)  # ty: ignore[unresolved-attribute]
+    for _ in range(20):
+        loaded = load_test_case_class(
+            job="test_verify_with_helpers.py", project_root=FIXTURES
+        )
+        assert loaded.__name__ == "VerifyWithHelpers"
+    negative_cache = abc._get_dump(TestCase)[2]  # ty: ignore[unresolved-attribute]
+    assert len(negative_cache) == 0
 
 
 def test_load_test_case_class_no_subclasses_raises() -> None:
