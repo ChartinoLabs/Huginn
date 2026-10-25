@@ -5,14 +5,35 @@ against infrastructure testbeds.
 """
 
 import asyncio
+import json
 import re
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
 from huginn._version import __version__
-from huginn.enums import ErrorCode, ExecutionMode, IdStyle
+from huginn.catalog_import import (
+    DEFAULT_ARCHETYPES,
+    DEFAULT_GROUP as DEFAULT_IMPORT_GROUP,
+    CatalogImportError,
+    ImportOptions,
+    ImportPlan,
+    Scope,
+    apply_import_plan,
+    check_import_plan,
+    compute_import_plan,
+    load_catalog,
+)
+from huginn.enums import (
+    ErrorCode,
+    ExecutionMode,
+    IdStyle,
+    MatchLevel,
+    ReportFormat,
+    TargetMode,
+)
 from huginn.execute import (
     ExecuteCommandResult,
     ExecuteCommandSpec,
@@ -20,8 +41,8 @@ from huginn.execute import (
     load_command_specs,
 )
 from huginn.inject import InjectPlan
-from huginn.loaders import ConfigurationError, load_test_plan
-from huginn.models import RunResult, RunSummary, TestPlan
+from huginn.loaders import ConfigurationError, load_test_plan, load_testbed
+from huginn.models import RunResult, RunSummary, Testbed, TestPlan
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions
 from huginn.plugin_registry import PluginRegistry
@@ -47,6 +68,7 @@ from huginn.reconcile import (
 )
 from huginn.relearn import RelearnError, RelearnInput, parse_failed_test_ids
 from huginn.runner import RunExecutionError, run_test_plan
+from huginn.scope_providers import ScopeProviderError, resolve_scope
 from huginn.unknown_keys import UnknownKeyWarning, emit_unknown_key_warnings
 from huginn.validation import validate_inputs
 
@@ -2175,6 +2197,369 @@ def _display_inject_plan(inject_plan: "InjectPlan", output: Output) -> None:
         output.status(f"  Nesting under parent group: {inject_plan.parent_group}")
     if inject_plan.phase_updates:
         output.status(f"  Wiring into phase(s): {', '.join(inject_plan.phase_updates)}")
+
+
+@app.command("import")
+def import_(
+    ctx: typer.Context,
+    catalog: Annotated[
+        str,
+        typer.Option(
+            "--catalog",
+            help="Catalog directory, or name of an installed catalog package.",
+            envvar="HUGINN_CATALOG",
+        ),
+    ],
+    scope: Annotated[
+        Path | None,
+        typer.Option(
+            "--scope",
+            help="Scope file listing the features found on each device.",
+            exists=True,
+            dir_okay=False,
+            resolve_path=True,
+            envvar="HUGINN_SCOPE",
+        ),
+    ] = None,
+    scope_provider: Annotated[
+        str | None,
+        typer.Option(
+            "--scope-provider",
+            help="Scope provider plugin as <name>[:<config>], instead of --scope.",
+            envvar="HUGINN_SCOPE_PROVIDER",
+        ),
+    ] = None,
+    taxonomy: Annotated[
+        Path | None,
+        typer.Option(
+            "--taxonomy",
+            help="Taxonomy file (default: taxonomy.yaml beside the catalog index).",
+            exists=True,
+            dir_okay=False,
+            resolve_path=True,
+            envvar="HUGINN_CATALOG_TAXONOMY",
+        ),
+    ] = None,
+    testbed: Annotated[
+        Path | None,
+        typer.Option(
+            "--testbed",
+            "-t",
+            help="Testbed to check scoped device names against "
+            "(default: ./testbed.yaml if present; required with --target devices).",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            resolve_path=True,
+            envvar="HUGINN_TESTBED",
+        ),
+    ] = None,
+    plan: Annotated[
+        Path | None,
+        typer.Option(
+            "--plan",
+            "-p",
+            help="Path to test plan directory (default: ./test_plan).",
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_PLAN",
+        ),
+    ] = None,
+    features: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--features",
+            help="Only consider these scoped features (comma-separated).",
+        ),
+    ] = None,
+    match_level: Annotated[
+        MatchLevel,
+        typer.Option(
+            "--match-level",
+            help="Broadest catalog field a feature may match.",
+        ),
+    ] = MatchLevel.FEATURE,
+    archetype: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--archetype",
+            help="Job archetypes to import (comma-separated; "
+            "default: static-validation,volatile-validation).",
+        ),
+    ] = None,
+    target: Annotated[
+        TargetMode,
+        typer.Option(
+            "--target",
+            help="Target new test cases by operating system or by device.",
+        ),
+    ] = TargetMode.OS,
+    group: Annotated[
+        str,
+        typer.Option(
+            "--group",
+            help="Composite group that holds the imported groups.",
+        ),
+    ] = DEFAULT_IMPORT_GROUP,
+    phase: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--phase",
+            help="Phase(s) to wire the import group into.",
+        ),
+    ] = None,
+    parent_group: Annotated[
+        str | None,
+        typer.Option(
+            "--parent-group",
+            help="Existing composite group to nest the import group under.",
+        ),
+    ] = None,
+    tags: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--tags",
+            help="Additional tags to apply (comma-separated).",
+        ),
+    ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Report coverage, gaps and planned changes without writing.",
+        ),
+    ] = False,
+    report_format: Annotated[
+        ReportFormat,
+        typer.Option(
+            "--format",
+            help="Report format.",
+        ),
+    ] = ReportFormat.TEXT,
+    no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
+) -> None:
+    """Import catalog jobs that match the features scoped on each device.
+
+    Reads the catalog index and the scope file, selects the catalog jobs
+    whose subfeature, feature or category matches a scoped feature on a
+    device of the same operating system, and adds them to the test plan.
+    Reports each match and each feature with no matching job (a gap).
+    Use --dry-run to report without writing.
+
+    The scope comes from --scope, or from a scope provider plugin given
+    with --scope-provider.
+
+    Examples:
+        huginn import --catalog ./catalog --scope scope.yaml --phase pre-change
+        huginn import --catalog my_catalog --scope scope.yaml --dry-run --format json
+        huginn import --catalog ./catalog --scope-provider my-provider:lab --dry-run
+    """
+    output = Output()
+    plan_path = _resolve_plan_option(plan)
+    options = ImportOptions(
+        match_level=match_level,
+        archetypes=_csv_tuple(archetype) or DEFAULT_ARCHETYPES,
+        target_mode=target,
+        features=_csv_tuple(features),
+        group_id=group,
+        tags=_csv_tuple(tags),
+        phases=_csv_tuple(phase),
+        parent_group=parent_group,
+    )
+    if (scope is None) == (scope_provider is None):
+        raise typer.BadParameter("Pass exactly one of --scope or --scope-provider.")
+    try:
+        import_plan = _compute_import(
+            _ImportInputs(
+                catalog=catalog,
+                taxonomy=taxonomy,
+                scope=scope,
+                scope_provider=scope_provider,
+                testbed=testbed,
+                plan_path=plan_path,
+                no_unknown_key_warnings=no_unknown_key_warnings,
+            ),
+            options,
+            output,
+            registry=_project_plugin_registry(ctx),
+        )
+        if not dry_run:
+            check_import_plan(plan_path, import_plan)
+    except (CatalogImportError, ConfigurationError, ScopeProviderError) as exc:
+        output.error(f"ERROR: {exc}")
+        raise typer.Exit(code=1) from exc
+
+    if report_format is ReportFormat.JSON:
+        typer.echo(json.dumps(import_plan.to_dict(), indent=2))
+    else:
+        _display_import_plan(import_plan, output)
+    if dry_run:
+        if report_format is ReportFormat.TEXT:
+            output.status("Dry run — no changes written")
+        return
+    _write_import_plan(
+        plan_path, import_plan, output, quiet=report_format is ReportFormat.JSON
+    )
+
+
+def _csv_tuple(values: list[str] | None) -> tuple[str, ...]:
+    """Split comma-separated option values into a tuple, empty when none."""
+    return tuple(_split_csv_option_values(values) or ())
+
+
+@dataclass(frozen=True)
+class _ImportInputs:
+    """Where `huginn import` reads its catalog, scope, testbed and plan from."""
+
+    catalog: str
+    taxonomy: Path | None
+    scope: Path | None
+    scope_provider: str | None
+    testbed: Path | None
+    plan_path: Path
+    no_unknown_key_warnings: bool
+
+
+def _compute_import(
+    inputs: _ImportInputs,
+    options: ImportOptions,
+    output: Output,
+    *,
+    registry: PluginRegistry,
+) -> ImportPlan:
+    """Load every import input and compute the import plan.
+
+    Raises:
+        CatalogImportError: If the catalog, testbed check or scope is bad.
+        ConfigurationError: If the test plan or testbed cannot be loaded.
+        ScopeProviderError: If the scope provider cannot be found or fails.
+    """
+    loaded_catalog = load_catalog(inputs.catalog, taxonomy=inputs.taxonomy)
+    test_plan = _load_plan_for_command(
+        inputs.plan_path, output, no_unknown_key_warnings=inputs.no_unknown_key_warnings
+    )
+    testbed = _load_import_testbed(inputs.testbed, options.target_mode)
+    scope = asyncio.run(
+        resolve_scope(
+            scope_path=inputs.scope,
+            scope_provider=inputs.scope_provider,
+            project_root=Path.cwd(),
+            testbed=testbed,
+            registry=registry,
+        )
+    )
+    scope = _check_scope_devices(scope, testbed, options.target_mode, output)
+    return compute_import_plan(loaded_catalog, scope, test_plan, options)
+
+
+def _load_import_testbed(testbed: Path | None, target: TargetMode) -> Testbed | None:
+    """Load the testbed for an import, defaulting to ``./testbed.yaml``.
+
+    Raises:
+        CatalogImportError: If ``--target devices`` has no testbed.
+        ConfigurationError: If the testbed cannot be loaded.
+    """
+    if testbed is None:
+        default = Path.cwd() / "testbed.yaml"
+        testbed = default if default.is_file() else None
+    if testbed is None:
+        if target is TargetMode.DEVICES:
+            raise CatalogImportError(
+                "--target devices needs a testbed to check device names: "
+                "pass --testbed (no default ./testbed.yaml found)"
+            )
+        return None
+    return load_testbed(testbed)
+
+
+def _check_scope_devices(
+    scope: Scope, testbed: Testbed | None, target: TargetMode, output: Output
+) -> Scope:
+    """Check scoped device names against the testbed, when there is one.
+
+    With ``--target devices`` the names become test case targets, so unknown
+    names are errors. Otherwise they are only warned about. Scoped devices
+    found in the testbed are targeted by the testbed's ``os`` for them.
+
+    Raises:
+        CatalogImportError: If device targeting names a device the testbed
+            does not define.
+    """
+    if testbed is None:
+        return scope
+    devices = testbed.devices
+    unknown = sorted({d.name for d in scope.devices} - set(devices))
+    if unknown:
+        message = f"Scoped device(s) not in testbed: {', '.join(unknown)}"
+        if target is TargetMode.DEVICES:
+            raise CatalogImportError(message)
+        output.warning(f"WARNING: {message}")
+    return Scope(
+        devices=tuple(
+            replace(d, target_os=devices[d.name].os) if d.name in devices else d
+            for d in scope.devices
+        )
+    )
+
+
+def _write_import_plan(
+    plan_path: Path, import_plan: ImportPlan, output: Output, *, quiet: bool
+) -> None:
+    """Write an import plan, then check that the test plan still loads."""
+    if not import_plan.has_changes:
+        if not quiet:
+            output.success("Nothing to import -- the test plan is up to date")
+        return
+    try:
+        apply_import_plan(plan_path, import_plan)
+        load_test_plan(plan_path)
+    except CatalogImportError as exc:
+        output.error(f"Failed to apply: {exc}")
+        raise typer.Exit(code=1) from exc
+    except ConfigurationError as exc:
+        output.error(f"Imported test plan failed validation: {exc}")
+        raise typer.Exit(code=1) from exc
+    if not quiet:
+        output.success(
+            f"Imported {len(import_plan.new_test_cases)} test case(s) and "
+            f"widened {len(import_plan.target_updates)} target(s) under group "
+            f"'{import_plan.group_id}'"
+        )
+
+
+def _display_import_plan(import_plan: ImportPlan, output: Output) -> None:
+    """Print coverage, gaps and planned changes for an import."""
+    output.status(f"Matched {len(import_plan.matches)} scoped feature(s)")
+    for match in import_plan.matches:
+        output.status(
+            f"  {match.device} ({match.os}) {match.feature} "
+            f"[{match.level}]: {len(match.jobs)} job(s)"
+        )
+    if import_plan.gaps:
+        output.warning(f"No catalog jobs for {len(import_plan.gaps)} feature(s)")
+        for gap in import_plan.gaps:
+            output.warning(f"  {gap.feature} ({gap.os}): {', '.join(gap.devices)}")
+    if import_plan.skipped_jobs:
+        output.status(f"Skipped {len(import_plan.skipped_jobs)} job(s) already in plan")
+    for update in import_plan.target_updates:
+        output.status(
+            f"Widen {update.test_id} target.{update.field}: +{', '.join(update.added)}"
+        )
+    if not import_plan.new_test_cases:
+        output.status("No new test cases to import")
+        return
+    output.status(
+        f"New test cases: {len(import_plan.new_test_cases)} "
+        f"under group '{import_plan.group_id}'"
+    )
+    for test_case in import_plan.new_test_cases:
+        output.status(f"  {test_case.test_id}: {test_case.entry['title']}")
+    if import_plan.parent_group:
+        output.status(f"  Nesting under parent group: {import_plan.parent_group}")
+    if import_plan.phases:
+        output.status(f"  Wiring into phase(s): {', '.join(import_plan.phases)}")
 
 
 @app.command()

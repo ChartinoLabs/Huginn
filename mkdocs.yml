@@ -88,6 +88,7 @@ nav:
       - CLI - reconcile: reference/reconcile.md
       - CLI - relearn: reference/relearn.md
       - CLI - prune: reference/prune.md
+      - CLI - import: reference/catalog-import.md
   - Design:
       - Architecture: design/architecture.md
       - Connection Broker Plugins: design/connection-broker.md

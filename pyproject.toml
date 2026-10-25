@@ -17,7 +17,7 @@ dependencies = [
     "pyyaml>=6.0.2,<7.0.0",
     "ruamel.yaml>=0.17.32,<1.0.0",
     "scrapli-netconf[asyncssh]>=2025.1.30",
-    "scrapli[asyncssh]>=2025.1.30",
+    "scrapli[asyncssh]>=2025.1.30,<2026.10",
 ]
 
 [project.scripts]
@@ -30,6 +30,9 @@ netconf = "huginn.brokers.netconf:NETCONFBroker"
 
 [project.entry-points."huginn.inventory"]
 file = "huginn.inventory_plugins:FileInventoryPlugin"
+
+[project.entry-points."huginn.scope_providers"]
+file = "huginn.scope_providers:FileScopeProvider"
 
 [project.entry-points."huginn.reporters"]
 html = "huginn.reporting.html:HTMLReporterPlugin"
@@ -55,12 +58,12 @@ dev = [
     "pytest==9.1.1",
     "pytest-asyncio==1.4.0",
     "pytest-cov==7.1.0",
-    "ruff==0.16.9",
+    "ruff==0.17.1",
     "tomli==2.4.1; python_version < '3.11'",
     "towncrier==26.9.0",
-    "ty==0.0.84",
+    "ty==0.0.90",
     "xenon==0.9.3",
-    "xmlschema==4.1.0",
+    "xmlschema==4.3.2",
 ]
 docs = [
     "mdformat==0.7.22",

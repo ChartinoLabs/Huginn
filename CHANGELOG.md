@@ -4,6 +4,24 @@ All notable changes to Huginn are documented in this file.
 
 <!-- towncrier release notes start -->
 
+## 0.4.0 - 2026-10-25
+
+### Added
+
+- Added `huginn import --dry-run`, which selects catalog jobs by the features scoped on each device and reports matches, gaps and the test cases it would create. ([#301](https://github.com/ChartinoLabs/Huginn/pull/301))
+- `huginn import` now writes the selected catalog jobs into the test plan, extending existing import groups and widening the targets of test cases it added before. ([#302](https://github.com/ChartinoLabs/Huginn/pull/302))
+- Added the `huginn.scope_providers` plugin group and `huginn import --scope-provider`, so an installed package can supply the features found on each device instead of a scope file. ([#303](https://github.com/ChartinoLabs/Huginn/pull/303))
+- Added a built-in `junit` reporter that writes `results/<run>/junit.xml` for CI systems such as Jenkins and GitHub Actions, and recorded each test case's `elapsed_seconds` in `run.json` and `result.json`. ([#305](https://github.com/ChartinoLabs/Huginn/pull/305))
+
+### Fixed
+
+- Fresh installs no longer fail at import with `ImportError: cannot import name 'ScrapliAuthenticationFailed' from 'scrapli.exceptions'`, because the `scrapli` dependency is now capped below 2026.10, whose libscrapli rewrite removed the API the SSH and NETCONF brokers use. ([#307](https://github.com/ChartinoLabs/Huginn/pull/307))
+
+### Internal
+
+- Moved the YAML writing used by `huginn inject` into a shared `huginn.plan_writer` module, also used by `huginn import`. ([#302](https://github.com/ChartinoLabs/Huginn/pull/302))
+
+
 ## 0.3.0 - 2026-09-29
 
 ### Breaking Changes

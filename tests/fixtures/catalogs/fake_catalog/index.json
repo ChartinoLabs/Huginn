@@ -1,0 +1,120 @@
+{
+    "alpha/change/apply_peer_reset.py": {
+        "archetype": "change",
+        "category": "routing",
+        "feature": "peering",
+        "framework": "huginn",
+        "operating_systems": [
+            "alpha-os"
+        ],
+        "subfeature": "peer sessions",
+        "title": "Apply Peer Reset"
+    },
+    "alpha/change/gate_peers_stable.py": {
+        "archetype": "gate",
+        "category": "routing",
+        "feature": "peering",
+        "framework": "huginn",
+        "operating_systems": [
+            "alpha-os"
+        ],
+        "subfeature": "peer sessions",
+        "title": "Gate Peers Stable"
+    },
+    "alpha/health/verify_uptime.py": {
+        "archetype": "static-validation",
+        "category": "platform",
+        "feature": "system",
+        "framework": "huginn",
+        "operating_systems": [
+            "alpha-os",
+            "beta-os"
+        ],
+        "subfeature": "device health",
+        "title": "Verify Uptime"
+    },
+    "alpha/routing/verify_area_adjacency.py": {
+        "archetype": "static-validation",
+        "category": "routing",
+        "feature": "link state",
+        "framework": "huginn",
+        "operating_systems": [
+            "alpha-os"
+        ],
+        "subfeature": "area adjacency",
+        "title": "Verify Area Adjacency"
+    },
+    "alpha/routing/verify_peer_count.py": {
+        "archetype": "static-validation",
+        "category": "routing",
+        "feature": "peering",
+        "framework": "huginn",
+        "operating_systems": [
+            "alpha-os"
+        ],
+        "subfeature": "peer sessions",
+        "title": "Verify Peer Count"
+    },
+    "alpha/routing/verify_peers_up.py": {
+        "archetype": "static-validation",
+        "category": "routing",
+        "feature": "peering",
+        "framework": "huginn",
+        "operating_systems": [
+            "alpha-os"
+        ],
+        "subfeature": "peer sessions",
+        "title": "Verify Peers Up"
+    },
+    "alpha/routing/verify_rib_counters_increasing.py": {
+        "archetype": "volatile-validation",
+        "category": "routing",
+        "feature": "peering",
+        "framework": "huginn",
+        "operating_systems": [
+            "alpha-os"
+        ],
+        "subfeature": "route tables",
+        "title": "Verify RIB Counters Increasing"
+    },
+    "alpha/routing/verify_routes_present.py": {
+        "archetype": "static-validation",
+        "category": "routing",
+        "feature": "peering",
+        "framework": "huginn",
+        "operating_systems": [
+            "alpha-os"
+        ],
+        "subfeature": "route tables"
+    },
+    "beta/switching/verify_bundle_members.py": {
+        "archetype": "static-validation",
+        "category": "switching",
+        "feature": "bundling",
+        "framework": "huginn",
+        "operating_systems": [
+            "beta"
+        ],
+        "subfeature": "bundle members",
+        "title": "Verify Bundle Members"
+    },
+    "beta/switching/verify_pair_keepalive.py": {
+        "category": "switching",
+        "feature": "pairing",
+        "operating_systems": [
+            "beta-os"
+        ],
+        "subfeature": "pair keepalive",
+        "title": "Verify Pair Keepalive"
+    },
+    "robot/verify_something.robot": {
+        "category": "routing",
+        "feature": "peering",
+        "framework": "robot",
+        "operating_systems": [
+            "alpha-os"
+        ],
+        "subfeature": "peer sessions",
+        "title": "Verify Something In Another Framework"
+    }
+}

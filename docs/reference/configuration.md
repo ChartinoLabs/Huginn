@@ -133,14 +133,15 @@ Each name matches an entry point name, not a package name. `run` and `relearn` r
 
 Huginn registers these entry points itself:
 
-| Group              | Name      | Plugin                                                  |
-| ------------------ | --------- | ------------------------------------------------------- |
-| `huginn.brokers`   | `ssh`     | SSH broker for CLI commands                             |
-| `huginn.brokers`   | `http`    | HTTP broker for REST APIs                               |
-| `huginn.brokers`   | `netconf` | NETCONF broker                                          |
-| `huginn.inventory` | `file`    | Loads a testbed YAML file                               |
-| `huginn.reporters` | `html`    | HTML dashboard written under `reports/`, with `latest/` |
-| `huginn.reporters` | `junit`   | JUnit XML written to `results/<run>/junit.xml`          |
+| Group                    | Name      | Plugin                                                  |
+| ------------------------ | --------- | ------------------------------------------------------- |
+| `huginn.brokers`         | `ssh`     | SSH broker for CLI commands                             |
+| `huginn.brokers`         | `http`    | HTTP broker for REST APIs                               |
+| `huginn.brokers`         | `netconf` | NETCONF broker                                          |
+| `huginn.inventory`       | `file`    | Loads a testbed YAML file                               |
+| `huginn.scope_providers` | `file`    | Reads a scope file for `huginn import`                  |
+| `huginn.reporters`       | `html`    | HTML dashboard written under `reports/`, with `latest/` |
+| `huginn.reporters`       | `junit`   | JUnit XML written to `results/<run>/junit.xml`          |
 
 An installed package adds plugins by registering entry points in the same groups. See [Connection Broker - Plugin Discovery](../design/connection-broker.md#plugin-discovery) for how brokers are resolved.
 
@@ -155,7 +156,7 @@ title = "DC1 lab"
 
 Huginn passes the table to the plugin unchanged. A reporter receives it as the `config` argument of `generate_report()`, and a hook plugin as the `config` argument of its constructor. The plugin decides which options it reads. The built-in `html` reporter reads no options, so a `config.html` table is accepted but has no effect today. The built-in `junit` reporter reads `path`; see [Reporting - JUnit XML options](reporting.md#options).
 
-Inventory plugins do not read `config.<name>`. They take their configuration from the text after the colon in `--inventory-plugin` or `inventory_plugin`.
+Inventory plugins and scope providers do not read `config.<name>`. They take their configuration from the text after the colon in `--inventory-plugin` or `inventory_plugin`, and in `--scope-provider`.
 
 ## Hooks
 
