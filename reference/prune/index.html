@@ -16,7 +16,7 @@
         <link rel="prev" href="../relearn/">
       
       
-        <link rel="next" href="../../design/architecture/">
+        <link rel="next" href="../catalog-import/">
       
       
         
@@ -1576,6 +1576,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalog-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI - import
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2184,6 +2212,7 @@
 <li><strong>Orphaned definitions</strong> (optional): with <code>--remove-orphans</code>, every test case definition that no group references is deleted entirely. This includes orphans left by earlier prune runs and test cases that were never placed in any group. See <a href="#orphan-removal">Orphan removal</a>.</li>
 </ul>
 <p>Prune is designed to be run once after an initial learning pass against a new testbed. It tightens test scope based on observed reality, eliminating noise from tests that can never pass on the current infrastructure.</p>
+<p>Prune pairs with <a href="../catalog-import/">catalog import</a>: import selects catalog jobs by the features scoped on each device, a learning run shows which of them each device actually supports, and prune removes the rest.</p>
 <h2 id="why-tests-become-non-applicable">Why tests become non-applicable<a class="headerlink" href="#why-tests-become-non-applicable" title="Permanent link">&para;</a></h2>
 <p>There are two distinct sources of <code>NOT_APPLICABLE</code> during learning:</p>
 <h3 id="command-support-check_command_support">Command support (<code>check_command_support</code>)<a class="headerlink" href="#command-support-check_command_support" title="Permanent link">&para;</a></h3>

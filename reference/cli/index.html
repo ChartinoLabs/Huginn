@@ -1496,6 +1496,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        import
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="import">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exit-codes_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#reconcile" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1630,6 +1658,34 @@
     
   
     CLI - prune
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalog-import/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI - import
   
 
     
@@ -2234,6 +2290,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        import
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="import">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exit-codes_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#reconcile" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2338,6 +2422,10 @@
 <tr>
 <td><a href="#inject-into"><code>inject into</code></a></td>
 <td>Add job files to an existing test case group.</td>
+</tr>
+<tr>
+<td><a href="#import"><code>import</code></a></td>
+<td>Select catalog jobs that match the features scoped on each device.</td>
 </tr>
 <tr>
 <td><a href="#reconcile"><code>reconcile</code></a></td>
@@ -3072,32 +3160,185 @@
 </tr>
 </tbody>
 </table>
+<h2 id="import">import<a class="headerlink" href="#import" title="Permanent link">&para;</a></h2>
+<p>Select the jobs in a catalog that match the features found on each device, and report the matches and the features no catalog job covers. In this release <code>import</code> only reports: <code>--dry-run</code> is required, and the command changes no files. Writing the selected jobs into the test plan comes in a later release.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>huginn import --catalog &lt;dir|package&gt; --scope &lt;file&gt; --dry-run [--taxonomy &lt;file&gt;] [--plan &lt;dir&gt;]
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>              [--features &lt;names&gt;] [--match-level &lt;level&gt;] [--archetype &lt;names&gt;] [--target &lt;mode&gt;]
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>              [--group &lt;id&gt;] [--phase &lt;ids&gt;] [--parent-group &lt;id&gt;] [--tags &lt;tags&gt;] [--format &lt;format&gt;]
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>              [--no-unknown-key-warnings]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Short</th>
+<th>Env var</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--catalog</code></td>
+<td></td>
+<td><code>HUGINN_CATALOG</code></td>
+<td>required</td>
+<td>Catalog directory, or the name of an installed catalog package. The catalog index must be directly inside it.</td>
+</tr>
+<tr>
+<td><code>--scope</code></td>
+<td></td>
+<td><code>HUGINN_SCOPE</code></td>
+<td>required</td>
+<td>Scope file listing the features found on each device.</td>
+</tr>
+<tr>
+<td><code>--taxonomy</code></td>
+<td></td>
+<td><code>HUGINN_CATALOG_TAXONOMY</code></td>
+<td><code>taxonomy.yaml</code> beside the index</td>
+<td>Taxonomy file with category, feature and subfeature names, operating system aliases and always-included subfeatures.</td>
+</tr>
+<tr>
+<td><code>--plan</code></td>
+<td><code>-p</code></td>
+<td><code>HUGINN_PLAN</code></td>
+<td><code>./test_plan</code></td>
+<td>Path to the test plan directory. Jobs already in the plan are not selected again.</td>
+</tr>
+<tr>
+<td><code>--features</code></td>
+<td></td>
+<td></td>
+<td>all</td>
+<td>Only consider these scoped features. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--match-level</code></td>
+<td></td>
+<td></td>
+<td><code>feature</code></td>
+<td>Broadest catalog field a feature may match: <code>subfeature</code>, <code>feature</code> or <code>category</code>.</td>
+</tr>
+<tr>
+<td><code>--archetype</code></td>
+<td></td>
+<td></td>
+<td><code>static-validation,volatile-validation</code></td>
+<td>Job archetypes to select. <code>change</code> and <code>gate</code> jobs are only selected when listed. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--target</code></td>
+<td></td>
+<td></td>
+<td><code>os</code></td>
+<td>Target new test cases by operating system (<code>target.os</code>) or only at the devices that run the feature (<code>target.devices</code>).</td>
+</tr>
+<tr>
+<td><code>--group</code></td>
+<td></td>
+<td></td>
+<td><code>catalog-import</code></td>
+<td>Composite group that holds one child group per subfeature.</td>
+</tr>
+<tr>
+<td><code>--phase</code></td>
+<td></td>
+<td></td>
+<td>none</td>
+<td>Phase(s) to add the import group to. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--parent-group</code></td>
+<td></td>
+<td></td>
+<td>none</td>
+<td>Existing composite group to nest the import group under.</td>
+</tr>
+<tr>
+<td><code>--tags</code></td>
+<td></td>
+<td></td>
+<td>none</td>
+<td>Tags to add to each new test case, after <code>catalog</code> and the subfeature. Repeatable, comma-separated.</td>
+</tr>
+<tr>
+<td><code>--dry-run</code></td>
+<td></td>
+<td></td>
+<td>off</td>
+<td>Print the matches, gaps and planned changes without writing any files. Required in this release.</td>
+</tr>
+<tr>
+<td><code>--format</code></td>
+<td></td>
+<td></td>
+<td><code>text</code></td>
+<td>Report format: <code>text</code>, or <code>json</code> for the full plan as one JSON object on stdout.</td>
+</tr>
+<tr>
+<td><code>--no-unknown-key-warnings</code></td>
+<td></td>
+<td><code>HUGINN_NO_UNKNOWN_KEY_WARNINGS</code></td>
+<td>off</td>
+<td>Do not warn about unknown keys in the test plan. See <a href="#unknown-key-warnings">Unknown key warnings</a>.</td>
+</tr>
+</tbody>
+</table>
+<p>See <a href="../catalog-import/">Catalog Import</a> for the catalog index, taxonomy and scope formats, and for how features are matched.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>./catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--dry-run
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>my_catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--dry-run<span class="w"> </span>--match-level<span class="w"> </span>category
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>./catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--dry-run<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span>--target<span class="w"> </span>devices
+</code></pre></div>
+<h3 id="exit-codes_5">Exit codes<a class="headerlink" href="#exit-codes_5" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>The dry run completed, including when some scoped features have no matching catalog job.</td>
+</tr>
+<tr>
+<td>1</td>
+<td><code>--dry-run</code> was not given, or the catalog, its index, the taxonomy, the scope file or the test plan could not be read.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Usage error, such as a missing required option or an invalid <code>--match-level</code>, <code>--target</code> or <code>--format</code> value.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="reconcile">reconcile<a class="headerlink" href="#reconcile" title="Permanent link">&para;</a></h2>
 <p>Create post-change variants of the test cases that failed in a phase of the latest testing run.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>huginn reconcile --plan &lt;path&gt; --phase &lt;phase-name&gt; [--scenario &lt;scenario-id&gt;] [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;]
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>                 [--no-unknown-key-warnings] [logging options]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>huginn reconcile --plan &lt;path&gt; --phase &lt;phase-name&gt; [--scenario &lt;scenario-id&gt;] [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;]
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>                 [--no-unknown-key-warnings] [logging options]
 </code></pre></div>
 <p><code>--plan</code>/<code>-p</code> and <code>--phase</code> are required. <code>--plan</code> reads <code>HUGINN_PLAN</code>, <code>--phase</code> reads <code>HUGINN_PHASE</code>, <code>--scenario</code> reads <code>HUGINN_SCENARIO</code>, <code>--results-dir</code> reads <code>HUGINN_RESULTS_DIR</code>, <code>--parameters-dir</code> reads <code>HUGINN_PARAMETERS_DIR</code>, and <code>--no-unknown-key-warnings</code> reads <code>HUGINN_NO_UNKNOWN_KEY_WARNINGS</code> (see <a href="#unknown-key-warnings">Unknown key warnings</a>). Unlike <code>run</code>, <code>--phase</code> and <code>--scenario</code> take a single value each. The command exits 0 on success or when there is nothing to reconcile, and 1 when reconciliation cannot proceed.</p>
 <p>See <a href="../reconcile/">Parameter Reconciliation</a> for the full option table, exit codes and workflow.</p>
 <h2 id="relearn">relearn<a class="headerlink" href="#relearn" title="Permanent link">&para;</a></h2>
 <p>Re-learn parameters for the tests that failed, errored or lost applicability in the latest testing run, in the exact scenario and phase where each one failed.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>huginn relearn [--plan &lt;path&gt;] [--testbed &lt;path&gt; | --inventory-plugin &lt;name&gt;] [--scenario &lt;id&gt;] [--phase &lt;id&gt;]
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>               [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;] [--output-dir &lt;path&gt;]
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>               [--no-unknown-key-warnings] [logging options]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>huginn relearn [--plan &lt;path&gt;] [--testbed &lt;path&gt; | --inventory-plugin &lt;name&gt;] [--scenario &lt;id&gt;] [--phase &lt;id&gt;]
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>               [--results-dir &lt;path&gt;] [--parameters-dir &lt;path&gt;] [--output-dir &lt;path&gt;]
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>               [--no-unknown-key-warnings] [logging options]
 </code></pre></div>
 <p>The options match those of <code>run</code> with the same names and environment variables, including <code>--no-unknown-key-warnings</code> and the <code>./test_plan</code> and <code>./testbed.yaml</code> defaults. <code>--scenario</code> and <code>--phase</code> take a single value each and filter the failures to re-learn; <code>--phase</code> does not require <code>--scenario</code>. <code>--data-model</code>/<code>-d</code> overrides the test plan's <code>data_model.path</code>, as for <code>run</code>. The command exits 0 when there are no failures to re-learn or when no re-learned test case is <code>failed</code>, <code>errored</code> or <code>blocked</code>, 1 when one is, and 2 in the same run-level error cases as <code>run</code>. As for <code>run</code>, <code>not_applicable</code> and <code>skipped</code> results, and test cases blocked only because a phase was not run in learning mode, do not cause a non-zero exit.</p>
 <p>See <a href="../relearn/">Selective Re-learning</a> for the full option table, exit codes and workflow.</p>
 <h2 id="prune">prune<a class="headerlink" href="#prune" title="Permanent link">&para;</a></h2>
 <p>Remove non-applicable tests and device targets from the test plan, based on the latest learning run.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>huginn prune --plan &lt;path&gt; [--results-dir &lt;path&gt;] [--dry-run] [--remove-orphans] [--no-unknown-key-warnings] [logging options]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>huginn prune --plan &lt;path&gt; [--results-dir &lt;path&gt;] [--dry-run] [--remove-orphans] [--no-unknown-key-warnings] [logging options]
 </code></pre></div>
 <p><code>--plan</code>/<code>-p</code> is required and reads <code>HUGINN_PLAN</code>; <code>--results-dir</code> reads <code>HUGINN_RESULTS_DIR</code>. <code>--no-unknown-key-warnings</code> reads <code>HUGINN_NO_UNKNOWN_KEY_WARNINGS</code> (see <a href="#unknown-key-warnings">Unknown key warnings</a>). <code>--dry-run</code> and <code>--remove-orphans</code> have no environment variable. The command exits 0 on success or when there is nothing to prune, and 1 when the results or test plan cannot be read or the pruned plan fails validation.</p>
 <p>See <a href="../prune/">Pruning Non-Applicable Tests</a> for the full option table and the changes each option makes.</p>
 <h2 id="version">version<a class="headerlink" href="#version" title="Permanent link">&para;</a></h2>
 <p>Print the installed Huginn version and exit 0. <code>version</code> takes no options.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>huginn<span class="w"> </span>version
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>huginn<span class="w"> </span>version
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>huginn v0.2.0
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>huginn v0.2.0
 </code></pre></div>
 <h2 id="completion">Completion<a class="headerlink" href="#completion" title="Permanent link">&para;</a></h2>
 <p>The top-level <code>huginn</code> command has two options for shell completion. Both detect the current shell.</p>
@@ -3128,7 +3369,7 @@
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>huginn<span class="w"> </span>--install-completion
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>huginn<span class="w"> </span>--install-completion
 </code></pre></div>
 <p>Restart the shell after installing for completion to take effect.</p>
 
