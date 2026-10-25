@@ -4,6 +4,13 @@ All notable changes to Huginn are documented in this file.
 
 <!-- towncrier release notes start -->
 
+## 0.4.1 - 2026-10-25
+
+### Fixed
+
+- Fixed job loading growing memory quadratically with the number of jobs: job-class discovery no longer calls `issubclass()` against the `TestCase` ABC, whose negative cache held about 240 MB for an 800-job test plan. ([#311](https://github.com/ChartinoLabs/Huginn/pull/311))
+
+
 ## 0.4.0 - 2026-10-25
 
 ### Added
