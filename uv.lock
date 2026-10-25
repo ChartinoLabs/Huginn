@@ -862,7 +862,7 @@ requires-dist = [
     { name = "markdown", specifier = ">=3.4.0,<4.0.0" },
     { name = "pyyaml", specifier = ">=6.0.2,<7.0.0" },
     { name = "ruamel-yaml", specifier = ">=0.17.32,<1.0.0" },
-    { name = "scrapli", extras = ["asyncssh"], specifier = ">=2025.1.30" },
+    { name = "scrapli", extras = ["asyncssh"], specifier = ">=2025.1.30,<2026.10" },
     { name = "scrapli-netconf", extras = ["asyncssh"], specifier = ">=2025.1.30" },
     { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=2.0.0" },
     { name = "typer", specifier = ">=0.16.0,<1.0.0" },

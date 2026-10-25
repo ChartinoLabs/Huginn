@@ -1,0 +1,1 @@
+Fresh installs no longer fail at import with `ImportError: cannot import name 'ScrapliAuthenticationFailed' from 'scrapli.exceptions'`, because the `scrapli` dependency is now capped below 2026.10, whose libscrapli rewrite removed the API the SSH and NETCONF brokers use.
