@@ -5,6 +5,8 @@ the features found on each device. ``compute_import_plan`` matches the two and
 returns the test cases to add to a test plan, without reading or writing files,
 so other tools can call it and render the result their own way.
 
+``apply_import_plan`` writes a plan into a test plan directory.
+
 The three input formats are documented in ``docs/reference/catalog-import.md``.
 """
 
@@ -22,6 +24,18 @@ import yaml
 
 from huginn.enums import MatchLevel, TargetMode
 from huginn.models import TestCaseDefinition, TestPlan
+from huginn.plan_writer import (
+    PlanWriteError,
+    add_group_to_phases,
+    cases_file_path,
+    extend_group,
+    extend_test_case_target,
+    find_group_file,
+    find_scenarios_file,
+    groups_file_path,
+    write_group,
+    write_test_cases,
+)
 
 INDEX_FILENAMES = ("index.json", "index.yaml", "index.yml")
 TAXONOMY_FILENAMES = ("taxonomy.yaml", "taxonomy.yml", "taxonomy.json")
@@ -82,11 +96,17 @@ class Catalog:
 
 @dataclass(frozen=True)
 class ScopedDevice:
-    """The features found on one device."""
+    """The features found on one device.
+
+    ``os`` is matched against the catalog. ``target_os``, when set, is the
+    name new test cases target instead, for example the device's ``os`` in a
+    testbed that names operating systems differently from the scope.
+    """
 
     name: str
     os: str
     features: tuple[str, ...]
+    target_os: str | None = None
 
 
 @dataclass(frozen=True)
@@ -467,7 +487,7 @@ class _Selection:
     devices_by_job: dict[str, set[str]] = field(default_factory=dict)
 
     def add(self, entry: CatalogEntry, device: ScopedDevice) -> None:
-        self.os_by_job.setdefault(entry.job, set()).add(device.os)
+        self.os_by_job.setdefault(entry.job, set()).add(device.target_os or device.os)
         self.devices_by_job.setdefault(entry.job, set()).add(device.name)
 
     def targets(self, job: str, mode: TargetMode) -> list[str]:
@@ -750,3 +770,87 @@ def _highest_counter(prefix: str, existing_ids: set[str]) -> int:
         (int(m.group(1)) for test_id in existing_ids if (m := pattern.match(test_id))),
         default=0,
     )
+
+
+# ---------------------------------------------------------------------------
+# Writing
+# ---------------------------------------------------------------------------
+
+
+def check_import_plan(plan_path: Path, import_plan: ImportPlan) -> None:
+    """Check that the plan directory can take the import, before writing.
+
+    Raises:
+        CatalogImportError: If the test plan is not a directory, the parent
+            group is not defined under ``groups/``, or a phase is named and
+            the plan has no scenarios file.
+    """
+    if not plan_path.is_dir():
+        raise CatalogImportError(
+            f"Test plan must be a directory to import into: {plan_path}"
+        )
+    parent = import_plan.parent_group
+    if parent and find_group_file(plan_path, parent) is None:
+        raise CatalogImportError(
+            f"Parent group '{parent}' not found in any groups file under "
+            f"{plan_path / 'groups'}"
+        )
+    if import_plan.phases:
+        try:
+            find_scenarios_file(plan_path)
+        except PlanWriteError as exc:
+            raise CatalogImportError(str(exc)) from exc
+
+
+def apply_import_plan(plan_path: Path, import_plan: ImportPlan) -> None:
+    """Write an import plan into a test plan directory.
+
+    New test cases go to ``test_cases/<group>.yaml``, and the import group
+    and its child groups to ``groups/<group>.yaml``. The import group is
+    nested under the parent group and added to the phases, when given.
+    Target updates are written into the files that define those test cases.
+
+    Raises:
+        CatalogImportError: If ``check_import_plan`` fails, or a file cannot
+            be updated.
+    """
+    if not import_plan.has_changes:
+        return
+    check_import_plan(plan_path, import_plan)
+    try:
+        _write_new_test_cases(plan_path, import_plan)
+        for update in import_plan.target_updates:
+            if not extend_test_case_target(
+                plan_path, update.test_id, update.field, update.added
+            ):
+                raise CatalogImportError(
+                    f"Test case '{update.test_id}' has no target.{update.field} "
+                    "list to extend"
+                )
+    except PlanWriteError as exc:
+        raise CatalogImportError(str(exc)) from exc
+
+
+def _write_new_test_cases(plan_path: Path, import_plan: ImportPlan) -> None:
+    if not import_plan.new_test_cases:
+        return
+    group_id = import_plan.group_id
+    write_test_cases(
+        cases_file_path(plan_path, group_id),
+        {tc.test_id: tc.entry for tc in import_plan.new_test_cases},
+    )
+
+    children: dict[str, tuple[str, list[str]]] = {}
+    for tc in import_plan.new_test_cases:
+        children.setdefault(tc.group_id, (tc.group_name, []))[1].append(tc.test_id)
+    groups_path = groups_file_path(plan_path, group_id)
+    for child_id, (name, test_ids) in children.items():
+        if not extend_group(plan_path, child_id, tests=test_ids):
+            write_group(groups_path, child_id, {"name": name, "tests": test_ids})
+    if not extend_group(plan_path, group_id, groups=list(children)):
+        write_group(groups_path, group_id, {"groups": list(children)})
+
+    if import_plan.parent_group:
+        extend_group(plan_path, import_plan.parent_group, groups=[group_id])
+    if import_plan.phases:
+        add_group_to_phases(plan_path, group_id, import_plan.phases)
