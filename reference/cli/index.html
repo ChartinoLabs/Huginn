@@ -3162,7 +3162,7 @@
 </table>
 <h2 id="import">import<a class="headerlink" href="#import" title="Permanent link">&para;</a></h2>
 <p>Select the jobs in a catalog that match the features found on each device, and add them to the test plan. The command reports each match and each feature no catalog job covers (a gap). With <code>--dry-run</code> it reports without changing any files.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>huginn import --catalog &lt;dir|package&gt; --scope &lt;file&gt; [--taxonomy &lt;file&gt;] [--testbed &lt;file&gt;] [--plan &lt;dir&gt;]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>huginn import --catalog &lt;dir|package&gt; (--scope &lt;file&gt; | --scope-provider &lt;name&gt;[:&lt;config&gt;]) [--taxonomy &lt;file&gt;] [--testbed &lt;file&gt;] [--plan &lt;dir&gt;]
 <a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>              [--features &lt;names&gt;] [--match-level &lt;level&gt;] [--archetype &lt;names&gt;] [--target &lt;mode&gt;]
 <a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>              [--group &lt;id&gt;] [--phase &lt;ids&gt;] [--parent-group &lt;id&gt;] [--tags &lt;tags&gt;] [--dry-run]
 <a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>              [--format &lt;format&gt;] [--no-unknown-key-warnings]
@@ -3189,8 +3189,15 @@
 <td><code>--scope</code></td>
 <td></td>
 <td><code>HUGINN_SCOPE</code></td>
-<td>required</td>
-<td>Scope file listing the features found on each device.</td>
+<td>none</td>
+<td>Scope file listing the features found on each device. Give exactly one of <code>--scope</code> and <code>--scope-provider</code>.</td>
+</tr>
+<tr>
+<td><code>--scope-provider</code></td>
+<td></td>
+<td><code>HUGINN_SCOPE_PROVIDER</code></td>
+<td>none</td>
+<td>Scope provider plugin, as <code>&lt;name&gt;</code> or <code>&lt;name&gt;:&lt;config&gt;</code>. <code>file:&lt;path&gt;</code> is the same as <code>--scope &lt;path&gt;</code>. See <a href="../catalog-import/#scope-providers">Scope providers</a>.</td>
 </tr>
 <tr>
 <td><code>--taxonomy</code></td>
@@ -3298,6 +3305,7 @@
 <a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>./catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--phase<span class="w"> </span>pre-change
 <a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>my_catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--parent-group<span class="w"> </span>state-baseline<span class="w"> </span>--match-level<span class="w"> </span>category
 <a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>./catalog<span class="w"> </span>--scope<span class="w"> </span>scope.yaml<span class="w"> </span>--target<span class="w"> </span>devices<span class="w"> </span>--testbed<span class="w"> </span>testbed.yaml<span class="w"> </span>--format<span class="w"> </span>json
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>huginn<span class="w"> </span>import<span class="w"> </span>--catalog<span class="w"> </span>./catalog<span class="w"> </span>--scope-provider<span class="w"> </span>my-provider:lab<span class="w"> </span>--dry-run
 </code></pre></div>
 <h3 id="exit-codes_5">Exit codes<a class="headerlink" href="#exit-codes_5" title="Permanent link">&para;</a></h3>
 <table>

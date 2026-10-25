@@ -2248,6 +2248,11 @@
 <td>Loads a testbed YAML file</td>
 </tr>
 <tr>
+<td><code>huginn.scope_providers</code></td>
+<td><code>file</code></td>
+<td>Reads a scope file for <code>huginn import</code></td>
+</tr>
+<tr>
 <td><code>huginn.reporters</code></td>
 <td><code>html</code></td>
 <td>HTML dashboard written under <code>reports/</code>, with <code>latest/</code></td>
@@ -2266,7 +2271,7 @@
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;DC1 lab&quot;</span>
 </code></pre></div>
 <p>Huginn passes the table to the plugin unchanged. A reporter receives it as the <code>config</code> argument of <code>generate_report()</code>, and a hook plugin as the <code>config</code> argument of its constructor. The plugin decides which options it reads. The built-in <code>html</code> reporter reads no options, so a <code>config.html</code> table is accepted but has no effect today. The built-in <code>junit</code> reporter reads <code>path</code>; see <a href="../reporting/#options">Reporting - JUnit XML options</a>.</p>
-<p>Inventory plugins do not read <code>config.&lt;name&gt;</code>. They take their configuration from the text after the colon in <code>--inventory-plugin</code> or <code>inventory_plugin</code>.</p>
+<p>Inventory plugins and scope providers do not read <code>config.&lt;name&gt;</code>. They take their configuration from the text after the colon in <code>--inventory-plugin</code> or <code>inventory_plugin</code>, and in <code>--scope-provider</code>.</p>
 <h2 id="hooks">Hooks<a class="headerlink" href="#hooks" title="Permanent link">&para;</a></h2>
 <p>A hook plugin runs code at lifecycle points of <code>huginn run</code> and <code>huginn relearn</code>, such as before each test case or after the run. It can skip a phase, group or test case before it runs, or stop the whole run, which then exits with code 1. Hook plugins are classes registered in the <code>huginn.hooks</code> entry point group of an installed package:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># pyproject.toml of the package that provides the hook</span>
