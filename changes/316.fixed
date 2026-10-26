@@ -1,0 +1,1 @@
+Connection options nested under an `options:` mapping in a testbed are now flattened into the broker options, and broker connection failures name the device and connection instead of surfacing a bare scrapli error.

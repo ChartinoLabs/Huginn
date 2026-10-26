@@ -56,6 +56,70 @@ def test_load_testbed_parses_ssh_connection_and_credentials() -> None:
     assert device.connections["ssh"].options["auth_strict_key"] is False
 
 
+_NESTED_TESTBED = """\
+devices:
+  r1:
+    os: iosxr
+    connections:
+      ssh:
+        protocol: ssh
+        host: 127.0.0.1
+{body}
+"""
+
+
+def _write_testbed(tmp_path: Path, body: str) -> Path:
+    path = tmp_path / "testbed.yaml"
+    path.write_text(_NESTED_TESTBED.format(body=body))
+    return path
+
+
+def test_load_testbed_flattens_nested_connection_options(tmp_path: Path) -> None:
+    """A nested options mapping merges with flat pass-through options."""
+    path = _write_testbed(
+        tmp_path,
+        "        auth_strict_key: false\n"
+        "        options:\n"
+        "          timeout_socket: 5\n",
+    )
+
+    testbed = load_testbed(path)
+
+    assert testbed.devices["r1"].connections["ssh"].options == {
+        "auth_strict_key": False,
+        "timeout_socket": 5,
+    }
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        (
+            "        options: [timeout_socket]\n",
+            "Connection 'ssh' on 'r1' 'options' must be a mapping",
+        ),
+        (
+            "        timeout_socket: 1\n"
+            "        options:\n"
+            "          timeout_socket: 5\n",
+            "option 'timeout_socket' both directly and inside 'options'",
+        ),
+        (
+            "        options:\n          host: 10.0.0.2\n",
+            "sets 'host' inside 'options'",
+        ),
+    ],
+)
+def test_load_testbed_rejects_bad_nested_connection_options(
+    tmp_path: Path, body: str, message: str
+) -> None:
+    """Malformed, conflicting, or reserved nested options name the connection."""
+    path = _write_testbed(tmp_path, body)
+
+    with pytest.raises(ConfigurationError, match=message):
+        load_testbed(path)
+
+
 def test_load_testbed_applies_global_credentials_with_device_overrides() -> None:
     """Global credentials are inherited and device credentials override by name."""
     path = FIXTURES / "testbed_with_global_credentials.yaml"

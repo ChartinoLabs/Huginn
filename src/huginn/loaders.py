@@ -38,6 +38,7 @@ from huginn.unknown_keys import (
 # one test. Equivalent paths are merged, so only nested groups whose targets or
 # tags differ at every level of a deep diamond stack can reach it.
 MAX_INCLUSION_PATHS = 256
+_RESERVED_CONNECTION_KEYS = frozenset({"protocol", "host", "port", "credential"})
 
 
 class ConfigurationError(ValueError):
@@ -270,15 +271,11 @@ def _parse_connection_definition(
         ),
     )
 
-    options: dict[str, object] = {}
-    for key, option_value in connection_mapping.items():
-        if not isinstance(key, str):
-            raise ConfigurationError(
-                f"Connection '{connection_name}' on '{device_name}' has invalid key"
-            )
-        if key in {"protocol", "host", "port", "credential"}:
-            continue
-        options[key] = option_value
+    options = _load_connection_options(
+        device_name=device_name,
+        connection_name=connection_name,
+        connection_mapping=connection_mapping,
+    )
     return ConnectionDefinition(
         name=connection_name,
         protocol=protocol,
@@ -287,6 +284,53 @@ def _parse_connection_definition(
         credential=credential,
         options=options,
     )
+
+
+def _load_connection_options(
+    *,
+    device_name: str,
+    connection_name: str,
+    connection_mapping: dict[str, object],
+) -> dict[str, object]:
+    """Collect pass-through connection options.
+
+    Every key other than the reserved connection fields is a broker option. An
+    optional nested ``options`` mapping is flattened into the same namespace.
+    """
+    where = f"Connection '{connection_name}' on '{device_name}'"
+    options: dict[str, object] = {}
+    nested: object = None
+    for key, option_value in connection_mapping.items():
+        if not isinstance(key, str):
+            raise ConfigurationError(f"{where} has invalid key")
+        if key in _RESERVED_CONNECTION_KEYS:
+            continue
+        if key == "options":
+            nested = option_value
+            continue
+        options[key] = option_value
+
+    if nested is None:
+        return options
+
+    nested_mapping = _require_mapping(
+        nested,
+        f"{where} 'options' must be a mapping of broker options",
+    )
+    for key, option_value in nested_mapping.items():
+        if not isinstance(key, str):
+            raise ConfigurationError(f"{where} has invalid key in 'options'")
+        if key in _RESERVED_CONNECTION_KEYS:
+            raise ConfigurationError(
+                f"{where} sets '{key}' inside 'options'; "
+                f"move it up to the connection level"
+            )
+        if key in options:
+            raise ConfigurationError(
+                f"{where} sets option '{key}' both directly and inside 'options'"
+            )
+        options[key] = option_value
+    return options
 
 
 def _require_non_empty_string(value: object, error_message: str) -> str:

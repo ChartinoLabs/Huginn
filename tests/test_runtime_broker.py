@@ -129,6 +129,53 @@ async def test_runtime_broker_errors_on_missing_default_credential() -> None:
         await runtime.connect_targets([device], {BrokerType.SSH})
 
 
+class _RejectingBroker(_FakeBroker):
+    def __init__(self, error: Exception) -> None:
+        super().__init__("ssh")
+        self._error = error
+
+    async def connect(self, config: ConnectionConfig) -> ConnectionHandle:
+        raise self._error
+
+
+@pytest.mark.asyncio
+async def test_runtime_broker_names_connection_for_rejected_option() -> None:
+    """An unexpected-keyword TypeError names the device, connection, and key."""
+    error = TypeError(
+        "AsyncIOSXRDriver.__init__() got an unexpected keyword argument 'options'"
+    )
+    runtime = RuntimeBroker(
+        required_brokers={BrokerType.SSH},
+        ssh_broker=_fake_broker_instance(_RejectingBroker(error)),
+        http_broker=_fake_broker("http"),
+        netconf_broker=_fake_broker("netconf"),
+    )
+
+    with pytest.raises(RuntimeBrokerError) as excinfo:
+        await runtime.connect_targets([_device(protocol="ssh")], {BrokerType.SSH})
+
+    assert (
+        "Device 'spine-01' connection 'ssh': ssh broker does not accept option "
+        "'options'"
+    ) in str(excinfo.value)
+
+
+@pytest.mark.asyncio
+async def test_runtime_broker_prefixes_other_connect_errors() -> None:
+    """Other connect failures keep their message with the connection prefixed."""
+    runtime = RuntimeBroker(
+        required_brokers={BrokerType.SSH},
+        ssh_broker=_fake_broker_instance(_RejectingBroker(ValueError("boom"))),
+        http_broker=_fake_broker("http"),
+        netconf_broker=_fake_broker("netconf"),
+    )
+
+    with pytest.raises(
+        RuntimeBrokerError, match="Device 'spine-01' connection 'ssh': boom"
+    ):
+        await runtime.connect_targets([_device(protocol="ssh")], {BrokerType.SSH})
+
+
 @pytest.mark.asyncio
 async def test_runtime_broker_requires_explicit_broker_when_multiple_connected() -> (
     None
