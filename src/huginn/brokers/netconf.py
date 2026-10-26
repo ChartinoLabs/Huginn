@@ -9,14 +9,12 @@ import uuid
 from typing import Any
 
 from scrapli.exceptions import (
-    ScrapliAuthenticationFailed,
-    ScrapliConnectionError,
     ScrapliTimeout,
 )
 from scrapli_netconf import AsyncNetconfDriver
 
+from huginn.brokers._scrapli_errors import translate_open_error
 from huginn.brokers.exceptions import (
-    AuthenticationError,
     CapabilityError,
     ConfigurationError,
     ConnectionError,
@@ -130,6 +128,7 @@ class NETCONFBroker:
         Raises:
             ConnectionError: If connection cannot be established or OS unsupported.
             AuthenticationError: If authentication fails.
+            TimeoutError: If opening the connection times out.
         """
         self._validate_os(config.os)
 
@@ -156,14 +155,8 @@ class NETCONFBroker:
 
         try:
             await driver.open()
-        except ScrapliAuthenticationFailed as e:
-            raise AuthenticationError(
-                f"Authentication failed for {config.host}: {e}"
-            ) from e
-        except ScrapliConnectionError as e:
-            raise ConnectionError(f"Connection failed to {config.host}: {e}") from e
-        except ScrapliTimeout as e:
-            raise TimeoutError(f"Connection timed out to {config.host}: {e}") from e
+        except Exception as e:
+            raise translate_open_error(e, host=config.host) from e
 
         self._connections[config.device_name] = driver
         self._configs[config.device_name] = config

@@ -6,6 +6,7 @@ from typing import cast
 
 import pytest
 
+from huginn.brokers.exceptions import ConnectionError as BrokerConnectionError
 from huginn.brokers.protocol import (
     CommandResult,
     ConnectionBrokerProtocolV1,
@@ -15,7 +16,11 @@ from huginn.brokers.protocol import (
 )
 from huginn.enums import BrokerType, ConnectionProtocol
 from huginn.models import ConnectionDefinition, Device
-from huginn.runtime_broker import RuntimeBroker, RuntimeBrokerError
+from huginn.runtime_broker import (
+    ConnectTargetsError,
+    RuntimeBroker,
+    RuntimeBrokerError,
+)
 
 
 @dataclass
@@ -171,7 +176,8 @@ async def test_runtime_broker_prefixes_other_connect_errors() -> None:
     )
 
     with pytest.raises(
-        RuntimeBrokerError, match="Device 'spine-01' connection 'ssh': boom"
+        RuntimeBrokerError,
+        match=r"Device 'spine-01' connection 'ssh' \(10\.0\.0\.1:22\): boom",
     ):
         await runtime.connect_targets([_device(protocol="ssh")], {BrokerType.SSH})
 
@@ -471,3 +477,80 @@ def _fake_broker(name: str) -> ConnectionBrokerProtocolV1:
 
 def _fake_broker_instance(broker: _FakeBroker) -> ConnectionBrokerProtocolV1:
     return cast(ConnectionBrokerProtocolV1, broker)
+
+
+@dataclass
+class _UnreachableFakeBroker(_FakeBroker):
+    """Fake broker that fails to connect to the named devices."""
+
+    unreachable: frozenset[str] = frozenset()
+
+    async def connect(self, config: ConnectionConfig) -> ConnectionHandle:
+        if config.device_name in self.unreachable:
+            raise BrokerConnectionError(f"Connection failed to {config.host}: lost")
+        return await super().connect(config)
+
+
+def _named_device(name: str, host: str) -> Device:
+    """Build an SSH device with the given name and host."""
+    device = _device(protocol="ssh")
+    device.name = name
+    device.connections["ssh"].host = host
+    return device
+
+
+def _runtime_with_unreachable(*names: str) -> RuntimeBroker:
+    """Build a runtime broker whose SSH broker cannot reach the named devices."""
+    return RuntimeBroker(
+        required_brokers={BrokerType.SSH},
+        ssh_broker=_fake_broker_instance(
+            _UnreachableFakeBroker("ssh", unreachable=frozenset(names))
+        ),
+        http_broker=_fake_broker("http"),
+        netconf_broker=_fake_broker("netconf"),
+    )
+
+
+@pytest.mark.asyncio
+async def test_connect_failure_names_device_broker_and_address() -> None:
+    """A failed connection names the device, broker, host and port."""
+    runtime = _runtime_with_unreachable("r2")
+
+    with pytest.raises(ConnectTargetsError) as exc_info:
+        await runtime.connect_targets(
+            [_named_device("r2", "192.0.2.10")], {BrokerType.SSH}
+        )
+
+    assert str(exc_info.value) == (
+        "Device 'r2' connection 'ssh' (192.0.2.10:22): "
+        "Connection failed to 192.0.2.10: lost"
+    )
+
+
+@pytest.mark.asyncio
+async def test_connect_failures_are_all_reported() -> None:
+    """Every failed device is reported, and reachable devices still connect."""
+    runtime = _runtime_with_unreachable("r2", "r3")
+    reachable = _named_device("r1", "192.0.2.1")
+    targets = [
+        reachable,
+        _named_device("r2", "192.0.2.10"),
+        _named_device("r3", "192.0.2.11"),
+    ]
+
+    with pytest.raises(ConnectTargetsError) as exc_info:
+        await runtime.connect_targets(targets, {BrokerType.SSH})
+
+    assert [(f.device_name, f.broker_key) for f in exc_info.value.failures] == [
+        ("r2", "ssh"),
+        ("r3", "ssh"),
+    ]
+    assert str(exc_info.value) == (
+        "2 device connections failed:\n"
+        "  - Device 'r2' connection 'ssh' (192.0.2.10:22): "
+        "Connection failed to 192.0.2.10: lost\n"
+        "  - Device 'r3' connection 'ssh' (192.0.2.11:22): "
+        "Connection failed to 192.0.2.11: lost"
+    )
+    result = await runtime.execute(reachable, "show version")
+    assert result.output == "ssh:execute:show version"

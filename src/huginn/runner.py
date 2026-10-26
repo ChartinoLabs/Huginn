@@ -55,8 +55,11 @@ from huginn.result_store import ResultWriteError, create_run_dir, write_run_resu
 from huginn.results import ResultCollector
 from huginn.run_hooks import RunHooks
 from huginn.runtime_broker import (
+    ConnectFailure,
+    ConnectTargetsError,
     RuntimeBroker,
     RuntimeBrokerError,
+    format_connect_failures,
     normalize_broker_key,
 )
 from huginn.testcase import LearningTestCase, TestCase
@@ -2180,79 +2183,114 @@ async def _prime_runtime_connections(
     broker: RuntimeBroker,
     output: Output | None,
 ) -> None:
-    """Connect all planned test targets once before phase execution."""
+    """Connect all planned test targets once before phase execution.
+
+    Every connection set is attempted, so the error lists every device that
+    failed to connect, not just the first.
+    """
     targets_by_brokers = _collect_prime_targets(
         testbed=testbed,
         test_plan=test_plan,
         planned_executions=planned_executions,
     )
 
-    try:
-        log_debug(
-            output,
-            "Runtime connection priming starting",
-            broker_sets=len(targets_by_brokers),
-        )
-        for required_brokers, target_lookup in targets_by_brokers.items():
-            method_names = sorted(required_brokers)
-            target_names = sorted(target_lookup)
-            broker_name = broker.__class__.__name__
-            set_started = perf_counter()
-            _emit_status(
-                output,
-                (
-                    "Priming connection set: "
-                    f"broker={broker_name} "
-                    f"methods={','.join(method_names)} "
-                    f"targets={','.join(target_names)}"
-                ),
+    log_debug(
+        output,
+        "Runtime connection priming starting",
+        broker_sets=len(targets_by_brokers),
+    )
+    failures: dict[tuple[str, str], ConnectFailure] = {}
+    first_error: ConnectTargetsError | None = None
+    first_traceback: str | None = None
+    for required_brokers, target_lookup in targets_by_brokers.items():
+        try:
+            await _prime_connection_set(
+                broker=broker,
+                required_brokers=required_brokers,
+                target_lookup=target_lookup,
+                output=output,
             )
-            log_info(
-                output,
-                "Priming connection set",
-                broker=broker_name,
-                methods=method_names,
-                targets=target_names,
-                target_count=len(target_names),
-            )
-            log_debug(
-                output,
-                "Priming broker connection set",
-                required_brokers=method_names,
-                targets=target_names,
-            )
-            await _connect_targets_or_raise(
-                broker,
-                list(target_lookup.values()),
-                set(required_brokers),
-            )
-            elapsed = _format_elapsed(set_started)
-            _emit_status(
-                output,
-                (
-                    "Primed connection set: "
-                    f"broker={broker_name} "
-                    f"methods={','.join(method_names)} "
-                    f"targets={','.join(target_names)} "
-                    f"duration={elapsed}"
-                ),
-            )
-            log_info(
-                output,
-                "Primed connection set",
-                broker=broker_name,
-                methods=method_names,
-                targets=target_names,
-                target_count=len(target_names),
-                duration=elapsed,
-            )
-        log_debug(output, "Runtime connection priming completed")
-    except RuntimeBrokerError as error:
+        except ConnectTargetsError as error:
+            if first_error is None:
+                first_error = error
+                first_traceback = traceback.format_exc()
+            for failure in error.failures:
+                failures.setdefault((failure.device_name, failure.broker_key), failure)
+        except RuntimeBrokerError as error:
+            raise RunExecutionError(
+                str(error),
+                code=ErrorCode.BROKER_ERROR,
+                traceback_text=traceback.format_exc(),
+            ) from error
+    if first_error is not None:
         raise RunExecutionError(
-            str(error),
+            format_connect_failures(tuple(failures.values())),
             code=ErrorCode.BROKER_ERROR,
-            traceback_text=traceback.format_exc(),
-        ) from error
+            traceback_text=first_traceback,
+        ) from first_error
+    log_debug(output, "Runtime connection priming completed")
+
+
+async def _prime_connection_set(
+    *,
+    broker: RuntimeBroker,
+    required_brokers: frozenset[str],
+    target_lookup: dict[str, Device],
+    output: Output | None,
+) -> None:
+    """Connect one set of targets that share the same required brokers."""
+    method_names = sorted(required_brokers)
+    target_names = sorted(target_lookup)
+    broker_name = broker.__class__.__name__
+    set_started = perf_counter()
+    _emit_status(
+        output,
+        (
+            "Priming connection set: "
+            f"broker={broker_name} "
+            f"methods={','.join(method_names)} "
+            f"targets={','.join(target_names)}"
+        ),
+    )
+    log_info(
+        output,
+        "Priming connection set",
+        broker=broker_name,
+        methods=method_names,
+        targets=target_names,
+        target_count=len(target_names),
+    )
+    log_debug(
+        output,
+        "Priming broker connection set",
+        required_brokers=method_names,
+        targets=target_names,
+    )
+    await _connect_targets_or_raise(
+        broker,
+        list(target_lookup.values()),
+        set(required_brokers),
+    )
+    elapsed = _format_elapsed(set_started)
+    _emit_status(
+        output,
+        (
+            "Primed connection set: "
+            f"broker={broker_name} "
+            f"methods={','.join(method_names)} "
+            f"targets={','.join(target_names)} "
+            f"duration={elapsed}"
+        ),
+    )
+    log_info(
+        output,
+        "Primed connection set",
+        broker=broker_name,
+        methods=method_names,
+        targets=target_names,
+        target_count=len(target_names),
+        duration=elapsed,
+    )
 
 
 def _collect_prime_targets(

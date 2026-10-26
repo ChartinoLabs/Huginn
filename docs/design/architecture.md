@@ -206,7 +206,7 @@ The hook plugins are resolved once, after planning, and `run_start` is dispatche
 
 ### Prime connections
 
-`_prime_runtime_connections` connects only what the run will use. `_collect_prime_targets` resolves the targets of every planned test case in every phase it appears in, skipping test cases with a planning error or a planned skip, and groups the devices by the set of brokers their test cases require. Each set is then connected with one `connect_targets` call, which opens the device-broker pairs concurrently and opens each pair once. There is no separate connectivity check and no automatic retry or reconnect: a connection that fails stops the run with a broker error, described in [Error handling](#error-handling).
+`_prime_runtime_connections` connects only what the run will use. `_collect_prime_targets` resolves the targets of every planned test case in every phase it appears in, skipping test cases with a planning error or a planned skip, and groups the devices by the set of brokers their test cases require. Each set is then connected with one `connect_targets` call, which opens the device-broker pairs concurrently and opens each pair once. A pair that fails does not stop the others, and every set is attempted. There is no separate connectivity check and no automatic retry or reconnect: once every set has been attempted, any connection that failed stops the run with a broker error, described in [Error handling](#error-handling).
 
 ### Execute scenarios and phases
 
@@ -398,7 +398,15 @@ A hook that raises from `on_event` is reported as a `hook_error` warning, on the
 | Phase dependencies in a scenario cannot be resolved                | `RunExecutionError`, `validation_error`    | 2         |
 | Results or reports cannot be written                               | `RunExecutionError`, `configuration_error` | 2         |
 
-When a broker fails to connect, the run stops before any test case runs. The run directory exists, but `run.json` and the report are not written, and `run_end` is dispatched with the error. A load error happens before hook plugins are loaded, so it dispatches no event.
+When a broker fails to connect, the run stops before any test case runs. The error lists every device that failed to connect, not just the first, and names each one with its connection, host and port, for example:
+
+```txt
+ERROR [broker_error]: 2 device connections failed:
+  - Device 'r2' connection 'ssh' (192.0.2.10:22): Connection timed out to 192.0.2.10: timed out opening connection to device
+  - Device 'r3' connection 'ssh' (192.0.2.11:22): Connection failed to 192.0.2.11: Connection lost
+```
+
+A connection that times out is reported as a timeout, and only a rejected login as `Authentication failed`. The run directory exists, but `run.json` and the report are not written, and `run_end` is dispatched with the error. A load error happens before hook plugins are loaded, so it dispatches no event.
 
 ### Validation errors
 
