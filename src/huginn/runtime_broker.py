@@ -1,6 +1,7 @@
 """Runtime broker abstraction for protocol-aware target operations."""
 
 import asyncio
+import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Literal, cast
@@ -24,8 +25,17 @@ _CacheKey = tuple[_CacheOperation, str, str, str, _CacheKwargs]
 _Operation = Callable[[], Awaitable[CommandResult]]
 
 
+_UNEXPECTED_KWARG = re.compile(r"unexpected keyword argument '([^']+)'")
+
+
 class RuntimeBrokerError(RuntimeError):
     """Raised when runtime broker operations cannot be completed."""
+
+
+def _rejected_keyword(error: TypeError) -> str | None:
+    """Return the keyword a driver rejected, or None for any other TypeError."""
+    match = _UNEXPECTED_KWARG.search(str(error))
+    return match.group(1) if match else None
 
 
 @dataclass(frozen=True)
@@ -192,7 +202,20 @@ class RuntimeBroker:
             credentials=credential,
             options=connection.options,
         )
-        return await self._brokers[broker_key].connect(config)
+        try:
+            return await self._brokers[broker_key].connect(config)
+        except TypeError as error:
+            rejected = _rejected_keyword(error)
+            if rejected is None:
+                raise
+            raise RuntimeBrokerError(
+                f"Device '{device.name}' connection '{connection.name}': "
+                f"{broker_key} broker does not accept option '{rejected}'"
+            ) from error
+        except Exception as error:
+            raise RuntimeBrokerError(
+                f"Device '{device.name}' connection '{connection.name}': {error}"
+            ) from error
 
     async def disconnect_targets(self) -> None:
         """Close any established target connections."""

@@ -248,6 +248,19 @@ connections:
 
 Options are passed through to the scrapli driver as keyword arguments, so any scrapli driver argument is accepted. The broker uses the `asyncssh` transport. Overriding `transport` with a synchronous transport such as `ssh2` fails, because the broker uses scrapli's async driver.
 
+Options can also be nested under an `options:` mapping, which is flattened into the same set of options:
+
+```yaml
+connections:
+  ssh:
+    protocol: ssh
+    host: 10.1.1.1
+    options:
+      timeout_socket: 5
+```
+
+Setting the same option both directly and inside `options:`, or placing `protocol`, `host`, `port` or `credential` inside `options:`, raises a `ConfigurationError` that names the device and connection. If a driver rejects an option at connect time, the error names the device, the connection, and the rejected option.
+
 #### NETCONF Connection
 
 For NETCONF interaction via scrapli-netconf:
