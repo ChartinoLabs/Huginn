@@ -268,7 +268,7 @@ async def _connect_devices(
                 output.status(f"Connected to {name}")
         except RuntimeBrokerError as err:
             if output:
-                output.warning(f"Failed to connect to {name}: {err}")
+                output.warning(f"Failed to connect: {err}")
     return connected
 
 

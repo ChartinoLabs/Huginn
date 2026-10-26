@@ -39,6 +39,41 @@ def _rejected_keyword(error: TypeError) -> str | None:
 
 
 @dataclass(frozen=True)
+class ConnectFailure:
+    """One device-broker pair that failed to connect."""
+
+    device_name: str
+    broker_key: str
+    message: str
+
+
+class ConnectTargetsError(RuntimeBrokerError):
+    """Raised when one or more device-broker pairs fail to connect.
+
+    Attributes:
+        failures: One entry per failed pair. Each message names the device.
+    """
+
+    def __init__(self, failures: tuple[ConnectFailure, ...]) -> None:
+        """Initialize with one entry per failed device-broker pair."""
+        self.failures = failures
+        super().__init__(format_connect_failures(failures))
+
+
+def format_connect_failures(failures: tuple[ConnectFailure, ...]) -> str:
+    """Return one message describing every failed device connection."""
+    if len(failures) == 1:
+        return failures[0].message
+    lines = "\n".join(f"  - {failure.message}" for failure in failures)
+    return f"{len(failures)} device connections failed:\n{lines}"
+
+
+def _describe_error(error: BaseException) -> str:
+    """Return an error's message, or its type name when the message is empty."""
+    return str(error) or type(error).__name__
+
+
+@dataclass(frozen=True)
 class RuntimeBrokerClient:
     """A protocol-pinned broker view for test job access."""
 
@@ -143,21 +178,41 @@ class RuntimeBroker:
         targets: list[Device],
         required_brokers: set[BrokerType] | set[str],
     ) -> None:
-        """Open required broker connections for all target devices."""
-        required_keys = _normalize_required_broker_strings(required_brokers)
-        try:
-            tasks: list[asyncio.Task[None]] = []
-            for device in targets:
-                for broker_key in required_keys:
-                    tasks.append(
-                        asyncio.create_task(
-                            self._connect_target_broker_pair(device, broker_key)
-                        )
-                    )
-            if tasks:
-                await asyncio.gather(*tasks)
-        except Exception as error:  # noqa: BLE001
-            raise RuntimeBrokerError(str(error)) from error
+        """Open required broker connections for all target devices.
+
+        Every device-broker pair is attempted, even when some fail.
+
+        Raises:
+            ConnectTargetsError: If any pair fails to connect. It lists every
+                failure, each naming the device and broker.
+        """
+        required_keys = sorted(_normalize_required_broker_strings(required_brokers))
+        pairs = [
+            (device, broker_key) for device in targets for broker_key in required_keys
+        ]
+        if not pairs:
+            return
+        outcomes = await asyncio.gather(
+            *(self._connect_target_broker_pair(device, key) for device, key in pairs),
+            return_exceptions=True,
+        )
+        failures: list[ConnectFailure] = []
+        first_error: Exception | None = None
+        for (device, broker_key), outcome in zip(pairs, outcomes, strict=True):
+            if outcome is None:
+                continue
+            if not isinstance(outcome, Exception):
+                raise outcome
+            first_error = first_error or outcome
+            failures.append(
+                ConnectFailure(
+                    device_name=device.name,
+                    broker_key=broker_key,
+                    message=_describe_error(outcome),
+                )
+            )
+        if failures:
+            raise ConnectTargetsError(tuple(failures)) from first_error
 
     async def _connect_target_broker_pair(
         self,
@@ -214,7 +269,8 @@ class RuntimeBroker:
             ) from error
         except Exception as error:
             raise RuntimeBrokerError(
-                f"Device '{device.name}' connection '{connection.name}': {error}"
+                f"Device '{device.name}' connection '{connection.name}' "
+                f"({connection.host}:{connection.port}): {_describe_error(error)}"
             ) from error
 
     async def disconnect_targets(self) -> None:
