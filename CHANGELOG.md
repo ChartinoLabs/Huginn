@@ -4,6 +4,22 @@ All notable changes to Huginn are documented in this file.
 
 <!-- towncrier release notes start -->
 
+## 0.5.0 - 2026-10-29
+
+### Added
+
+- `huginn validate` now warns with the code `redundant_test_case` when two or more test cases are copies of each other: they run the same job on the same devices with the same metadata and learned parameters, so they always produce the same result and could be one test case referenced from each phase. Variants created by `huginn reconcile` that expect a different post-change state are not reported. `validate` gains a `--parameters-dir` option to choose where learned parameters are read from. ([#323](https://github.com/ChartinoLabs/Huginn/pull/323))
+
+### Changed
+
+- `huginn run` and `huginn validate` now load each job once, however many test cases in the plan reference it, so plans that point many test cases at the same job plan faster. Test cases that share a job now share its imported module and class, so state kept at module or class level is shared between them. Each test case still runs on its own instance. ([#321](https://github.com/ChartinoLabs/Huginn/pull/321))
+
+### Fixed
+
+- When devices fail to connect at the start of a run, the error now lists every device that failed, not only the first, and names each one with its connection, host and port. A connection that times out is reported as a timeout instead of an authentication failure, and asyncssh errors such as `Connection lost` are reported as connection failures that name the host. ([#315](https://github.com/ChartinoLabs/Huginn/pull/315))
+- Connection options nested under an `options:` mapping in a testbed are now flattened into the broker options, and broker connection failures name the device and connection instead of surfacing a bare scrapli error. ([#316](https://github.com/ChartinoLabs/Huginn/pull/316))
+
+
 ## 0.4.1 - 2026-10-25
 
 ### Fixed
