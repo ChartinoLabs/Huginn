@@ -614,6 +614,18 @@ def validate(
             envvar="HUGINN_LOG_FILE",
         ),
     ] = None,
+    parameters_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--parameters-dir",
+            help="Path to learned parameters directory used to detect copied "
+            "test cases (default: ./parameters/).",
+            file_okay=False,
+            dir_okay=True,
+            resolve_path=True,
+            envvar="HUGINN_PARAMETERS_DIR",
+        ),
+    ] = None,
     no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
 ) -> None:
     """Validate testbed/plan inputs without executing tests."""
@@ -644,6 +656,7 @@ def validate(
         phase=phase,
         test_case_group=test_case_group,
         test_id=test_id,
+        parameters_dir=parameters_dir,
         log_level="DEBUG" if debug else log_level,
         show_logs=show_logs,
         log_file=log_file,
@@ -668,6 +681,7 @@ def validate(
                 output=output,
                 data_model_path=data_model,
                 unknown_key_warnings=not no_unknown_key_warnings,
+                parameters_dir=parameters_dir or Path.cwd() / "parameters",
             )
         )
     except ConfigurationError as error:

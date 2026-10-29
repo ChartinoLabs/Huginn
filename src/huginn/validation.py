@@ -1,5 +1,6 @@
 """Validation checks for testbed and test plan inputs."""
 
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -21,6 +22,11 @@ from huginn.models import (
 )
 from huginn.output import Output
 from huginn.plan_filtering import PlanFilterOptions, filter_test_plan
+from huginn.redundant_test_cases import (
+    REDUNDANT_TEST_CASE_WARNING_CODE,
+    describe_redundant_test_cases,
+    find_redundant_test_cases,
+)
 from huginn.result_store import write_validation_result
 from huginn.runner import _resolve_targets
 from huginn.runtime_broker import RuntimeBrokerError, normalize_broker_key
@@ -73,12 +79,16 @@ async def validate_inputs(
     output: Output | None = None,
     data_model_path: Path | None = None,
     unknown_key_warnings: bool = True,
+    parameters_dir: Path | None = None,
 ) -> ValidationResult:
     """Validate configuration and emit a validation result.
 
     Unless `unknown_key_warnings` is false, each key in the testbed or test
     plan that the loaders do not read is reported as an `unknown_key` warning.
-    Warnings never make the result invalid.
+    Test cases that are copies of each other, judged partly by their learned
+    parameters in `parameters_dir` (default: `project_root / "parameters"`),
+    are reported as `redundant_test_case` warnings. Warnings never make the
+    result invalid.
     """
     log_info(
         output,
@@ -148,6 +158,14 @@ async def validate_inputs(
     )
     errors.extend(target_errors)
     warnings.extend(target_warnings)
+    warnings.extend(
+        _redundant_test_case_issues(
+            test_plan=test_plan,
+            test_cases=test_cases,
+            parameters_dir=parameters_dir or project_root / "parameters",
+            output=output,
+        )
+    )
 
     all_required = _collect_all_required_brokers(required_by_case)
     result = ValidationResult(
@@ -284,6 +302,33 @@ def _collect_target_validations(
                     )
 
     return test_cases, warnings, errors
+
+
+def _redundant_test_case_issues(
+    *,
+    test_plan: TestPlan,
+    test_cases: list[ValidationCase],
+    parameters_dir: Path,
+    output: Output | None,
+) -> list[ValidationIssue]:
+    """Warn about groups of test cases that always produce the same result."""
+    targets_by_test_id: dict[str, list[list[str]]] = defaultdict(list)
+    for case in test_cases:
+        targets_by_test_id[case.test_id].append(case.targets)
+    issues: list[ValidationIssue] = []
+    for test_ids in find_redundant_test_cases(
+        test_plan=test_plan,
+        targets_by_test_id=targets_by_test_id,
+        parameters_dir=parameters_dir,
+    ):
+        log_warning(output, "Validation redundant test cases", test_ids=test_ids)
+        issues.append(
+            ValidationIssue(
+                code=REDUNDANT_TEST_CASE_WARNING_CODE,
+                message=describe_redundant_test_cases(test_plan, test_ids),
+            )
+        )
+    return issues
 
 
 def _validate_case_targets(
