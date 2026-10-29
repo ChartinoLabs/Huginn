@@ -195,6 +195,14 @@ The hierarchy enables several patterns that a flat list of tests cannot:
 - **Reconciliation** - After a planned change, only the affected parameters need updating. The test plan structure makes it clear which phases use which groups, so reconciliation can target just the post-change variants.
 - **Scale** - A test plan with hundreds of test cases stays organized because the hierarchy provides natural grouping boundaries.
 
+## Reuse a test case or create a new one
+
+When a check should give the same result in several phases, define the test case once and reference it from every phase that needs it, through a shared test case group. Do not copy it under a new test ID for each phase. Copies run the same job on the same devices against the same expected state, so they add nothing but more results to read, and in learning mode each copy learns its own parameters, which can drift apart.
+
+Create a separate test case only when the expected state differs between phases, for example when a change is meant to bring a link down. That difference lives in learned parameters, which are stored per test ID, so it needs its own test ID. [`huginn reconcile`](reconciliation.md) creates these post-change variants for you.
+
+[`huginn validate`](../reference/cli.md#validate) warns with the code `redundant_test_case` when two or more test cases are copies: they share a job, test-level `target`, `metadata` and `is_automated` value, resolve to the same devices everywhere they are referenced, and have identical learned parameters or none. Test cases that differ in any of these, including a reconciled variant whose learned parameters differ from the original, are not reported.
+
 ## See also
 
 - [Execution Modes](execution-modes.md) - how learning and testing modes interact with phases.

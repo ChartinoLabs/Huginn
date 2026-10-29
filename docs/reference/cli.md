@@ -138,7 +138,7 @@ Validate the testbed and test plan without executing tests. Validation loads bot
 huginn validate --plan <path> [--testbed <path> | --inventory-plugin <name>]
                 [--tags <tags>] [--exclude-tags <tags>] [--scenario <ids>] [--phase <ids>]
                 [--test-case-group <ids>] [--test-id <ids>] [--test-id-pattern <regex>]
-                [--no-unknown-key-warnings] [logging options]
+                [--parameters-dir <path>] [--no-unknown-key-warnings] [logging options]
 ```
 
 | Option                      | Short | Env var                          | Default          | Description                                                                                                                        |
@@ -154,10 +154,13 @@ huginn validate --plan <path> [--testbed <path> | --inventory-plugin <name>]
 | `--test-id`                 |       | `HUGINN_TEST_ID`                 | none             | Validate only the listed test case IDs. Repeatable, comma-separated.                                                               |
 | `--test-id-pattern`         |       | `HUGINN_TEST_ID_PATTERN`         | none             | Python regular expression matched anywhere in the test case ID.                                                                    |
 | `--data-model`              | `-d`  | `HUGINN_DATA_MODEL`              | none             | Data model directory. Overrides the test plan's `data_model.path`. A relative path resolves against the current working directory. |
+| `--parameters-dir`          |       | `HUGINN_PARAMETERS_DIR`          | `./parameters/`  | Directory of learned parameters, compared to find test cases that are copies of each other.                                        |
 | `--no-unknown-key-warnings` |       | `HUGINN_NO_UNKNOWN_KEY_WARNINGS` | off              | Do not warn about unknown keys in the test plan or testbed. See [Unknown key warnings](#unknown-key-warnings).                     |
 | logging options             |       |                                  |                  | See [Logging options](#logging-options).                                                                                           |
 
 The filters behave exactly as they do for [`run`](#filtering), including the rule that `--phase` requires `--scenario`. The validation result is written under `./results/`; `validate` has no `--results-dir` option.
+
+Validation warns with the code `redundant_test_case` when two or more test cases always produce the same result and could be one test case referenced from each phase. It compares their learned parameters in `--parameters-dir`, so a variant created by [`reconcile`](#reconcile) that expects a different post-change state is not reported. See [Test Plan Structure - Reuse a test case or create a new one](../concepts/test-plan-structure.md#reuse-a-test-case-or-create-a-new-one).
 
 ```bash
 huginn validate -p test_plan/ -t testbed.yaml
