@@ -403,32 +403,49 @@ def _collect_required_brokers(
     errors: list[ValidationIssue],
     output: Output | None,
 ) -> dict[str, set[str]]:
-    """Load each job class and collect declared broker requirements."""
+    """Load each job class and collect declared broker requirements.
+
+    Each distinct job is loaded once, however many test cases reference it.
+    """
     required: dict[str, set[str]] = {}
+    brokers_by_job: dict[str, set[str] | JobLoadError | RuntimeBrokerError] = {}
     for test_case in test_plan.test_cases.values():
-        try:
-            test_case_class = load_test_case_class(
+        if test_case.job not in brokers_by_job:
+            brokers_by_job[test_case.job] = _load_job_required_brokers(
                 job=test_case.job,
                 project_root=project_root,
             )
-            required[test_case.test_id] = _normalize_required_brokers(
-                test_case_class,
+        outcome = brokers_by_job[test_case.job]
+        if isinstance(outcome, set):
+            required[test_case.test_id] = outcome
+            continue
+        log_warning(
+            output,
+            "Validation planning failed",
+            test_id=test_case.test_id,
+            error=outcome,
+        )
+        errors.append(
+            ValidationIssue(
+                code=ErrorCode.PLANNING_ERROR.value,
+                message=f"{test_case.test_id}: {outcome}",
             )
-        except (JobLoadError, RuntimeBrokerError) as error:
-            log_warning(
-                output,
-                "Validation planning failed",
-                test_id=test_case.test_id,
-                error=error,
-            )
-            errors.append(
-                ValidationIssue(
-                    code=ErrorCode.PLANNING_ERROR.value,
-                    message=f"{test_case.test_id}: {error}",
-                )
-            )
-            required[test_case.test_id] = {BrokerType.SSH.value}
+        )
+        required[test_case.test_id] = {BrokerType.SSH.value}
     return required
+
+
+def _load_job_required_brokers(
+    *,
+    job: str,
+    project_root: Path,
+) -> set[str] | JobLoadError | RuntimeBrokerError:
+    """Load one job and return its brokers, or the error that stopped it."""
+    try:
+        test_case_class = load_test_case_class(job=job, project_root=project_root)
+        return _normalize_required_brokers(test_case_class)
+    except (JobLoadError, RuntimeBrokerError) as error:
+        return error
 
 
 def _normalize_required_brokers(test_case_class: type[TestCase]) -> set[str]:

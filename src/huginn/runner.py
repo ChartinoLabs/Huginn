@@ -1633,46 +1633,67 @@ def _plan_executions(
     project_root: Path,
     output: Output | None,
 ) -> dict[str, PlannedExecution]:
-    """Preload jobs and required broker declarations for all test cases."""
+    """Preload jobs and required broker declarations for all test cases.
+
+    A plan can reference the same job from many test cases, so each distinct
+    job is loaded once and its plan is shared by every test case that uses it.
+    """
     planned: dict[str, PlannedExecution] = {}
+    planned_by_job: dict[str, PlannedExecution] = {}
     for test_case in test_plan.test_cases.values():
-        try:
-            test_case_class = load_test_case_class(
+        execution = planned_by_job.get(test_case.job)
+        if execution is None:
+            execution = _plan_job(
+                mode=mode,
                 job=test_case.job,
                 project_root=project_root,
             )
-            required_brokers = _required_brokers_for_test_case_class(test_case_class)
-            skip_reason: str | None = None
-            skip_kind: SkipKind | None = None
-            if mode == ExecutionMode.LEARNING and not issubclass(
-                test_case_class,
-                LearningTestCase,
-            ):
-                skip_reason = "Learning mode requires tests to inherit LearningTestCase"
-                skip_kind = SkipKind.LEARNING_MODE_UNSUPPORTED
-            planned[test_case.test_id] = PlannedExecution(
-                test_case_class=test_case_class,
-                required_brokers=required_brokers,
-                planning_error=None,
-                planning_error_traceback=None,
-                skip_reason=skip_reason,
-                skip_kind=skip_kind,
-            )
-        except (JobLoadError, RuntimeBrokerError) as error:
+            planned_by_job[test_case.job] = execution
+        if execution.planning_error is not None:
             log_warning(
                 output,
                 "Planning failed for test case",
                 test_id=test_case.test_id,
-                error=error,
+                error=execution.planning_error,
             )
-            planned[test_case.test_id] = PlannedExecution(
-                test_case_class=None,
-                required_brokers={BrokerType.SSH},
-                planning_error=str(error),
-                planning_error_traceback=traceback.format_exc(),
-                skip_reason=None,
-            )
+        planned[test_case.test_id] = execution
     return planned
+
+
+def _plan_job(
+    *,
+    mode: ExecutionMode,
+    job: str,
+    project_root: Path,
+) -> PlannedExecution:
+    """Load one job and build the execution plan shared by its test cases."""
+    try:
+        test_case_class = load_test_case_class(job=job, project_root=project_root)
+        required_brokers = _required_brokers_for_test_case_class(test_case_class)
+    except (JobLoadError, RuntimeBrokerError) as error:
+        return PlannedExecution(
+            test_case_class=None,
+            required_brokers={BrokerType.SSH},
+            planning_error=str(error),
+            planning_error_traceback=traceback.format_exc(),
+            skip_reason=None,
+        )
+    skip_reason: str | None = None
+    skip_kind: SkipKind | None = None
+    if mode == ExecutionMode.LEARNING and not issubclass(
+        test_case_class,
+        LearningTestCase,
+    ):
+        skip_reason = "Learning mode requires tests to inherit LearningTestCase"
+        skip_kind = SkipKind.LEARNING_MODE_UNSUPPORTED
+    return PlannedExecution(
+        test_case_class=test_case_class,
+        required_brokers=required_brokers,
+        planning_error=None,
+        planning_error_traceback=None,
+        skip_reason=skip_reason,
+        skip_kind=skip_kind,
+    )
 
 
 def _required_brokers_for_test_case_class(
