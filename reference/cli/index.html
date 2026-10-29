@@ -2693,7 +2693,7 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>huginn validate --plan &lt;path&gt; [--testbed &lt;path&gt; | --inventory-plugin &lt;name&gt;]
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>                [--tags &lt;tags&gt;] [--exclude-tags &lt;tags&gt;] [--scenario &lt;ids&gt;] [--phase &lt;ids&gt;]
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>                [--test-case-group &lt;ids&gt;] [--test-id &lt;ids&gt;] [--test-id-pattern &lt;regex&gt;]
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>                [--no-unknown-key-warnings] [logging options]
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>                [--parameters-dir &lt;path&gt;] [--no-unknown-key-warnings] [logging options]
 </code></pre></div>
 <table>
 <thead>
@@ -2784,6 +2784,13 @@
 <td>Data model directory. Overrides the test plan's <code>data_model.path</code>. A relative path resolves against the current working directory.</td>
 </tr>
 <tr>
+<td><code>--parameters-dir</code></td>
+<td></td>
+<td><code>HUGINN_PARAMETERS_DIR</code></td>
+<td><code>./parameters/</code></td>
+<td>Directory of learned parameters, compared to find test cases that are copies of each other.</td>
+</tr>
+<tr>
 <td><code>--no-unknown-key-warnings</code></td>
 <td></td>
 <td><code>HUGINN_NO_UNKNOWN_KEY_WARNINGS</code></td>
@@ -2800,6 +2807,7 @@
 </tbody>
 </table>
 <p>The filters behave exactly as they do for <a href="#filtering"><code>run</code></a>, including the rule that <code>--phase</code> requires <code>--scenario</code>. The validation result is written under <code>./results/</code>; <code>validate</code> has no <code>--results-dir</code> option.</p>
+<p>Validation warns with the code <code>redundant_test_case</code> when two or more test cases always produce the same result and could be one test case referenced from each phase. It compares their learned parameters in <code>--parameters-dir</code>, so a variant created by <a href="#reconcile"><code>reconcile</code></a> that expects a different post-change state is not reported. See <a href="../../concepts/test-plan-structure/#reuse-a-test-case-or-create-a-new-one">Test Plan Structure - Reuse a test case or create a new one</a>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>huginn<span class="w"> </span>validate<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>-t<span class="w"> </span>testbed.yaml
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>huginn<span class="w"> </span>validate<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>-t<span class="w"> </span>testbed.yaml<span class="w"> </span>--scenario<span class="w"> </span>link-shutdown-r1r2<span class="w"> </span>--phase<span class="w"> </span>pre-change
 </code></pre></div>

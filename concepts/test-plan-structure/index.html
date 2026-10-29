@@ -659,6 +659,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reuse-a-test-case-or-create-a-new-one" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reuse a test case or create a new one
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#see-also" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1850,6 +1861,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reuse-a-test-case-or-create-a-new-one" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reuse a test case or create a new one
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#see-also" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2045,6 +2067,10 @@
 <li><strong>Reconciliation</strong> - After a planned change, only the affected parameters need updating. The test plan structure makes it clear which phases use which groups, so reconciliation can target just the post-change variants.</li>
 <li><strong>Scale</strong> - A test plan with hundreds of test cases stays organized because the hierarchy provides natural grouping boundaries.</li>
 </ul>
+<h2 id="reuse-a-test-case-or-create-a-new-one">Reuse a test case or create a new one<a class="headerlink" href="#reuse-a-test-case-or-create-a-new-one" title="Permanent link">&para;</a></h2>
+<p>When a check should give the same result in several phases, define the test case once and reference it from every phase that needs it, through a shared test case group. Do not copy it under a new test ID for each phase. Copies run the same job on the same devices against the same expected state, so they add nothing but more results to read, and in learning mode each copy learns its own parameters, which can drift apart.</p>
+<p>Create a separate test case only when the expected state differs between phases, for example when a change is meant to bring a link down. That difference lives in learned parameters, which are stored per test ID, so it needs its own test ID. <a href="../reconciliation/"><code>huginn reconcile</code></a> creates these post-change variants for you.</p>
+<p><a href="../../reference/cli/#validate"><code>huginn validate</code></a> warns with the code <code>redundant_test_case</code> when two or more test cases are copies: they share a job, test-level <code>target</code>, <code>metadata</code> and <code>is_automated</code> value, resolve to the same devices everywhere they are referenced, and have identical learned parameters or none. Test cases that differ in any of these, including a reconciled variant whose learned parameters differ from the original, are not reported.</p>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../execution-modes/">Execution Modes</a> - how learning and testing modes interact with phases.</li>
