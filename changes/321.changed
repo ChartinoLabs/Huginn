@@ -1,1 +1,0 @@
-`huginn run` and `huginn validate` now load each job once, however many test cases in the plan reference it, so plans that point many test cases at the same job plan faster. Test cases that share a job now share its imported module and class, so state kept at module or class level is shared between them. Each test case still runs on its own instance.

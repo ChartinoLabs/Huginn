@@ -1,1 +1,0 @@
-When devices fail to connect at the start of a run, the error now lists every device that failed, not only the first, and names each one with its connection, host and port. A connection that times out is reported as a timeout instead of an authentication failure, and asyncssh errors such as `Connection lost` are reported as connection failures that name the host.
