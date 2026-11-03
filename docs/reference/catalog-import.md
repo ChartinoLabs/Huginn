@@ -125,13 +125,13 @@ lab-configs = "acme_scope.provider:LabConfigScopeProvider"
 
 Huginn imports only the entry point you name. Other registered providers are never imported, so a broken or slow provider package does not affect runs that use a different one. If the named entry point fails to import, the import exits 1 with the import error, for example `Scope provider 'lab-configs' could not be imported: ModuleNotFoundError: No module named 'acme_scope'`.
 
-Huginn constructs the class with `config`, the text after the colon (an empty string when there is none), and calls `resolve_scope`:
+Huginn constructs the class with `config`, the text after the colon (an empty string when there is none), and calls `resolve_scope` with a `ScopeRequest`:
 
 ```python
 from pathlib import Path
 
 from huginn.catalog_import import Scope, ScopedDevice
-from huginn.models import Testbed
+from huginn.scope_providers import ScopeRequest
 
 
 def find_features(config_file: Path) -> tuple[str, ...]:
@@ -143,8 +143,9 @@ class LabConfigScopeProvider:
     def __init__(self, config: str) -> None:
         self.snapshot_dir = Path(config)
 
-    def resolve_scope(self, project_root: Path, testbed: Testbed | None) -> Scope:
+    def resolve_scope(self, request: ScopeRequest) -> Scope:
         devices = []
+        testbed = request.testbed
         for device in testbed.devices.values() if testbed else []:
             features = find_features(self.snapshot_dir / f"{device.name}.cfg")
             devices.append(
@@ -153,7 +154,19 @@ class LabConfigScopeProvider:
         return Scope(devices=tuple(devices))
 ```
 
-`testbed` is the testbed from `--testbed` or `./testbed.yaml`, or `None` when there is none. `resolve_scope` may also be `async`. It must return a `Scope`. If it raises, or returns anything else, the import exits 1 without writing. The scope it returns is checked against the testbed the same way as a scope file; see [Targets and the testbed](#targets-and-the-testbed).
+`ScopeRequest` has these fields:
+
+| Field          | Description                                                                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `project_root` | The directory the command runs from.                                                                                                         |
+| `testbed`      | The testbed from `--testbed` or `./testbed.yaml`, or `None` when there is none.                                                              |
+| `plan_path`    | The test plan directory from `--plan`, so a provider can see what the plan already holds. `None` when the caller has no plan.                |
+| `catalog`      | The loaded catalog, so a provider can limit its scope to features the catalog has jobs for. `None` when the caller has not loaded one.       |
+| `taxonomy`     | The catalog's taxonomy, for its feature names and operating system aliases. Defaults to `catalog.taxonomy`; `None` when there is no catalog. |
+
+`resolve_scope` may also be `async`. It must return a `Scope`. If it raises, or returns anything else, the import exits 1 without writing. The scope it returns is checked against the testbed the same way as a scope file; see [Targets and the testbed](#targets-and-the-testbed).
+
+Providers written for earlier releases take two arguments, `resolve_scope(self, project_root, testbed)`, and keep working. Huginn passes a `ScopeRequest` when `resolve_scope` accepts exactly one positional argument, and the project root and testbed otherwise.
 
 ## Matching
 

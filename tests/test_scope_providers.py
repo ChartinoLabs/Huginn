@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,7 +11,7 @@ import pytest
 import yaml
 from typer.testing import CliRunner, Result
 
-from huginn.catalog_import import Scope, ScopedDevice
+from huginn.catalog_import import Catalog, Scope, ScopedDevice, Taxonomy
 from huginn.cli import app
 from huginn.models import Device, Testbed
 from huginn.plugin_registry import (
@@ -22,6 +22,7 @@ from huginn.plugin_registry import (
 from huginn.scope_providers import (
     FileScopeProvider,
     ScopeProviderError,
+    ScopeRequest,
     resolve_scope,
 )
 
@@ -106,7 +107,38 @@ class _NoConfigProvider:
         return Scope(devices=())
 
 
+class _RequestProvider:
+    """Provider that takes a ``ScopeRequest`` and records the last one."""
+
+    last_request: ScopeRequest | None = None
+
+    def __init__(self, config: str) -> None:
+        self.config = config
+
+    def resolve_scope(self, request: ScopeRequest) -> Scope:
+        type(self).last_request = request
+        return Scope(devices=(ScopedDevice("r1", "alpha", (self.config,)),))
+
+
+class _AsyncRequestProvider:
+    """Provider that takes a ``ScopeRequest`` in a coroutine."""
+
+    def __init__(self, config: str) -> None:
+        self.config = config
+
+    async def resolve_scope(self, request: ScopeRequest) -> Scope:
+        assert request.testbed is not None
+        return Scope(
+            devices=tuple(
+                ScopedDevice(name, "alpha", (self.config,))
+                for name in request.testbed.devices
+            )
+        )
+
+
 _PROVIDERS = [
+    _FakeEntryPoint("request", _RequestProvider),
+    _FakeEntryPoint("async-request", _AsyncRequestProvider),
     _FakeEntryPoint("devices", _DeviceListProvider),
     _FakeEntryPoint("async", _AsyncProvider),
     _FakeEntryPoint("broken", _BrokenProvider),
@@ -154,6 +186,8 @@ async def _resolve(
     scope_provider: str | None = None,
     project_root: Path | None = None,
     testbed: Testbed | None = None,
+    plan_path: Path | None = None,
+    catalog: Catalog | None = None,
 ) -> Scope:
     return await resolve_scope(
         scope_path=scope_path,
@@ -161,6 +195,8 @@ async def _resolve(
         project_root=project_root or Path.cwd(),
         testbed=testbed,
         registry=PluginRegistry(),
+        plan_path=plan_path,
+        catalog=catalog,
     )
 
 
@@ -242,6 +278,75 @@ async def test_plugin_provider_errors(providers: None, spec: str, message: str) 
 
 
 @pytest.mark.asyncio
+async def test_request_provider_receives_scope_request(
+    providers: None, tmp_path: Path
+) -> None:
+    """A one-argument provider gets the plan path, catalog and taxonomy."""
+    taxonomy = Taxonomy(os_aliases={"alpha-os": "alpha"})
+    catalog = Catalog(entries=(), taxonomy=taxonomy, source="cat")
+    testbed = _testbed()
+    scope = await _resolve(
+        scope_provider="request:peering",
+        project_root=tmp_path,
+        testbed=testbed,
+        plan_path=tmp_path / "test_plan",
+        catalog=catalog,
+    )
+    assert scope.devices[0].features == ("peering",)
+    assert _RequestProvider.last_request == ScopeRequest(
+        project_root=tmp_path,
+        testbed=testbed,
+        plan_path=tmp_path / "test_plan",
+        catalog=catalog,
+        taxonomy=taxonomy,
+    )
+
+
+@pytest.mark.asyncio
+async def test_request_provider_without_context(providers: None) -> None:
+    """Callers that pass no plan or catalog give the provider ``None``."""
+    await _resolve(scope_provider="request:x")
+    request = _RequestProvider.last_request
+    assert request is not None
+    assert (request.plan_path, request.catalog, request.taxonomy) == (None,) * 3
+
+
+@pytest.mark.asyncio
+async def test_request_provider_may_be_async(providers: None) -> None:
+    """A one-argument provider can also be a coroutine."""
+    scope = await _resolve(scope_provider="async-request:peering", testbed=_testbed())
+    assert [d.name for d in scope.devices] == ["r1", "r2"]
+
+
+@pytest.mark.parametrize(
+    ("method", "expected"),
+    [
+        (lambda request: None, True),
+        (lambda request, *, extra=None: None, True),
+        (lambda project_root, testbed: None, False),
+        (lambda project_root, testbed=None: None, False),
+        (lambda *args: None, False),
+        (lambda: None, False),
+    ],
+)
+def test_provider_signature_detection(
+    method: Callable[..., object], expected: bool
+) -> None:
+    """Only a method taking exactly one positional argument gets a request."""
+    from huginn.scope_providers import _takes_one_argument
+
+    assert _takes_one_argument(method) is expected
+
+
+def test_scope_request_taxonomy_defaults_to_catalog_taxonomy(tmp_path: Path) -> None:
+    """A request built with only a catalog exposes the catalog's taxonomy."""
+    taxonomy = Taxonomy(always_include=("base",))
+    catalog = Catalog(entries=(), taxonomy=taxonomy)
+    request = ScopeRequest(project_root=tmp_path, testbed=None, catalog=catalog)
+    assert request.taxonomy is taxonomy
+
+
+@pytest.mark.asyncio
 async def test_exactly_one_scope_source(tmp_path: Path) -> None:
     """Both or neither of a scope file and a provider is an error."""
     with pytest.raises(ScopeProviderError, match="exactly one"):
@@ -252,7 +357,9 @@ async def test_exactly_one_scope_source(tmp_path: Path) -> None:
 
 def test_registry_lists_available_providers(providers: None) -> None:
     """An unknown provider name lists what is available, including ``file``."""
-    with pytest.raises(PluginResolutionError, match="'async', 'broken'"):
+    with pytest.raises(
+        PluginResolutionError, match="'async', 'async-request', 'broken'"
+    ):
         PluginRegistry().resolve_scope_provider_class("missing")
     assert PluginRegistry().resolve_scope_provider_class("devices") is (
         _DeviceListProvider
@@ -374,6 +481,24 @@ def test_cli_imports_from_plugin_provider(project: Path, providers: None) -> Non
         (project / "test_plan" / "test_cases" / "catalog-import.yaml").read_text()
     )["test_cases"]
     assert {tuple(tc["target"]["devices"]) for tc in cases.values()} == {("r1", "r2")}
+
+
+def test_cli_passes_plan_and_catalog_to_provider(
+    project: Path, providers: None
+) -> None:
+    """``huginn import`` gives the provider the plan path and loaded catalog."""
+    _RequestProvider.last_request = None
+    result = _invoke("--scope-provider", "request:peer sessions", "--dry-run")
+    assert result.exit_code == 0, result.output
+    request = _RequestProvider.last_request
+    assert request is not None
+    assert request.project_root == project
+    assert request.plan_path == project / "test_plan"
+    assert request.testbed is not None
+    assert set(request.testbed.devices) == {"r1", "r2"}
+    assert request.catalog is not None
+    assert request.catalog.entries
+    assert request.taxonomy is request.catalog.taxonomy
 
 
 def test_cli_needs_exactly_one_scope_source(project: Path) -> None:
