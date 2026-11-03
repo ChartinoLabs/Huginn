@@ -139,6 +139,9 @@ class PluginRegistry:
     def resolve_scope_provider_class(self, provider_name: str) -> type:
         """Resolve a scope provider class by entry point name.
 
+        Only the named entry point is imported; other registered providers
+        are left untouched, so they cannot slow down or break this run.
+
         Args:
             provider_name: The scope provider name.
 
@@ -146,16 +149,23 @@ class PluginRegistry:
             The scope provider class.
 
         Raises:
-            PluginResolutionError: If the provider cannot be found.
+            PluginResolutionError: If no provider has that name, or its
+                entry point fails to import.
         """
-        classes = _load_entry_point_classes(SCOPE_PROVIDER_GROUP)
-        provider_cls = classes.get(provider_name)
-        if provider_cls is None:
-            available = sorted(["file", *classes.keys()])
+        eps = list(entry_points(group=SCOPE_PROVIDER_GROUP))
+        match = next((ep for ep in eps if ep.name == provider_name), None)
+        if match is None:
+            available = sorted({"file", *(ep.name for ep in eps)})
             raise PluginResolutionError(
                 f"No scope provider found for '{provider_name}'. Available: {available}"
             )
-        return provider_cls
+        try:
+            return match.load()
+        except Exception as error:
+            raise PluginResolutionError(
+                f"Scope provider '{provider_name}' could not be imported: "
+                f"{type(error).__name__}: {error}"
+            ) from error
 
     def resolve_reporters(self) -> list[ReporterPlugin]:
         """Instantiate all active reporter plugins.

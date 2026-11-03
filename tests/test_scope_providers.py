@@ -40,6 +40,19 @@ class _FakeEntryPoint:
         return self._cls
 
 
+class _FailingEntryPoint:
+    """Entry point whose module raises when imported, recording each attempt."""
+
+    def __init__(self, name: str, error: Exception) -> None:
+        self.name = name
+        self.error = error
+        self.load_calls = 0
+
+    def load(self) -> type:
+        self.load_calls += 1
+        raise self.error
+
+
 class _DeviceListProvider:
     """Provider that scopes every testbed device with the features in config."""
 
@@ -244,6 +257,63 @@ def test_registry_lists_available_providers(providers: None) -> None:
     assert PluginRegistry().resolve_scope_provider_class("devices") is (
         _DeviceListProvider
     )
+
+
+@pytest.fixture
+def failing_provider() -> Iterator[_FailingEntryPoint]:
+    """Register the fake providers plus one whose module fails to import."""
+    failing = _FailingEntryPoint("bad-import", ModuleNotFoundError("no 'lab_sdk'"))
+
+    def _entry_points(*, group: str) -> list[object]:
+        return [*_PROVIDERS, failing] if group == SCOPE_PROVIDER_GROUP else []
+
+    with patch("huginn.plugin_registry.entry_points", side_effect=_entry_points):
+        yield failing
+
+
+def test_registry_imports_only_the_requested_provider(
+    failing_provider: _FailingEntryPoint,
+) -> None:
+    """Selecting one provider never imports the other registered providers."""
+    assert PluginRegistry().resolve_scope_provider_class("devices") is (
+        _DeviceListProvider
+    )
+    with pytest.raises(PluginResolutionError, match="No scope provider found"):
+        PluginRegistry().resolve_scope_provider_class("missing")
+    assert failing_provider.load_calls == 0
+
+
+def test_registry_lists_providers_that_fail_to_import(
+    failing_provider: _FailingEntryPoint,
+) -> None:
+    """An unknown name lists every registered name, without importing any."""
+    with pytest.raises(PluginResolutionError, match="'bad-import'"):
+        PluginRegistry().resolve_scope_provider_class("missing")
+    assert failing_provider.load_calls == 0
+
+
+def test_requested_provider_import_failure_is_an_error(
+    failing_provider: _FailingEntryPoint,
+) -> None:
+    """The requested provider failing to import raises, naming the cause."""
+    with pytest.raises(
+        PluginResolutionError,
+        match=r"Scope provider 'bad-import' could not be imported: "
+        r"ModuleNotFoundError: no 'lab_sdk'",
+    ) as excinfo:
+        PluginRegistry().resolve_scope_provider_class("bad-import")
+    assert excinfo.value.__cause__ is failing_provider.error
+    assert failing_provider.load_calls == 1
+
+
+def test_cli_reports_provider_import_failure(
+    project: Path, failing_provider: _FailingEntryPoint
+) -> None:
+    """The CLI exits 1 with the import error of the requested provider."""
+    result = _invoke("--scope-provider", "bad-import")
+    assert result.exit_code == 1
+    assert "could not be imported" in result.output
+    assert "ModuleNotFoundError: no 'lab_sdk'" in result.output
 
 
 # ---------------------------------------------------------------------------
