@@ -20,6 +20,7 @@ from huginn.catalog_import import (
     ImportVerificationError,
     Scope,
     ScopedDevice,
+    Taxonomy,
     apply_import_plan,
     apply_testbed,
     compute_import_plan,
@@ -203,6 +204,25 @@ def test_load_catalog_with_explicit_taxonomy(tmp_path: Path) -> None:
     loaded = load_catalog(CATALOG_DIR, taxonomy=taxonomy)
     assert loaded.taxonomy.always_include == ("route tables",)
     assert loaded.taxonomy.os_aliases == {}
+
+
+def test_load_catalog_reports_taxonomy_path(tmp_path: Path) -> None:
+    """``taxonomy_path`` names the taxonomy that was loaded, if any."""
+    beside = load_catalog(CATALOG_DIR)
+    assert beside.taxonomy_path == CATALOG_DIR / "taxonomy.yaml"
+    assert beside.has_taxonomy
+
+    explicit = tmp_path / "other.yaml"
+    explicit.write_text("{}\n")
+    assert load_catalog(CATALOG_DIR, taxonomy=explicit).taxonomy_path == explicit
+
+    (tmp_path / "index.json").write_text(
+        json.dumps({"x.py": {"job": "pkg.mod:Cls", "subfeature": "a"}})
+    )
+    without = load_catalog(tmp_path)
+    assert without.taxonomy_path is None
+    assert not without.has_taxonomy
+    assert without.taxonomy == Taxonomy()
 
 
 def test_load_taxonomy_normalizes_names() -> None:
@@ -731,6 +751,7 @@ def test_to_dict_is_json_serializable(catalog: Catalog) -> None:
     assert report["group"] == "catalog-import"
     assert report["phases"] == ["pre"]
     assert report["parent_group"] == "baseline"
+    assert report["taxonomy"] == str(CATALOG_DIR / "taxonomy.yaml")
     assert report["gaps"] == [
         {"feature": "telemetry", "os": "alpha", "devices": ["r1"]}
     ]
@@ -876,6 +897,26 @@ def test_cli_dry_run_reports_exclusions(tmp_path: Path) -> None:
     assert "Excluded 2 job(s) by scope exclusions" in result.output
     assert f"r1 (alphaos) {ROUTES} [excluded: route tables]" in result.output
     assert "Verify Routes Present" not in result.output
+
+
+def test_to_dict_reports_missing_taxonomy_as_null(tmp_path: Path) -> None:
+    """A catalog without a taxonomy reports ``taxonomy`` as ``None``."""
+    (tmp_path / "index.json").write_text(
+        json.dumps({"x.py": {"job": "pkg.mod:Cls", "subfeature": "a"}})
+    )
+    plan = compute_import_plan(
+        load_catalog(tmp_path), _scope(("r1", "alpha", ["a"])), _plan()
+    )
+    assert plan.taxonomy_path is None
+    assert plan.to_dict()["taxonomy"] is None
+
+
+def test_cli_text_report_names_the_taxonomy(tmp_path: Path) -> None:
+    """The text report says which taxonomy the import matched with."""
+    plan_path, scope_path = _write_cli_inputs(tmp_path)
+    result = CliRunner().invoke(app, _cli_args(plan_path, scope_path, "--dry-run"))
+    assert result.exit_code == 0, result.output
+    assert "taxonomy.yaml" in result.output
 
 
 def test_cli_reports_bad_catalog(tmp_path: Path) -> None:

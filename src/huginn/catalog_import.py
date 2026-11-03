@@ -93,11 +93,22 @@ class Taxonomy:
 
 @dataclass(frozen=True)
 class Catalog:
-    """A loaded catalog: its Huginn entries and optional taxonomy."""
+    """A loaded catalog: its Huginn entries and optional taxonomy.
+
+    ``taxonomy_path`` is the taxonomy file that was loaded, or ``None`` when
+    there was none, in which case ``taxonomy`` is empty and names must match
+    exactly.
+    """
 
     entries: tuple[CatalogEntry, ...]
     taxonomy: Taxonomy = field(default_factory=Taxonomy)
     source: str = ""
+    taxonomy_path: Path | None = None
+
+    @property
+    def has_taxonomy(self) -> bool:
+        """Return whether a taxonomy file was loaded."""
+        return self.taxonomy_path is not None
 
 
 @dataclass(frozen=True)
@@ -198,6 +209,7 @@ class ImportPlan:
     ``matches`` and ``gaps`` explain the selection, and ``excluded_jobs``
     lists the jobs that scope exclusions kept out of it. ``new_test_cases``,
     ``target_updates`` and ``skipped_jobs`` describe the change to the plan.
+    ``taxonomy_path`` is the taxonomy the catalog was matched with, if any.
     """
 
     matches: tuple[FeatureMatch, ...]
@@ -209,6 +221,7 @@ class ImportPlan:
     phases: tuple[str, ...] = ()
     parent_group: str | None = None
     excluded_jobs: tuple[ExcludedJob, ...] = ()
+    taxonomy_path: str | None = None
 
     @property
     def has_changes(self) -> bool:
@@ -221,6 +234,7 @@ class ImportPlan:
             "group": self.group_id,
             "phases": list(self.phases),
             "parent_group": self.parent_group,
+            "taxonomy": self.taxonomy_path,
             "matches": [
                 {
                     "device": m.device,
@@ -289,7 +303,12 @@ def load_catalog(location: str | Path, taxonomy: Path | None = None) -> Catalog:
 
     taxonomy_path = taxonomy or _find_file(directory, TAXONOMY_FILENAMES)
     loaded_taxonomy = load_taxonomy(taxonomy_path) if taxonomy_path else Taxonomy()
-    return Catalog(entries=entries, taxonomy=loaded_taxonomy, source=str(directory))
+    return Catalog(
+        entries=entries,
+        taxonomy=loaded_taxonomy,
+        source=str(directory),
+        taxonomy_path=taxonomy_path,
+    )
 
 
 def load_taxonomy(path: Path) -> Taxonomy:
@@ -813,6 +832,7 @@ def compute_import_plan(
         excluded_jobs=tuple(
             sorted(selection.excluded, key=lambda e: (e.device, e.job, e.excluded))
         ),
+        taxonomy_path=str(catalog.taxonomy_path) if catalog.taxonomy_path else None,
     )
 
 

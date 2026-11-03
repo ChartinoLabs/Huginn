@@ -2435,8 +2435,12 @@ def _display_excluded_jobs(import_plan: ImportPlan, output: Output) -> None:
         )
 
 
-def _display_import_plan(import_plan: ImportPlan, output: Output) -> None:
-    """Print coverage, gaps and planned changes for an import."""
+def _display_import_coverage(import_plan: ImportPlan, output: Output) -> None:
+    """Print the taxonomy used, the matched features and the gaps."""
+    if import_plan.taxonomy_path:
+        output.status(f"Taxonomy: {import_plan.taxonomy_path}")
+    else:
+        output.status("No taxonomy: names must match the catalog exactly")
     output.status(f"Matched {len(import_plan.matches)} scoped feature(s)")
     for match in import_plan.matches:
         output.status(
@@ -2447,6 +2451,11 @@ def _display_import_plan(import_plan: ImportPlan, output: Output) -> None:
         output.warning(f"No catalog jobs for {len(import_plan.gaps)} feature(s)")
         for gap in import_plan.gaps:
             output.warning(f"  {gap.feature} ({gap.os}): {', '.join(gap.devices)}")
+
+
+def _display_import_plan(import_plan: ImportPlan, output: Output) -> None:
+    """Print coverage, gaps and planned changes for an import."""
+    _display_import_coverage(import_plan, output)
     if import_plan.skipped_jobs:
         output.status(f"Skipped {len(import_plan.skipped_jobs)} job(s) already in plan")
     _display_excluded_jobs(import_plan, output)
