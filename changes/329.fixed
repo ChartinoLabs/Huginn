@@ -1,0 +1,1 @@
+`huginn execute --commands` now reports a malformed batch file as a single `ERROR:` line with exit code 1 instead of a Python traceback. Each message names the commands file and, for a bad entry, the entry number and field, and a field of the wrong type is reported as the wrong type rather than as missing.

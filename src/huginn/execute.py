@@ -87,18 +87,20 @@ def load_command_specs(path: Path) -> list[ExecuteCommandSpec]:
         List of command specifications.
 
     Raises:
-        ConfigurationError: If the file structure is invalid.
+        ConfigurationError: If the file cannot be parsed or its structure is
+            invalid. The message names the file and, for a bad entry, the
+            entry number and field.
     """
     data = _read_command_specs_yaml(path)
-    specs = [_parse_one_spec(idx, entry) for idx, entry in enumerate(data)]
+    specs = [_parse_one_spec(path, idx, entry) for idx, entry in enumerate(data)]
 
     if not specs:
-        raise ConfigurationError("Command specs file contains no entries")
+        raise ConfigurationError(f"Command specs file {path} contains no entries")
 
     return specs
 
 
-def _read_command_specs_yaml(path: Path) -> list[dict[str, object]]:
+def _read_command_specs_yaml(path: Path) -> list[object]:
     """Read and validate the top-level structure of a command specs file."""
     try:
         with open(path) as fh:
@@ -110,39 +112,62 @@ def _read_command_specs_yaml(path: Path) -> list[dict[str, object]]:
 
     if not isinstance(data, list):
         raise ConfigurationError(
-            f"Command specs file must contain a YAML list, got {type(data).__name__}"
+            f"Command specs file {path} must contain a YAML list, "
+            f"got {_type_name(data)}"
         )
-    return data
+    return cast(list[object], data)
 
 
 def _parse_one_spec(
+    path: Path,
     idx: int,
     entry: object,
 ) -> ExecuteCommandSpec:
     """Parse and validate a single command spec entry."""
+    where = f"Command spec #{idx + 1} in {path}"
     if not isinstance(entry, dict):
-        raise ConfigurationError(f"Command spec #{idx + 1} must be a mapping")
+        raise ConfigurationError(f"{where} must be a mapping, got {_type_name(entry)}")
 
     fields = cast(dict[str, object], entry)
-    device = fields.get("device")
-    if not device or not isinstance(device, str):
-        raise ConfigurationError(
-            f"Command spec #{idx + 1} is missing required 'device' field"
-        )
-
-    command = fields.get("command") or fields.get("path")
-    if not command or not isinstance(command, str):
-        raise ConfigurationError(
-            f"Command spec #{idx + 1} is missing required 'command' or 'path' field"
-        )
+    device = _require_string(fields, ("device",), where)
+    command = _require_string(fields, ("command", "path"), where)
 
     broker_raw = fields.get("broker", "ssh")
     if not isinstance(broker_raw, str):
         raise ConfigurationError(
-            f"Command spec #{idx + 1} has invalid 'broker' field: expected string"
+            f"{where} has invalid 'broker' field: expected string, "
+            f"got {_type_name(broker_raw)}"
         )
 
     return ExecuteCommandSpec(device=device, command=command, broker=broker_raw)
+
+
+def _require_string(
+    fields: dict[str, object],
+    keys: tuple[str, ...],
+    where: str,
+) -> str:
+    """Return the first present field in ``keys``, requiring a non-empty string."""
+    label = " or ".join(f"'{key}'" for key in keys)
+    key = next((k for k in keys if fields.get(k) not in (None, "")), None)
+    if key is None:
+        empty = next((k for k in keys if fields.get(k) == ""), None)
+        if empty is not None:
+            raise ConfigurationError(f"{where} has empty '{empty}' field")
+        raise ConfigurationError(f"{where} is missing required {label} field")
+
+    value = fields[key]
+    if not isinstance(value, str):
+        raise ConfigurationError(
+            f"{where} has invalid '{key}' field: expected string, "
+            f"got {_type_name(value)}"
+        )
+    return value
+
+
+def _type_name(value: object) -> str:
+    """Name a parsed YAML value's type for error messages."""
+    return "null" if value is None else type(value).__name__
 
 
 async def execute_commands(
