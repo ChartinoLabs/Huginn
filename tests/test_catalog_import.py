@@ -267,6 +267,27 @@ def test_load_scope_accepts_features_mapping(tmp_path: Path) -> None:
     assert scope.devices == (ScopedDevice("r1", "alphaos", ("peering", "link state")),)
 
 
+def test_load_scope_reads_exclusions(tmp_path: Path) -> None:
+    """A device's optional ``excluded`` list is loaded with its features."""
+    path = tmp_path / "scope.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "platform_metadata": [
+                    {
+                        "device_name": "r1",
+                        "os_type": "alphaos",
+                        "features": ["peering"],
+                        "excluded": ["route tables"],
+                    }
+                ]
+            }
+        )
+    )
+    (device,) = load_scope(path).devices
+    assert device.excluded == ("route tables",)
+
+
 @pytest.mark.parametrize(
     ("content", "message"),
     [
@@ -288,6 +309,14 @@ def test_load_scope_accepts_features_mapping(tmp_path: Path) -> None:
                 ]
             },
             "mapping keys must be strings",
+        ),
+        (
+            {
+                "platform_metadata": [
+                    {"device_name": "r1", "os_type": "a", "excluded": "x"}
+                ]
+            },
+            "excluded: expected a list of strings",
         ),
     ],
 )
@@ -475,6 +504,101 @@ def test_apply_testbed_device_targeting_rejects_unknown_devices() -> None:
             _testbed({"r1": "alpha-os"}),
             target_mode=TargetMode.DEVICES,
         )
+
+
+def _excluding(
+    device: str, os_name: str, features: list[str], excluded: list[str]
+) -> Scope:
+    return Scope(
+        devices=(
+            ScopedDevice(
+                name=device,
+                os=os_name,
+                features=tuple(features),
+                excluded=tuple(excluded),
+            ),
+        )
+    )
+
+
+def test_excluded_subfeature_is_not_selected_by_broader_feature(
+    catalog: Catalog,
+) -> None:
+    """A broader feature name never pulls an excluded subfeature's jobs back in."""
+    plan = compute_import_plan(
+        catalog, _excluding("r1", "alpha", ["peering"], ["Route_Tables"]), _plan()
+    )
+    assert set(plan.matches[0].jobs) == {PEER_COUNT, PEERS_UP}
+    assert RIB not in _jobs(plan)
+    assert ROUTES not in _jobs(plan)
+    assert {(e.device, e.job, e.excluded) for e in plan.excluded_jobs} == {
+        ("r1", RIB, "Route_Tables"),
+        ("r1", ROUTES, "Route_Tables"),
+    }
+
+
+def test_excluded_feature_blocks_category_and_always_include(
+    catalog: Catalog,
+) -> None:
+    """Excluding a feature blocks its jobs at every level, always_include too."""
+    plan = compute_import_plan(
+        catalog,
+        _excluding("r1", "alpha", ["routing"], ["peering", "system"]),
+        _plan(),
+        ImportOptions(match_level=MatchLevel.CATEGORY),
+    )
+    assert _jobs(plan) == [ADJACENCY]
+    assert {e.job for e in plan.excluded_jobs} == {
+        PEER_COUNT,
+        PEERS_UP,
+        RIB,
+        ROUTES,
+        UPTIME,
+    }
+
+
+def test_exclusion_applies_only_to_its_device(catalog: Catalog) -> None:
+    """Another device without the exclusion still selects the job."""
+    scope = Scope(
+        devices=(
+            ScopedDevice("r1", "alpha", ("peering",), excluded=("route tables",)),
+            ScopedDevice("r2", "alpha", ("route tables",)),
+        )
+    )
+    plan = compute_import_plan(catalog, scope, _plan())
+    assert ROUTES in _jobs(plan)
+    assert {e.device for e in plan.excluded_jobs} == {"r1"}
+
+
+def test_fully_excluded_feature_is_not_a_gap(catalog: Catalog) -> None:
+    """A feature whose jobs are all excluded is reported, not counted as a gap."""
+    plan = compute_import_plan(
+        catalog, _excluding("r1", "alpha", ["peer sessions"], ["peering"]), _plan()
+    )
+    assert plan.matches == ()
+    assert plan.gaps == ()
+    assert {e.job for e in plan.excluded_jobs} >= {PEER_COUNT, PEERS_UP}
+
+
+def test_excluded_jobs_in_report(catalog: Catalog) -> None:
+    """``to_dict`` lists each excluded job with the device and the name."""
+    plan = compute_import_plan(
+        catalog, _excluding("r1", "alpha", ["peering"], ["route tables"]), _plan()
+    )
+    report = json.loads(json.dumps(plan.to_dict()))
+    assert {
+        "device": "r1",
+        "os": "alpha",
+        "job": ROUTES,
+        "excluded": "route tables",
+    } in report["excluded_jobs"]
+
+
+def test_scope_without_exclusions_is_unchanged(catalog: Catalog) -> None:
+    """Scopes with no ``excluded`` key report an empty exclusion list."""
+    plan = compute_import_plan(catalog, _scope(("r1", "alpha", ["peering"])), _plan())
+    assert plan.excluded_jobs == ()
+    assert plan.to_dict()["excluded_jobs"] == []
 
 
 # ---------------------------------------------------------------------------
@@ -737,6 +861,19 @@ def test_cli_usage_error_leaves_no_log_file(tmp_path: Path) -> None:
     result = CliRunner().invoke(app, ["import", "--catalog", str(CATALOG_DIR)])
     assert result.exit_code != 0
     assert not (tmp_path / "huginn.log").exists()
+
+
+def test_cli_dry_run_reports_exclusions(tmp_path: Path) -> None:
+    """The text report lists the jobs a scope exclusion kept out."""
+    plan_path, scope_path = _write_cli_inputs(tmp_path)
+    scope = yaml.safe_load(scope_path.read_text())
+    scope["platform_metadata"][0]["excluded"] = ["route tables"]
+    scope_path.write_text(yaml.safe_dump(scope))
+    result = CliRunner().invoke(app, _cli_args(plan_path, scope_path, "--dry-run"))
+    assert result.exit_code == 0, result.output
+    assert "Excluded 2 job(s) by scope exclusions" in result.output
+    assert f"r1 (alphaos) {ROUTES} [excluded: route tables]" in result.output
+    assert "Verify Routes Present" not in result.output
 
 
 def test_cli_reports_bad_catalog(tmp_path: Path) -> None:

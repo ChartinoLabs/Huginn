@@ -101,12 +101,17 @@ class ScopedDevice:
     ``os`` is matched against the catalog. ``target_os``, when set, is the
     name new test cases target instead, for example the device's ``os`` in a
     testbed that names operating systems differently from the scope.
+
+    ``excluded`` names subfeatures or features that do not apply to the
+    device. Their jobs are never selected for it, even when a broader name in
+    ``features`` matches them.
     """
 
     name: str
     os: str
     features: tuple[str, ...]
     target_os: str | None = None
+    excluded: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -151,6 +156,16 @@ class FeatureGap:
 
 
 @dataclass(frozen=True)
+class ExcludedJob:
+    """A job that matched a device but was left out by one of its exclusions."""
+
+    device: str
+    os: str
+    job: str
+    excluded: str
+
+
+@dataclass(frozen=True)
 class NewTestCase:
     """A test case the import adds, and the child group it belongs to."""
 
@@ -174,7 +189,8 @@ class TargetUpdate:
 class ImportPlan:
     """Everything an import would change, and why.
 
-    ``matches`` and ``gaps`` explain the selection. ``new_test_cases``,
+    ``matches`` and ``gaps`` explain the selection, and ``excluded_jobs``
+    lists the jobs that scope exclusions kept out of it. ``new_test_cases``,
     ``target_updates`` and ``skipped_jobs`` describe the change to the plan.
     """
 
@@ -186,6 +202,7 @@ class ImportPlan:
     group_id: str
     phases: tuple[str, ...] = ()
     parent_group: str | None = None
+    excluded_jobs: tuple[ExcludedJob, ...] = ()
 
     @property
     def has_changes(self) -> bool:
@@ -226,6 +243,10 @@ class ImportPlan:
                 for u in self.target_updates
             ],
             "skipped_jobs": list(self.skipped_jobs),
+            "excluded_jobs": [
+                {"device": e.device, "os": e.os, "job": e.job, "excluded": e.excluded}
+                for e in self.excluded_jobs
+            ],
         }
 
 
@@ -335,7 +356,15 @@ def load_scope(path: Path) -> Scope:
         if not isinstance(os_name, str) or not os_name:
             raise CatalogImportError(f"{location}: 'os_type' must be a string")
         features = _feature_names(device.get("features", []), f"{location}: features")
-        devices.append(ScopedDevice(name=name, os=os_name, features=tuple(features)))
+        excluded = _string_list(device.get("excluded", []), f"{location}: excluded")
+        devices.append(
+            ScopedDevice(
+                name=name,
+                os=os_name,
+                features=tuple(features),
+                excluded=tuple(excluded),
+            )
+        )
     return Scope(devices=tuple(devices))
 
 
@@ -545,6 +574,7 @@ class _Selection:
 
     os_by_job: dict[str, set[str]] = field(default_factory=dict)
     devices_by_job: dict[str, set[str]] = field(default_factory=dict)
+    excluded: set[ExcludedJob] = field(default_factory=set)
 
     def add(self, entry: CatalogEntry, device: ScopedDevice) -> None:
         self.os_by_job.setdefault(entry.job, set()).add(device.target_os or device.os)
@@ -609,6 +639,46 @@ def _entry_matches(
     )
 
 
+def _exclusion_for(
+    taxonomy: Taxonomy, entry: CatalogEntry, device: ScopedDevice
+) -> str | None:
+    """Return the device exclusion that covers an entry, if any.
+
+    An exclusion covers an entry when it names the entry's subfeature or
+    feature, or a feature the taxonomy places the entry's subfeature under.
+    """
+    subfeature = _normalize(entry.subfeature)
+    feature = _normalize(entry.feature)
+    for name in device.excluded:
+        wanted = _normalize(name)
+        if wanted in (subfeature, feature) or subfeature in (
+            taxonomy.subfeatures_by_feature.get(wanted, frozenset())
+        ):
+            return name
+    return None
+
+
+def _keep_allowed(
+    taxonomy: Taxonomy,
+    entries: Iterable[CatalogEntry],
+    device: ScopedDevice,
+    selection: _Selection,
+) -> list[CatalogEntry]:
+    """Return the entries no device exclusion covers, recording the others."""
+    kept: list[CatalogEntry] = []
+    for entry in entries:
+        excluded = _exclusion_for(taxonomy, entry, device)
+        if excluded is None:
+            kept.append(entry)
+        else:
+            selection.excluded.add(
+                ExcludedJob(
+                    device=device.name, os=device.os, job=entry.job, excluded=excluded
+                )
+            )
+    return kept
+
+
 def _entries_for_device(
     catalog: Catalog, device: ScopedDevice, archetypes: frozenset[str]
 ) -> list[CatalogEntry]:
@@ -627,7 +697,11 @@ def _entries_for_device(
 def _select(
     catalog: Catalog, scope: Scope, options: ImportOptions
 ) -> tuple[list[FeatureMatch], list[FeatureMatch], _Selection]:
-    """Match every scoped feature and return matches, misses and selection."""
+    """Match every scoped feature and return matches, misses and selection.
+
+    A feature whose matched jobs were all excluded is neither a match nor a
+    miss; its jobs are in ``selection.excluded``.
+    """
     archetypes = frozenset(_normalize(name) for name in options.archetypes)
     records: list[FeatureMatch] = []
     selection = _Selection()
@@ -641,7 +715,7 @@ def _select(
             )
         _select_always_included(catalog.taxonomy, candidates, device, selection)
     matches = [record for record in records if record.jobs]
-    misses = [record for record in records if not record.jobs]
+    misses = [record for record in records if record.level is None]
     return matches, misses, selection
 
 
@@ -661,7 +735,8 @@ def _match_device_feature(
     selection: _Selection,
 ) -> FeatureMatch:
     """Match one feature on one device and add its jobs to ``selection``."""
-    level, entries = match_feature(catalog, candidates, feature, options.match_level)
+    level, matched = match_feature(catalog, candidates, feature, options.match_level)
+    entries = _keep_allowed(catalog.taxonomy, matched, device, selection)
     for entry in entries:
         selection.add(entry, device)
     return FeatureMatch(
@@ -681,9 +756,9 @@ def _select_always_included(
 ) -> None:
     """Add the device's entries for every ``always_include`` subfeature."""
     always = set(taxonomy.always_include)
-    for entry in candidates:
-        if _normalize(entry.subfeature) in always:
-            selection.add(entry, device)
+    included = [e for e in candidates if _normalize(e.subfeature) in always]
+    for entry in _keep_allowed(taxonomy, included, device, selection):
+        selection.add(entry, device)
 
 
 def _gaps(misses: Iterable[FeatureMatch]) -> list[FeatureGap]:
@@ -729,6 +804,9 @@ def compute_import_plan(
         group_id=options.group_id,
         phases=options.phases,
         parent_group=options.parent_group,
+        excluded_jobs=tuple(
+            sorted(selection.excluded, key=lambda e: (e.device, e.job, e.excluded))
+        ),
     )
 
 
