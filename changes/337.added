@@ -1,0 +1,1 @@
+`huginn.catalog_import.apply_testbed(scope, testbed, target_mode)` is now public, so tools that call the library can check a scope against a testbed and target devices by testbed `os` exactly as `huginn import --testbed` does.

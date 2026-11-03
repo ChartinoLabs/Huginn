@@ -302,4 +302,20 @@ print(plan.to_dict())
 apply_import_plan(Path("test_plan"), plan)
 ```
 
+To check the scope against a testbed the way `huginn import --testbed` does, pass it through `apply_testbed` first:
+
+```python
+from huginn.catalog_import import apply_testbed
+from huginn.enums import TargetMode
+from huginn.loaders import load_testbed
+
+scope, warnings = apply_testbed(
+    load_scope(Path("scope.yaml")), load_testbed(Path("testbed.yaml")), TargetMode.OS
+)
+for warning in warnings:
+    print(warning)
+```
+
+It targets each scoped device the testbed defines by the testbed's `os`, and returns a warning naming the scoped devices it does not define. With `TargetMode.DEVICES` those devices raise `CatalogImportError` instead. See [Targets and the testbed](#targets-and-the-testbed).
+
 `compute_import_plan` reads and writes no files, so the same inputs always give the same plan. `apply_import_plan` writes it, and `check_import_plan` runs the same checks without writing. Set `ScopedDevice.target_os` to target a device's operating system by a name other than the one matched against the catalog.
