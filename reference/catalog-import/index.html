@@ -2403,6 +2403,7 @@
 </code></pre></div>
 <p>It targets each scoped device the testbed defines by the testbed's <code>os</code>, and returns a warning naming the scoped devices it does not define. With <code>TargetMode.DEVICES</code> those devices raise <code>CatalogImportError</code> instead. See <a href="#targets-and-the-testbed">Targets and the testbed</a>.</p>
 <p><code>compute_import_plan</code> reads and writes no files, so the same inputs always give the same plan. <code>apply_import_plan</code> writes it, and <code>check_import_plan</code> runs the same checks without writing. Set <code>ScopedDevice.target_os</code> to target a device's operating system by a name other than the one matched against the catalog.</p>
+<p>After writing, <code>apply_import_plan</code> reloads the test plan and checks it with <code>verify_import_plan</code>: the plan must load, and every new test case, the import group and every target update must be in it, so a second identical import would change nothing. Either failure raises <code>ImportVerificationError</code>, a subclass of <code>CatalogImportError</code>. Pass <code>verify=False</code> to skip the reload; <code>verify_import_plan</code> runs the same check on its own. <code>huginn import</code> relies on this check.</p>
 
 
 
