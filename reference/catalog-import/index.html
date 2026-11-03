@@ -2149,11 +2149,11 @@
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">lab-configs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;acme_scope.provider:LabConfigScopeProvider&quot;</span>
 </code></pre></div>
 <p>Huginn imports only the entry point you name. Other registered providers are never imported, so a broken or slow provider package does not affect runs that use a different one. If the named entry point fails to import, the import exits 1 with the import error, for example <code>Scope provider 'lab-configs' could not be imported: ModuleNotFoundError: No module named 'acme_scope'</code>.</p>
-<p>Huginn constructs the class with <code>config</code>, the text after the colon (an empty string when there is none), and calls <code>resolve_scope</code>:</p>
+<p>Huginn constructs the class with <code>config</code>, the text after the colon (an empty string when there is none), and calls <code>resolve_scope</code> with a <code>ScopeRequest</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn.catalog_import</span><span class="w"> </span><span class="kn">import</span> <span class="n">Scope</span><span class="p">,</span> <span class="n">ScopedDevice</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Testbed</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn.scope_providers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScopeRequest</span>
 <a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
 <a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
 <a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">find_features</span><span class="p">(</span><span class="n">config_file</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
@@ -2165,16 +2165,49 @@
 <a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">snapshot_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
 <a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>
-<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_scope</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project_root</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">testbed</span><span class="p">:</span> <span class="n">Testbed</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Scope</span><span class="p">:</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_scope</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">ScopeRequest</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Scope</span><span class="p">:</span>
 <a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        <span class="n">devices</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>        <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">testbed</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">testbed</span> <span class="k">else</span> <span class="p">[]:</span>
-<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>            <span class="n">features</span> <span class="o">=</span> <span class="n">find_features</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">snapshot_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.cfg&quot;</span><span class="p">)</span>
-<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>            <span class="n">devices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>                <span class="n">ScopedDevice</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">os</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="n">features</span><span class="p">)</span>
-<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>            <span class="p">)</span>
-<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>        <span class="k">return</span> <span class="n">Scope</span><span class="p">(</span><span class="n">devices</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">devices</span><span class="p">))</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>        <span class="n">testbed</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">testbed</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>        <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">testbed</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">testbed</span> <span class="k">else</span> <span class="p">[]:</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>            <span class="n">features</span> <span class="o">=</span> <span class="n">find_features</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">snapshot_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.cfg&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>            <span class="n">devices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>                <span class="n">ScopedDevice</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">os</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">os</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="n">features</span><span class="p">)</span>
+<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>            <span class="p">)</span>
+<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>        <span class="k">return</span> <span class="n">Scope</span><span class="p">(</span><span class="n">devices</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">devices</span><span class="p">))</span>
 </code></pre></div>
-<p><code>testbed</code> is the testbed from <code>--testbed</code> or <code>./testbed.yaml</code>, or <code>None</code> when there is none. <code>resolve_scope</code> may also be <code>async</code>. It must return a <code>Scope</code>. If it raises, or returns anything else, the import exits 1 without writing. The scope it returns is checked against the testbed the same way as a scope file; see <a href="#targets-and-the-testbed">Targets and the testbed</a>.</p>
+<p><code>ScopeRequest</code> has these fields:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>project_root</code></td>
+<td>The directory the command runs from.</td>
+</tr>
+<tr>
+<td><code>testbed</code></td>
+<td>The testbed from <code>--testbed</code> or <code>./testbed.yaml</code>, or <code>None</code> when there is none.</td>
+</tr>
+<tr>
+<td><code>plan_path</code></td>
+<td>The test plan directory from <code>--plan</code>, so a provider can see what the plan already holds. <code>None</code> when the caller has no plan.</td>
+</tr>
+<tr>
+<td><code>catalog</code></td>
+<td>The loaded catalog, so a provider can limit its scope to features the catalog has jobs for. <code>None</code> when the caller has not loaded one.</td>
+</tr>
+<tr>
+<td><code>taxonomy</code></td>
+<td>The catalog's taxonomy, for its feature names and operating system aliases. Defaults to <code>catalog.taxonomy</code>; <code>None</code> when there is no catalog.</td>
+</tr>
+</tbody>
+</table>
+<p><code>resolve_scope</code> may also be <code>async</code>. It must return a <code>Scope</code>. If it raises, or returns anything else, the import exits 1 without writing. The scope it returns is checked against the testbed the same way as a scope file; see <a href="#targets-and-the-testbed">Targets and the testbed</a>.</p>
+<p>Providers written for earlier releases take two arguments, <code>resolve_scope(self, project_root, testbed)</code>, and keep working. Huginn passes a <code>ScopeRequest</code> when <code>resolve_scope</code> accepts exactly one positional argument, and the project root and testbed otherwise.</p>
 <h2 id="matching">Matching<a class="headerlink" href="#matching" title="Permanent link">&para;</a></h2>
 <p>Names are compared without regard to case, and <code>_</code> matches a space. For each device and each of its features, <code>import</code> keeps the catalog entries that support the device's operating system and have a selected archetype, then tries each level in turn:</p>
 <ol>
