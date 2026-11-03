@@ -1,0 +1,1 @@
+`huginn import --scope-provider` now imports only the provider it names, and exits with the import error when that provider fails to import, instead of importing every installed provider and only warning.

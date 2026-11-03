@@ -123,6 +123,8 @@ Other providers are classes registered in the `huginn.scope_providers` entry poi
 lab-configs = "acme_scope.provider:LabConfigScopeProvider"
 ```
 
+Huginn imports only the entry point you name. Other registered providers are never imported, so a broken or slow provider package does not affect runs that use a different one. If the named entry point fails to import, the import exits 1 with the import error, for example `Scope provider 'lab-configs' could not be imported: ModuleNotFoundError: No module named 'acme_scope'`.
+
 Huginn constructs the class with `config`, the text after the colon (an empty string when there is none), and calls `resolve_scope`:
 
 ```python
