@@ -2387,6 +2387,7 @@
 <li>Console output goes to stdout via Rich</li>
 <li>Logs go to file only</li>
 <li>Users see a clean, focused interface</li>
+<li>The log file is created when the first record is written, so a run that logs nothing (such as a usage error) leaves no empty <code>huginn.log</code> behind</li>
 </ul>
 <h2 id="cli-options">CLI Options<a class="headerlink" href="#cli-options" title="Permanent link">&para;</a></h2>
 <p>Log level and log destination are controlled independently:</p>
