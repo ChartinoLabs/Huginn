@@ -1,0 +1,1 @@
+Huginn no longer leaves an empty `huginn.log` in the working directory: the log file is created only when the first record is written, so usage errors and runs that log nothing no longer create it.

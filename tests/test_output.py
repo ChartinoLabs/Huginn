@@ -75,3 +75,18 @@ def test_output_status_includes_timestamp_prefix(tmp_path: Path) -> None:
     rendered = capture.get()
     assert "hello" in rendered
     assert re.search(r"\d{2}:\d{2}:\d{2}\.\d{3}", rendered)
+
+
+def test_output_creates_log_file_only_when_a_record_is_written(
+    tmp_path: Path,
+) -> None:
+    """The log file is not created until the first record is logged."""
+    log_path = tmp_path / "logs" / "huginn.log"
+    output = Output(log_file=log_path, log_level="INFO")
+
+    output.status("console output only")
+    output.log_debug("filtered out by the log level")
+    assert not log_path.exists()
+
+    output.log_info("first record")
+    assert "first record" in log_path.read_text(encoding="utf-8")
