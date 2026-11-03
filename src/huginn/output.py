@@ -135,7 +135,9 @@ class Output:
         self.logger.setLevel(resolved_level)
 
         self.log_file.parent.mkdir(parents=True, exist_ok=True)
-        file_handler = logging.FileHandler(self.log_file, encoding="utf-8")
+        # delay=True: create the file on the first record, so runs that log
+        # nothing leave no empty log file behind.
+        file_handler = logging.FileHandler(self.log_file, encoding="utf-8", delay=True)
         file_handler.setFormatter(
             logging.Formatter(
                 "%(asctime)s %(levelname)-8s %(name)s: %(message)s",

@@ -86,6 +86,7 @@ By default:
 - Console output goes to stdout via Rich
 - Logs go to file only
 - Users see a clean, focused interface
+- The log file is created when the first record is written, so a run that logs nothing (such as a usage error) leaves no empty `huginn.log` behind
 
 ## CLI Options
 

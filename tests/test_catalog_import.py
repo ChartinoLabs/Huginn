@@ -45,6 +45,12 @@ BUNDLE = "fake_catalog.beta.switching.verify_bundle_members"
 KEEPALIVE = "fake_catalog.beta.switching.verify_pair_keepalive"
 
 
+@pytest.fixture(autouse=True)
+def _run_in_tmp_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run every test from ``tmp_path`` so no CLI run writes into the checkout."""
+    monkeypatch.chdir(tmp_path)
+
+
 @pytest.fixture
 def catalog() -> Catalog:
     """Load the fake catalog with its taxonomy."""
@@ -650,6 +656,13 @@ def test_cli_dry_run_json(tmp_path: Path) -> None:
     assert all(tc["target"] == {"devices": ["r1"]} for tc in report["new_test_cases"])
 
 
+def test_cli_usage_error_leaves_no_log_file(tmp_path: Path) -> None:
+    """A run that logs nothing does not create ``huginn.log``."""
+    result = CliRunner().invoke(app, ["import", "--catalog", str(CATALOG_DIR)])
+    assert result.exit_code != 0
+    assert not (tmp_path / "huginn.log").exists()
+
+
 def test_cli_reports_bad_catalog(tmp_path: Path) -> None:
     """A catalog error exits 1 with the error message."""
     plan_path, scope_path = _write_cli_inputs(tmp_path)
@@ -715,7 +728,8 @@ def test_cli_log_level_filters_import_log(
         ),
     )
     assert result.exit_code == 0, result.output
-    assert "CLI import options" not in log_file.read_text(encoding="utf-8")
+    log_text = log_file.read_text(encoding="utf-8") if log_file.exists() else ""
+    assert "CLI import options" not in log_text
 
 
 # ---------------------------------------------------------------------------

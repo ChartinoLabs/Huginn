@@ -58,7 +58,7 @@ Every command except `inject`, `version` and shell completion accepts the same l
 | `--debug`     |       | `HUGINN_DEBUG`     | off            | Enable DEBUG-level logging. Overrides `--log-level`.    |
 | `--log-level` |       | `HUGINN_LOG_LEVEL` | `INFO`         | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`).    |
 | `--show-logs` |       | `HUGINN_SHOW_LOGS` | off            | Stream logs to the console in addition to the log file. |
-| `--log-file`  |       | `HUGINN_LOG_FILE`  | `./huginn.log` | Path to the log file.                                   |
+| `--log-file`  |       | `HUGINN_LOG_FILE`  | `./huginn.log` | Path to the log file. Created on the first log record.  |
 
 ### Unknown key warnings
 

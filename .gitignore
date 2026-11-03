@@ -11,3 +11,6 @@ src/huginn/_version.py
 
 # MkDocs build output
 /site/
+
+# Default log file written by the CLI
+huginn.log
