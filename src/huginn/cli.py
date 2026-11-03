@@ -20,6 +20,7 @@ from huginn.catalog_import import (
     CatalogImportError,
     ImportOptions,
     ImportPlan,
+    ImportVerificationError,
     Scope,
     apply_import_plan,
     apply_testbed,
@@ -2399,19 +2400,18 @@ def _check_scope_devices(
 def _write_import_plan(
     plan_path: Path, import_plan: ImportPlan, output: Output, *, quiet: bool
 ) -> None:
-    """Write an import plan, then check that the test plan still loads."""
+    """Write an import plan; ``apply_import_plan`` checks the result."""
     if not import_plan.has_changes:
         if not quiet:
             output.success("Nothing to import -- the test plan is up to date")
         return
     try:
         apply_import_plan(plan_path, import_plan)
-        load_test_plan(plan_path)
+    except ImportVerificationError as exc:
+        output.error(f"Imported test plan failed validation: {exc}")
+        raise typer.Exit(code=1) from exc
     except CatalogImportError as exc:
         output.error(f"Failed to apply: {exc}")
-        raise typer.Exit(code=1) from exc
-    except ConfigurationError as exc:
-        output.error(f"Imported test plan failed validation: {exc}")
         raise typer.Exit(code=1) from exc
     if not quiet:
         output.success(

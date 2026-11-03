@@ -11,11 +11,13 @@ import pytest
 import yaml
 from typer.testing import CliRunner, Result
 
+import huginn.catalog_import as catalog_import_module
 from huginn.catalog_import import (
     Catalog,
     CatalogImportError,
     ImportOptions,
     ImportPlan,
+    ImportVerificationError,
     Scope,
     ScopedDevice,
     apply_import_plan,
@@ -1148,3 +1150,92 @@ def test_apply_without_changes_writes_nothing(tmp_path: Path) -> None:
     plan = compute_import_plan(load_catalog(CATALOG_DIR), _scope(), _plan())
     apply_import_plan(tmp_path / "missing", plan)
     assert not (tmp_path / "missing").exists()
+
+
+def _writable_plan(tmp_path: Path) -> tuple[Path, ImportPlan]:
+    """A plan directory and an import plan that adds test cases to it."""
+    plan_path, _ = _write_cli_inputs(tmp_path)
+    import_plan = compute_import_plan(
+        load_catalog(CATALOG_DIR),
+        _scope(("r1", "alpha", ["peering"])),
+        load_test_plan(plan_path),
+    )
+    assert import_plan.has_changes
+    return plan_path, import_plan
+
+
+def _drop_written_targets(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make the import write its new test cases without their targets."""
+    write = catalog_import_module.write_test_cases
+
+    def write_without_targets(
+        path: Path, entries: dict[str, dict[str, object]]
+    ) -> None:
+        write(
+            path,
+            {
+                test_id: {k: v for k, v in entry.items() if k != "target"}
+                for test_id, entry in entries.items()
+            },
+        )
+
+    monkeypatch.setattr(
+        catalog_import_module, "write_test_cases", write_without_targets
+    )
+
+
+def test_apply_verifies_the_written_plan(tmp_path: Path) -> None:
+    """After writing, the plan reloads with every imported test case in it."""
+    plan_path, import_plan = _writable_plan(tmp_path)
+    apply_import_plan(plan_path, import_plan)
+    loaded = load_test_plan(plan_path)
+    assert {tc.test_id for tc in import_plan.new_test_cases} <= set(loaded.test_cases)
+
+
+def test_apply_reports_a_written_plan_that_does_not_match(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Written test cases without their targets are a verification error."""
+    plan_path, import_plan = _writable_plan(tmp_path)
+    _drop_written_targets(monkeypatch)
+    with pytest.raises(ImportVerificationError, match="does not match") as excinfo:
+        apply_import_plan(plan_path, import_plan)
+    assert import_plan.new_test_cases[0].test_id in str(excinfo.value)
+    assert isinstance(excinfo.value, CatalogImportError)
+
+
+def test_apply_reports_a_written_plan_that_does_not_load(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A written plan that no longer loads is a verification error."""
+    plan_path, import_plan = _writable_plan(tmp_path)
+
+    def write_broken(path: Path, *_args: object, **_kw: object) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("test_cases: [not, a, mapping]\n")
+
+    monkeypatch.setattr(catalog_import_module, "write_test_cases", write_broken)
+    with pytest.raises(ImportVerificationError, match="does not load"):
+        apply_import_plan(plan_path, import_plan)
+
+
+def test_apply_can_skip_verification(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``verify=False`` writes without reloading the plan."""
+    plan_path, import_plan = _writable_plan(tmp_path)
+    monkeypatch.setattr(
+        catalog_import_module, "write_test_cases", lambda *_args, **_kw: None
+    )
+    apply_import_plan(plan_path, import_plan, verify=False)
+
+
+def test_cli_reports_failed_verification(
+    project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The CLI reports a write that does not verify and exits 1."""
+    _drop_written_targets(monkeypatch)
+    result = _import(project)
+    assert result.exit_code == 1
+    assert "failed validation" in result.output
+    assert "does not match" in result.output

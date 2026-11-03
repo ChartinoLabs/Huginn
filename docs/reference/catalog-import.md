@@ -338,3 +338,5 @@ for warning in warnings:
 It targets each scoped device the testbed defines by the testbed's `os`, and returns a warning naming the scoped devices it does not define. With `TargetMode.DEVICES` those devices raise `CatalogImportError` instead. See [Targets and the testbed](#targets-and-the-testbed).
 
 `compute_import_plan` reads and writes no files, so the same inputs always give the same plan. `apply_import_plan` writes it, and `check_import_plan` runs the same checks without writing. Set `ScopedDevice.target_os` to target a device's operating system by a name other than the one matched against the catalog.
+
+After writing, `apply_import_plan` reloads the test plan and checks it with `verify_import_plan`: the plan must load, and every new test case, the import group and every target update must be in it, so a second identical import would change nothing. Either failure raises `ImportVerificationError`, a subclass of `CatalogImportError`. Pass `verify=False` to skip the reload; `verify_import_plan` runs the same check on its own. `huginn import` relies on this check.
