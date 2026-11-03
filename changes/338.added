@@ -1,0 +1,1 @@
+`load_catalog` now records which taxonomy file it loaded in `Catalog.taxonomy_path` (`None`, with `Catalog.has_taxonomy` false, when there was none). `ImportPlan.taxonomy_path`, the `taxonomy` key of the `huginn import --format json` report, and a line in the text report show the same thing.

@@ -269,13 +269,14 @@ When a testbed is available, from `--testbed` or `./testbed.yaml`:
 
 ## Reports
 
-The text report lists the matched features, the gaps, the jobs already in the plan, the jobs left out by scope exclusions, the target changes and the new test cases. `--format json` prints the same information as one JSON object:
+The text report names the taxonomy the import matched with, or says there was none, then lists the matched features, the gaps, the jobs already in the plan, the jobs left out by scope exclusions, the target changes and the new test cases. `--format json` prints the same information as one JSON object:
 
 ```json
 {
   "group": "catalog-import",
   "phases": [],
   "parent_group": null,
+  "taxonomy": "catalog/taxonomy.yaml",
   "matches": [
     {"device": "router-1", "os": "alphaos", "feature": "peering", "level": "feature",
      "jobs": ["catalog.routing.verify_peers_up"]}
@@ -336,6 +337,8 @@ for warning in warnings:
 ```
 
 It targets each scoped device the testbed defines by the testbed's `os`, and returns a warning naming the scoped devices it does not define. With `TargetMode.DEVICES` those devices raise `CatalogImportError` instead. See [Targets and the testbed](#targets-and-the-testbed).
+
+`load_catalog` records the taxonomy it loaded in `Catalog.taxonomy_path`, which is `None` when there was no taxonomy file (`Catalog.has_taxonomy` is then `False` and names must match exactly). `ImportPlan.taxonomy_path` and the `taxonomy` key of `to_dict()` carry the same path, so a caller can warn about a missing taxonomy without searching for the file itself.
 
 `compute_import_plan` reads and writes no files, so the same inputs always give the same plan. `apply_import_plan` writes it, and `check_import_plan` runs the same checks without writing. Set `ScopedDevice.target_os` to target a device's operating system by a name other than the one matched against the catalog.
 
