@@ -19,6 +19,7 @@ from huginn.catalog_import import (
     Scope,
     ScopedDevice,
     apply_import_plan,
+    apply_testbed,
     compute_import_plan,
     load_catalog,
     load_scope,
@@ -28,7 +29,13 @@ from huginn.cli import app
 from huginn.enums import MatchLevel, TargetMode
 from huginn.jobs import load_test_case_class
 from huginn.loaders import load_test_plan
-from huginn.models import TargetDefinition, TestCaseDefinition, TestPlan
+from huginn.models import (
+    Device,
+    TargetDefinition,
+    Testbed as _Testbed,
+    TestCaseDefinition,
+    TestPlan,
+)
 
 CATALOGS = Path(__file__).resolve().parent / "fixtures" / "catalogs"
 CATALOG_DIR = CATALOGS / "fake_catalog"
@@ -393,6 +400,43 @@ def test_selection_is_deterministic(catalog: Catalog) -> None:
     assert compute_import_plan(catalog, one, _plan()).to_dict() == (
         compute_import_plan(catalog, two, _plan()).to_dict()
     )
+
+
+def _testbed(devices: dict[str, str]) -> _Testbed:
+    return _Testbed(
+        devices={
+            name: Device(name=name, os=os_name) for name, os_name in devices.items()
+        }
+    )
+
+
+def test_apply_testbed_targets_testbed_os_and_warns() -> None:
+    """Known devices take the testbed's ``os``; unknown ones are warned about."""
+    scope = _scope(("r1", "alphaos", ["peering"]), ("r9", "alphaos", ["peering"]))
+    checked, warnings = apply_testbed(scope, _testbed({"r1": "alpha-os"}))
+    assert [(d.name, d.os, d.target_os) for d in checked.devices] == [
+        ("r1", "alphaos", "alpha-os"),
+        ("r9", "alphaos", None),
+    ]
+    assert warnings == ("Scoped device(s) not in testbed: r9",)
+
+
+def test_apply_testbed_without_unknown_devices_has_no_warnings() -> None:
+    """A scope that the testbed fully covers gives no warnings."""
+    _, warnings = apply_testbed(
+        _scope(("r1", "alphaos", [])), _testbed({"r1": "alpha-os"})
+    )
+    assert warnings == ()
+
+
+def test_apply_testbed_device_targeting_rejects_unknown_devices() -> None:
+    """With device targeting, an unknown device is an error, not a warning."""
+    with pytest.raises(CatalogImportError, match="not in testbed: r9"):
+        apply_testbed(
+            _scope(("r9", "alphaos", [])),
+            _testbed({"r1": "alpha-os"}),
+            target_mode=TargetMode.DEVICES,
+        )
 
 
 # ---------------------------------------------------------------------------

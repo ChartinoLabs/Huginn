@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from importlib.util import find_spec
 from pathlib import Path
 from typing import cast
@@ -23,7 +23,7 @@ from typing import cast
 import yaml
 
 from huginn.enums import MatchLevel, TargetMode
-from huginn.models import TestCaseDefinition, TestPlan
+from huginn.models import Testbed, TestCaseDefinition, TestPlan
 from huginn.plan_writer import (
     PlanWriteError,
     add_group_to_phases,
@@ -337,6 +337,48 @@ def load_scope(path: Path) -> Scope:
         features = _string_list(device.get("features", []), f"{location}: features")
         devices.append(ScopedDevice(name=name, os=os_name, features=tuple(features)))
     return Scope(devices=tuple(devices))
+
+
+def apply_testbed(
+    scope: Scope, testbed: Testbed, target_mode: TargetMode = TargetMode.OS
+) -> tuple[Scope, tuple[str, ...]]:
+    """Check a scope against a testbed and target its devices by testbed ``os``.
+
+    Each scoped device the testbed defines gets ``target_os`` set to the
+    testbed's ``os`` for it, so new test cases match the testbed even when the
+    scope names operating systems differently. Devices it does not define are
+    kept as they are.
+
+    Args:
+        scope: The scope to check.
+        testbed: The testbed the test plan runs against.
+        target_mode: How new test cases are targeted. With
+            ``TargetMode.DEVICES`` device names become targets, so a scoped
+            device the testbed does not define is an error.
+
+    Returns:
+        The scope with testbed operating systems applied, and warnings about
+        scoped devices the testbed does not define.
+
+    Raises:
+        CatalogImportError: If ``target_mode`` is ``TargetMode.DEVICES`` and a
+            scoped device is not in the testbed.
+    """
+    devices = testbed.devices
+    unknown = sorted({d.name for d in scope.devices} - set(devices))
+    warnings: tuple[str, ...] = ()
+    if unknown:
+        message = f"Scoped device(s) not in testbed: {', '.join(unknown)}"
+        if target_mode is TargetMode.DEVICES:
+            raise CatalogImportError(message)
+        warnings = (message,)
+    applied = Scope(
+        devices=tuple(
+            replace(d, target_os=devices[d.name].os) if d.name in devices else d
+            for d in scope.devices
+        )
+    )
+    return applied, warnings
 
 
 def _resolve_catalog_location(location: str | Path) -> tuple[Path, str | None]:

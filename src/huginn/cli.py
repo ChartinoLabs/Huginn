@@ -7,7 +7,7 @@ against infrastructure testbeds.
 import asyncio
 import json
 import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
@@ -22,6 +22,7 @@ from huginn.catalog_import import (
     ImportPlan,
     Scope,
     apply_import_plan,
+    apply_testbed,
     check_import_plan,
     compute_import_plan,
     load_catalog,
@@ -2377,11 +2378,9 @@ def _load_import_testbed(testbed: Path | None, target: TargetMode) -> Testbed | 
 def _check_scope_devices(
     scope: Scope, testbed: Testbed | None, target: TargetMode, output: Output
 ) -> Scope:
-    """Check scoped device names against the testbed, when there is one.
+    """Apply the testbed to the scope, when there is one, and print warnings.
 
-    With ``--target devices`` the names become test case targets, so unknown
-    names are errors. Otherwise they are only warned about. Scoped devices
-    found in the testbed are targeted by the testbed's ``os`` for them.
+    See ``catalog_import.apply_testbed``.
 
     Raises:
         CatalogImportError: If device targeting names a device the testbed
@@ -2389,19 +2388,10 @@ def _check_scope_devices(
     """
     if testbed is None:
         return scope
-    devices = testbed.devices
-    unknown = sorted({d.name for d in scope.devices} - set(devices))
-    if unknown:
-        message = f"Scoped device(s) not in testbed: {', '.join(unknown)}"
-        if target is TargetMode.DEVICES:
-            raise CatalogImportError(message)
-        output.warning(f"WARNING: {message}")
-    return Scope(
-        devices=tuple(
-            replace(d, target_os=devices[d.name].os) if d.name in devices else d
-            for d in scope.devices
-        )
-    )
+    scope, warnings = apply_testbed(scope, testbed, target)
+    for warning in warnings:
+        output.warning(f"WARNING: {warning}")
+    return scope
 
 
 def _write_import_plan(
