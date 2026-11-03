@@ -7,7 +7,8 @@ After running in learning mode, some tests return `NOT_APPLICABLE` for certain d
 The `huginn prune` command reads learning results and narrows the test plan automatically:
 
 - **Partially applicable tests** (some devices are N/A): adds `target.exclude_devices` to the test case definition so those devices are skipped on future runs.
-- **Fully non-applicable tests** (all devices are N/A): removes the test from every group that includes it. Leaf groups have the test ID removed from `tests`; composite groups that use `groups` inheritance get an `exclude_tests` entry instead. A test in a leaf group that a composite group includes gets both changes.
+- **Fully non-applicable tests** (all devices are N/A): removes the test ID from the `tests` list of every group that lists it. Composite groups that inherit the test through `groups` lose it with the child group, so prune adds no `exclude_tests` entries.
+- **Emptied groups, phases and scenarios**: a group left with no tests and no child groups is removed, together with its references in parent groups and phases. The removal cascades upward: a composite group, phase or scenario that is left empty is removed too. See [Removing emptied groups](#removing-emptied-groups).
 - **Orphaned definitions** (optional): with `--remove-orphans`, every test case definition that no group references is deleted entirely. This includes orphans left by earlier prune runs and test cases that were never placed in any group. See [Orphan removal](#orphan-removal).
 
 Prune is designed to be run once after an initial learning pass against a new testbed. It tightens test scope based on observed reality, eliminating noise from tests that can never pass on the current infrastructure.
@@ -70,12 +71,10 @@ Applying exclude_devices to test cases:
 Removing tests from groups:
   4.0.0 from bgp-tests
   3.2.0 from ospf-tests
-  3.2.0 from pre-change-validation
-  4.0.0 from pre-change-validation
-Dry run complete: 3 test(s) would get exclude_devices, 4 test(s) would be removed from groups
+Dry run complete: 3 test(s) would get exclude_devices, 2 test(s) would be removed from groups
 ```
 
-The first two lists come from the learning results. The `Applying exclude_devices to test cases` and `Removing tests from groups` lists are the changes to the test plan, with one line per test case and one line per group membership. A test is removed from every group whose tests include it, so the removed-from-groups count in the last line counts group memberships, not distinct tests: 2 fully non-applicable tests here make 4 removals. Each line is prefixed with a timestamp, omitted here.
+The first two lists come from the learning results. The `Applying exclude_devices to test cases` and `Removing tests from groups` lists are the changes to the test plan, with one line per test case and one line per group that lists the test in `tests`. The composite group `pre-change-validation` does not appear: it inherits both tests from `ospf-tests` and `bgp-tests` and loses them with those groups. The removed-from-groups count in the last line counts group memberships, not distinct tests, so a test listed by two groups counts twice. When pruning empties groups, the output adds `Removing emptied test case groups`, `Removing emptied phases` and `Removing emptied scenarios` lists, and the last line counts them. Each line is prefixed with a timestamp, omitted here.
 
 ### Apply the prune
 
@@ -85,7 +84,7 @@ Run without `--dry-run` to modify the test plan files.
 huginn prune -p test_plan/
 ```
 
-The command validates the modified test plan after writing changes. If validation fails, it reports the error and exits with a non-zero status.
+The command applies the changes in memory and validates the pruned test plan before it writes any file. If the result would not load, for example because no scenario has anything left to run, it reports `Pruning would leave an invalid test plan, so no files were changed`, writes nothing, and exits with code 1. `--dry-run` runs the same validation, so a preview fails in the same way.
 
 ### Optionally remove orphaned definitions
 
@@ -156,15 +155,7 @@ If the test case already has `exclude_devices`, the prune command merges the new
 
 ### Full non-applicability: group removal
 
-When all devices are non-applicable for a test, the test ID is removed from every group whose tests include it, directly or through nested `groups`. How it is removed depends on the group type, and a plan with nested groups usually gets both kinds of change at once.
-
-#### Leaf groups
-
-Groups that list test IDs only in `tests`, with no `groups` key, have the test ID removed from the list.
-
-#### Composite groups
-
-Groups that include other groups through `groups` have the test ID added to `exclude_tests`, rather than modifying the included group. This also applies to a test ID the composite group lists in its own `tests`.
+When all devices are non-applicable for a test, the test ID is removed from the `tests` list of every group that lists it, whether the group is a leaf group or a composite group with its own `tests`. A composite group that inherits the test through nested `groups` loses it with the child group, so prune leaves its `groups` and `exclude_tests` as they are and adds no `exclude_tests` entries.
 
 #### Example
 
@@ -190,12 +181,62 @@ test_case_groups:
     tests: ["4.1.0"]
   pre-change-validation:
     groups: [ospf-tests, bgp-tests]
-    exclude_tests:
-    - 3.2.0
-    - 4.0.0
 ```
 
-The leaf groups `ospf-tests` and `bgp-tests` lose the test IDs from `tests`. The composite group `pre-change-validation` gets them in `exclude_tests`, which preserves its inheritance structure. The `exclude_tests` mechanism is the same one used by the [reconcile command](reconcile.md) to exclude baseline tests that diverge after a change.
+`pre-change-validation` is unchanged. It now inherits 3.0.0, 3.1.0 and 4.1.0.
+
+### Removing emptied groups
+
+A test case group must list at least one test or include at least one child group. When pruning leaves a group with neither, the group is removed, and the removal cascades upward:
+
+1. The group is deleted from `test_case_groups` and from the `groups` list of every composite group that includes it.
+2. A composite group left with no tests and no child groups is removed in the same way. A surviving composite group whose `groups` list is now empty loses `groups` and `exclude_tests`, since `exclude_tests` applies only to inherited tests.
+3. The removed groups are dropped from every phase's `test_case_groups`. A phase left with no groups is removed, and `depends_on` entries that name it are dropped from the other phases in its scenario.
+4. A scenario left with no phases is removed.
+
+This is the usual outcome after [catalog import](catalog-import.md) when none of a subfeature's jobs apply to the testbed. Before (all three tests fully non-applicable):
+
+```yaml
+# groups/catalog-import.yaml
+test_case_groups:
+  catalog-import-vrf:
+    name: vrf
+    tests:
+    - CATALOG-IMPORT-VRF-1
+    - CATALOG-IMPORT-VRF-2
+    - CATALOG-IMPORT-VRF-3
+  catalog-import:
+    groups:
+    - catalog-import-vrf
+
+# scenarios.yaml (excerpt)
+scenarios:
+  baseline:
+    phases:
+      learn:
+        test_case_groups:
+        - baseline
+        - catalog-import
+```
+
+After:
+
+```yaml
+# groups/catalog-import.yaml
+test_case_groups: {}
+
+# scenarios.yaml (excerpt)
+scenarios:
+  baseline:
+    phases:
+      learn:
+        test_case_groups:
+        - baseline
+```
+
+A section that loses its last entry is written as an empty mapping, here `test_case_groups: {}`, so the file still loads in directory mode. The output lists the removed groups, phases and scenarios, and `--dry-run` lists them without writing.
+
+Removing groups never deletes test case definitions. The three `CATALOG-IMPORT-VRF-*` definitions stay in `test_cases` until you run with `--remove-orphans`.
 
 ### Orphan removal
 
@@ -209,17 +250,18 @@ Test case definitions that no group references are deleted from the YAML. Some c
 
 - A test case that no group has ever listed, such as a draft, is an orphan and is deleted.
 - A test case that appears only in a group's `exclude_tests` is an orphan.
+- A test case whose only groups were removed because pruning emptied them is an orphan.
 - Any group counts, including a group that no scenario phase uses. A test case referenced only by such a group is kept.
 
 This is a destructive operation - the test case definition and its key are removed from the `test_cases` map. The associated parameter files in `parameters/` are not touched; remove those manually if desired.
 
 ## Exit codes
 
-| Code | Meaning                                                                                                                                    |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0    | The prune was applied or previewed, there was nothing to prune, or the pruning was already applied.                                        |
-| 1    | The results directory does not exist or has no learning run, the test plan could not be loaded, or the pruned test plan failed validation. |
-| 2    | [Usage error](cli.md#usage-errors), such as a missing `--plan` or a `--plan` path that does not exist.                                     |
+| Code | Meaning                                                                                                                                                        |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | The prune was applied or previewed, there was nothing to prune, or the pruning was already applied.                                                            |
+| 1    | The results directory does not exist or has no learning run, the test plan could not be loaded, or the pruned test plan would be invalid (nothing is written). |
+| 2    | [Usage error](cli.md#usage-errors), such as a missing `--plan` or a `--plan` path that does not exist.                                                         |
 
 ## Idempotency
 
@@ -227,7 +269,7 @@ Running `huginn prune` a second time against the same results is safe. The comma
 
 ## Directory mode
 
-When the `--plan` argument points to a directory, the prune command locates the correct YAML file for each test case and group using the same discovery logic as the framework's test plan loader. Changes are written only to the files that contain affected definitions. Formatting is preserved using round-trip YAML parsing.
+When the `--plan` argument points to a directory, the prune command locates the correct YAML file for each test case and group using the same discovery logic as the framework's test plan loader. Changes are written only to the files that contain affected definitions, after the whole pruned plan has been validated. Formatting is preserved using round-trip YAML parsing.
 
 ## See also
 

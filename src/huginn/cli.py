@@ -50,14 +50,15 @@ from huginn.plan_filtering import PlanFilterOptions
 from huginn.plugin_registry import PluginRegistry
 from huginn.project_config import ProjectConfig, load_project_config
 from huginn.prune import (
+    PruneEdit,
     PruneError,
     PruneInput,
     PrunePlan,
-    apply_prune_plan,
     compute_prune_plan,
     find_latest_learning_results,
     parse_applicability_from_run,
-    validate_after_prune,
+    prepare_prune_edit,
+    write_prune_edit,
 )
 from huginn.reconcile import (
     ReconcileError,
@@ -1378,15 +1379,16 @@ def _execute_prune_plan(
             )
         return
 
+    edit = prepare_prune_edit(plan_path=plan, prune_plan=plan_result, output=output)
     _display_prune_plan_details(plan_result, output)
-    counts = _prune_plan_counts(plan_result)
+    _display_prune_removals(edit, output)
+    counts = _prune_plan_counts(plan_result, edit)
 
     if dry_run:
         _report_prune_dry_run(counts, output)
         return
 
-    apply_prune_plan(plan_path=plan, prune_plan=plan_result, output=output)
-    validate_after_prune(plan)
+    write_prune_edit(edit)
     _report_prune_applied(counts, plan_result, output)
 
 
@@ -1412,41 +1414,79 @@ def _display_prune_plan_details(plan_result: PrunePlan, output: Output) -> None:
             output.status(f"  {tid}")
 
 
-def _prune_plan_counts(
-    plan_result: PrunePlan,
-) -> tuple[int, int, int]:
-    """Return (device_updates, group_updates, orphan_count)."""
-    device_updates = len(plan_result.exclude_devices_updates)
-    group_updates = sum(len(tids) for tids in plan_result.exclude_from_groups.values())
-    orphan_count = len(plan_result.orphaned_test_cases)
-    return device_updates, group_updates, orphan_count
+def _display_prune_removals(edit: PruneEdit, output: Output) -> None:
+    """Log the groups, phases and scenarios that pruning left empty."""
+    if edit.removed_groups:
+        output.status("Removing emptied test case groups:")
+        for group_id in edit.removed_groups:
+            output.status(f"  {group_id}")
+    if edit.removed_phases:
+        output.status("Removing emptied phases:")
+        for removed in edit.removed_phases:
+            output.status(f"  {removed.phase_id} (scenario {removed.scenario_id})")
+    if edit.removed_scenarios:
+        output.status("Removing emptied scenarios:")
+        for scenario_id in edit.removed_scenarios:
+            output.status(f"  {scenario_id}")
 
 
-def _report_prune_dry_run(counts: tuple[int, int, int], output: Output) -> None:
-    """Report a dry-run prune summary."""
-    device_updates, group_updates, orphan_count = counts
+@dataclass(frozen=True)
+class _PruneCounts:
+    """Totals reported at the end of a prune run."""
+
+    device_updates: int
+    group_updates: int
+    orphans: int
+    groups: int
+    phases: int
+    scenarios: int
+
+
+def _prune_plan_counts(plan_result: PrunePlan, edit: PruneEdit) -> _PruneCounts:
+    """Count the changes a prune run makes."""
+    return _PruneCounts(
+        device_updates=len(plan_result.exclude_devices_updates),
+        group_updates=sum(
+            len(tids) for tids in plan_result.exclude_from_groups.values()
+        ),
+        orphans=len(plan_result.orphaned_test_cases),
+        groups=len(edit.removed_groups),
+        phases=len(edit.removed_phases),
+        scenarios=len(edit.removed_scenarios),
+    )
+
+
+def _prune_summary_parts(counts: _PruneCounts, *, dry_run: bool) -> list[str]:
+    """Return the summary clauses for a dry-run or applied prune."""
+    verb = "would be removed" if dry_run else "removed"
     parts = [
-        f"{device_updates} test(s) would get exclude_devices",
-        f"{group_updates} test(s) would be removed from groups",
+        f"{counts.device_updates} test(s) "
+        + ("would get exclude_devices" if dry_run else "with exclude_devices"),
+        f"{counts.group_updates} test(s) {verb} from groups",
     ]
-    if orphan_count:
-        parts.append(f"{orphan_count} test case definition(s) would be removed")
+    optional = (
+        (counts.orphans, "test case definition(s)"),
+        (counts.groups, "group(s)"),
+        (counts.phases, "phase(s)"),
+        (counts.scenarios, "scenario(s)"),
+    )
+    parts.extend(f"{count} {noun} {verb}" for count, noun in optional if count)
+    return parts
+
+
+def _report_prune_dry_run(counts: _PruneCounts, output: Output) -> None:
+    """Report a dry-run prune summary."""
+    parts = _prune_summary_parts(counts, dry_run=True)
     output.success(f"Dry run complete: {', '.join(parts)}")
 
 
 def _report_prune_applied(
-    counts: tuple[int, int, int],
+    counts: _PruneCounts,
     plan_result: PrunePlan,
     output: Output,
 ) -> None:
     """Report a completed prune summary."""
-    device_updates, group_updates, orphan_count = counts
-    parts = [
-        f"{device_updates} test(s) with exclude_devices",
-        f"{group_updates} test(s) removed from groups",
-    ]
-    if orphan_count:
-        parts.append(f"{orphan_count} test case definition(s) removed")
+    parts = _prune_summary_parts(counts, dry_run=False)
     output.success(f"Prune complete: {', '.join(parts)}")
     if plan_result.skipped_already_pruned:
         output.warning(
@@ -1511,9 +1551,14 @@ def prune(
     - For tests where SOME devices are non-applicable: adds exclude_devices
       to the test case's target definition.
     - For tests where ALL devices are non-applicable: removes the test
-      from its test case group(s). A group that lists the test in tests
-      drops it from that list; a group that inherits it through groups
-      gets an exclude_tests entry instead.
+      from every group that lists it in tests. Groups that inherit it
+      through groups lose it with the child group.
+    - Groups left with no tests and no child groups are removed, with their
+      references in parent groups and phases. Phases and scenarios left
+      empty are removed in turn.
+
+    The pruned plan is validated before any file is written; if it would be
+    invalid, nothing is changed and the command exits with code 1.
 
     Examples:
         huginn prune -p test_plan/

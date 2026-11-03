@@ -17,7 +17,8 @@ If you leave these tests in place, every execution produces predictable N/A resu
 The `huginn prune` command inspects the most recent learning run and modifies the test plan to reflect observed reality:
 
 - **Partially applicable tests** - When some devices return data but others are N/A, the non-applicable devices are added to `target.exclude_devices` on the test case definition. The test remains in the plan but skips those specific devices.
-- **Fully non-applicable tests** - When all devices are N/A, the test is removed from every group that includes it, including composite groups that inherit it through `groups`. It will not run in any future execution against this testbed.
+- **Fully non-applicable tests** - When all devices are N/A, the test is removed from every group that lists it, and composite groups that inherit it through `groups` lose it with them. It will not run in any future execution against this testbed.
+- **Emptied groups, phases and scenarios** - A group left with no tests is removed, with its references in parent groups and phases, and phases and scenarios left empty are removed in turn. See [Removing emptied groups](../reference/prune.md#removing-emptied-groups).
 - **Orphaned definitions** (optional) - Test case definitions that no group references can be deleted from the YAML. This covers tests pruned in this run or an earlier one, and also test cases that were never placed in any group. See [Orphan removal](../reference/prune.md#orphan-removal).
 
 The result is a tighter test plan that only validates what the infrastructure actually supports.
@@ -55,7 +56,7 @@ You could edit the YAML by hand, but the prune command provides:
 
 - **Accuracy** - It reads actual learning results rather than relying on human judgment about which devices support which commands.
 - **Idempotency** - Running prune a second time against the same results is safe. Already-pruned tests are detected and skipped.
-- **Validation** - After applying changes, the command reloads the modified plan to confirm it is still structurally valid.
+- **Validation** - Before writing anything, the command loads the pruned plan to confirm it is still structurally valid. If it would not be, no file is changed.
 - **Auditability** - The dry-run mode shows exactly what would change before any files are modified, giving you a chance to review.
 
 For plans with dozens of test cases across many device groups, manual editing is error-prone. Pruning automates the mechanical work of aligning test scope to infrastructure reality.

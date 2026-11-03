@@ -292,7 +292,7 @@ A testing run after a change fails the post-change test cases whose expected sta
 
 ### Prune
 
-`huginn prune` narrows a plan that was written broader than the testbed. It reads the latest learning `run.json` and each test case's `not_applicable_devices` from `result.json`, adds `target.exclude_devices` for devices that were not applicable, and removes test cases that were not applicable anywhere from the groups that include them. See [Pruning](../concepts/pruning.md) and [Pruning Non-Applicable Tests](../reference/prune.md).
+`huginn prune` narrows a plan that was written broader than the testbed. It reads the latest learning `run.json` and each test case's `not_applicable_devices` from `result.json`, adds `target.exclude_devices` for devices that were not applicable, and removes test cases that were not applicable anywhere from the groups that list them. Groups, phases and scenarios left empty are removed in turn, and the edited plan is loaded from a temporary copy before any file is written. See [Pruning](../concepts/pruning.md) and [Pruning Non-Applicable Tests](../reference/prune.md).
 
 ## Extension points
 

@@ -398,7 +398,7 @@ Remove non-applicable tests and device targets from the test plan, based on the 
 huginn prune --plan <path> [--results-dir <path>] [--dry-run] [--remove-orphans] [--no-unknown-key-warnings] [logging options]
 ```
 
-`--plan`/`-p` is required and reads `HUGINN_PLAN`; `--results-dir` reads `HUGINN_RESULTS_DIR`. `--no-unknown-key-warnings` reads `HUGINN_NO_UNKNOWN_KEY_WARNINGS` (see [Unknown key warnings](#unknown-key-warnings)). `--dry-run` and `--remove-orphans` have no environment variable. The command exits 0 on success or when there is nothing to prune, and 1 when the results or test plan cannot be read or the pruned plan fails validation.
+`--plan`/`-p` is required and reads `HUGINN_PLAN`; `--results-dir` reads `HUGINN_RESULTS_DIR`. `--no-unknown-key-warnings` reads `HUGINN_NO_UNKNOWN_KEY_WARNINGS` (see [Unknown key warnings](#unknown-key-warnings)). `--dry-run` and `--remove-orphans` have no environment variable. The command exits 0 on success or when there is nothing to prune, and 1 when the results or test plan cannot be read or the pruned plan would be invalid, in which case no file is written.
 
 See [Pruning Non-Applicable Tests](prune.md) for the full option table and the changes each option makes.
 
