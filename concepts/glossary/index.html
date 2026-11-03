@@ -2384,7 +2384,7 @@
 <p>Test cases filtered out before execution (e.g., by tags) do not appear in results at all. This is distinct from NOT_APPLICABLE, which appears in results with a reason.</p>
 <h3 id="lost-applicability">Lost Applicability<a class="headerlink" href="#lost-applicability" title="Permanent link">&para;</a></h3>
 <p><code>LOST_APPLICABILITY</code> covers a device that was applicable when parameters were learned but is no longer applicable during testing. Something changed between learning and testing that made a previously testable device untestable, for example an upgrade that removed a feature, so the status fails the test instead of passing silently as <code>NOT_APPLICABLE</code>.</p>
-<p>In testing mode, <code>LearningTestCase.test()</code> checks each device that <code>check_command_support()</code> reports as not applicable against the learned parameters:</p>
+<p>In testing mode, <code>LearningTestCase.test()</code> checks each device that <code>check_command_support()</code> reports as not applicable, and each device that <code>gather_state()</code> leaves out of its returned <code>devices</code>, against the learned parameters:</p>
 <table>
 <thead>
 <tr>
