@@ -1,0 +1,1 @@
+`huginn prune` no longer leaves an invalid test plan when it empties a test case group: it removes the emptied group, its references in parent groups and phases, and any phases or scenarios left empty. It no longer adds `exclude_tests` entries to composite groups, and it validates the pruned plan before writing, so on failure no file changes.

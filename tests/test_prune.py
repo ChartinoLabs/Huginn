@@ -19,16 +19,18 @@ from huginn.models import (
     TestCaseGroup,
     TestPlan,
 )
+from huginn.output import Output
 from huginn.prune import (
     NotApplicableTestCase,
+    PruneEdit,
     PruneError,
     PruneInput,
-    _add_exclude_tests_to_group,
+    PrunePlan,
     _extract_all_devices,
-    _remove_orphaned_test_cases,
     compute_prune_plan,
     find_latest_learning_results,
     parse_applicability_from_run,
+    prepare_prune_edit,
 )
 from huginn.runner import resolve_targets
 
@@ -376,12 +378,11 @@ class TestComputePrunePlan:
         assert "TC-1" not in result.exclude_devices_updates
 
     def test_already_excluded_full_test_is_skipped(self) -> None:
-        """Full N/A tests already in exclude_tests are skipped."""
+        """Full N/A tests that no group lists any more are skipped."""
         groups = {
             "group-a": TestCaseGroup(
                 identifier="group-a",
-                tests=["TC-2"],
-                exclude_tests=["TC-2"],
+                tests=["TC-1"],
             ),
         }
         plan = _build_test_plan(groups=groups)
@@ -684,149 +685,139 @@ class TestExtractAllDevices:
 
 
 # ===========================================================================
-# _add_exclude_tests_to_group
+# prepare_prune_edit
 # ===========================================================================
 
-
-class TestAddExcludeTestsToGroup:
-    """Tests for _add_exclude_tests_to_group."""
-
-    def test_adds_exclude_tests_to_composite_group(self) -> None:
-        """Composite groups (with 'groups' key) get exclude_tests appended."""
-        data = {
-            "test_case_groups": {
-                "parent-group": {
-                    "groups": ["child-a", "child-b"],
-                    "tests": ["TC-1", "TC-2"],
-                },
-            },
-        }
-
-        _add_exclude_tests_to_group(data, "parent-group", ["TC-1"])
-
-        group = data["test_case_groups"]["parent-group"]
-        assert group["exclude_tests"] == ["TC-1"]
-
-    def test_removes_from_tests_list_in_leaf_group(self) -> None:
-        """Leaf groups (no 'groups' key) have test IDs removed from tests list."""
-        data = {
-            "test_case_groups": {
-                "leaf-group": {
-                    "tests": ["TC-1", "TC-2", "TC-3"],
-                },
-            },
-        }
-
-        _add_exclude_tests_to_group(data, "leaf-group", ["TC-2"])
-
-        group = data["test_case_groups"]["leaf-group"]
-        assert "TC-2" not in group["tests"]
-        assert group["tests"] == ["TC-1", "TC-3"]
-
-    def test_idempotent_no_duplicates_in_composite(self) -> None:
-        """Calling twice with the same test ID does not create duplicates."""
-        data = {
-            "test_case_groups": {
-                "parent-group": {
-                    "groups": ["child-a"],
-                    "exclude_tests": ["TC-1"],
-                },
-            },
-        }
-
-        _add_exclude_tests_to_group(data, "parent-group", ["TC-1"])
-
-        group = data["test_case_groups"]["parent-group"]
-        assert group["exclude_tests"].count("TC-1") == 1
-
-    def test_idempotent_already_removed_from_leaf(self) -> None:
-        """Removing a test ID not in the leaf tests list does nothing."""
-        data = {
-            "test_case_groups": {
-                "leaf-group": {
-                    "tests": ["TC-1"],
-                },
-            },
-        }
-
-        _add_exclude_tests_to_group(data, "leaf-group", ["TC-99"])
-
-        group = data["test_case_groups"]["leaf-group"]
-        assert group["tests"] == ["TC-1"]
-
-    def test_noop_when_group_not_found(self) -> None:
-        """No error when the group_id does not exist in data."""
-        data = {"test_case_groups": {}}
-
-        _add_exclude_tests_to_group(data, "missing-group", ["TC-1"])
-        # No exception raised.
-
-    def test_appends_to_existing_exclude_tests(self) -> None:
-        """New test IDs are appended to an existing exclude_tests list."""
-        data = {
-            "test_case_groups": {
-                "parent-group": {
-                    "groups": ["child-a"],
-                    "exclude_tests": ["TC-1"],
-                },
-            },
-        }
-
-        _add_exclude_tests_to_group(data, "parent-group", ["TC-2"])
-
-        group = data["test_case_groups"]["parent-group"]
-        assert group["exclude_tests"] == ["TC-1", "TC-2"]
+_EDIT_PLAN_YAML = """\
+test_cases:
+  TC-1: {title: One, job: jobs/one.py}
+  TC-2: {title: Two, job: jobs/two.py}
+  TC-3: {title: Three, job: jobs/three.py}
+test_case_groups:
+  leaf:
+    tests: [TC-1, TC-2]
+  other:
+    tests: [TC-3]
+  parent:
+    tests: [TC-3]
+    groups: [leaf]
+    exclude_tests: [TC-2]
+scenarios:
+  s:
+    phases:
+      p:
+        test_case_groups: [parent, other]
+"""
 
 
-# ===========================================================================
-# _remove_orphaned_test_cases
-# ===========================================================================
+def _edit_for(
+    tmp_path: Path, prune_plan: PrunePlan, text: str = _EDIT_PLAN_YAML
+) -> tuple[Path, PruneEdit]:
+    """Write a single-file plan and prepare a prune edit for it."""
+    plan_path = tmp_path / "test_plan.yaml"
+    plan_path.write_text(text, encoding="utf-8")
+    edit = prepare_prune_edit(
+        plan_path=plan_path, prune_plan=prune_plan, output=Output()
+    )
+    return plan_path, edit
 
 
-class TestRemoveOrphanedTestCases:
-    """Tests for _remove_orphaned_test_cases."""
+def _group_plan(**exclude_from_groups: list[str]) -> PrunePlan:
+    """Build a PrunePlan that only removes tests from groups."""
+    return PrunePlan(
+        exclude_devices_updates={},
+        exclude_from_groups=dict(exclude_from_groups),
+        skipped_already_pruned=[],
+    )
 
-    def test_removes_specified_test_ids(self) -> None:
-        """Test case definitions are removed from the test_cases dict."""
-        data = {
-            "test_cases": {
-                "TC-1": {"title": "Test 1", "job": "jobs/t1.py"},
-                "TC-2": {"title": "Test 2", "job": "jobs/t2.py"},
-                "TC-3": {"title": "Test 3", "job": "jobs/t3.py"},
-            },
-        }
 
-        _remove_orphaned_test_cases(data, ["TC-1", "TC-3"])
+class TestPreparePruneEdit:
+    """Tests for prepare_prune_edit."""
 
-        assert "TC-1" not in data["test_cases"]
-        assert "TC-3" not in data["test_cases"]
-        assert "TC-2" in data["test_cases"]
+    def test_removes_tests_from_leaf_without_writing(self, tmp_path: Path) -> None:
+        """Tests leave the leaf's list in memory; the file is untouched."""
+        plan_path, edit = _edit_for(tmp_path, _group_plan(leaf=["TC-1"]))
 
-    def test_handles_missing_test_ids_gracefully(self) -> None:
-        """No error when a test_id to remove does not exist."""
-        data = {
-            "test_cases": {
-                "TC-1": {"title": "Test 1", "job": "jobs/t1.py"},
-            },
-        }
+        group = edit.documents[plan_path]["test_case_groups"]["leaf"]
+        assert group["tests"] == ["TC-2"]
+        assert edit.removed_groups == []
+        assert plan_path.read_text(encoding="utf-8") == _EDIT_PLAN_YAML
 
-        _remove_orphaned_test_cases(data, ["TC-99", "TC-100"])
+    def test_emptied_child_is_removed_and_parent_tidied(self, tmp_path: Path) -> None:
+        """The parent loses the child reference and its now-invalid exclude_tests."""
+        plan_path, edit = _edit_for(tmp_path, _group_plan(leaf=["TC-1", "TC-2"]))
 
-        assert "TC-1" in data["test_cases"]
+        groups = edit.documents[plan_path]["test_case_groups"]
+        assert edit.removed_groups == ["leaf"]
+        assert "leaf" not in groups
+        assert dict(groups["parent"]) == {"tests": ["TC-3"]}
+        assert "exclude_tests" not in groups["parent"]
 
-    def test_noop_when_no_test_cases_key(self) -> None:
-        """No error when data lacks a test_cases mapping."""
-        data = {"other_key": "value"}
+    def test_cascade_reaches_phase(self, tmp_path: Path) -> None:
+        """Emptying both of the parent's sources removes it from the phase."""
+        plan_path, edit = _edit_for(
+            tmp_path, _group_plan(leaf=["TC-1", "TC-2"], parent=["TC-3"])
+        )
 
-        _remove_orphaned_test_cases(data, ["TC-1"])
-        # No exception raised.
+        assert edit.removed_groups == ["leaf", "parent"]
+        phase = edit.documents[plan_path]["scenarios"]["s"]["phases"]["p"]
+        assert phase["test_case_groups"] == ["other"]
+        assert edit.removed_phases == []
 
-    def test_noop_when_test_cases_not_dict(self) -> None:
-        """No error when test_cases is not a dict."""
-        data = {"test_cases": "not-a-dict"}
+    def test_invalid_result_raises_and_writes_nothing(self, tmp_path: Path) -> None:
+        """Emptying every group fails validation before anything is written."""
+        with pytest.raises(PruneError, match="no files were changed"):
+            _edit_for(
+                tmp_path,
+                _group_plan(leaf=["TC-1", "TC-2"], parent=["TC-3"], other=["TC-3"]),
+            )
 
-        _remove_orphaned_test_cases(data, ["TC-1"])
-        # No exception raised.
+        plan_path = tmp_path / "test_plan.yaml"
+        assert plan_path.read_text(encoding="utf-8") == _EDIT_PLAN_YAML
+
+    def test_error_message_names_the_real_plan_path(self, tmp_path: Path) -> None:
+        """Validation errors refer to the plan, not the temporary copy."""
+        plan_dir = tmp_path / "plan"
+        plan_dir.mkdir()
+        (plan_dir / "plan.yaml").write_text(_EDIT_PLAN_YAML, encoding="utf-8")
+        # A second file that redefines a group the first one defines.
+        (plan_dir / "dup.yaml").write_text(
+            "test_case_groups:\n  other:\n    tests: [TC-3]\n", encoding="utf-8"
+        )
+
+        with pytest.raises(PruneError) as excinfo:
+            prepare_prune_edit(
+                plan_path=plan_dir, prune_plan=_group_plan(), output=Output()
+            )
+
+        assert str(plan_dir) in str(excinfo.value)
+        assert "huginn-prune-" not in str(excinfo.value)
+
+    def test_removes_orphaned_test_case_definitions(self, tmp_path: Path) -> None:
+        """Orphaned definitions are deleted from test_cases."""
+        prune_plan = PrunePlan(
+            exclude_devices_updates={},
+            exclude_from_groups={"leaf": ["TC-1"]},
+            skipped_already_pruned=[],
+            orphaned_test_cases=["TC-1", "TC-99"],
+        )
+
+        plan_path, edit = _edit_for(tmp_path, prune_plan)
+
+        assert set(edit.documents[plan_path]["test_cases"]) == {"TC-2", "TC-3"}
+
+    def test_sets_exclude_devices(self, tmp_path: Path) -> None:
+        """Partially applicable tests get target.exclude_devices."""
+        prune_plan = PrunePlan(
+            exclude_devices_updates={"TC-3": ["dev-b"]},
+            exclude_from_groups={},
+            skipped_already_pruned=[],
+        )
+
+        plan_path, edit = _edit_for(tmp_path, prune_plan)
+
+        test_case = edit.documents[plan_path]["test_cases"]["TC-3"]
+        assert test_case["target"] == {"exclude_devices": ["dev-b"]}
 
 
 # ===========================================================================
@@ -1045,3 +1036,261 @@ def test_prune_keeps_nested_group_target_for_partially_na_test(
         test_case=test_case,
     )
     assert [device.name for device in targets] == ["nx-01"]
+
+
+# ===========================================================================
+# huginn prune: removing groups that pruning empties (#349)
+# ===========================================================================
+
+_EMPTIED_GROUPS_YAML = """\
+test_case_groups:
+  catalog-import-vrf:
+    name: vrf
+    tests:
+    - VRF-1
+    - VRF-2
+  catalog-import:
+    groups:
+    - catalog-import-vrf
+"""
+
+_EMPTIED_TEST_CASES_YAML = """\
+test_cases:
+  VRF-1:
+    title: VRF one
+    job: jobs.vrf.one
+  VRF-2:
+    title: VRF two
+    job: jobs.vrf.two
+"""
+
+_EMPTIED_SCENARIOS_YAML = """\
+test_cases:
+  BASE-1:
+    title: Baseline
+    job: jobs.base.one
+test_case_groups:
+  baseline:
+    tests:
+    - BASE-1
+scenarios:
+  main:
+    phases:
+      learn:
+        test_case_groups:
+        - baseline
+        - catalog-import
+"""
+
+
+def _stage_emptied_group_workspace(
+    tmp_path: Path,
+    *,
+    scenarios_yaml: str = _EMPTIED_SCENARIOS_YAML,
+    na_tests: tuple[str, ...] = ("VRF-1", "VRF-2"),
+) -> Path:
+    """Write a directory plan whose leaf group pruning will empty."""
+    plan_dir = tmp_path / "test_plan"
+    (plan_dir / "groups").mkdir(parents=True)
+    (plan_dir / "test_cases").mkdir()
+    (plan_dir / "groups" / "catalog-import.yaml").write_text(
+        _EMPTIED_GROUPS_YAML, encoding="utf-8"
+    )
+    (plan_dir / "test_cases" / "catalog-import.yaml").write_text(
+        _EMPTIED_TEST_CASES_YAML, encoding="utf-8"
+    )
+    (plan_dir / "scenarios.yaml").write_text(scenarios_yaml, encoding="utf-8")
+
+    run_dir = tmp_path / "results" / "2026-Nov-03-09-39-30-learning"
+    entries = []
+    for test_id in na_tests:
+        result_path = f"test-cases/{test_id}/result.json"
+        _write_json(
+            run_dir / result_path,
+            {
+                "command_executions": [],
+                "not_applicable_devices": {"device-1": "Command not supported"},
+            },
+        )
+        entries.append({"test_id": test_id, "result_path": result_path})
+    groups = [{"id": "catalog-import", "test_cases": entries}]
+    _write_json(run_dir / "run.json", _build_run_json(groups=groups))
+    return plan_dir
+
+
+def _plan_snapshot(plan_dir: Path) -> dict[str, str]:
+    """Return the text of every YAML file in a plan directory."""
+    return {
+        str(path.relative_to(plan_dir)): path.read_text(encoding="utf-8")
+        for path in sorted(plan_dir.rglob("*.yaml"))
+    }
+
+
+class TestPruneRemovesEmptiedGroups:
+    """Groups, phases and scenarios that pruning empties are removed."""
+
+    def test_emptied_leaf_and_composite_groups_are_removed(
+        self, tmp_path: Path
+    ) -> None:
+        """The plan stays valid and both emptied groups disappear."""
+        plan_dir = _stage_emptied_group_workspace(tmp_path)
+
+        output = _invoke_prune(tmp_path, plan_dir)
+
+        plan = load_test_plan(plan_dir)
+        assert set(plan.test_case_groups) == {"baseline"}
+        phase = plan.scenarios["main"].phases["learn"]
+        assert phase.test_case_groups == ["baseline"]
+        groups_text = (plan_dir / "groups" / "catalog-import.yaml").read_text(
+            encoding="utf-8"
+        )
+        assert groups_text == "test_case_groups: {}\n"
+        assert "exclude_tests" not in groups_text
+        assert "Removing emptied test case groups:" in output
+        assert "catalog-import-vrf" in output
+        assert "2 group(s) removed" in output
+        # Orphaned definitions stay without --remove-orphans.
+        assert {"VRF-1", "VRF-2"} <= set(plan.test_cases)
+
+    def test_composite_parent_gets_no_exclude_tests(self, tmp_path: Path) -> None:
+        """Removing some tests from a child adds nothing to the parent."""
+        plan_dir = _stage_emptied_group_workspace(tmp_path, na_tests=("VRF-1",))
+
+        _invoke_prune(tmp_path, plan_dir)
+
+        plan = load_test_plan(plan_dir)
+        assert plan.test_case_groups["catalog-import-vrf"].tests == ["VRF-2"]
+        assert plan.test_case_groups["catalog-import"].tests == ["VRF-2"]
+        assert plan.test_case_groups["catalog-import"].exclude_tests == []
+
+    def test_emptied_phase_and_scenario_are_removed(self, tmp_path: Path) -> None:
+        """A phase with no groups left goes, and so does an empty scenario."""
+        scenarios_yaml = _EMPTIED_SCENARIOS_YAML + (
+            "  imported:\n"
+            "    phases:\n"
+            "      learn-import:\n"
+            "        test_case_groups:\n"
+            "        - catalog-import\n"
+            "      after:\n"
+            "        depends_on: [learn-import]\n"
+            "        test_case_groups:\n"
+            "        - catalog-import-vrf\n"
+            "  partial:\n"
+            "    phases:\n"
+            "      first:\n"
+            "        test_case_groups: [catalog-import]\n"
+            "      second:\n"
+            "        depends_on: [first]\n"
+            "        test_case_groups: [baseline]\n"
+        )
+        plan_dir = _stage_emptied_group_workspace(
+            tmp_path, scenarios_yaml=scenarios_yaml
+        )
+
+        output = _invoke_prune(tmp_path, plan_dir)
+
+        plan = load_test_plan(plan_dir)
+        assert set(plan.scenarios) == {"main", "partial"}
+        partial = plan.scenarios["partial"]
+        assert set(partial.phases) == {"second"}
+        assert partial.phases["second"].depends_on == []
+        assert "Removing emptied phases:" in output
+        assert "first (scenario partial)" in output
+        assert "Removing emptied scenarios:" in output
+        assert "imported" in output
+
+    def test_dry_run_reports_removals_without_writing(self, tmp_path: Path) -> None:
+        """--dry-run lists the emptied groups and changes no file."""
+        plan_dir = _stage_emptied_group_workspace(tmp_path)
+        before = _plan_snapshot(plan_dir)
+
+        output = _invoke_prune(tmp_path, plan_dir, "--dry-run")
+
+        assert "Removing emptied test case groups:" in output
+        assert "2 group(s) would be removed" in output
+        assert _plan_snapshot(plan_dir) == before
+
+    def test_invalid_result_writes_nothing(self, tmp_path: Path) -> None:
+        """When nothing would be left to run, prune fails and writes nothing."""
+        scenarios_yaml = (
+            "scenarios:\n"
+            "  main:\n"
+            "    phases:\n"
+            "      learn:\n"
+            "        test_case_groups: [catalog-import]\n"
+        )
+        plan_dir = _stage_emptied_group_workspace(
+            tmp_path, scenarios_yaml=scenarios_yaml
+        )
+        before = _plan_snapshot(plan_dir)
+
+        result = CliRunner().invoke(
+            app,
+            [
+                "prune",
+                "--plan",
+                str(plan_dir),
+                "--results-dir",
+                str(tmp_path / "results"),
+                "--log-file",
+                str(tmp_path / "huginn.log"),
+            ],
+        )
+
+        assert result.exit_code == 1
+        text = " ".join(re.sub(r"\x1b\[[0-9;]*m", "", result.output).split())
+        assert "would leave an invalid test plan" in text
+        assert "no files were changed" in text
+        assert _plan_snapshot(plan_dir) == before
+
+    def test_directly_listed_test_in_composite_is_removed(self, tmp_path: Path) -> None:
+        """A test a composite lists in its own tests is removed, not excluded."""
+        plan_path = tmp_path / "test_plan.yaml"
+        plan_path.write_text(
+            "test_cases:\n"
+            "  A: {title: A, job: jobs.a}\n"
+            "  B: {title: B, job: jobs.b}\n"
+            "test_case_groups:\n"
+            "  child:\n"
+            "    tests: [B]\n"
+            "  parent:\n"
+            "    tests: [A]\n"
+            "    groups: [child]\n"
+            "scenarios:\n"
+            "  s:\n"
+            "    phases:\n"
+            "      p:\n"
+            "        test_case_groups: [parent]\n",
+            encoding="utf-8",
+        )
+        run_dir = tmp_path / "results" / "2026-Apr-30-14-22-01-learning"
+        _write_json(
+            run_dir / "test-cases" / "A" / "result.json",
+            {"command_executions": [], "not_applicable_devices": {"d1": "N/A"}},
+        )
+        groups = [
+            {
+                "id": "parent",
+                "test_cases": [
+                    {"test_id": "A", "result_path": "test-cases/A/result.json"}
+                ],
+            }
+        ]
+        _write_json(run_dir / "run.json", _build_run_json(groups=groups))
+
+        _invoke_prune(tmp_path, plan_path)
+
+        plan = load_test_plan(plan_path)
+        assert plan.test_case_groups["parent"].tests == ["B"]
+        assert plan.test_case_groups["parent"].exclude_tests == []
+
+
+def test_remove_orphans_finds_test_pruned_from_nested_group(tmp_path: Path) -> None:
+    """A pruned test inherited by a composite group is still an orphan."""
+    plan_dir = _stage_emptied_group_workspace(tmp_path, na_tests=("VRF-1",))
+
+    _invoke_prune(tmp_path, plan_dir, "--remove-orphans")
+
+    plan = load_test_plan(plan_dir)
+    assert "VRF-1" not in plan.test_cases
+    assert plan.test_case_groups["catalog-import"].tests == ["VRF-2"]
