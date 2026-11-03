@@ -1,0 +1,1 @@
+`LearningTestCase` now drops the devices that `gather_state` left out of `devices` from `context.targets` before `compare_state`, so jobs no longer have to do it themselves to avoid "missing learned baseline" failures. In testing mode, such a device that the learned parameters contain is reported as `LOST_APPLICABILITY`.

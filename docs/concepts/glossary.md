@@ -164,7 +164,7 @@ Test cases filtered out before execution (e.g., by tags) do not appear in result
 
 `LOST_APPLICABILITY` covers a device that was applicable when parameters were learned but is no longer applicable during testing. Something changed between learning and testing that made a previously testable device untestable, for example an upgrade that removed a feature, so the status fails the test instead of passing silently as `NOT_APPLICABLE`.
 
-In testing mode, `LearningTestCase.test()` checks each device that `check_command_support()` reports as not applicable against the learned parameters:
+In testing mode, `LearningTestCase.test()` checks each device that `check_command_support()` reports as not applicable, and each device that `gather_state()` leaves out of its returned `devices`, against the learned parameters:
 
 | Scenario                         | Device in learned parameters? | Result               |
 | -------------------------------- | ----------------------------- | -------------------- |
