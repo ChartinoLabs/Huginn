@@ -28,7 +28,7 @@ The command executes successfully, but the extracted data is empty for a device.
 
 Both sources produce the same `NOT_APPLICABLE` status in the learning results. The prune command does not distinguish between them - if a device is non-applicable, it is excluded.
 
-Prune acts only on `NOT_APPLICABLE` devices. A device recorded as `LOST_APPLICABILITY`, because it supported the command when parameters were learned but no longer does in testing, is a failure rather than a scope problem, so prune never excludes it. See [Lost Applicability](../concepts/glossary.md#lost-applicability).
+Prune acts only on `NOT_APPLICABLE` devices. A device recorded as `LOST_APPLICABILITY`, because it supported the command (or had data) when parameters were learned but no longer does in testing, is a failure rather than a scope problem, so prune never excludes it. See [Lost Applicability](../concepts/glossary.md#lost-applicability).
 
 ## Workflow
 

@@ -400,10 +400,10 @@ class VerifyOspfNeighbors(LearningTestCase[OspfParameters]):
 2. For each target not in `applicable`, record a `NOT_APPLICABLE` check (`"<device>: <reason>"`) and list it in `context.results.not_applicable_devices`. In testing mode, a target that `learned_devices()` finds in the learned parameters is recorded as `LOST_APPLICABILITY` instead and is not listed; see [Command support regression detection](#command-support-regression-detection).
 3. If no target is applicable, record an `INFO` check (`No supported targets after command support check`) and return.
 4. Narrow `context.targets` to the applicable devices.
-5. Call `gather_state(context)`. If the result is a mapping with a `devices` mapping, every applicable target missing from it is added to `not_applicable_devices`.
+5. Call `gather_state(context)`. If the result is a mapping with a `devices` mapping, every applicable target missing from it is added to `not_applicable_devices` and removed from `context.targets`, so a job does not have to narrow the targets itself.
 6. If the derived status is already `ERRORED`, return without saving or comparing.
 7. In learning mode, save the state with `context.parameters.save(...)`, record a `PASSED` check (`Learned parameters saved successfully`) unless every check so far is `NOT_APPLICABLE`, and return.
-8. In testing mode, load the expected state with `context.parameters.load()`, unless step 2 already loaded it, render the `DESCRIPTION`, `SETUP`, `PROCEDURE` and `PASS_FAIL_CRITERIA` class attributes as metadata sections, and call `compare_state(expected=..., current=..., context=...)`.
+8. In testing mode, load the expected state with `context.parameters.load()`, unless step 2 already loaded it. A target removed in step 5 that `learned_devices()` finds in the learned parameters is recorded as `LOST_APPLICABILITY` and taken out of `not_applicable_devices`. Then render the `DESCRIPTION`, `SETUP`, `PROCEDURE` and `PASS_FAIL_CRITERIA` class attributes as metadata sections, and call `compare_state(expected=..., current=..., context=...)`.
 
 The runner calls `setup()`, then `test()`, then `cleanup()`, so `check_command_support()` runs inside `test()` after `setup()`. A plain `TestCase` has no command support hook; its `test()` does whatever you write.
 
@@ -479,6 +479,8 @@ A target that is not in `applicable` and has no entry in `not_applicable` is rep
 ### Command support regression detection
 
 In testing mode, `LearningTestCase.test()` checks each target that `check_command_support()` reports as not applicable against the learned parameters. A target the parameters contain supported the command when they were learned, so it is recorded as `LOST_APPLICABILITY` with the message `"<device>: <reason>, but it was supported when parameters were learned"`. The status counts as a failure: it fails the test case, makes `huginn run` exit 1 and blocks dependent phases. A target the parameters do not contain never supported the command and stays `NOT_APPLICABLE`.
+
+The same check applies to a target that `gather_state()` leaves out of its returned `devices`. If the learned parameters contain it, it had data when they were learned, so it is recorded as `LOST_APPLICABILITY` with the reason from the job's `NOT_APPLICABLE` message, in the same form. The job's own `NOT_APPLICABLE` check stays in the results, and `LOST_APPLICABILITY` takes precedence when the status is derived.
 
 The learned parameters are loaded before any result is recorded, and only when at least one target is not applicable. If they cannot be loaded at that point, every such target is `NOT_APPLICABLE`, and the load after `gather_state()` raises the error as usual. Learning mode never records `LOST_APPLICABILITY`.
 

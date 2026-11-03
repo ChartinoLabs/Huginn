@@ -14,6 +14,7 @@ from huginn import (
 )
 from huginn.models import Device, MetadataSection
 from huginn.parameters import ParameterStoreError
+from huginn.results import ResultCollector
 
 
 @dataclass
@@ -423,3 +424,214 @@ async def test_learning_testcase_all_lost_devices_skip_gather_and_compare() -> N
         ResultStatus.LOST_APPLICABILITY,
         ResultStatus.INFO,
     ]
+
+
+class _DroppingLearningTest(LearningTestCase[dict[str, object]]):
+    """Marks ``empty`` devices NOT_APPLICABLE in gather_state.
+
+    With ``reassign`` false it leaves ``context.targets`` alone, as many jobs
+    do; with it true it narrows the targets itself, as the docs used to ask.
+    ``compare_state`` fails any target the learned parameters lack, the way
+    a typical job reports a missing learned baseline.
+    """
+
+    def __init__(self, empty: set[str], *, reassign: bool = False) -> None:
+        self.empty = empty
+        self.reassign = reassign
+        self.compared_targets: list[str] = []
+
+    async def gather_state(self, context: Context) -> dict[str, object]:
+        devices: dict[str, object] = {}
+        remaining: list[Device] = []
+        for device in context.targets:
+            if device.name in self.empty:
+                context.results.add_result(
+                    ResultStatus.NOT_APPLICABLE,
+                    f"{device.name}: 'show example' returned no data",
+                )
+                continue
+            devices[device.name] = {"value": "up"}
+            remaining.append(device)
+        if self.reassign:
+            context.targets = remaining
+        return {"devices": devices}
+
+    async def compare_state(
+        self,
+        *,
+        expected: dict[str, object],
+        current: dict[str, object],
+        context: Context,
+    ) -> None:
+        learned = cast(dict[str, object], expected["devices"])
+        for device in context.targets:
+            self.compared_targets.append(device.name)
+            if device.name not in learned:
+                context.results.add_result(
+                    ResultStatus.FAILED,
+                    f"{device.name}: missing learned baseline",
+                )
+                continue
+            context.results.add_result(ResultStatus.PASSED, f"{device.name}: ok")
+
+
+class _CountingParameters(_FakeParameters):
+    load_calls: int = 0
+
+    async def load(self) -> dict[str, object]:
+        self.load_calls += 1
+        return await super().load()
+
+
+def _collector_context(
+    mode: ExecutionMode,
+    names: list[str],
+    learned: dict[str, object] | None = None,
+) -> tuple[_FakeContext, ResultCollector]:
+    results = ResultCollector()
+    parameters = _CountingParameters(
+        loaded_payload={"devices": learned if learned is not None else {}}
+    )
+    context = _FakeContext(
+        mode=mode,
+        targets=[_FakeDevice(name=name) for name in names],
+        parameters=parameters,
+        results=cast(_FakeResults, results),
+    )
+    return context, results
+
+
+def _statuses(results: ResultCollector) -> list[tuple[str, str]]:
+    return [(check.status, check.message) for check in results.checks]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("reassign", [False, True])
+async def test_gather_state_na_device_is_not_compared_in_testing(
+    reassign: bool,
+) -> None:
+    """A device gather_state dropped is never compared, reassigned or not."""
+    test_case = _DroppingLearningTest({"leaf-02"}, reassign=reassign)
+    context, results = _collector_context(
+        ExecutionMode.TESTING,
+        ["leaf-01", "leaf-02"],
+        learned={"leaf-01": {"value": "up"}},
+    )
+
+    await test_case.test(cast(Context, context))
+
+    assert test_case.compared_targets == ["leaf-01"]
+    assert [t.name for t in context.targets] == ["leaf-01"]
+    assert _statuses(results) == [
+        ("not_applicable", "leaf-02: 'show example' returned no data"),
+        ("passed", "leaf-01: ok"),
+    ]
+    assert results.not_applicable_devices == {
+        "leaf-02": "'show example' returned no data"
+    }
+    assert results.derive_status() == ResultStatus.PASSED
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("reassign", [False, True])
+async def test_gather_state_na_device_in_baseline_lost_applicability(
+    reassign: bool,
+) -> None:
+    """A dropped device the learned parameters contain lost applicability."""
+    test_case = _DroppingLearningTest({"leaf-02"}, reassign=reassign)
+    context, results = _collector_context(
+        ExecutionMode.TESTING,
+        ["leaf-01", "leaf-02"],
+        learned={"leaf-01": {"value": "up"}, "leaf-02": {"value": "up"}},
+    )
+
+    await test_case.test(cast(Context, context))
+
+    assert test_case.compared_targets == ["leaf-01"]
+    assert (
+        "lost_applicability",
+        "leaf-02: 'show example' returned no data, but it was supported when "
+        "parameters were learned",
+    ) in _statuses(results)
+    assert results.not_applicable_devices == {}
+    assert results.derive_status() == ResultStatus.LOST_APPLICABILITY
+    assert cast(_CountingParameters, context.parameters).load_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_gather_state_na_learning_mode_unchanged() -> None:
+    """Learning mode saves only gathered devices and never reads parameters."""
+    test_case = _DroppingLearningTest({"leaf-02"})
+    context, results = _collector_context(
+        ExecutionMode.LEARNING,
+        ["leaf-01", "leaf-02"],
+        learned={"leaf-01": {}, "leaf-02": {}},
+    )
+
+    await test_case.test(cast(Context, context))
+
+    parameters = cast(_CountingParameters, context.parameters)
+    assert parameters.saved_payloads == [{"devices": {"leaf-01": {"value": "up"}}}]
+    assert parameters.load_calls == 0
+    assert _statuses(results) == [
+        ("not_applicable", "leaf-02: 'show example' returned no data"),
+    ]
+    assert results.not_applicable_devices == {
+        "leaf-02": "'show example' returned no data"
+    }
+
+
+@pytest.mark.asyncio
+async def test_gather_state_na_mixed_run() -> None:
+    """Dropped devices, lost devices and compared devices in one run."""
+    test_case = _DroppingLearningTest({"leaf-02", "leaf-03"})
+    context, results = _collector_context(
+        ExecutionMode.TESTING,
+        ["leaf-01", "leaf-02", "leaf-03", "leaf-04"],
+        learned={"leaf-01": {}, "leaf-03": {}},
+    )
+
+    await test_case.test(cast(Context, context))
+
+    assert test_case.compared_targets == ["leaf-01", "leaf-04"]
+    statuses = _statuses(results)
+    assert ("passed", "leaf-01: ok") in statuses
+    assert ("failed", "leaf-04: missing learned baseline") in statuses
+    assert not any(
+        message.startswith("leaf-02") and status != "not_applicable"
+        for status, message in statuses
+    )
+    assert any(
+        status == "lost_applicability" and message.startswith("leaf-03")
+        for status, message in statuses
+    )
+    assert results.not_applicable_devices == {
+        "leaf-02": "'show example' returned no data"
+    }
+
+
+@pytest.mark.asyncio
+async def test_gather_state_na_reuses_parameters_loaded_for_support() -> None:
+    """Parameters loaded for the command-support check are not loaded again."""
+
+    class _Both(_DroppingLearningTest):
+        async def check_command_support(self, context: Context) -> CommandSupportResult:
+            targets = list(context.targets)
+            return CommandSupportResult(
+                applicable=targets[:-1],
+                not_applicable={targets[-1].name: "feature not enabled"},
+            )
+
+    test_case = _Both({"leaf-02"})
+    context, results = _collector_context(
+        ExecutionMode.TESTING,
+        ["leaf-01", "leaf-02", "leaf-03"],
+        learned={"leaf-01": {}, "leaf-02": {}},
+    )
+
+    await test_case.test(cast(Context, context))
+
+    assert cast(_CountingParameters, context.parameters).load_calls == 1
+    assert test_case.compared_targets == ["leaf-01"]
+    assert [s for s, _ in _statuses(results)].count("lost_applicability") == 1
+    assert results.not_applicable_devices == {"leaf-03": "feature not enabled"}

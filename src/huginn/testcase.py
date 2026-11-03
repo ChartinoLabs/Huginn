@@ -20,6 +20,22 @@ _METADATA_TEMPLATE_ENV = Environment(
 
 ParametersT = TypeVar("ParametersT", bound=Mapping[str, object])
 
+_DEFAULT_GATHER_STATE_NA_REASON = "No applicable data for this test"
+
+
+def _gather_state_na_reason(context: Context, device_name: str) -> str:
+    """Return the reason the job gave when it marked a device N/A.
+
+    Uses the text after the device name in the first NOT_APPLICABLE check
+    that starts with it, or a generic reason when there is none.
+    """
+    for check in context.results.checks:
+        if check.status == ResultStatus.NOT_APPLICABLE.value and (
+            check.message.startswith(device_name)
+        ):
+            return check.message[len(device_name) :].lstrip(": ")
+    return _DEFAULT_GATHER_STATE_NA_REASON
+
 
 @dataclass
 class CommandSupportResult:
@@ -75,11 +91,12 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
         context.targets = supported_targets
         current_state = await self.gather_state(context)
 
-        self._capture_gather_state_na(
+        dropped = self._capture_gather_state_na(
             current_state,
             supported_targets,
             context,
         )
+        context.targets = [t for t in context.targets if t.name not in dropped]
 
         derive_status = getattr(context.results, "derive_status", None)
         if callable(derive_status) and derive_status() == ResultStatus.ERRORED:
@@ -100,6 +117,7 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
 
         if expected_state is None:
             expected_state = cast(ParametersT, await context.parameters.load())
+        self._record_gather_state_lost(context, dropped, expected_state)
         self._add_rendered_metadata_result(context=context, parameters=expected_state)
         await self.compare_state(
             expected=expected_state,
@@ -189,7 +207,7 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
         current_state: object,
         supported_targets: list[Device],
         context: Context,
-    ) -> None:
+    ) -> list[str]:
         """Detect devices excluded by gather_state and merge into N/A map.
 
         After gather_state runs, any supported target whose name does not
@@ -197,26 +215,48 @@ class LearningTestCase(TestCase, Generic[ParametersT], ABC):
         by the job (e.g., empty extracted data). This method finds those
         devices and populates ``context.results.not_applicable_devices``
         so the prune command can act on them.
+
+        Returns the names of the excluded devices, so ``test()`` can drop
+        them from ``context.targets`` whether or not the job already did.
         """
         if not isinstance(current_state, dict):
-            return
+            return []
         returned_devices = cast(dict[str, Any], current_state).get("devices")
         if not isinstance(returned_devices, dict):
+            return []
+        dropped = [t.name for t in supported_targets if t.name not in returned_devices]
+        not_applicable = context.results.not_applicable_devices
+        for name in dropped:
+            if name not in not_applicable:
+                not_applicable[name] = _gather_state_na_reason(context, name)
+        return dropped
+
+    def _record_gather_state_lost(
+        self,
+        context: Context,
+        dropped: list[str],
+        expected_state: ParametersT,
+    ) -> None:
+        """Record LOST_APPLICABILITY for dropped devices that were learned.
+
+        A device gather_state left out of ``devices`` in testing mode, but
+        that the learned parameters contain (see ``learned_devices()``), had
+        data when parameters were learned. Like a device that lost command
+        support, it fails the test and is removed from
+        ``not_applicable_devices`` so prune never excludes it.
+        """
+        if not dropped:
             return
-        for target in supported_targets:
-            if (
-                target.name not in returned_devices
-                and target.name not in context.results.not_applicable_devices
-            ):
-                reason = "No applicable data for this test"
-                for check in context.results.checks:
-                    if (
-                        check.status == ResultStatus.NOT_APPLICABLE.value
-                        and check.message.startswith(target.name)
-                    ):
-                        reason = check.message[len(target.name) :].lstrip(": ")
-                        break
-                context.results.not_applicable_devices[target.name] = reason
+        learned = self.learned_devices(expected_state)
+        not_applicable = context.results.not_applicable_devices
+        for name in dropped:
+            if name not in learned:
+                continue
+            reason = not_applicable.pop(name, _DEFAULT_GATHER_STATE_NA_REASON)
+            context.results.add_result(
+                ResultStatus.LOST_APPLICABILITY,
+                f"{name}: {reason}, but it was supported when parameters were learned",
+            )
 
     async def check_command_support(self, context: Context) -> CommandSupportResult:
         """Check whether target devices support the required command(s)."""

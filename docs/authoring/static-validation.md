@@ -218,17 +218,14 @@ In **learning mode**, the framework persists this return value to a parameter fi
 
 When `gather_state` produces an empty result for a device - an empty `values: {}` dict, an empty `"__exists__"` dict, or an empty scalar `value: ""` - it means the device has no data for the attribute this job validates. In learning mode, saving these empty parameters is misleading: the parameter file exists and looks healthy, but contains nothing to compare against during testing.
 
-The correct behavior is to mark the device as **not applicable** rather than saving empty parameters. The recommended pattern is to check for empty state after extraction, emit a `NOT_APPLICABLE` result for that device, and drop it from `context.targets`:
+The correct behavior is to mark the device as **not applicable** rather than saving empty parameters. The recommended pattern is to check for empty state after extraction, emit a `NOT_APPLICABLE` result for that device, and leave it out of the returned `devices`:
 
 ```python
-from huginn.models import Device
-
 NO_DATA_REASON = "{device}: '{command}' returned no data for this test"
 
 
 async def gather_state(self, context: Context) -> SomeParameters:
     devices: dict[str, SomeDeviceParameters] = {}
-    remaining_targets: list[Device] = []
     for device in context.targets:
         result = await context.broker.execute(device, self.command)
         parsed = mn.parse(os=device.os, command=self.command, output=result.output)
@@ -250,8 +247,6 @@ async def gather_state(self, context: Context) -> SomeParameters:
             )
             continue
         devices[device.name] = {"values": values}
-        remaining_targets.append(device)
-    context.targets = remaining_targets
     return {"devices": devices}
 ```
 
@@ -259,8 +254,11 @@ This ensures that:
 
 - Devices with no data are recorded as `NOT_APPLICABLE` in the run results.
 - The parameter file only contains devices that have meaningful data.
-- `compare_state` does not report the dropped devices as missing a learned baseline, because it only walks the remaining `context.targets`.
+- `compare_state` does not report the dropped devices as missing a learned baseline. After `gather_state` returns, `LearningTestCase.test()` removes every target absent from `devices` from `context.targets`, so `compare_state` only walks the devices that have data.
+- In testing mode, a dropped device that the learned parameters contain had data when they were learned. The framework records it as `LOST_APPLICABILITY`, as it does for a device that lost command support, so the test fails instead of passing silently. See [Lost Applicability](../concepts/glossary.md#lost-applicability).
 - Downstream tooling (such as a prune command) can mechanically identify tests with no applicable targets and remove them from the test plan.
+
+The job does not need to change `context.targets` itself. Older jobs that also set `context.targets` to the remaining devices keep working: removing a device that is already gone changes nothing.
 
 Start the `NOT_APPLICABLE` message with the device name, as `NO_DATA_REASON` does. The framework records each omitted device's reason in the run results, which [Pruning Non-Applicable Tests](../reference/prune.md) reads. It takes the reason from the text after the device name, and falls back to the generic "No applicable data for this test" when the message does not start with the device name.
 
@@ -339,7 +337,7 @@ class OspfNeighborExistenceDeviceParameters(TypedDict):
 - **Don't skip `add_command_execution`.** The reporting layer relies on it to render raw and parsed output for debugging.
 - **Don't put `command` at module scope.** It belongs as a class attribute (`self.command`). Module-level `command = "..."` makes the show command invisible to subclasses and harder to override per-job.
 - **Don't catch `muninn` parser errors silently.** If parsing fails, let the exception propagate or emit `ResultStatus.ERRORED` explicitly with context. Silent failure makes the job look healthy when it isn't.
-- **Don't mutate `context.targets` beyond the empty-state pattern.** The framework owns target filtering via `check_command_support`. The only change `gather_state` should make is dropping devices it marked `NOT_APPLICABLE`, as shown in [Handling empty gathered state](#handling-empty-gathered-state). Otherwise, treat the targets as read-only.
+- **Don't mutate `context.targets`.** The framework owns target filtering: it narrows the targets via `check_command_support`, and after `gather_state` it drops every device left out of `devices`, as described in [Handling empty gathered state](#handling-empty-gathered-state). Treat the targets as read-only. Setting them to the devices that have data, as older jobs do, is harmless.
 - **Don't override `setup` or `cleanup`** unless you genuinely need to. The defaults provided by `LearningTestCase` are correct for the vast majority of jobs.
 
 ## See also
