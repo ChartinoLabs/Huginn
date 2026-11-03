@@ -2348,6 +2348,8 @@ def _compute_import(
             project_root=Path.cwd(),
             testbed=testbed,
             registry=registry,
+            plan_path=inputs.plan_path,
+            catalog=loaded_catalog,
         )
     )
     scope = _check_scope_devices(scope, testbed, options.target_mode, output)

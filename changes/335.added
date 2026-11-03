@@ -1,0 +1,1 @@
+Scope providers can now take a single `ScopeRequest` argument, which gives them the test plan path, the loaded catalog and its taxonomy as well as the project root and testbed. Providers that take `(project_root, testbed)` keep working.
