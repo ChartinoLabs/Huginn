@@ -103,6 +103,17 @@ platform_metadata:
 | `os_type`     | yes      | Operating system name or alias.                                     |
 | `features`    | no       | Feature, subfeature or category names found on the device.          |
 
+`features` can also be a mapping, as some feature-scoping tools write it. Its keys are the feature names, and its values are ignored:
+
+```yaml
+platform_metadata:
+  - device_name: router-1
+    os_type: alphaos
+    features:
+      peering: {source: config, confidence: high}
+      area adjacency: {source: config, confidence: low}
+```
+
 Other per-device fields are ignored, so scope files produced by other tools can carry extra data.
 
 ## Scope providers

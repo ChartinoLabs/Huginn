@@ -236,6 +236,30 @@ def test_load_scope_reads_devices(tmp_path: Path) -> None:
     assert scope.devices == (ScopedDevice("r1", "alphaos", ("peering",)),)
 
 
+def test_load_scope_accepts_features_mapping(tmp_path: Path) -> None:
+    """A ``features`` mapping contributes its keys; the values are ignored."""
+    path = tmp_path / "scope.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "platform_metadata": [
+                    {
+                        "device_name": "r1",
+                        "os_type": "alphaos",
+                        "features": {
+                            "peering": {"source": "config", "confidence": 0.9},
+                            "link state": None,
+                        },
+                    }
+                ]
+            },
+            sort_keys=False,
+        )
+    )
+    scope = load_scope(path)
+    assert scope.devices == (ScopedDevice("r1", "alphaos", ("peering", "link state")),)
+
+
 @pytest.mark.parametrize(
     ("content", "message"),
     [
@@ -249,6 +273,14 @@ def test_load_scope_reads_devices(tmp_path: Path) -> None:
                 ]
             },
             "list of strings",
+        ),
+        (
+            {
+                "platform_metadata": [
+                    {"device_name": "r1", "os_type": "a", "features": {1: "x"}}
+                ]
+            },
+            "mapping keys must be strings",
         ),
     ],
 )

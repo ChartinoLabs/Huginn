@@ -334,7 +334,7 @@ def load_scope(path: Path) -> Scope:
             raise CatalogImportError(f"{location}: 'device_name' must be a string")
         if not isinstance(os_name, str) or not os_name:
             raise CatalogImportError(f"{location}: 'os_type' must be a string")
-        features = _string_list(device.get("features", []), f"{location}: features")
+        features = _feature_names(device.get("features", []), f"{location}: features")
         devices.append(ScopedDevice(name=name, os=os_name, features=tuple(features)))
     return Scope(devices=tuple(devices))
 
@@ -468,6 +468,24 @@ def _string_list(value: object, location: str) -> list[str]:
     ):
         raise CatalogImportError(f"{location}: expected a list of strings")
     return cast(list[str], value)
+
+
+def _feature_names(value: object, location: str) -> list[str]:
+    """Return a scope's feature names, from a list or the keys of a mapping.
+
+    Some scope producers write ``features`` as a mapping of each name to
+    details such as its source. Only the names are used.
+    """
+    if isinstance(value, dict):
+        names = list(cast(dict[object, object], value))
+        if all(isinstance(name, str) and name for name in names):
+            return cast(list[str], names)
+        raise CatalogImportError(f"{location}: mapping keys must be strings")
+    if not isinstance(value, list):
+        raise CatalogImportError(
+            f"{location}: expected a list of strings or a mapping of names"
+        )
+    return _string_list(value, location)
 
 
 def _normalize(name: str) -> str:

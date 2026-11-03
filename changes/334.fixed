@@ -1,0 +1,1 @@
+`huginn import --scope` now accepts a device's `features` written as a mapping of feature names to details, using its keys as the feature names, as well as a list.
