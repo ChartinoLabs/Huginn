@@ -1739,12 +1739,6 @@ def execute(
         huginn execute -t testbed.yaml --device ctrl-01 -c "/api/v1/status" -b http
         huginn execute -t testbed.yaml --commands commands.yaml
     """
-    specs = _resolve_execute_specs(
-        device=device,
-        command=command,
-        commands=commands,
-        broker=broker,
-    )
     output = _build_output(
         debug=debug,
         log_level=log_level,
@@ -1753,6 +1747,12 @@ def execute(
     )
 
     try:
+        specs = _resolve_execute_specs(
+            device=device,
+            command=command,
+            commands=commands,
+            broker=broker,
+        )
         from huginn.loaders import load_testbed
 
         unknown_keys = _unknown_key_collector(no_unknown_key_warnings)

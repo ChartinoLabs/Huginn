@@ -216,6 +216,96 @@ class TestLoadCommandSpecs:
         with pytest.raises(ConfigurationError, match="no entries"):
             load_command_specs(spec_file)
 
+    @pytest.mark.parametrize(
+        ("content", "match"),
+        [
+            pytest.param(
+                "- device: r1\n  command: [bad\n",
+                r"(?s)Failed to read command specs from .*commands\.yaml:.*line \d+",
+                id="invalid-yaml",
+            ),
+            pytest.param(
+                "device: r1\n",
+                r"commands\.yaml must contain a YAML list, got dict",
+                id="top-level-mapping",
+            ),
+            pytest.param(
+                "",
+                r"commands\.yaml must contain a YAML list, got null",
+                id="empty-file",
+            ),
+            pytest.param(
+                "[]\n",
+                r"commands\.yaml contains no entries",
+                id="empty-list",
+            ),
+            pytest.param(
+                "- show version\n",
+                r"#1 in .*commands\.yaml must be a mapping, got str",
+                id="entry-not-mapping",
+            ),
+            pytest.param(
+                "- device: r1\n  command: show version\n- command: show clock\n",
+                r"#2 in .*commands\.yaml is missing required 'device' field",
+                id="missing-device-second-entry",
+            ),
+            pytest.param(
+                "- device: r1\n",
+                r"#1 in .*commands\.yaml is missing required 'command' or 'path'",
+                id="missing-command",
+            ),
+            pytest.param(
+                "- device: 101\n  command: show version\n",
+                r"#1 in .*commands\.yaml has invalid 'device' field: "
+                r"expected string, got int",
+                id="device-wrong-type",
+            ),
+            pytest.param(
+                "- device: r1\n  command: 5\n",
+                r"#1 in .*commands\.yaml has invalid 'command' field: "
+                r"expected string, got int",
+                id="command-wrong-type",
+            ),
+            pytest.param(
+                "- device: r1\n  path: [a, b]\n",
+                r"#1 in .*commands\.yaml has invalid 'path' field: "
+                r"expected string, got list",
+                id="path-wrong-type",
+            ),
+            pytest.param(
+                "- device: ''\n  command: show version\n",
+                r"#1 in .*commands\.yaml has empty 'device' field",
+                id="device-empty",
+            ),
+            pytest.param(
+                "- device: r1\n  command: show version\n  broker: 3\n",
+                r"#1 in .*commands\.yaml has invalid 'broker' field: "
+                r"expected string, got int",
+                id="broker-wrong-type",
+            ),
+        ],
+    )
+    def test_malformed_file_names_file_and_location(
+        self, tmp_path: Path, content: str, match: str
+    ) -> None:
+        """Each malformed file raises ConfigurationError naming file and field."""
+        spec_file = tmp_path / "commands.yaml"
+        spec_file.write_text(content)
+
+        with pytest.raises(ConfigurationError, match=match):
+            load_command_specs(spec_file)
+
+    def test_empty_command_falls_back_to_path(self, tmp_path: Path) -> None:
+        """An empty 'command' still falls back to 'path', as before."""
+        spec_file = tmp_path / "commands.yaml"
+        spec_file.write_text(
+            "- device: ctrl-01\n  command: ''\n  path: /api/v1/status\n"
+        )
+
+        specs = load_command_specs(spec_file)
+
+        assert specs[0].command == "/api/v1/status"
+
 
 # ---------------------------------------------------------------------------
 # execute_commands SDK tests
@@ -450,6 +540,45 @@ class TestExecuteCommand:
             ["execute", "-t", "/dev/null"],
         )
         assert result.exit_code != 0
+
+    @pytest.mark.parametrize(
+        ("content", "expected"),
+        [
+            pytest.param(
+                "- device: r1\n  command: [bad\n",
+                "Failed to read command specs from",
+                id="invalid-yaml",
+            ),
+            pytest.param("device: r1\n", "must contain a YAML list", id="mapping"),
+            pytest.param(
+                "- device: r1\n", "missing required 'command'", id="missing-field"
+            ),
+            pytest.param(
+                "- device: r1\n  command: 5\n",
+                "invalid 'command' field",
+                id="wrong-type",
+            ),
+        ],
+    )
+    def test_malformed_commands_file_is_clean_error(
+        self, tmp_path: Path, content: str, expected: str
+    ) -> None:
+        """A malformed --commands file gives one ERROR line and exit 1."""
+        spec_file = tmp_path / "commands.yaml"
+        spec_file.write_text(content)
+
+        result = CliRunner().invoke(
+            app,
+            ["execute", "-t", "/dev/null", "--commands", str(spec_file)],
+        )
+
+        assert result.exit_code == 1
+        assert result.exception is None or isinstance(result.exception, SystemExit)
+        output = " ".join(result.output.split())
+        assert "ERROR:" in output
+        assert expected in output
+        assert "commands.yaml" in output
+        assert "Traceback" not in output
 
 
 # ---------------------------------------------------------------------------
