@@ -393,8 +393,9 @@ def test_inject_uses_project_test_plan(
         ["relearn"],
         ["prune"],
         ["execute", "--device", "r1", "-c", "show version"],
+        ["import", "--catalog", "catalog", "--scope-provider", "file:scope.yaml"],
     ],
-    ids=["run", "validate", "reconcile", "relearn", "prune", "execute"],
+    ids=["run", "validate", "reconcile", "relearn", "prune", "execute", "import"],
 )
 def test_commands_use_project_logging_defaults(
     project: Path, monkeypatch: pytest.MonkeyPatch, args: list[str]

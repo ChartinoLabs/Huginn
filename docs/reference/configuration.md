@@ -43,8 +43,8 @@ Each key sets the default for one CLI option. A command uses a key only if it ha
 | `parameters_dir`       | `--parameters-dir`          | `run`, `relearn`, `reconcile`                                                    |
 | `results_dir`          | `--results-dir`             | `run`, `relearn`, `reconcile`, `prune`                                           |
 | `output_dir`           | `--output-dir`              | `run`, `relearn`                                                                 |
-| `log_file`             | `--log-file`                | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`                    |
-| `log_level`            | `--log-level`               | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`                    |
+| `log_file`             | `--log-file`                | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`, `import`          |
+| `log_level`            | `--log-level`               | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`, `import`          |
 | `unknown_key_warnings` | `--no-unknown-key-warnings` | `run`, `validate`, `relearn`, `reconcile`, `prune`, `execute`, `inject new/into` |
 
 Every value is a string, except `unknown_key_warnings`, which is a TOML boolean (`true` or `false`, not quoted). `log_level` must be one of `DEBUG`, `INFO`, `WARNING` or `ERROR`, in any case. `mode` is not supported, because a `learning` default would silently overwrite baselines.

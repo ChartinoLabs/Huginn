@@ -319,7 +319,7 @@ Select the jobs in a catalog that match the features found on each device, and a
 huginn import --catalog <dir|package> (--scope <file> | --scope-provider <name>[:<config>]) [--taxonomy <file>] [--testbed <file>] [--plan <dir>]
               [--features <names>] [--match-level <level>] [--archetype <names>] [--target <mode>]
               [--group <id>] [--phase <ids>] [--parent-group <id>] [--tags <tags>] [--dry-run]
-              [--format <format>] [--no-unknown-key-warnings]
+              [--format <format>] [--no-unknown-key-warnings] [logging options]
 ```
 
 | Option                      | Short | Env var                          | Default                                 | Description                                                                                                                                                       |
@@ -341,6 +341,7 @@ huginn import --catalog <dir|package> (--scope <file> | --scope-provider <name>[
 | `--dry-run`                 |       |                                  | off                                     | Print the matches, gaps and planned changes without writing any files.                                                                                            |
 | `--format`                  |       |                                  | `text`                                  | Report format: `text`, or `json` for the full plan as one JSON object on stdout.                                                                                  |
 | `--no-unknown-key-warnings` |       | `HUGINN_NO_UNKNOWN_KEY_WARNINGS` | off                                     | Do not warn about unknown keys in the test plan or testbed. See [Unknown key warnings](#unknown-key-warnings).                                                    |
+| logging options             |       |                                  |                                         | See [Logging options](#logging-options).                                                                                                                          |
 
 The plan must be a directory. New test cases go to `test_cases/<group>.yaml`, and the import group and its child groups to `groups/<group>.yaml`. The parent group and the scenarios file are updated in place. The parent group and scenarios file are checked before anything is written, and the plan is loaded again afterwards to confirm it is still valid.
 
