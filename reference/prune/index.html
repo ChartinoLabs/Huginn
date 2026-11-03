@@ -1470,28 +1470,6 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#leaf-groups" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Leaf groups
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#composite-groups" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Composite groups
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1504,6 +1482,17 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removing-emptied-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removing emptied groups
+      
+    </span>
+  </a>
   
 </li>
         
@@ -2085,28 +2074,6 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#leaf-groups" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Leaf groups
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#composite-groups" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Composite groups
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2119,6 +2086,17 @@
         
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removing-emptied-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removing emptied groups
+      
+    </span>
+  </a>
   
 </li>
         
@@ -2208,7 +2186,8 @@
 <p>The <code>huginn prune</code> command reads learning results and narrows the test plan automatically:</p>
 <ul>
 <li><strong>Partially applicable tests</strong> (some devices are N/A): adds <code>target.exclude_devices</code> to the test case definition so those devices are skipped on future runs.</li>
-<li><strong>Fully non-applicable tests</strong> (all devices are N/A): removes the test from every group that includes it. Leaf groups have the test ID removed from <code>tests</code>; composite groups that use <code>groups</code> inheritance get an <code>exclude_tests</code> entry instead. A test in a leaf group that a composite group includes gets both changes.</li>
+<li><strong>Fully non-applicable tests</strong> (all devices are N/A): removes the test ID from the <code>tests</code> list of every group that lists it. Composite groups that inherit the test through <code>groups</code> lose it with the child group, so prune adds no <code>exclude_tests</code> entries.</li>
+<li><strong>Emptied groups, phases and scenarios</strong>: a group left with no tests and no child groups is removed, together with its references in parent groups and phases. The removal cascades upward: a composite group, phase or scenario that is left empty is removed too. See <a href="#removing-emptied-groups">Removing emptied groups</a>.</li>
 <li><strong>Orphaned definitions</strong> (optional): with <code>--remove-orphans</code>, every test case definition that no group references is deleted entirely. This includes orphans left by earlier prune runs and test cases that were never placed in any group. See <a href="#orphan-removal">Orphan removal</a>.</li>
 </ul>
 <p>Prune is designed to be run once after an initial learning pass against a new testbed. It tightens test scope based on observed reality, eliminating noise from tests that can never pass on the current infrastructure.</p>
@@ -2249,16 +2228,14 @@
 <a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>Removing tests from groups:
 <a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>  4.0.0 from bgp-tests
 <a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>  3.2.0 from ospf-tests
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>  3.2.0 from pre-change-validation
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>  4.0.0 from pre-change-validation
-<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>Dry run complete: 3 test(s) would get exclude_devices, 4 test(s) would be removed from groups
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>Dry run complete: 3 test(s) would get exclude_devices, 2 test(s) would be removed from groups
 </code></pre></div>
-<p>The first two lists come from the learning results. The <code>Applying exclude_devices to test cases</code> and <code>Removing tests from groups</code> lists are the changes to the test plan, with one line per test case and one line per group membership. A test is removed from every group whose tests include it, so the removed-from-groups count in the last line counts group memberships, not distinct tests: 2 fully non-applicable tests here make 4 removals. Each line is prefixed with a timestamp, omitted here.</p>
+<p>The first two lists come from the learning results. The <code>Applying exclude_devices to test cases</code> and <code>Removing tests from groups</code> lists are the changes to the test plan, with one line per test case and one line per group that lists the test in <code>tests</code>. The composite group <code>pre-change-validation</code> does not appear: it inherits both tests from <code>ospf-tests</code> and <code>bgp-tests</code> and loses them with those groups. The removed-from-groups count in the last line counts group memberships, not distinct tests, so a test listed by two groups counts twice. When pruning empties groups, the output adds <code>Removing emptied test case groups</code>, <code>Removing emptied phases</code> and <code>Removing emptied scenarios</code> lists, and the last line counts them. Each line is prefixed with a timestamp, omitted here.</p>
 <h3 id="apply-the-prune">Apply the prune<a class="headerlink" href="#apply-the-prune" title="Permanent link">&para;</a></h3>
 <p>Run without <code>--dry-run</code> to modify the test plan files.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>huginn<span class="w"> </span>prune<span class="w"> </span>-p<span class="w"> </span>test_plan/
 </code></pre></div>
-<p>The command validates the modified test plan after writing changes. If validation fails, it reports the error and exits with a non-zero status.</p>
+<p>The command applies the changes in memory and validates the pruned test plan before it writes any file. If the result would not load, for example because no scenario has anything left to run, it reports <code>Pruning would leave an invalid test plan, so no files were changed</code>, writes nothing, and exits with code 1. <code>--dry-run</code> runs the same validation, so a preview fails in the same way.</p>
 <h3 id="optionally-remove-orphaned-definitions">Optionally remove orphaned definitions<a class="headerlink" href="#optionally-remove-orphaned-definitions" title="Permanent link">&para;</a></h3>
 <p>If fully non-applicable tests were removed from all groups, their test case definitions still exist in the YAML but are unreferenced. Use <code>--remove-orphans</code> to clean them up. You can pass it on the same run that does the pruning, or on a later, separate run.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>huginn<span class="w"> </span>prune<span class="w"> </span>-p<span class="w"> </span>test_plan/<span class="w"> </span>--remove-orphans
@@ -2350,11 +2327,7 @@
 </code></pre></div>
 <p>If the test case already has <code>exclude_devices</code>, the prune command merges the new exclusions with the existing list. Devices already excluded are not duplicated.</p>
 <h3 id="full-non-applicability-group-removal">Full non-applicability: group removal<a class="headerlink" href="#full-non-applicability-group-removal" title="Permanent link">&para;</a></h3>
-<p>When all devices are non-applicable for a test, the test ID is removed from every group whose tests include it, directly or through nested <code>groups</code>. How it is removed depends on the group type, and a plan with nested groups usually gets both kinds of change at once.</p>
-<h4 id="leaf-groups">Leaf groups<a class="headerlink" href="#leaf-groups" title="Permanent link">&para;</a></h4>
-<p>Groups that list test IDs only in <code>tests</code>, with no <code>groups</code> key, have the test ID removed from the list.</p>
-<h4 id="composite-groups">Composite groups<a class="headerlink" href="#composite-groups" title="Permanent link">&para;</a></h4>
-<p>Groups that include other groups through <code>groups</code> have the test ID added to <code>exclude_tests</code>, rather than modifying the included group. This also applies to a test ID the composite group lists in its own <code>tests</code>.</p>
+<p>When all devices are non-applicable for a test, the test ID is removed from the <code>tests</code> list of every group that lists it, whether the group is a leaf group or a composite group with its own <code>tests</code>. A composite group that inherits the test through nested <code>groups</code> loses it with the child group, so prune leaves its <code>groups</code> and <code>exclude_tests</code> as they are and adds no <code>exclude_tests</code> entries.</p>
 <h4 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h4>
 <p>Before (3.2.0 and 4.0.0 are fully non-applicable):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
@@ -2373,11 +2346,52 @@
 <a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;4.1.0&quot;</span><span class="p p-Indicator">]</span>
 <a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span><span class="nt">pre-change-validation</span><span class="p">:</span>
 <a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">bgp-tests</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">    </span><span class="nt">exclude_tests</span><span class="p">:</span>
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3.2.0</span>
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4.0.0</span>
 </code></pre></div>
-<p>The leaf groups <code>ospf-tests</code> and <code>bgp-tests</code> lose the test IDs from <code>tests</code>. The composite group <code>pre-change-validation</code> gets them in <code>exclude_tests</code>, which preserves its inheritance structure. The <code>exclude_tests</code> mechanism is the same one used by the <a href="../reconcile/">reconcile command</a> to exclude baseline tests that diverge after a change.</p>
+<p><code>pre-change-validation</code> is unchanged. It now inherits 3.0.0, 3.1.0 and 4.1.0.</p>
+<h3 id="removing-emptied-groups">Removing emptied groups<a class="headerlink" href="#removing-emptied-groups" title="Permanent link">&para;</a></h3>
+<p>A test case group must list at least one test or include at least one child group. When pruning leaves a group with neither, the group is removed, and the removal cascades upward:</p>
+<ol>
+<li>The group is deleted from <code>test_case_groups</code> and from the <code>groups</code> list of every composite group that includes it.</li>
+<li>A composite group left with no tests and no child groups is removed in the same way. A surviving composite group whose <code>groups</code> list is now empty loses <code>groups</code> and <code>exclude_tests</code>, since <code>exclude_tests</code> applies only to inherited tests.</li>
+<li>The removed groups are dropped from every phase's <code>test_case_groups</code>. A phase left with no groups is removed, and <code>depends_on</code> entries that name it are dropped from the other phases in its scenario.</li>
+<li>A scenario left with no phases is removed.</li>
+</ol>
+<p>This is the usual outcome after <a href="../catalog-import/">catalog import</a> when none of a subfeature's jobs apply to the testbed. Before (all three tests fully non-applicable):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># groups/catalog-import.yaml</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="nt">catalog-import-vrf</span><span class="p">:</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vrf</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CATALOG-IMPORT-VRF-1</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CATALOG-IMPORT-VRF-2</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CATALOG-IMPORT-VRF-3</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">  </span><span class="nt">catalog-import</span><span class="p">:</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">catalog-import-vrf</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="c1"># scenarios.yaml (excerpt)</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="nt">scenarios</span><span class="p">:</span>
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w">  </span><span class="nt">baseline</span><span class="p">:</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="w">    </span><span class="nt">phases</span><span class="p">:</span>
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="w">      </span><span class="nt">learn</span><span class="p">:</span>
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">baseline</span>
+<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">catalog-import</span>
+</code></pre></div>
+<p>After:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># groups/catalog-import.yaml</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nt">test_case_groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># scenarios.yaml (excerpt)</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nt">scenarios</span><span class="p">:</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">  </span><span class="nt">baseline</span><span class="p">:</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">    </span><span class="nt">phases</span><span class="p">:</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">      </span><span class="nt">learn</span><span class="p">:</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">        </span><span class="nt">test_case_groups</span><span class="p">:</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">baseline</span>
+</code></pre></div>
+<p>A section that loses its last entry is written as an empty mapping, here <code>test_case_groups: {}</code>, so the file still loads in directory mode. The output lists the removed groups, phases and scenarios, and <code>--dry-run</code> lists them without writing.</p>
+<p>Removing groups never deletes test case definitions. The three <code>CATALOG-IMPORT-VRF-*</code> definitions stay in <code>test_cases</code> until you run with <code>--remove-orphans</code>.</p>
 <h3 id="orphan-removal">Orphan removal<a class="headerlink" href="#orphan-removal" title="Permanent link">&para;</a></h3>
 <p>When <code>--remove-orphans</code> is passed, the command checks every test case defined in the plan, whether or not the current run pruned it. A test case is referenced if at least one group's effective tests include it. A group's effective tests are:</p>
 <ol>
@@ -2389,6 +2403,7 @@
 <ul>
 <li>A test case that no group has ever listed, such as a draft, is an orphan and is deleted.</li>
 <li>A test case that appears only in a group's <code>exclude_tests</code> is an orphan.</li>
+<li>A test case whose only groups were removed because pruning emptied them is an orphan.</li>
 <li>Any group counts, including a group that no scenario phase uses. A test case referenced only by such a group is kept.</li>
 </ul>
 <p>This is a destructive operation - the test case definition and its key are removed from the <code>test_cases</code> map. The associated parameter files in <code>parameters/</code> are not touched; remove those manually if desired.</p>
@@ -2407,7 +2422,7 @@
 </tr>
 <tr>
 <td>1</td>
-<td>The results directory does not exist or has no learning run, the test plan could not be loaded, or the pruned test plan failed validation.</td>
+<td>The results directory does not exist or has no learning run, the test plan could not be loaded, or the pruned test plan would be invalid (nothing is written).</td>
 </tr>
 <tr>
 <td>2</td>
@@ -2418,7 +2433,7 @@
 <h2 id="idempotency">Idempotency<a class="headerlink" href="#idempotency" title="Permanent link">&para;</a></h2>
 <p>Running <code>huginn prune</code> a second time against the same results is safe. The command detects tests that are already pruned (devices already in <code>exclude_devices</code>, tests already removed from groups) and skips them. A message reports how many tests were skipped.</p>
 <h2 id="directory-mode">Directory mode<a class="headerlink" href="#directory-mode" title="Permanent link">&para;</a></h2>
-<p>When the <code>--plan</code> argument points to a directory, the prune command locates the correct YAML file for each test case and group using the same discovery logic as the framework's test plan loader. Changes are written only to the files that contain affected definitions. Formatting is preserved using round-trip YAML parsing.</p>
+<p>When the <code>--plan</code> argument points to a directory, the prune command locates the correct YAML file for each test case and group using the same discovery logic as the framework's test plan loader. Changes are written only to the files that contain affected definitions, after the whole pruned plan has been validated. Formatting is preserved using round-trip YAML parsing.</p>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../cli/">CLI Reference</a> - every <code>huginn</code> command, option and environment variable.</li>
