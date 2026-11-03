@@ -5,7 +5,8 @@ the features found on each device. ``compute_import_plan`` matches the two and
 returns the test cases to add to a test plan, without reading or writing files,
 so other tools can call it and render the result their own way.
 
-``apply_import_plan`` writes a plan into a test plan directory.
+``apply_import_plan`` writes a plan into a test plan directory, then reloads
+the test plan to check that it loads and holds what was imported.
 
 The three input formats are documented in ``docs/reference/catalog-import.md``.
 """
@@ -23,6 +24,7 @@ from typing import cast
 import yaml
 
 from huginn.enums import MatchLevel, TargetMode
+from huginn.loaders import ConfigurationError, load_test_plan
 from huginn.models import Testbed, TestCaseDefinition, TestPlan
 from huginn.plan_writer import (
     PlanWriteError,
@@ -49,6 +51,10 @@ _MATCH_ORDER = (MatchLevel.SUBFEATURE, MatchLevel.FEATURE, MatchLevel.CATEGORY)
 
 class CatalogImportError(ValueError):
     """Raised when catalog, taxonomy or scope input cannot be used."""
+
+
+class ImportVerificationError(CatalogImportError):
+    """Raised when a written test plan does not load or lacks the import."""
 
 
 @dataclass(frozen=True)
@@ -862,7 +868,9 @@ def check_import_plan(plan_path: Path, import_plan: ImportPlan) -> None:
             raise CatalogImportError(str(exc)) from exc
 
 
-def apply_import_plan(plan_path: Path, import_plan: ImportPlan) -> None:
+def apply_import_plan(
+    plan_path: Path, import_plan: ImportPlan, *, verify: bool = True
+) -> None:
     """Write an import plan into a test plan directory.
 
     New test cases go to ``test_cases/<group>.yaml``, and the import group
@@ -870,7 +878,15 @@ def apply_import_plan(plan_path: Path, import_plan: ImportPlan) -> None:
     nested under the parent group and added to the phases, when given.
     Target updates are written into the files that define those test cases.
 
+    Args:
+        plan_path: The test plan directory.
+        import_plan: The plan from ``compute_import_plan``.
+        verify: After writing, reload the test plan and check it with
+            ``verify_import_plan``. Pass ``False`` to skip the reload.
+
     Raises:
+        ImportVerificationError: If ``verify`` is set and the written test
+            plan does not load or does not hold the import.
         CatalogImportError: If ``check_import_plan`` fails, or a file cannot
             be updated.
     """
@@ -889,6 +905,75 @@ def apply_import_plan(plan_path: Path, import_plan: ImportPlan) -> None:
                 )
     except PlanWriteError as exc:
         raise CatalogImportError(str(exc)) from exc
+    if verify:
+        verify_import_plan(plan_path, import_plan)
+
+
+def verify_import_plan(plan_path: Path, import_plan: ImportPlan) -> None:
+    """Check that a written test plan loads and holds the import.
+
+    Every new test case must be defined with its job and targets, the import
+    group must be defined, and every target update must be in place. Those
+    are what a second identical import checks, so after a write that passes,
+    that import would change nothing.
+
+    Raises:
+        ImportVerificationError: If the test plan does not load, or does not
+            match the import plan.
+    """
+    try:
+        loaded = load_test_plan(plan_path)
+    except ConfigurationError as exc:
+        raise ImportVerificationError(
+            f"The test plan written to {plan_path} does not load: {exc}"
+        ) from exc
+    problems = _import_mismatches(loaded, import_plan)
+    if problems:
+        raise ImportVerificationError(
+            f"The test plan written to {plan_path} does not match the import: "
+            + "; ".join(problems)
+        )
+
+
+def _import_mismatches(loaded: TestPlan, import_plan: ImportPlan) -> list[str]:
+    """Return what the import plan expects that the loaded plan lacks."""
+    problems: list[str] = []
+    for tc in import_plan.new_test_cases:
+        problems.extend(_new_test_case_mismatches(loaded, tc))
+    if import_plan.new_test_cases and (
+        import_plan.group_id not in loaded.test_case_groups
+    ):
+        problems.append(f"group '{import_plan.group_id}' is missing")
+    for update in import_plan.target_updates:
+        definition = loaded.test_cases.get(update.test_id)
+        if definition is None or not _has_targets(
+            definition, update.field, update.added
+        ):
+            problems.append(
+                f"test case '{update.test_id}' lacks the new target.{update.field}"
+            )
+    return problems
+
+
+def _new_test_case_mismatches(loaded: TestPlan, tc: NewTestCase) -> list[str]:
+    """Return how the loaded plan differs from one new test case."""
+    definition = loaded.test_cases.get(tc.test_id)
+    if definition is None or definition.job != tc.entry["job"]:
+        return [f"test case '{tc.test_id}' is missing"]
+    target = cast(Mapping[str, Iterable[str]], tc.entry.get("target") or {})
+    return [
+        f"test case '{tc.test_id}' lacks target.{name}"
+        for name, values in target.items()
+        if not _has_targets(definition, name, values)
+    ]
+
+
+def _has_targets(
+    definition: TestCaseDefinition, name: str, values: Iterable[str]
+) -> bool:
+    """Return whether a test case targets every value under ``target.<name>``."""
+    current = getattr(definition.target, name, None) or []
+    return set(values) <= set(current)
 
 
 def _write_new_test_cases(plan_path: Path, import_plan: ImportPlan) -> None:

@@ -1,0 +1,1 @@
+`apply_import_plan` now reloads the test plan after writing and raises `ImportVerificationError` (a `CatalogImportError`) if it does not load or lacks an imported test case, group or target. Pass `verify=False` to skip this. The check is also available as `verify_import_plan`, and `huginn import` now relies on it instead of its own reload.
