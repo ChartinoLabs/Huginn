@@ -2421,6 +2421,20 @@ def _write_import_plan(
         )
 
 
+def _display_excluded_jobs(import_plan: ImportPlan, output: Output) -> None:
+    """Print the jobs that scope exclusions kept out of the import."""
+    if not import_plan.excluded_jobs:
+        return
+    output.status(
+        f"Excluded {len(import_plan.excluded_jobs)} job(s) by scope exclusions"
+    )
+    for excluded in import_plan.excluded_jobs:
+        output.status(
+            f"  {excluded.device} ({excluded.os}) {excluded.job} "
+            f"[excluded: {excluded.excluded}]"
+        )
+
+
 def _display_import_plan(import_plan: ImportPlan, output: Output) -> None:
     """Print coverage, gaps and planned changes for an import."""
     output.status(f"Matched {len(import_plan.matches)} scoped feature(s)")
@@ -2435,6 +2449,7 @@ def _display_import_plan(import_plan: ImportPlan, output: Output) -> None:
             output.warning(f"  {gap.feature} ({gap.os}): {', '.join(gap.devices)}")
     if import_plan.skipped_jobs:
         output.status(f"Skipped {len(import_plan.skipped_jobs)} job(s) already in plan")
+    _display_excluded_jobs(import_plan, output)
     for update in import_plan.target_updates:
         output.status(
             f"Widen {update.test_id} target.{update.field}: +{', '.join(update.added)}"

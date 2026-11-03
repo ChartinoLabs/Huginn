@@ -1,0 +1,1 @@
+Scope files and scope providers can list per-device `excluded` subfeatures or features. `huginn import` never selects their jobs for that device, even when a broader feature or category name matches, and reports each excluded job.

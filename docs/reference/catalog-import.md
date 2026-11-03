@@ -102,6 +102,7 @@ platform_metadata:
 | `device_name` | yes      | Device name. With `--target devices`, used as the test case target. |
 | `os_type`     | yes      | Operating system name or alias.                                     |
 | `features`    | no       | Feature, subfeature or category names found on the device.          |
+| `excluded`    | no       | Subfeature or feature names that do not apply to the device.        |
 
 `features` can also be a mapping, as some feature-scoping tools write it. Its keys are the feature names, and its values are ignored:
 
@@ -115,6 +116,20 @@ platform_metadata:
 ```
 
 Other per-device fields are ignored, so scope files produced by other tools can carry extra data.
+
+### Exclusions
+
+A scope producer that has decided a subfeature or feature does not apply to a device, for example because the device's platform does not support it, lists it under `excluded`. Import never selects a job for that device when the job's own `subfeature` or `feature` is excluded, or when its subfeature is one the taxonomy lists under an excluded feature. This holds even when a broader name in `features`, or `always_include`, matches the job:
+
+```yaml
+platform_metadata:
+  - device_name: router-1
+    os_type: alphaos
+    features: [peering]          # selects peer sessions and route tables...
+    excluded: [route tables]     # ...but never route tables on router-1
+```
+
+An exclusion applies only to its own device. A feature whose matched jobs are all excluded is not reported as a gap. Each excluded job is listed in the report; see [Reports](#reports). Scopes without `excluded` behave as before.
 
 ## Scope providers
 
@@ -254,7 +269,7 @@ When a testbed is available, from `--testbed` or `./testbed.yaml`:
 
 ## Reports
 
-The text report lists the matched features, the gaps, the jobs already in the plan, the target changes and the new test cases. `--format json` prints the same information as one JSON object:
+The text report lists the matched features, the gaps, the jobs already in the plan, the jobs left out by scope exclusions, the target changes and the new test cases. `--format json` prints the same information as one JSON object:
 
 ```json
 {
@@ -272,7 +287,11 @@ The text report lists the matched features, the gaps, the jobs already in the pl
      "tags": ["catalog", "peer sessions"], "target": {"os": ["alphaos"]}}
   ],
   "target_updates": [],
-  "skipped_jobs": []
+  "skipped_jobs": [],
+  "excluded_jobs": [
+    {"device": "router-1", "os": "alphaos", "job": "catalog.routing.verify_routes_present",
+     "excluded": "route tables"}
+  ]
 }
 ```
 
