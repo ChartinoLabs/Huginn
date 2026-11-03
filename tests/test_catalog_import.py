@@ -660,6 +660,64 @@ def test_cli_reports_bad_catalog(tmp_path: Path) -> None:
     assert "Catalog not found" in result.output
 
 
+def test_cli_writes_log_to_log_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``--log-file`` and ``--debug`` send the import log to that file only."""
+    plan_path, scope_path = _write_cli_inputs(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    log_file = tmp_path / "logs" / "import.log"
+    result = CliRunner().invoke(
+        app,
+        _cli_args(
+            plan_path, scope_path, "--dry-run", "--debug", "--log-file", str(log_file)
+        ),
+    )
+    assert result.exit_code == 0, result.output
+    assert "CLI import options" in log_file.read_text(encoding="utf-8")
+    assert not (tmp_path / "huginn.log").exists()
+
+
+def test_cli_takes_logging_options_from_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``HUGINN_LOG_FILE`` and ``HUGINN_LOG_LEVEL`` configure the import log."""
+    plan_path, scope_path = _write_cli_inputs(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    log_file = tmp_path / "env.log"
+    result = CliRunner().invoke(
+        app,
+        _cli_args(plan_path, scope_path, "--dry-run"),
+        env={"HUGINN_LOG_FILE": str(log_file), "HUGINN_LOG_LEVEL": "DEBUG"},
+    )
+    assert result.exit_code == 0, result.output
+    assert "CLI import options" in log_file.read_text(encoding="utf-8")
+
+
+def test_cli_log_level_filters_import_log(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Above DEBUG, the import's debug entries stay out of the log file."""
+    plan_path, scope_path = _write_cli_inputs(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    log_file = tmp_path / "import.log"
+    result = CliRunner().invoke(
+        app,
+        _cli_args(
+            plan_path,
+            scope_path,
+            "--dry-run",
+            "--log-level",
+            "WARNING",
+            "--show-logs",
+            "--log-file",
+            str(log_file),
+        ),
+    )
+    assert result.exit_code == 0, result.output
+    assert "CLI import options" not in log_file.read_text(encoding="utf-8")
+
+
 # ---------------------------------------------------------------------------
 # Writing
 # ---------------------------------------------------------------------------

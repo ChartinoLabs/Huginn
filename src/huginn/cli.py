@@ -88,6 +88,43 @@ NoUnknownKeyWarningsOption = Annotated[
 ]
 
 
+DebugOption = Annotated[
+    bool,
+    typer.Option(
+        "--debug",
+        help="Enable DEBUG-level logging.",
+        envvar="HUGINN_DEBUG",
+    ),
+]
+
+LogLevelOption = Annotated[
+    str,
+    typer.Option(
+        "--log-level",
+        help="Logging level (DEBUG, INFO, WARNING, ERROR).",
+        envvar="HUGINN_LOG_LEVEL",
+    ),
+]
+
+ShowLogsOption = Annotated[
+    bool,
+    typer.Option(
+        "--show-logs",
+        help="Stream logs to console in addition to file.",
+        envvar="HUGINN_SHOW_LOGS",
+    ),
+]
+
+LogFileOption = Annotated[
+    Path | None,
+    typer.Option(
+        "--log-file",
+        help="Path to log file (default: ./huginn.log).",
+        envvar="HUGINN_LOG_FILE",
+    ),
+]
+
+
 @app.callback()
 def _load_project_defaults(ctx: typer.Context) -> None:
     """Apply ``[tool.huginn]`` defaults from ./pyproject.toml to every command.
@@ -297,38 +334,10 @@ def run(
             envvar="HUGINN_INVENTORY_PLUGIN",
         ),
     ] = None,
-    debug: Annotated[
-        bool,
-        typer.Option(
-            "--debug",
-            help="Enable DEBUG-level logging.",
-            envvar="HUGINN_DEBUG",
-        ),
-    ] = False,
-    log_level: Annotated[
-        str,
-        typer.Option(
-            "--log-level",
-            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
-            envvar="HUGINN_LOG_LEVEL",
-        ),
-    ] = "INFO",
-    show_logs: Annotated[
-        bool,
-        typer.Option(
-            "--show-logs",
-            help="Stream logs to console in addition to file.",
-            envvar="HUGINN_SHOW_LOGS",
-        ),
-    ] = False,
-    log_file: Annotated[
-        Path | None,
-        typer.Option(
-            "--log-file",
-            help="Path to log file (default: ./huginn.log).",
-            envvar="HUGINN_LOG_FILE",
-        ),
-    ] = None,
+    debug: DebugOption = False,
+    log_level: LogLevelOption = "INFO",
+    show_logs: ShowLogsOption = False,
+    log_file: LogFileOption = None,
     results_dir: Annotated[
         Path | None,
         typer.Option(
@@ -582,38 +591,10 @@ def validate(
             envvar="HUGINN_INVENTORY_PLUGIN",
         ),
     ] = None,
-    debug: Annotated[
-        bool,
-        typer.Option(
-            "--debug",
-            help="Enable DEBUG-level logging.",
-            envvar="HUGINN_DEBUG",
-        ),
-    ] = False,
-    log_level: Annotated[
-        str,
-        typer.Option(
-            "--log-level",
-            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
-            envvar="HUGINN_LOG_LEVEL",
-        ),
-    ] = "INFO",
-    show_logs: Annotated[
-        bool,
-        typer.Option(
-            "--show-logs",
-            help="Stream logs to console in addition to file.",
-            envvar="HUGINN_SHOW_LOGS",
-        ),
-    ] = False,
-    log_file: Annotated[
-        Path | None,
-        typer.Option(
-            "--log-file",
-            help="Path to log file (default: ./huginn.log).",
-            envvar="HUGINN_LOG_FILE",
-        ),
-    ] = None,
+    debug: DebugOption = False,
+    log_level: LogLevelOption = "INFO",
+    show_logs: ShowLogsOption = False,
+    log_file: LogFileOption = None,
     parameters_dir: Annotated[
         Path | None,
         typer.Option(
@@ -1019,38 +1000,10 @@ def reconcile(
             envvar="HUGINN_PARAMETERS_DIR",
         ),
     ] = None,
-    debug: Annotated[
-        bool,
-        typer.Option(
-            "--debug",
-            help="Enable DEBUG-level logging.",
-            envvar="HUGINN_DEBUG",
-        ),
-    ] = False,
-    log_level: Annotated[
-        str,
-        typer.Option(
-            "--log-level",
-            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
-            envvar="HUGINN_LOG_LEVEL",
-        ),
-    ] = "INFO",
-    show_logs: Annotated[
-        bool,
-        typer.Option(
-            "--show-logs",
-            help="Stream logs to console in addition to file.",
-            envvar="HUGINN_SHOW_LOGS",
-        ),
-    ] = False,
-    log_file: Annotated[
-        Path | None,
-        typer.Option(
-            "--log-file",
-            help="Path to log file (default: ./huginn.log).",
-            envvar="HUGINN_LOG_FILE",
-        ),
-    ] = None,
+    debug: DebugOption = False,
+    log_level: LogLevelOption = "INFO",
+    show_logs: ShowLogsOption = False,
+    log_file: LogFileOption = None,
     no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
 ) -> None:
     """Reconcile failing test cases into new test case groups.
@@ -1204,38 +1157,10 @@ def relearn(
             envvar="HUGINN_OUTPUT_DIR",
         ),
     ] = None,
-    debug: Annotated[
-        bool,
-        typer.Option(
-            "--debug",
-            help="Enable DEBUG-level logging.",
-            envvar="HUGINN_DEBUG",
-        ),
-    ] = False,
-    log_level: Annotated[
-        str,
-        typer.Option(
-            "--log-level",
-            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
-            envvar="HUGINN_LOG_LEVEL",
-        ),
-    ] = "INFO",
-    show_logs: Annotated[
-        bool,
-        typer.Option(
-            "--show-logs",
-            help="Stream logs to console in addition to file.",
-            envvar="HUGINN_SHOW_LOGS",
-        ),
-    ] = False,
-    log_file: Annotated[
-        Path | None,
-        typer.Option(
-            "--log-file",
-            help="Path to log file (default: ./huginn.log).",
-            envvar="HUGINN_LOG_FILE",
-        ),
-    ] = None,
+    debug: DebugOption = False,
+    log_level: LogLevelOption = "INFO",
+    show_logs: ShowLogsOption = False,
+    log_file: LogFileOption = None,
     no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
 ) -> None:
     """Re-learn parameters for failed tests from the latest testing run.
@@ -1553,38 +1478,10 @@ def prune(
             envvar="HUGINN_RESULTS_DIR",
         ),
     ] = None,
-    debug: Annotated[
-        bool,
-        typer.Option(
-            "--debug",
-            help="Enable DEBUG-level logging.",
-            envvar="HUGINN_DEBUG",
-        ),
-    ] = False,
-    log_level: Annotated[
-        str,
-        typer.Option(
-            "--log-level",
-            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
-            envvar="HUGINN_LOG_LEVEL",
-        ),
-    ] = "INFO",
-    show_logs: Annotated[
-        bool,
-        typer.Option(
-            "--show-logs",
-            help="Stream logs to console in addition to file.",
-            envvar="HUGINN_SHOW_LOGS",
-        ),
-    ] = False,
-    log_file: Annotated[
-        Path | None,
-        typer.Option(
-            "--log-file",
-            help="Path to log file (default: ./huginn.log).",
-            envvar="HUGINN_LOG_FILE",
-        ),
-    ] = None,
+    debug: DebugOption = False,
+    log_level: LogLevelOption = "INFO",
+    show_logs: ShowLogsOption = False,
+    log_file: LogFileOption = None,
     dry_run: Annotated[
         bool,
         typer.Option(
@@ -1822,38 +1719,10 @@ def execute(
             help="Hide the simulated device prompt line above command output.",
         ),
     ] = False,
-    debug: Annotated[
-        bool,
-        typer.Option(
-            "--debug",
-            help="Enable DEBUG-level logging.",
-            envvar="HUGINN_DEBUG",
-        ),
-    ] = False,
-    log_level: Annotated[
-        str,
-        typer.Option(
-            "--log-level",
-            help="Logging level (DEBUG, INFO, WARNING, ERROR).",
-            envvar="HUGINN_LOG_LEVEL",
-        ),
-    ] = "INFO",
-    show_logs: Annotated[
-        bool,
-        typer.Option(
-            "--show-logs",
-            help="Stream logs to console in addition to file.",
-            envvar="HUGINN_SHOW_LOGS",
-        ),
-    ] = False,
-    log_file: Annotated[
-        Path | None,
-        typer.Option(
-            "--log-file",
-            help="Path to log file (default: ./huginn.log).",
-            envvar="HUGINN_LOG_FILE",
-        ),
-    ] = None,
+    debug: DebugOption = False,
+    log_level: LogLevelOption = "INFO",
+    show_logs: ShowLogsOption = False,
+    log_file: LogFileOption = None,
     no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
 ) -> None:
     """Execute ad-hoc commands on testbed devices.
@@ -2352,6 +2221,10 @@ def import_(
             help="Report format.",
         ),
     ] = ReportFormat.TEXT,
+    debug: DebugOption = False,
+    log_level: LogLevelOption = "INFO",
+    show_logs: ShowLogsOption = False,
+    log_file: LogFileOption = None,
     no_unknown_key_warnings: NoUnknownKeyWarningsOption = False,
 ) -> None:
     """Import catalog jobs that match the features scoped on each device.
@@ -2370,8 +2243,21 @@ def import_(
         huginn import --catalog my_catalog --scope scope.yaml --dry-run --format json
         huginn import --catalog ./catalog --scope-provider my-provider:lab --dry-run
     """
-    output = Output()
+    output = _build_output(
+        debug=debug,
+        log_level=log_level,
+        show_logs=show_logs,
+        log_file=log_file,
+    )
     plan_path = _resolve_plan_option(plan)
+    output.log_debug_fields(
+        "CLI import options",
+        catalog=catalog,
+        scope=scope,
+        scope_provider=scope_provider,
+        plan=plan_path,
+        dry_run=dry_run,
+    )
     options = ImportOptions(
         match_level=match_level,
         archetypes=_csv_tuple(archetype) or DEFAULT_ARCHETYPES,

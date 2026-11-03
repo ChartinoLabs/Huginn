@@ -1,0 +1,1 @@
+`huginn import` now accepts the logging options (`--debug`, `--log-level`, `--show-logs`, `--log-file`) and the `[tool.huginn]` `log_file` and `log_level` defaults, like the other commands.
