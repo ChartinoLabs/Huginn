@@ -4,6 +4,31 @@ All notable changes to Huginn are documented in this file.
 
 <!-- towncrier release notes start -->
 
+## 0.6.0 - 2026-11-17
+
+### Added
+
+- Scope files and scope providers can list per-device `excluded` subfeatures or features. `huginn import` never selects their jobs for that device, even when a broader feature or category name matches, and reports each excluded job. ([#333](https://github.com/ChartinoLabs/Huginn/pull/333))
+- Scope providers can now take a single `ScopeRequest` argument, which gives them the test plan path, the loaded catalog and its taxonomy as well as the project root and testbed. Providers that take `(project_root, testbed)` keep working. ([#335](https://github.com/ChartinoLabs/Huginn/pull/335))
+- `huginn.catalog_import.apply_testbed(scope, testbed, target_mode)` is now public, so tools that call the library can check a scope against a testbed and target devices by testbed `os` exactly as `huginn import --testbed` does. ([#337](https://github.com/ChartinoLabs/Huginn/pull/337))
+- `load_catalog` now records which taxonomy file it loaded in `Catalog.taxonomy_path` (`None`, with `Catalog.has_taxonomy` false, when there was none). `ImportPlan.taxonomy_path`, the `taxonomy` key of the `huginn import --format json` report, and a line in the text report show the same thing. ([#338](https://github.com/ChartinoLabs/Huginn/pull/338))
+
+### Changed
+
+- `apply_import_plan` now reloads the test plan after writing and raises `ImportVerificationError` (a `CatalogImportError`) if it does not load or lacks an imported test case, group or target. Pass `verify=False` to skip this. The check is also available as `verify_import_plan`, and `huginn import` now relies on it instead of its own reload. ([#339](https://github.com/ChartinoLabs/Huginn/pull/339))
+
+### Fixed
+
+- `huginn execute --commands` now reports a malformed batch file as a single `ERROR:` line with exit code 1 instead of a Python traceback. Each message names the commands file and, for a bad entry, the entry number and field, and a field of the wrong type is reported as the wrong type rather than as missing. ([#329](https://github.com/ChartinoLabs/Huginn/pull/329))
+- `huginn import` now accepts the logging options (`--debug`, `--log-level`, `--show-logs`, `--log-file`) and the `[tool.huginn]` `log_file` and `log_level` defaults, like the other commands. ([#330](https://github.com/ChartinoLabs/Huginn/pull/330))
+- `huginn import --scope` now accepts a device's `features` written as a mapping of feature names to details, using its keys as the feature names, as well as a list. ([#334](https://github.com/ChartinoLabs/Huginn/pull/334))
+- `huginn import --scope-provider` now imports only the provider it names, and exits with the import error when that provider fails to import, instead of importing every installed provider and only warning. ([#336](https://github.com/ChartinoLabs/Huginn/pull/336))
+- Huginn no longer leaves an empty `huginn.log` in the working directory: the log file is created only when the first record is written, so usage errors and runs that log nothing no longer create it. ([#340](https://github.com/ChartinoLabs/Huginn/pull/340))
+- `huginn prune` no longer leaves an invalid test plan when it empties a test case group: it removes the emptied group, its references in parent groups and phases, and any phases or scenarios left empty. It no longer adds `exclude_tests` entries to composite groups, and it validates the pruned plan before writing, so on failure no file changes. ([#349](https://github.com/ChartinoLabs/Huginn/pull/349))
+- `LearningTestCase` now drops the devices that `gather_state` left out of `devices` from `context.targets` before `compare_state`, so jobs no longer have to do it themselves to avoid "missing learned baseline" failures. In testing mode, such a device that the learned parameters contain is reported as `LOST_APPLICABILITY`. ([#351](https://github.com/ChartinoLabs/Huginn/pull/351))
+- The SSH and NETCONF brokers no longer offer the default SSH keys in `~/.ssh` when a credential has no `private_key`, which added a full server round trip (about 2 s on IOS-XE) per key to every login. A testbed that relied on default keys without a password must now set `private_key` on the credential or `use_default_keys: true` on the connection. ([#353](https://github.com/ChartinoLabs/Huginn/pull/353))
+
+
 ## 0.5.0 - 2026-10-29
 
 ### Added
