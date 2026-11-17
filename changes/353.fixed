@@ -1,0 +1,1 @@
+The SSH and NETCONF brokers no longer offer the default SSH keys in `~/.ssh` when a credential has no `private_key`, which added a full server round trip (about 2 s on IOS-XE) per key to every login. A testbed that relied on default keys without a password must now set `private_key` on the credential or `use_default_keys: true` on the connection.
