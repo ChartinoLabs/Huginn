@@ -15,6 +15,7 @@ from scrapli.exceptions import (
     ScrapliTimeout,
 )
 
+from huginn.brokers._scrapli_auth import build_auth_kwargs
 from huginn.brokers._scrapli_errors import translate_open_error
 from huginn.brokers.exceptions import (
     CommandError,
@@ -157,14 +158,9 @@ class SSHBroker:
             "transport": "asyncssh",
         }
 
-        if "username" in config.credentials:
-            driver_kwargs["auth_username"] = config.credentials["username"]
-        if "password" in config.credentials:
-            driver_kwargs["auth_password"] = config.credentials["password"]
-        if "private_key" in config.credentials:
-            driver_kwargs["auth_private_key"] = config.credentials["private_key"]
-
-        driver_kwargs.update(config.options)
+        # Credentials and connection options; without a private key, asyncssh
+        # is told to offer no keys (see build_auth_kwargs).
+        driver_kwargs.update(build_auth_kwargs(config.credentials, config.options))
 
         driver = AsyncScrapli(**driver_kwargs)
 

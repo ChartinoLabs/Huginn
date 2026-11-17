@@ -159,13 +159,13 @@ credentials:
     token_type: Bearer
 ```
 
-| Field         | Brokers            | Description                                                    |
-| ------------- | ------------------ | -------------------------------------------------------------- |
-| `username`    | SSH, NETCONF, HTTP | Authentication username                                        |
-| `password`    | SSH, NETCONF, HTTP | Authentication password                                        |
-| `private_key` | SSH, NETCONF       | Path to a private key file for SSH key authentication          |
-| `token`       | HTTP               | API token sent in the `Authorization` header                   |
-| `token_type`  | HTTP               | Prefix for the `Authorization` header value. Default: `Bearer` |
+| Field         | Brokers            | Description                                                                       |
+| ------------- | ------------------ | --------------------------------------------------------------------------------- |
+| `username`    | SSH, NETCONF, HTTP | Authentication username                                                           |
+| `password`    | SSH, NETCONF, HTTP | Authentication password                                                           |
+| `private_key` | SSH, NETCONF       | Path to a private key file. See [SSH Key Authentication](#ssh-key-authentication) |
+| `token`       | HTTP               | API token sent in the `Authorization` header                                      |
+| `token_type`  | HTTP               | Prefix for the `Authorization` header value. Default: `Bearer`                    |
 
 The HTTP broker uses basic authentication when the credential has both `username` and `password`. Otherwise, if it has a `token`, it sends `Authorization: <token_type> <token>`. A credential with only `username` and `token` therefore authenticates with the token.
 
@@ -261,6 +261,38 @@ connections:
 
 Setting the same option both directly and inside `options:`, or placing `protocol`, `host`, `port` or `credential` inside `options:`, raises a `ConfigurationError` that names the device and connection. If a driver rejects an option at connect time, the error names the device, the connection, and the rejected option.
 
+##### SSH Key Authentication
+
+The SSH and NETCONF brokers offer SSH keys as follows:
+
+- **The credential has a `private_key`:** the broker offers only that key, then falls back to the password.
+- **The credential has no `private_key`:** the broker offers no keys and authenticates with the password. This skips the keys in `~/.ssh` (`id_ed25519`, `id_rsa` and so on), each of which the device would reject after a full round trip.
+- **`use_default_keys: true` is set on the connection:** the broker offers the default keys in `~/.ssh` before the password. Huginn 0.5.0 and earlier always did this.
+
+```yaml
+connections:
+  ssh:
+    protocol: ssh
+    host: 192.0.2.10
+    use_default_keys: true           # Optional: offer ~/.ssh default keys (default: false)
+```
+
+| Option             | Default | Description                                                                                  |
+| ------------------ | ------- | -------------------------------------------------------------------------------------------- |
+| `use_default_keys` | `false` | Offer the default keys in `~/.ssh` when the credential has no `private_key`. Must be boolean |
+
+Huginn consumes `use_default_keys` itself and does not pass it to scrapli. The ssh-agent is not used in any case. Without a `private_key`, the broker sets asyncssh's `client_keys` to `None` through `transport_options.asyncssh`, merged with any `transport_options` the connection sets. A `client_keys` value set there takes precedence, for example to offer a key list:
+
+```yaml
+connections:
+  ssh:
+    protocol: ssh
+    host: 192.0.2.10
+    transport_options:
+      asyncssh:
+        client_keys: [/home/automation/.ssh/lab_key]
+```
+
 #### NETCONF Connection
 
 For NETCONF interaction via scrapli-netconf:
@@ -277,7 +309,7 @@ connections:
     timeout_ops: 60                  # Optional: operation timeout
 ```
 
-The loader defaults `port` to `22`, and the NETCONF broker replaces port `22` with `830`. As a result, NETCONF connects to port 830 whether `port` is omitted or set to `22`, and NETCONF over port 22 is not possible. As with SSH, options are passed through to the scrapli-netconf driver.
+The loader defaults `port` to `22`, and the NETCONF broker replaces port `22` with `830`. As a result, NETCONF connects to port 830 whether `port` is omitted or set to `22`, and NETCONF over port 22 is not possible. As with SSH, options are passed through to the scrapli-netconf driver. SSH keys are offered as described in [SSH Key Authentication](#ssh-key-authentication), including the `use_default_keys` option.
 
 #### REST API Connection
 
