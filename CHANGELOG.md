@@ -4,6 +4,13 @@ All notable changes to Huginn are documented in this file.
 
 <!-- towncrier release notes start -->
 
+## 0.7.0 - 2026-11-18
+
+### Added
+
+- The SSH broker now connects to devices with `os: aci` (ACI leaf and spine switches) using scrapli's `cisco_nxos` platform, so ACI switch jobs can run against switches declared as `os: aci`. ([#357](https://github.com/ChartinoLabs/Huginn/pull/357))
+
+
 ## 0.6.0 - 2026-11-17
 
 ### Added
