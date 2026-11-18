@@ -1352,6 +1352,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Operating System Identifiers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aci-fabric" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ACI Fabric
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2386,6 +2403,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Operating System Identifiers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aci-fabric" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ACI Fabric
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3261,6 +3295,12 @@
 <td>Yes</td>
 </tr>
 <tr>
+<td><code>aci</code></td>
+<td>Cisco ACI</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
 <td><code>iosxr</code></td>
 <td>Cisco IOS-XR</td>
 <td>Yes</td>
@@ -3280,8 +3320,41 @@
 </tr>
 </tbody>
 </table>
-<p>For SSH, <code>ios</code> and <code>iosxe</code> both map to scrapli's <code>cisco_iosxe</code> platform. The HTTP broker does not use <code>os</code>, so a device reached only over HTTP can use any identifier, such as <code>aci</code>.</p>
+<p>For SSH, <code>ios</code> and <code>iosxe</code> both map to scrapli's <code>cisco_iosxe</code> platform, and <code>nxos</code> and <code>aci</code> both map to <code>cisco_nxos</code>. ACI leaf and spine switches run an NX-OS-derived OS, so their SSH CLI behaves like NX-OS. The HTTP broker does not use <code>os</code>, so a device reached only over HTTP can use any identifier.</p>
 <p>The <code>os</code> value is also used for OS-based test targeting (<code>target.os</code> in the test plan) and is available to tests as <code>device.os</code>. It does not set any connection parameter defaults.</p>
+<h3 id="aci-fabric">ACI Fabric<a class="headerlink" href="#aci-fabric" title="Permanent link">&para;</a></h3>
+<p>Describe every device in an ACI fabric, the APIC included, as <code>os: aci</code>. Jobs written for ACI target <code>os: aci</code>, so <code>huginn import</code> selects them for all of these devices.</p>
+<ul>
+<li>Leaf and spine switches connect over SSH. The SSH broker drives them as NX-OS. Jobs that call <code>mn.parse(os=device.os, ...)</code> use Muninn's Cisco ACI OS, which needs a Muninn release newer than 0.8.0 (Muninn 0.8.0 rejects <code>aci</code>). ACI is its own OS in Muninn: only the NX-OS parsers registered for ACI parse ACI output, and any other command raises <code>ParserNotFoundError</code>.</li>
+<li>The APIC connects over REST. The HTTP broker does not use <code>os</code>.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nt">devices</span><span class="p">:</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span><span class="nt">apic-1</span><span class="p">:</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">    </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aci</span>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">apic</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">    </span><span class="nt">connections</span><span class="p">:</span>
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="w">      </span><span class="nt">rest</span><span class="p">:</span>
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="w">        </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rest</span>
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="w">        </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">192.0.2.1</span>
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="w">        </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">443</span>
+<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="w">        </span><span class="nt">verify_ssl</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a>
+<a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a><span class="w">  </span><span class="nt">spine-201</span><span class="p">:</span>
+<a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="w">    </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aci</span>
+<a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">spine</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="w">    </span><span class="nt">connections</span><span class="p">:</span>
+<a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="w">      </span><span class="nt">ssh</span><span class="p">:</span>
+<a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a><span class="w">        </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ssh</span>
+<a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a><span class="w">        </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">192.0.2.21</span>
+<a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a>
+<a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a><span class="w">  </span><span class="nt">leaf-101</span><span class="p">:</span>
+<a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a><span class="w">    </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aci</span>
+<a id="__codelineno-18-22" name="__codelineno-18-22" href="#__codelineno-18-22"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">leaf</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-18-23" name="__codelineno-18-23" href="#__codelineno-18-23"></a><span class="w">    </span><span class="nt">connections</span><span class="p">:</span>
+<a id="__codelineno-18-24" name="__codelineno-18-24" href="#__codelineno-18-24"></a><span class="w">      </span><span class="nt">ssh</span><span class="p">:</span>
+<a id="__codelineno-18-25" name="__codelineno-18-25" href="#__codelineno-18-25"></a><span class="w">        </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ssh</span>
+<a id="__codelineno-18-26" name="__codelineno-18-26" href="#__codelineno-18-26"></a><span class="w">        </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">192.0.2.11</span>
+</code></pre></div>
 <h2 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h2>
 <p>Checks happen at three points.</p>
 <h3 id="at-load-time">At load time<a class="headerlink" href="#at-load-time" title="Permanent link">&para;</a></h3>
@@ -3301,7 +3374,7 @@
 <p>The loader does not check which options a connection sets, whether a named credential exists, or whether <code>os</code> is supported by a broker. Duplicate device keys are not detected: the YAML parser keeps the last entry.</p>
 <h3 id="unknown-keys">Unknown keys<a class="headerlink" href="#unknown-keys" title="Permanent link">&para;</a></h3>
 <p>Every command that loads the testbed warns about each key that Huginn does not read, and suggests the closest recognized key when there is one:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>WARNING [unknown_key]: Unknown key &#39;group&#39; at &#39;devices.spine-01.group&#39; in testbed.yaml; did you mean &#39;groups&#39;?
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>WARNING [unknown_key]: Unknown key &#39;group&#39; at &#39;devices.spine-01.group&#39; in testbed.yaml; did you mean &#39;groups&#39;?
 </code></pre></div>
 <p>Keys are checked for the top level (<code>name</code>, <code>credentials</code>, <code>devices</code>), each credential (<code>username</code>, <code>password</code>, <code>private_key</code>, <code>token</code>, <code>token_type</code>) and each device (<code>os</code>, <code>groups</code>, <code>credentials</code>, <code>connections</code>, <code>metadata</code>). Connections are not checked, because any key other than the four common fields is passed to the broker as an option. Keys inside <code>metadata</code> are not checked either.</p>
 <p>The top-level <code>name</code> must be a string. Huginn stores it but does not use it otherwise.</p>
