@@ -1,0 +1,1 @@
+The SSH broker now connects to devices with `os: aci` (ACI leaf and spine switches) using scrapli's `cisco_nxos` platform, so ACI switch jobs can run against switches declared as `os: aci`.

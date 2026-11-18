@@ -660,13 +660,50 @@ The loader accepts any non-empty string for `os`. The SSH and NETCONF brokers ch
 | `ios`      | Cisco IOS     | Yes | Yes     |
 | `iosxe`    | Cisco IOS-XE  | Yes | Yes     |
 | `nxos`     | Cisco NX-OS   | Yes | Yes     |
+| `aci`      | Cisco ACI     | Yes | No      |
 | `iosxr`    | Cisco IOS-XR  | Yes | Yes     |
 | `eos`      | Arista EOS    | Yes | No      |
 | `junos`    | Juniper Junos | Yes | Yes     |
 
-For SSH, `ios` and `iosxe` both map to scrapli's `cisco_iosxe` platform. The HTTP broker does not use `os`, so a device reached only over HTTP can use any identifier, such as `aci`.
+For SSH, `ios` and `iosxe` both map to scrapli's `cisco_iosxe` platform, and `nxos` and `aci` both map to `cisco_nxos`. ACI leaf and spine switches run an NX-OS-derived OS, so their SSH CLI behaves like NX-OS. The HTTP broker does not use `os`, so a device reached only over HTTP can use any identifier.
 
 The `os` value is also used for OS-based test targeting (`target.os` in the test plan) and is available to tests as `device.os`. It does not set any connection parameter defaults.
+
+### ACI Fabric
+
+Describe every device in an ACI fabric, the APIC included, as `os: aci`. Jobs written for ACI target `os: aci`, so `huginn import` selects them for all of these devices.
+
+- Leaf and spine switches connect over SSH. The SSH broker drives them as NX-OS. Jobs that call `mn.parse(os=device.os, ...)` get Muninn's NX-OS parsers, which needs a Muninn release newer than 0.8.0. Muninn 0.8.0 rejects `aci`.
+- The APIC connects over REST. The HTTP broker does not use `os`.
+
+```yaml
+devices:
+  apic-1:
+    os: aci
+    groups: [apic]
+    connections:
+      rest:
+        protocol: rest
+        host: 192.0.2.1
+        port: 443
+        verify_ssl: false
+
+  spine-201:
+    os: aci
+    groups: [spine]
+    connections:
+      ssh:
+        protocol: ssh
+        host: 192.0.2.21
+
+  leaf-101:
+    os: aci
+    groups: [leaf]
+    connections:
+      ssh:
+        protocol: ssh
+        host: 192.0.2.11
+```
 
 ## Validation
 
