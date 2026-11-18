@@ -673,7 +673,7 @@ The `os` value is also used for OS-based test targeting (`target.os` in the test
 
 Describe every device in an ACI fabric, the APIC included, as `os: aci`. Jobs written for ACI target `os: aci`, so `huginn import` selects them for all of these devices.
 
-- Leaf and spine switches connect over SSH. The SSH broker drives them as NX-OS. Jobs that call `mn.parse(os=device.os, ...)` get Muninn's NX-OS parsers, which needs a Muninn release newer than 0.8.0. Muninn 0.8.0 rejects `aci`.
+- Leaf and spine switches connect over SSH. The SSH broker drives them as NX-OS. Jobs that call `mn.parse(os=device.os, ...)` use Muninn's Cisco ACI OS, which needs a Muninn release newer than 0.8.0 (Muninn 0.8.0 rejects `aci`). ACI is its own OS in Muninn: only the NX-OS parsers registered for ACI parse ACI output, and any other command raises `ParserNotFoundError`.
 - The APIC connects over REST. The HTTP broker does not use `os`.
 
 ```yaml
