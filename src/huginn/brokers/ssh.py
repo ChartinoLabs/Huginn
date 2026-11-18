@@ -41,6 +41,8 @@ OS_TO_SCRAPLI_PLATFORM: dict[str, str] = {
     "ios": "cisco_iosxe",
     "iosxe": "cisco_iosxe",
     "nxos": "cisco_nxos",
+    # ACI leaf and spine switches run an NX-OS-derived OS with an NX-OS-like CLI.
+    "aci": "cisco_nxos",
     "iosxr": "cisco_iosxr",
     "eos": "arista_eos",
     "junos": "juniper_junos",
@@ -58,6 +60,7 @@ class SSHBroker:
     - ios → cisco_iosxe
     - iosxe → cisco_iosxe
     - nxos → cisco_nxos
+    - aci → cisco_nxos (ACI leaf and spine switches)
     - iosxr → cisco_iosxr
     - eos → arista_eos
     - junos → juniper_junos

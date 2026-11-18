@@ -104,6 +104,10 @@ class TestPlatformMapping:
         """Test mapping nxos to cisco_nxos."""
         assert broker._get_scrapli_platform("nxos") == "cisco_nxos"
 
+    def test_map_aci(self, broker: SSHBroker) -> None:
+        """Test mapping aci (ACI leaf/spine switches) to cisco_nxos."""
+        assert broker._get_scrapli_platform("aci") == "cisco_nxos"
+
     def test_map_iosxe(self, broker: SSHBroker) -> None:
         """Test mapping iosxe to cisco_iosxe."""
         assert broker._get_scrapli_platform("iosxe") == "cisco_iosxe"
@@ -156,6 +160,27 @@ class TestConnect:
             assert handle.broker_id == "test-broker"
             assert handle.device_name == "router1"
             assert handle.connection_type == "ssh"
+            assert handle.state == ConnectionState.CONNECTED
+
+    @pytest.mark.asyncio
+    async def test_connect_aci_switch_uses_nxos_platform(
+        self, broker: SSHBroker
+    ) -> None:
+        """An os: aci switch connects with scrapli's cisco_nxos platform."""
+        config = ConnectionConfig(
+            device_name="leaf-101",
+            host="192.0.2.11",
+            port=22,
+            os="aci",
+            credentials={"username": "admin", "password": "secret"},
+            options={},
+        )
+        with patch("huginn.brokers.ssh.AsyncScrapli") as mock_driver_class:
+            mock_driver_class.return_value = AsyncMock()
+
+            handle = await broker.connect(config)
+
+            assert mock_driver_class.call_args.kwargs["platform"] == "cisco_nxos"
             assert handle.state == ConnectionState.CONNECTED
 
     @pytest.mark.asyncio
