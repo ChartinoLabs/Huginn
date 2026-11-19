@@ -1,0 +1,1 @@
+The testbed reference now describes the ACI APIC as `os: apic` and leaf and spine switches as `os: aci`, matching how ACI catalog jobs target them: CLI jobs target `aci` and APIC REST jobs target `apic`.

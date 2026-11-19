@@ -545,7 +545,7 @@ devices:
 
   # ACI APIC (REST API only, device-specific credentials)
   apic-01:
-    os: aci
+    os: apic
     groups: [apic, datacenter-1, management]
     credentials:
       api:                            # Device-specific API credential
@@ -671,15 +671,15 @@ The `os` value is also used for OS-based test targeting (`target.os` in the test
 
 ### ACI Fabric
 
-Describe every device in an ACI fabric, the APIC included, as `os: aci`. Jobs written for ACI target `os: aci`, so `huginn import` selects them for all of these devices.
+Describe leaf and spine switches as `os: aci` and the APIC as `os: apic`. ACI jobs that run CLI commands on a switch target `aci`, and jobs that call the APIC REST API target `apic`, so `huginn import` selects each kind only for the devices it can run on.
 
 - Leaf and spine switches connect over SSH. The SSH broker drives them as NX-OS. Jobs that call `mn.parse(os=device.os, ...)` use Muninn's Cisco ACI OS, which needs a Muninn release newer than 0.8.0 (Muninn 0.8.0 rejects `aci`). ACI is its own OS in Muninn: only the NX-OS parsers registered for ACI parse ACI output, and any other command raises `ParserNotFoundError`.
-- The APIC connects over REST. The HTTP broker does not use `os`.
+- The APIC connects over REST. The HTTP broker does not use `os`. Give the APIC no SSH connection: the SSH broker does not know `apic` and fails with `Unsupported OS 'apic'`.
 
 ```yaml
 devices:
   apic-1:
-    os: aci
+    os: apic
     groups: [apic]
     connections:
       rest:
