@@ -3160,7 +3160,7 @@
 <a id="__codelineno-15-99" name="__codelineno-15-99" href="#__codelineno-15-99"></a>
 <a id="__codelineno-15-100" name="__codelineno-15-100" href="#__codelineno-15-100"></a><span class="w">  </span><span class="c1"># ACI APIC (REST API only, device-specific credentials)</span>
 <a id="__codelineno-15-101" name="__codelineno-15-101" href="#__codelineno-15-101"></a><span class="w">  </span><span class="nt">apic-01</span><span class="p">:</span>
-<a id="__codelineno-15-102" name="__codelineno-15-102" href="#__codelineno-15-102"></a><span class="w">    </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aci</span>
+<a id="__codelineno-15-102" name="__codelineno-15-102" href="#__codelineno-15-102"></a><span class="w">    </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apic</span>
 <a id="__codelineno-15-103" name="__codelineno-15-103" href="#__codelineno-15-103"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">apic</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">datacenter-1</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">management</span><span class="p p-Indicator">]</span>
 <a id="__codelineno-15-104" name="__codelineno-15-104" href="#__codelineno-15-104"></a><span class="w">    </span><span class="nt">credentials</span><span class="p">:</span>
 <a id="__codelineno-15-105" name="__codelineno-15-105" href="#__codelineno-15-105"></a><span class="w">      </span><span class="nt">api</span><span class="p">:</span><span class="w">                            </span><span class="c1"># Device-specific API credential</span>
@@ -3323,14 +3323,14 @@
 <p>For SSH, <code>ios</code> and <code>iosxe</code> both map to scrapli's <code>cisco_iosxe</code> platform, and <code>nxos</code> and <code>aci</code> both map to <code>cisco_nxos</code>. ACI leaf and spine switches run an NX-OS-derived OS, so their SSH CLI behaves like NX-OS. The HTTP broker does not use <code>os</code>, so a device reached only over HTTP can use any identifier.</p>
 <p>The <code>os</code> value is also used for OS-based test targeting (<code>target.os</code> in the test plan) and is available to tests as <code>device.os</code>. It does not set any connection parameter defaults.</p>
 <h3 id="aci-fabric">ACI Fabric<a class="headerlink" href="#aci-fabric" title="Permanent link">&para;</a></h3>
-<p>Describe every device in an ACI fabric, the APIC included, as <code>os: aci</code>. Jobs written for ACI target <code>os: aci</code>, so <code>huginn import</code> selects them for all of these devices.</p>
+<p>Describe leaf and spine switches as <code>os: aci</code> and the APIC as <code>os: apic</code>. ACI jobs that run CLI commands on a switch target <code>aci</code>, and jobs that call the APIC REST API target <code>apic</code>, so <code>huginn import</code> selects each kind only for the devices it can run on.</p>
 <ul>
 <li>Leaf and spine switches connect over SSH. The SSH broker drives them as NX-OS. Jobs that call <code>mn.parse(os=device.os, ...)</code> use Muninn's Cisco ACI OS, which needs a Muninn release newer than 0.8.0 (Muninn 0.8.0 rejects <code>aci</code>). ACI is its own OS in Muninn: only the NX-OS parsers registered for ACI parse ACI output, and any other command raises <code>ParserNotFoundError</code>.</li>
-<li>The APIC connects over REST. The HTTP broker does not use <code>os</code>.</li>
+<li>The APIC connects over REST. The HTTP broker does not use <code>os</code>. Give the APIC no SSH connection: the SSH broker does not know <code>apic</code> and fails with <code>Unsupported OS 'apic'</code>.</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nt">devices</span><span class="p">:</span>
 <a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span><span class="nt">apic-1</span><span class="p">:</span>
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">    </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aci</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">    </span><span class="nt">os</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apic</span>
 <a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">apic</span><span class="p p-Indicator">]</span>
 <a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">    </span><span class="nt">connections</span><span class="p">:</span>
 <a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="w">      </span><span class="nt">rest</span><span class="p">:</span>
