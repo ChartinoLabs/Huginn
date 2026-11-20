@@ -516,7 +516,7 @@ Return an empty set to opt a job out of the check.
 
 ## Async patterns
 
-All test methods are async. Use `asyncio.gather` to query targets concurrently; the broker already serializes operations per device and connection. Huginn supports Python 3.10, so avoid `asyncio.TaskGroup` in jobs that must run there.
+All test methods are async. Use `asyncio.gather` to query targets concurrently; the broker already serializes operations per device and connection.
 
 ### Parallel device operations
 

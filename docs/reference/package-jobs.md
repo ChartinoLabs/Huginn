@@ -138,7 +138,7 @@ huginn-jobs-network/
 name = "huginn-jobs-network"
 version = "2.1.0"
 description = "Network validation jobs for Huginn"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "huginn-framework>=0.2,<1",
     "muninn-parsers>=0.7",

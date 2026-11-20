@@ -85,7 +85,7 @@ Right:
 | `--dry-run` | off        | Preview changes.   |
 ```
 
-Use `mdformat` with the `mdformat-tables` plugin to fix table formatting automatically:
+Use `mdformat` with the `mdformat-gfm` plugin to fix table formatting automatically:
 
 ```bash
 uv run --group docs -- mdformat docs/

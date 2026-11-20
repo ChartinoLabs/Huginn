@@ -243,7 +243,7 @@ huginn validate -t inventory/staging.yaml
 [project]
 name = "dc1-network-tests"
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "huginn-framework",
 ]

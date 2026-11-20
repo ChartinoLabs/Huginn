@@ -6,15 +6,10 @@ CLI options, below explicit flags and ``HUGINN_*`` environment variables. The
 ``[tool.huginn.plugins]`` sub-table configures the plugin registry.
 """
 
-import sys
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[no-redef]  # noqa: F811
 
 from huginn.loaders import ConfigurationError
 from huginn.plugin_registry import PluginConfig

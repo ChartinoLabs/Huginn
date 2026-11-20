@@ -1,6 +1,6 @@
 """Tests for how the SSH and NETCONF brokers report errors opening a connection."""
 
-import asyncio
+import builtins
 from unittest.mock import AsyncMock, patch
 
 import asyncssh
@@ -28,7 +28,7 @@ _BROKERS = [
 def _timeout_auth_failure() -> ScrapliAuthenticationFailed:
     """Build the error scrapli's asyncssh transport raises when open times out."""
     error = ScrapliAuthenticationFailed("timed out opening connection to device")
-    error.__cause__ = asyncio.TimeoutError()
+    error.__cause__ = builtins.TimeoutError()
     return error
 
 

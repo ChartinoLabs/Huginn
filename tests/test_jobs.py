@@ -102,13 +102,13 @@ def test_load_test_case_class_does_not_grow_abc_negative_cache() -> None:
     subclass it recurses into, so scanning every class in every job module
     grew those caches quadratically with the number of loaded jobs.
     """
-    abc._reset_caches(TestCase)  # ty: ignore[unresolved-attribute]
+    abc._reset_caches(TestCase)  # ty: ignore[missing-attribute]
     for _ in range(20):
         loaded = load_test_case_class(
             job="test_verify_with_helpers.py", project_root=FIXTURES
         )
         assert loaded.__name__ == "VerifyWithHelpers"
-    negative_cache = abc._get_dump(TestCase)[2]  # ty: ignore[unresolved-attribute]
+    negative_cache = abc._get_dump(TestCase)[2]  # ty: ignore[missing-attribute]
     assert len(negative_cache) == 0
 
 
