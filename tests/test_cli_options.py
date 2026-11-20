@@ -27,8 +27,16 @@ def _option(command_path: list[str], name: str) -> TyperOption:
 def test_inject_id_style_offers_only_implemented_styles(subcommand: str) -> None:
     """`--id-style` offers only `prefix-counter` and keeps it as the default."""
     option = _option(["inject", subcommand], "id_style")
+    result = CliRunner().invoke(
+        app, ["inject", subcommand, "--help"], env={"COLUMNS": "200"}
+    )
+    normalized_output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+    # Typer renders the choices as `[a|b]` before 0.29 and `<a|b>` from 0.29.
+    offered = re.search(r"--id-style\s+[\[<]([^\]>]+)[\]>]", normalized_output)
 
-    assert list(getattr(option.type, "choices", [])) == ["prefix-counter"]
+    assert result.exit_code == 0
+    assert offered is not None
+    assert offered.group(1).split("|") == ["prefix-counter"]
     assert option.default == "prefix-counter"
 
 
