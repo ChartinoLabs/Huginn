@@ -7,9 +7,8 @@ authors = [
     { name = "Christopher Hart", email = "christopherjhart95@gmail.com" },
     { name = "Andrea Testino", email = "aitestino@gmail.com"}
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-    "tomli>=2.0.0; python_version < '3.11'",
     "typer>=0.16.0,<1.0.0",
     "aiohttp>=3.10.5,<4.0.0",
     "jinja2>=3.1.0,<4.0.0",
@@ -59,7 +58,6 @@ dev = [
     "pytest-asyncio==1.4.1",
     "pytest-cov==7.1.0",
     "ruff==0.17.3",
-    "tomli==2.4.1; python_version < '3.11'",
     "towncrier==26.9.0",
     "ty==0.0.95",
     "xenon==0.9.3",

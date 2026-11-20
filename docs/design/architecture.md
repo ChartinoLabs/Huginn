@@ -216,7 +216,7 @@ Before a phase runs, the runner checks whether a hook abort or a dependency bloc
 
 ### Execute groups and test cases
 
-A phase's `strategy` decides whether its groups run serially or in parallel, and a group's `strategy` decides the same for its test cases. Both default to unbounded parallel. `parallel.maximum` bounds the concurrency with an `asyncio.Semaphore`. Parallel items run as asyncio tasks joined with `asyncio.gather`, which works on every supported Python version (3.10 and later), and results keep the declared order. `group_start` and `test_case_start` can skip a group or a test case the same way `phase_start` skips a phase. See [Test Plan Specification - Group Execution Strategy](../reference/test-plan.md#group-execution-strategy).
+A phase's `strategy` decides whether its groups run serially or in parallel, and a group's `strategy` decides the same for its test cases. Both default to unbounded parallel. `parallel.maximum` bounds the concurrency with an `asyncio.Semaphore`. Parallel items run as asyncio tasks joined with `asyncio.gather`, and results keep the declared order. `group_start` and `test_case_start` can skip a group or a test case the same way `phase_start` skips a phase. See [Test Plan Specification - Group Execution Strategy](../reference/test-plan.md#group-execution-strategy).
 
 In learning mode, a test ID runs at most once per run. When the same test case appears in a later phase or scenario, the runner reuses the first execution's result instead of learning the same parameters again, and the hook events still fire for each phase.
 

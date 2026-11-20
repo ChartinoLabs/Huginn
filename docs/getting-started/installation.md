@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Python 3.10 or later
+- Python 3.11 or later
 - Network devices reachable via SSH (or another supported transport)
 
 ## Install from PyPI
@@ -56,4 +56,3 @@ Huginn pulls in a small set of runtime dependencies automatically:
 - **jinja2** - template rendering for test metadata and reports
 - **markdown** - Markdown rendering for HTML report sections
 - **pyyaml / ruamel.yaml** - testbed and test plan YAML parsing
-- **tomli** - TOML parsing on Python 3.10 only (Python 3.11 and later use the standard library `tomllib`)
