@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2222,9 +2222,9 @@
 <a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  3.2.0
 <a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>  4.0.0
 <a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>Applying exclude_devices to test cases:
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>  1.3.0: exclude_devices=[&#39;spine-03&#39;]
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>  2.1.0: exclude_devices=[&#39;leaf-04&#39;, &#39;leaf-05&#39;]
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>  3.0.0: exclude_devices=[&#39;spine-01&#39;]
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>  1.3.0: exclude_devices=['spine-03']
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>  2.1.0: exclude_devices=['leaf-04', 'leaf-05']
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>  3.0.0: exclude_devices=['spine-01']
 <a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>Removing tests from groups:
 <a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>  4.0.0 from bgp-tests
 <a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>  3.2.0 from ospf-tests
@@ -2309,7 +2309,7 @@
 <p>When some devices are non-applicable but others are not, the prune command adds an <code>exclude_devices</code> list to the test case's <code>target</code> block. If the test case has no <code>target</code> block, one is created.</p>
 <p>Before pruning:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">test_cases</span><span class="p">:</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="s">&quot;1.3.0&quot;</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="s">"1.3.0"</span><span class="p p-Indicator">:</span>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify LLDP Neighbors</span>
 <a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/verify_lldp_neighbors.py</span>
 <a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
@@ -2317,7 +2317,7 @@
 </code></pre></div>
 <p>After pruning (spine-03 does not support the LLDP command):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nt">test_cases</span><span class="p">:</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="s">&quot;1.3.0&quot;</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="s">"1.3.0"</span><span class="p p-Indicator">:</span>
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Verify LLDP Neighbors</span>
 <a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="nt">job</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/verify_lldp_neighbors.py</span>
 <a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
@@ -2332,18 +2332,18 @@
 <p>Before (3.2.0 and 4.0.0 are fully non-applicable):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">ospf-tests</span><span class="p">:</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;3.0.0&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;3.1.0&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;3.2.0&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"3.0.0"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"3.1.0"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"3.2.0"</span><span class="p p-Indicator">]</span>
 <a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="nt">bgp-tests</span><span class="p">:</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;4.0.0&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;4.1.0&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"4.0.0"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"4.1.0"</span><span class="p p-Indicator">]</span>
 <a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span><span class="nt">pre-change-validation</span><span class="p">:</span>
 <a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">bgp-tests</span><span class="p p-Indicator">]</span>
 </code></pre></div>
 <p>After:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">test_case_groups</span><span class="p">:</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">ospf-tests</span><span class="p">:</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;3.0.0&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;3.1.0&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"3.0.0"</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">"3.1.0"</span><span class="p p-Indicator">]</span>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="nt">bgp-tests</span><span class="p">:</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;4.1.0&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="nt">tests</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">"4.1.0"</span><span class="p p-Indicator">]</span>
 <a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span><span class="nt">pre-change-validation</span><span class="p">:</span>
 <a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span><span class="nt">groups</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">ospf-tests</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">bgp-tests</span><span class="p p-Indicator">]</span>
 </code></pre></div>
@@ -2500,10 +2500,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>

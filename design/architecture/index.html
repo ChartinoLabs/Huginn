@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2914,7 +2914,7 @@
 <p>Scenarios run one at a time in declared order, and <code>scenario_start</code> and <code>scenario_end</code> surround each one. Within a scenario, phases also run one at a time. <code>_select_next_phase_name</code> picks the first phase in declared order whose <code>depends_on</code> phases have all finished.</p>
 <p>Before a phase runs, the runner checks whether a hook abort or a dependency blocks it; see <a href="#blocking">Blocking</a>. A phase that is not blocked clears the whole <code>RuntimeBroker</code> cache first, unless it sets <code>preserve_cache: true</code>, so each phase sees fresh device state by default. Then <code>phase_start</code> is dispatched. A hook can skip the phase there, which records every test case in it as <code>SKIPPED</code> with <code>SkipKind.HOOK</code>.</p>
 <h3 id="execute-groups-and-test-cases">Execute groups and test cases<a class="headerlink" href="#execute-groups-and-test-cases" title="Permanent link">&para;</a></h3>
-<p>A phase's <code>strategy</code> decides whether its groups run serially or in parallel, and a group's <code>strategy</code> decides the same for its test cases. Both default to unbounded parallel. <code>parallel.maximum</code> bounds the concurrency with an <code>asyncio.Semaphore</code>. Parallel items run as asyncio tasks joined with <code>asyncio.gather</code>, which works on every supported Python version (3.10 and later), and results keep the declared order. <code>group_start</code> and <code>test_case_start</code> can skip a group or a test case the same way <code>phase_start</code> skips a phase. See <a href="../../reference/test-plan/#group-execution-strategy">Test Plan Specification - Group Execution Strategy</a>.</p>
+<p>A phase's <code>strategy</code> decides whether its groups run serially or in parallel, and a group's <code>strategy</code> decides the same for its test cases. Both default to unbounded parallel. <code>parallel.maximum</code> bounds the concurrency with an <code>asyncio.Semaphore</code>. Parallel items run as asyncio tasks joined with <code>asyncio.gather</code>, and results keep the declared order. <code>group_start</code> and <code>test_case_start</code> can skip a group or a test case the same way <code>phase_start</code> skips a phase. See <a href="../../reference/test-plan/#group-execution-strategy">Test Plan Specification - Group Execution Strategy</a>.</p>
 <p>In learning mode, a test ID runs at most once per run. When the same test case appears in a later phase or scenario, the runner reuses the first execution's result instead of learning the same parameters again, and the hook events still fire for each phase.</p>
 <h3 id="run-one-test-case">Run one test case<a class="headerlink" href="#run-one-test-case" title="Permanent link">&para;</a></h3>
 <p>For each test case, <code>_execute_test_case_once</code>:</p>
@@ -3111,8 +3111,8 @@
 </table>
 <p>When a broker fails to connect, the run stops before any test case runs. The error lists every device that failed to connect, not just the first, and names each one with its connection, host and port, for example:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ERROR [broker_error]: 2 device connections failed:
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  - Device &#39;r2&#39; connection &#39;ssh&#39; (192.0.2.10:22): Connection timed out to 192.0.2.10: timed out opening connection to device
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  - Device &#39;r3&#39; connection &#39;ssh&#39; (192.0.2.11:22): Connection failed to 192.0.2.11: Connection lost
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  - Device 'r2' connection 'ssh' (192.0.2.10:22): Connection timed out to 192.0.2.10: timed out opening connection to device
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  - Device 'r3' connection 'ssh' (192.0.2.11:22): Connection failed to 192.0.2.11: Connection lost
 </code></pre></div>
 <p>A connection that times out is reported as a timeout, and only a rejected login as <code>Authentication failed</code>. The run directory exists, but <code>run.json</code> and the report are not written, and <code>run_end</code> is dispatched with the error. A load error happens before hook plugins are loaded, so it dispatches no event.</p>
 <h3 id="validation-errors">Validation errors<a class="headerlink" href="#validation-errors" title="Permanent link">&para;</a></h3>
@@ -3184,10 +3184,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>

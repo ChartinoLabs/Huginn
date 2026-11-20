@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2070,7 +2070,7 @@
 <p>If the attribute changes continuously as a normal consequence of operation (counters, uptimes, table versions), use <a href="../volatile-validation/">Volatile Parameter Validation</a> instead.</p>
 <h2 id="anatomy-of-a-static-validation-job">Anatomy of a static validation job<a class="headerlink" href="#anatomy-of-a-static-validation-job" title="Permanent link">&para;</a></h2>
 <p>A complete reference example follows. The job validates that each BGP neighbor's session state on each device still matches the learned baseline.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="sd">&quot;&quot;&quot;Atomic BGP neighbor test: session state should match baseline.&quot;&quot;&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="sd">"""Atomic BGP neighbor test: session state should match baseline."""</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypedDict</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
@@ -2082,20 +2082,20 @@
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">mn</span> <span class="o">=</span> <span class="n">muninn</span><span class="o">.</span><span class="n">Muninn</span><span class="p">()</span>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">mn</span><span class="o">.</span><span class="n">load_builtin_parsers</span><span class="p">()</span>
 <a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">NOT_SUPPORTED_REASON</span> <span class="o">=</span> <span class="s2">&quot;Device does not support &#39;</span><span class="si">{command}</span><span class="s2">&#39;&quot;</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">NOT_SUPPORTED_REASON</span> <span class="o">=</span> <span class="s2">"Device does not support '</span><span class="si">{command}</span><span class="s2">'"</span>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">MISSING_LEARNED_BASELINE</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="s2">&quot;</span><span class="si">{device}</span><span class="s2"> is missing learned BGP neighbor session state baseline parameters&quot;</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="s2">"</span><span class="si">{device}</span><span class="s2"> is missing learned BGP neighbor session state baseline parameters"</span>
 <a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">)</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="n">MISSING_CURRENT_STATE</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{device}</span><span class="s2"> is missing current BGP neighbor session state&quot;</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="n">MISSING_CURRENT_STATE</span> <span class="o">=</span> <span class="s2">"</span><span class="si">{device}</span><span class="s2"> is missing current BGP neighbor session state"</span>
 <a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="n">MISSING_NEIGHBOR</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="s2">&quot;</span><span class="si">{device}</span><span class="s2">&#39;s learned BGP neighbor &#39;</span><span class="si">{neighbor}</span><span class="s2">&#39; is missing from current state.&quot;</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="s2">"</span><span class="si">{device}</span><span class="s2">'s learned BGP neighbor '</span><span class="si">{neighbor}</span><span class="s2">' is missing from current state."</span>
 <a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="p">)</span>
 <a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="n">VALUE_MISMATCH</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="s2">&quot;</span><span class="si">{device}</span><span class="s2">&#39;s BGP neighbor &#39;</span><span class="si">{neighbor}</span><span class="s2">&#39; session state has drifted - we expected &quot;</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="s2">&quot;&#39;</span><span class="si">{expected_value}</span><span class="s2">&#39; but found &#39;</span><span class="si">{current_value}</span><span class="s2">&#39; instead.&quot;</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>    <span class="s2">"</span><span class="si">{device}</span><span class="s2">'s BGP neighbor '</span><span class="si">{neighbor}</span><span class="s2">' session state has drifted - we expected "</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>    <span class="s2">"'</span><span class="si">{expected_value}</span><span class="s2">' but found '</span><span class="si">{current_value}</span><span class="s2">' instead."</span>
 <a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="p">)</span>
 <a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="n">VALUES_MATCH</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    <span class="s2">&quot;</span><span class="si">{device}</span><span class="s2">&#39;s current BGP neighbor session state values match baseline parameters&quot;</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>    <span class="s2">"</span><span class="si">{device}</span><span class="s2">'s current BGP neighbor session state values match baseline parameters"</span>
 <a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="p">)</span>
 <a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>
 <a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>
@@ -2108,28 +2108,28 @@
 <a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>
 <a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>
 <a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="k">class</span><span class="w"> </span><span class="nc">VerifyBgpNeighborState</span><span class="p">(</span><span class="n">LearningTestCase</span><span class="p">[</span><span class="n">BgpNeighborStateParameters</span><span class="p">]):</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Value check for parsed BGP neighbor session state.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="w">    </span><span class="sd">"""Value check for parsed BGP neighbor session state."""</span>
 <a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>
 <a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>    <span class="n">DESCRIPTION</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>        <span class="s2">&quot;Validate that each BGP neighbor&#39;s session state remains aligned with &quot;</span>
-<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>        <span class="s2">&quot;the learned baseline.&quot;</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>        <span class="s2">"Validate that each BGP neighbor's session state remains aligned with "</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>        <span class="s2">"the learned baseline."</span>
 <a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>    <span class="p">)</span>
 <a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>    <span class="n">SETUP</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>        <span class="s2">&quot;- Devices are reachable over SSH.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>        <span class="s2">&quot;- The `show ip bgp neighbors` command is supported on applicable targets.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>        <span class="s2">&quot;- Learned BGP neighbor session state baseline parameters are available for testing mode.&quot;</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>        <span class="s2">"- Devices are reachable over SSH.</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>        <span class="s2">"- The `show ip bgp neighbors` command is supported on applicable targets.</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>        <span class="s2">"- Learned BGP neighbor session state baseline parameters are available for testing mode."</span>
 <a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a>    <span class="p">)</span>
 <a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a>    <span class="n">PROCEDURE</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a>        <span class="s2">&quot;- Execute `show ip bgp neighbors` on each applicable device.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a>        <span class="s2">&quot;- Parse the command output and extract `neighbors.*.bgp_state`.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a>        <span class="s2">&quot;- Compare current values against the learned baseline.</span><span class="se">\n</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a>        <span class="s2">"- Execute `show ip bgp neighbors` on each applicable device.</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a>        <span class="s2">"- Parse the command output and extract `neighbors.*.bgp_state`.</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a>        <span class="s2">"- Compare current values against the learned baseline.</span><span class="se">\n</span><span class="s2">"</span>
 <a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a>    <span class="p">)</span>
 <a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a>    <span class="n">PASS_FAIL_CRITERIA</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a>        <span class="s2">&quot;- Pass when each neighbor&#39;s session state matches the learned baseline.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a>        <span class="s2">&quot;- Fail on missing baseline/current state, missing neighbors, or value mismatch.&quot;</span>
+<a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a>        <span class="s2">"- Pass when each neighbor's session state matches the learned baseline.</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a>        <span class="s2">"- Fail on missing baseline/current state, missing neighbors, or value mismatch."</span>
 <a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a>    <span class="p">)</span>
 <a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a>
-<a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a>    <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;show ip bgp neighbors&quot;</span>
+<a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a>    <span class="n">command</span> <span class="o">=</span> <span class="s2">"show ip bgp neighbors"</span>
 <a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a>
 <a id="__codelineno-0-62" name="__codelineno-0-62" href="#__codelineno-0-62"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">check_command_support</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CommandSupportResult</span><span class="p">:</span>
 <a id="__codelineno-0-63" name="__codelineno-0-63" href="#__codelineno-0-63"></a>        <span class="n">applicable</span> <span class="o">=</span> <span class="p">[]</span>
@@ -2158,10 +2158,10 @@
 <a id="__codelineno-0-86" name="__codelineno-0-86" href="#__codelineno-0-86"></a>                <span class="n">parsed</span><span class="o">=</span><span class="n">parsed</span><span class="p">,</span>
 <a id="__codelineno-0-87" name="__codelineno-0-87" href="#__codelineno-0-87"></a>            <span class="p">)</span>
 <a id="__codelineno-0-88" name="__codelineno-0-88" href="#__codelineno-0-88"></a>            <span class="n">values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-<a id="__codelineno-0-89" name="__codelineno-0-89" href="#__codelineno-0-89"></a>            <span class="k">for</span> <span class="n">neighbor</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">parsed</span><span class="p">[</span><span class="s2">&quot;neighbors&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-<a id="__codelineno-0-90" name="__codelineno-0-90" href="#__codelineno-0-90"></a>                <span class="n">values</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;bgp_state&quot;</span><span class="p">])</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91" href="#__codelineno-0-91"></a>            <span class="n">devices</span><span class="p">[</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;values&quot;</span><span class="p">:</span> <span class="n">values</span><span class="p">}</span>
-<a id="__codelineno-0-92" name="__codelineno-0-92" href="#__codelineno-0-92"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;devices&quot;</span><span class="p">:</span> <span class="n">devices</span><span class="p">}</span>
+<a id="__codelineno-0-89" name="__codelineno-0-89" href="#__codelineno-0-89"></a>            <span class="k">for</span> <span class="n">neighbor</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">parsed</span><span class="p">[</span><span class="s2">"neighbors"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-0-90" name="__codelineno-0-90" href="#__codelineno-0-90"></a>                <span class="n">values</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">"bgp_state"</span><span class="p">])</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91" href="#__codelineno-0-91"></a>            <span class="n">devices</span><span class="p">[</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"values"</span><span class="p">:</span> <span class="n">values</span><span class="p">}</span>
+<a id="__codelineno-0-92" name="__codelineno-0-92" href="#__codelineno-0-92"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">"devices"</span><span class="p">:</span> <span class="n">devices</span><span class="p">}</span>
 <a id="__codelineno-0-93" name="__codelineno-0-93" href="#__codelineno-0-93"></a>
 <a id="__codelineno-0-94" name="__codelineno-0-94" href="#__codelineno-0-94"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">compare_state</span><span class="p">(</span>
 <a id="__codelineno-0-95" name="__codelineno-0-95" href="#__codelineno-0-95"></a>        <span class="bp">self</span><span class="p">,</span>
@@ -2172,7 +2172,7 @@
 <a id="__codelineno-0-100" name="__codelineno-0-100" href="#__codelineno-0-100"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-101" name="__codelineno-0-101" href="#__codelineno-0-101"></a>        <span class="k">for</span> <span class="n">device</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
 <a id="__codelineno-0-102" name="__codelineno-0-102" href="#__codelineno-0-102"></a>            <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-103" name="__codelineno-0-103" href="#__codelineno-0-103"></a>                <span class="n">expected_values</span> <span class="o">=</span> <span class="n">expected</span><span class="p">[</span><span class="s2">&quot;devices&quot;</span><span class="p">][</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;values&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-103" name="__codelineno-0-103" href="#__codelineno-0-103"></a>                <span class="n">expected_values</span> <span class="o">=</span> <span class="n">expected</span><span class="p">[</span><span class="s2">"devices"</span><span class="p">][</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="s2">"values"</span><span class="p">]</span>
 <a id="__codelineno-0-104" name="__codelineno-0-104" href="#__codelineno-0-104"></a>            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 <a id="__codelineno-0-105" name="__codelineno-0-105" href="#__codelineno-0-105"></a>                <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span>
 <a id="__codelineno-0-106" name="__codelineno-0-106" href="#__codelineno-0-106"></a>                    <span class="n">ResultStatus</span><span class="o">.</span><span class="n">FAILED</span><span class="p">,</span>
@@ -2181,7 +2181,7 @@
 <a id="__codelineno-0-109" name="__codelineno-0-109" href="#__codelineno-0-109"></a>                <span class="k">continue</span>
 <a id="__codelineno-0-110" name="__codelineno-0-110" href="#__codelineno-0-110"></a>
 <a id="__codelineno-0-111" name="__codelineno-0-111" href="#__codelineno-0-111"></a>            <span class="k">try</span><span class="p">:</span>
-<a id="__codelineno-0-112" name="__codelineno-0-112" href="#__codelineno-0-112"></a>                <span class="n">current_values</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="s2">&quot;devices&quot;</span><span class="p">][</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;values&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-112" name="__codelineno-0-112" href="#__codelineno-0-112"></a>                <span class="n">current_values</span> <span class="o">=</span> <span class="n">current</span><span class="p">[</span><span class="s2">"devices"</span><span class="p">][</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="s2">"values"</span><span class="p">]</span>
 <a id="__codelineno-0-113" name="__codelineno-0-113" href="#__codelineno-0-113"></a>            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
 <a id="__codelineno-0-114" name="__codelineno-0-114" href="#__codelineno-0-114"></a>                <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span>
 <a id="__codelineno-0-115" name="__codelineno-0-115" href="#__codelineno-0-115"></a>                    <span class="n">ResultStatus</span><span class="o">.</span><span class="n">FAILED</span><span class="p">,</span>
@@ -2281,7 +2281,7 @@
 <h4 id="handling-empty-gathered-state">Handling empty gathered state<a class="headerlink" href="#handling-empty-gathered-state" title="Permanent link">&para;</a></h4>
 <p>When <code>gather_state</code> produces an empty result for a device - an empty <code>values: {}</code> dict, an empty <code>"__exists__"</code> dict, or an empty scalar <code>value: ""</code> - it means the device has no data for the attribute this job validates. In learning mode, saving these empty parameters is misleading: the parameter file exists and looks healthy, but contains nothing to compare against during testing.</p>
 <p>The correct behavior is to mark the device as <strong>not applicable</strong> rather than saving empty parameters. The recommended pattern is to check for empty state after extraction, emit a <code>NOT_APPLICABLE</code> result for that device, and leave it out of the returned <code>devices</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">NO_DATA_REASON</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{device}</span><span class="s2">: &#39;</span><span class="si">{command}</span><span class="s2">&#39; returned no data for this test&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">NO_DATA_REASON</span> <span class="o">=</span> <span class="s2">"</span><span class="si">{device}</span><span class="s2">: '</span><span class="si">{command}</span><span class="s2">' returned no data for this test"</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SomeParameters</span><span class="p">:</span>
@@ -2296,9 +2296,9 @@
 <a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>            <span class="n">parsed</span><span class="o">=</span><span class="n">parsed</span><span class="p">,</span>
 <a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="p">)</span>
 <a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        <span class="n">values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="k">for</span> <span class="n">item_key</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">parsed</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>            <span class="n">value</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;target_field&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="k">for</span> <span class="n">item_key</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">parsed</span><span class="p">[</span><span class="s2">"items"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>            <span class="n">value</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"target_field"</span><span class="p">)</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">""</span><span class="p">:</span>
 <a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>                <span class="n">values</span><span class="p">[</span><span class="n">item_key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 <a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">values</span><span class="p">:</span>
 <a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>            <span class="n">context</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">add_result</span><span class="p">(</span>
@@ -2306,8 +2306,8 @@
 <a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>                <span class="n">NO_DATA_REASON</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">command</span><span class="p">),</span>
 <a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>            <span class="p">)</span>
 <a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>            <span class="k">continue</span>
-<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>        <span class="n">devices</span><span class="p">[</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;values&quot;</span><span class="p">:</span> <span class="n">values</span><span class="p">}</span>
-<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;devices&quot;</span><span class="p">:</span> <span class="n">devices</span><span class="p">}</span>
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>        <span class="n">devices</span><span class="p">[</span><span class="n">device</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"values"</span><span class="p">:</span> <span class="n">values</span><span class="p">}</span>
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">"devices"</span><span class="p">:</span> <span class="n">devices</span><span class="p">}</span>
 </code></pre></div>
 <p>This ensures that:</p>
 <ul>
@@ -2350,7 +2350,7 @@
 <p><code>compare_state</code> walks two nested loops and uses the <code>has_failures</code> accumulator.</p>
 <h3 id="existence-dict-membership">Existence dict (membership)<a class="headerlink" href="#existence-dict-membership" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">RouteExistenceDeviceParameters</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">prefixes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>  <span class="c1"># prefix -&gt; &quot;__exists__&quot;</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">prefixes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>  <span class="c1"># prefix -&gt; "__exists__"</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">RouteExistenceParameters</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
@@ -2358,13 +2358,13 @@
 </code></pre></div>
 <p>In <code>gather_state</code>, store each observed key with the sentinel value <code>"__exists__"</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">prefixes</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">for</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="n">parsed</span><span class="p">[</span><span class="s2">&quot;routes&quot;</span><span class="p">]:</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">prefixes</span><span class="p">[</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;__exists__&quot;</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">for</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="n">parsed</span><span class="p">[</span><span class="s2">"routes"</span><span class="p">]:</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">prefixes</span><span class="p">[</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"__exists__"</span>
 </code></pre></div>
 <p><code>compare_state</code> checks dict membership: each learned key must appear in the current observation. The sentinel value is not compared - its purpose is to unambiguously signal that the parameter represents an existence check, not a value check. This avoids confusion with empty values that might result from a parser or job bug.</p>
 <p>For double-keyed existence checks (e.g., OSPF neighbor adjacencies keyed by interface and neighbor ID), use nested dicts with <code>"__exists__"</code> at the leaf:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">OspfNeighborExistenceDeviceParameters</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">adjacencies</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>  <span class="c1"># interface -&gt; neighbor_id -&gt; &quot;__exists__&quot;</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">adjacencies</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>  <span class="c1"># interface -&gt; neighbor_id -&gt; "__exists__"</span>
 </code></pre></div>
 <h2 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Permanent link">&para;</a></h2>
 <ul>
@@ -2438,10 +2438,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>

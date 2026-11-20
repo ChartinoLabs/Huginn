@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
     
     
       
@@ -31,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2099,7 +2099,7 @@
 <li>How observations are gathered from each target.</li>
 </ol>
 <p>A complete reference example follows. The job tracks BGP keepalives sent per neighbor per device.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="sd">&quot;&quot;&quot;Volatile BGP neighbor test: keepalives sent observation chain.&quot;&quot;&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="sd">"""Volatile BGP neighbor test: keepalives sent observation chain."""</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
@@ -2116,35 +2116,35 @@
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
 <a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
 <a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="k">class</span><span class="w"> </span><span class="nc">VerifyBgpNeighborKeepalivesSentIncreasing</span><span class="p">(</span><span class="n">OperatorVolatileLearningTestCase</span><span class="p">):</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Observation chain for BGP neighbor keepalives sent.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="sd">"""Observation chain for BGP neighbor keepalives sent."""</span>
 <a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
 <a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">DESCRIPTION</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>        <span class="s2">&quot;Validate that each BGP neighbor&#39;s keepalives sent count satisfies the &quot;</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>        <span class="s2">&quot;expected comparison operator relative to the most recent prior &quot;</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>        <span class="s2">&quot;observation within this run.&quot;</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>        <span class="s2">"Validate that each BGP neighbor's keepalives sent count satisfies the "</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>        <span class="s2">"expected comparison operator relative to the most recent prior "</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>        <span class="s2">"observation within this run."</span>
 <a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    <span class="p">)</span>
 <a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>    <span class="n">SETUP</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>        <span class="s2">&quot;- Devices are reachable over SSH.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>        <span class="s2">&quot;- The `show ip bgp neighbors` command is supported on applicable targets.&quot;</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>        <span class="s2">"- Devices are reachable over SSH.</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>        <span class="s2">"- The `show ip bgp neighbors` command is supported on applicable targets."</span>
 <a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    <span class="p">)</span>
 <a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    <span class="n">PROCEDURE</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>        <span class="s2">&quot;- Execute `show ip bgp neighbors` on each applicable device.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>        <span class="s2">&quot;- Parse and extract `neighbors.*.message_stats.keepalives_sent`.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>        <span class="s2">&quot;- Write observations to the run&#39;s observation log and compare against &quot;</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>        <span class="s2">&quot;the most recent prior observation using each device&#39;s operator:</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>        <span class="s2">&quot;{</span><span class="si">% f</span><span class="s2">or device, params in parameters.devices.items() %}&quot;</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>        <span class="s2">&quot;  - {{ device }}: `{{ params.operator }}`</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>        <span class="s2">&quot;{</span><span class="si">% e</span><span class="s2">ndfor %}&quot;</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>        <span class="s2">"- Execute `show ip bgp neighbors` on each applicable device.</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>        <span class="s2">"- Parse and extract `neighbors.*.message_stats.keepalives_sent`.</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>        <span class="s2">"- Write observations to the run's observation log and compare against "</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>        <span class="s2">"the most recent prior observation using each device's operator:</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>        <span class="s2">"{</span><span class="si">% f</span><span class="s2">or device, params in parameters.devices.items() %}"</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>        <span class="s2">"  - {{ device }}: `{{ params.operator }}`</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>        <span class="s2">"{</span><span class="si">% e</span><span class="s2">ndfor %}"</span>
 <a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>    <span class="p">)</span>
 <a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>    <span class="n">PASS_FAIL_CRITERIA</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>        <span class="s2">&quot;- Pass when each neighbor&#39;s keepalives sent count satisfies the &quot;</span>
-<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>        <span class="s2">&quot;comparison operator relative to the prior observation.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>        <span class="s2">&quot;- Pass without comparing when this is the first observation in the run.</span><span class="se">\n</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>        <span class="s2">&quot;- Fail if any count violates the comparison operator.&quot;</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>        <span class="s2">"- Pass when each neighbor's keepalives sent count satisfies the "</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>        <span class="s2">"comparison operator relative to the prior observation.</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>        <span class="s2">"- Pass without comparing when this is the first observation in the run.</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>        <span class="s2">"- Fail if any count violates the comparison operator."</span>
 <a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>    <span class="p">)</span>
 <a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>
-<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>    <span class="n">SERIES_PREFIX</span> <span class="o">=</span> <span class="s2">&quot;bgp-neighbor-keepalives-sent&quot;</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>    <span class="n">command</span> <span class="o">=</span> <span class="s2">&quot;show ip bgp neighbors&quot;</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>    <span class="n">SERIES_PREFIX</span> <span class="o">=</span> <span class="s2">"bgp-neighbor-keepalives-sent"</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>    <span class="n">command</span> <span class="o">=</span> <span class="s2">"show ip bgp neighbors"</span>
 <a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>
 <a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">gather_observations</span><span class="p">(</span>
 <a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a>        <span class="bp">self</span><span class="p">,</span>
@@ -2168,9 +2168,9 @@
 <a id="__codelineno-0-67" name="__codelineno-0-67" href="#__codelineno-0-67"></a>                <span class="n">output</span><span class="o">=</span><span class="n">result</span><span class="p">,</span>
 <a id="__codelineno-0-68" name="__codelineno-0-68" href="#__codelineno-0-68"></a>                <span class="n">parsed</span><span class="o">=</span><span class="n">parsed</span><span class="p">,</span>
 <a id="__codelineno-0-69" name="__codelineno-0-69" href="#__codelineno-0-69"></a>            <span class="p">)</span>
-<a id="__codelineno-0-70" name="__codelineno-0-70" href="#__codelineno-0-70"></a>            <span class="k">for</span> <span class="n">neighbor</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">parsed</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;neighbors&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-<a id="__codelineno-0-71" name="__codelineno-0-71" href="#__codelineno-0-71"></a>                <span class="n">stats</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;message_stats&quot;</span><span class="p">,</span> <span class="p">{})</span>
-<a id="__codelineno-0-72" name="__codelineno-0-72" href="#__codelineno-0-72"></a>                <span class="n">value</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;keepalives_sent&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-70" name="__codelineno-0-70" href="#__codelineno-0-70"></a>            <span class="k">for</span> <span class="n">neighbor</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">parsed</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"neighbors"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-0-71" name="__codelineno-0-71" href="#__codelineno-0-71"></a>                <span class="n">stats</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"message_stats"</span><span class="p">,</span> <span class="p">{})</span>
+<a id="__codelineno-0-72" name="__codelineno-0-72" href="#__codelineno-0-72"></a>                <span class="n">value</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"keepalives_sent"</span><span class="p">)</span>
 <a id="__codelineno-0-73" name="__codelineno-0-73" href="#__codelineno-0-73"></a>                <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-74" name="__codelineno-0-74" href="#__codelineno-0-74"></a>                    <span class="k">continue</span>
 <a id="__codelineno-0-75" name="__codelineno-0-75" href="#__codelineno-0-75"></a>                <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -2179,7 +2179,7 @@
 <a id="__codelineno-0-78" name="__codelineno-0-78" href="#__codelineno-0-78"></a>                        <span class="n">series_key</span><span class="o">=</span><span class="n">neighbor</span><span class="p">,</span>
 <a id="__codelineno-0-79" name="__codelineno-0-79" href="#__codelineno-0-79"></a>                        <span class="n">value</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
 <a id="__codelineno-0-80" name="__codelineno-0-80" href="#__codelineno-0-80"></a>                        <span class="n">raw</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">),</span>
-<a id="__codelineno-0-81" name="__codelineno-0-81" href="#__codelineno-0-81"></a>                        <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;neighbor&quot;</span><span class="p">:</span> <span class="n">neighbor</span><span class="p">},</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81" href="#__codelineno-0-81"></a>                        <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s2">"neighbor"</span><span class="p">:</span> <span class="n">neighbor</span><span class="p">},</span>
 <a id="__codelineno-0-82" name="__codelineno-0-82" href="#__codelineno-0-82"></a>                    <span class="p">)</span>
 <a id="__codelineno-0-83" name="__codelineno-0-83" href="#__codelineno-0-83"></a>                <span class="p">)</span>
 <a id="__codelineno-0-84" name="__codelineno-0-84" href="#__codelineno-0-84"></a>        <span class="k">return</span> <span class="n">observations</span>
@@ -2248,7 +2248,7 @@
 <p>The base class only reports on devices that produced at least one observation. A device that yields none records no result at all, and if no device yields anything, the test PASSES with no checks. If an empty result means the job does not apply, or that something is wrong, record it yourself in <code>gather_observations</code>. Start the message with the device name:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">huginn</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResultStatus</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">NO_OBSERVATIONS_REASON</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{device}</span><span class="s2">: no BGP neighbors reported keepalive counters&quot;</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">NO_OBSERVATIONS_REASON</span> <span class="o">=</span> <span class="s2">"</span><span class="si">{device}</span><span class="s2">: no BGP neighbors reported keepalive counters"</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># Inside gather_observations, after the per-neighbor loop for a device:</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">if</span> <span class="ow">not</span> <span class="n">device_observations</span><span class="p">:</span>
@@ -2261,9 +2261,9 @@
 <h2 id="choosing-a-comparison-operator">Choosing a comparison operator<a class="headerlink" href="#choosing-a-comparison-operator" title="Permanent link">&para;</a></h2>
 <p>The operator lives in the parameter file, one per device:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;devices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">&quot;r1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gte&quot;</span><span class="p">},</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="nt">&quot;r2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;operator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gte&quot;</span><span class="p">}</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">"devices"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">"r1"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"operator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gte"</span><span class="p">},</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="nt">"r2"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"operator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gte"</span><span class="p">}</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="p">}</span>
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">}</span>
 </code></pre></div>
@@ -2438,10 +2438,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.instant", "navigation.instant.progress", "navigation.sections", "navigation.expand", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>
