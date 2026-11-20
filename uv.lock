@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.11.5'",
@@ -895,7 +895,7 @@ dependencies = [
     { name = "markdown" },
     { name = "pyyaml" },
     { name = "ruamel-yaml" },
-    { name = "scrapli", extra = ["asyncssh"] },
+    { name = "scrapli" },
     { name = "scrapli-netconf", extra = ["asyncssh"] },
     { name = "typer" },
 ]
@@ -926,7 +926,7 @@ requires-dist = [
     { name = "markdown", specifier = ">=3.4.0,<4.0.0" },
     { name = "pyyaml", specifier = ">=6.0.2,<7.0.0" },
     { name = "ruamel-yaml", specifier = ">=0.17.32,<1.0.0" },
-    { name = "scrapli", extras = ["asyncssh"], specifier = ">=2025.1.30,<2026.10" },
+    { name = "scrapli", extras = ["asyncssh"], specifier = ">=2025.1.30,<2026.12" },
     { name = "scrapli-netconf", extras = ["asyncssh"], specifier = ">=2025.1.30" },
     { name = "typer", specifier = ">=0.16.0,<1.0.0" },
 ]
@@ -2177,16 +2177,15 @@ wheels = [
 
 [[package]]
 name = "scrapli"
-version = "2026.2.20"
+version = "2026.11.12"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/cc/20/5a16997013f9aca4100e41493a93af774b1e73ef2c0fafc312a250b7425a/scrapli-2026.2.20.tar.gz", hash = "sha256:b6f8492110601c11ca8394d8540814464bb97681b87e92b30bb6853b5213558a", size = 104525, upload-time = "2026-02-20T23:42:57.414Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/37/a0/73926fc952f7da92536afacba529b13da869d20db08e401d440cb4fa2265/scrapli-2026.11.12.tar.gz", hash = "sha256:f79f4241b56800ad4ad7642f7b8b7502915b83be71774a43e681ee70a908bcd4", size = 4546613, upload-time = "2026-11-12T18:03:25.29Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2f/bd/4297e274df5cb43d0e3a85d9a30e7298daa13185f26442ef3f142a047105/scrapli-2026.2.20-py3-none-any.whl", hash = "sha256:abbe6f0d70e9b59166e590a74335781e4b5987a488403e08110ce75321a255af", size = 145891, upload-time = "2026-02-20T23:42:56.113Z" },
-]
-
-[package.optional-dependencies]
-asyncssh = [
-    { name = "asyncssh" },
+    { url = "https://files.pythonhosted.org/packages/ae/03/7313883ab08fd9b3ff00a785bb3a05d8fdfcb28423ebd76b037cb297eaea/scrapli-2026.11.12-py3-none-macosx_11_0_arm64.whl", hash = "sha256:18ec801b221faec78faafd726fe866101631b84cd73adfd5dd63372270d2ce5e", size = 2321665, upload-time = "2026-11-12T18:03:16.064Z" },
+    { url = "https://files.pythonhosted.org/packages/b3/6f/cc85d3f400cfce8c431732c11b7dcdbf0a6a95f7c979811f42035b5bfccb/scrapli-2026.11.12-py3-none-manylinux2010_x86_64.whl", hash = "sha256:1737debc6a2e77b9b245e97a9d9a5a5537d7a15221351212f22b2f4b59d3228c", size = 6825423, upload-time = "2026-11-12T18:03:17.576Z" },
+    { url = "https://files.pythonhosted.org/packages/d8/bb/79fa0681e9b06abe0f6a0b6c11b6ef5f05acb072a54088035d61013ebc21/scrapli-2026.11.12-py3-none-manylinux2014_aarch64.whl", hash = "sha256:fd2e6d9aa08c2a2753e0b016fef7603642b27a4a2cbeff97fb8666499922892c", size = 15647910, upload-time = "2026-11-12T18:03:19.094Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/1b/41eb7ff684c7c351f45b68142add8a9ea0a1aae688e7b9800994392f006d/scrapli-2026.11.12-py3-none-musllinux_1_1_aarch64.whl", hash = "sha256:be0095bf3b68b1a6116003c7b5a6855c3ec4ab1b32c5eebdee4a45f426140c39", size = 19968341, upload-time = "2026-11-12T18:03:21.278Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/e9/192714652e7e072ea23f9362092b9ad66ce43212107bea4dbaac72744285/scrapli-2026.11.12-py3-none-musllinux_1_1_x86_64.whl", hash = "sha256:cb11e85d44645fae9c5492b656164f39b14918b35d68b8a6c2c598565c77e494", size = 11343163, upload-time = "2026-11-12T18:03:23.377Z" },
 ]
 
 [[package]]
